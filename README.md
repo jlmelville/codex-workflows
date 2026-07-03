@@ -17,6 +17,8 @@ skills/
   r-*              R package development workflows
   python-*         Python project workflows, when added
   <generic>        Cross-language repo, CI, shell, and dependency workflows
+prompts/
+  *.md             Reusable prompts for skill-adjacent intake and review
 scripts/
   validate-skills.sh
 install.sh
@@ -47,6 +49,12 @@ needs them.
 
 Prefer concise skills with narrow trigger descriptions. Put repo/user
 documentation here in the README, not inside individual skill folders.
+
+## Prompts
+
+Use [prompts/skill-retrospective.md](prompts/skill-retrospective.md) at the end
+of project work to ask an agent for skill candidates. Prompt templates are for
+skill-adjacent intake and review; they are not installed into `~/.codex/skills`.
 
 ## Install
 
