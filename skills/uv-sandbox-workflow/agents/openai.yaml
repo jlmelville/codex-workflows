@@ -1,0 +1,4 @@
+interface:
+  display_name: "uv Sandbox Workflow"
+  short_description: "Run uv reliably in Codex sandboxes"
+  default_prompt: "Use $uv-sandbox-workflow to run this uv command without sandbox cache or network false starts."

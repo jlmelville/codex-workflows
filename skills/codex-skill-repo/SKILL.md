@@ -95,7 +95,7 @@ Use short prefixes for related skills:
 - `r-*` for R package workflows.
 - `python-*` for Python package workflows.
 - Generic names for cross-language operations such as repository bootstrap,
-  dependency PR maintenance, shell quality, and planning.
+  dependency PR maintenance, uv sandbox execution, shell quality, and planning.
 
 Prefer adding a new skill when a repeated workflow has clear triggers and
 repeatable decisions. Prefer a README note when the knowledge is only useful to

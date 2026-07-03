@@ -43,7 +43,7 @@ needs them.
   project workflow skills.
 - Generic skills cover cross-language operations such as skill repository
   maintenance, GitHub Actions hardening, dependency PR review, repository
-  bootstrap, and shell script quality.
+  bootstrap, uv sandbox execution, and shell script quality.
 
 Prefer concise skills with narrow trigger descriptions. Put repo/user
 documentation here in the README, not inside individual skill folders.
