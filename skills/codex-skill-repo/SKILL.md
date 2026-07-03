@@ -79,6 +79,12 @@ Run the repository validator before committing:
 ./scripts/validate-skills.sh
 ```
 
+After installing, verify the source and installed skill trees match:
+
+```sh
+diff -qr ./skills "${CODEX_HOME:-$HOME/.codex}/skills" -x .system
+```
+
 For workflow changes, also run the repository's workflow audit if present:
 
 ```sh

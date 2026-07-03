@@ -80,6 +80,16 @@ UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
 uv run --with package-name python -c '...'
 ```
 
+For helper scripts with undeclared Python dependencies, use `uv run --with`
+instead of installing into the system Python:
+
+```sh
+UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
+UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
+UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
+uv run --with pyyaml python path/to/helper.py args...
+```
+
 For project commands, keep the project as the working directory and still set
 the writable uv directories:
 
