@@ -72,6 +72,9 @@ Run:
 This checks basic skill frontmatter, UI metadata YAML, shell script syntax, and
 executable bits for bundled shell scripts.
 
+GitHub Actions runs the same validation on pushes and pull requests, plus a
+lightweight workflow audit and ShellCheck when available.
+
 ## Local Tooling
 
 Some skills assume these tools may be available in project worktrees:
