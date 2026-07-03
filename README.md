@@ -69,17 +69,18 @@ Run:
 ./scripts/validate-skills.sh
 ```
 
-This checks basic skill frontmatter, UI metadata YAML, shell script syntax, and
-executable bits for bundled shell scripts.
+This checks basic skill frontmatter, UI metadata YAML, shell script syntax,
+ShellCheck results, and executable bits for bundled shell scripts.
 
 GitHub Actions runs the same validation on pushes and pull requests, plus a
-lightweight workflow audit and ShellCheck when available.
+lightweight workflow audit.
 
 ## Local Tooling
 
 Some skills assume these tools may be available in project worktrees:
 
 - `ruby` for repository validation
+- `shellcheck` for shell script validation
 - `Rscript`
 - `air`
 - `actionlint`

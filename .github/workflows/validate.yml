@@ -24,24 +24,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install ShellCheck
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y shellcheck
+          fi
+
       - name: Validate skills
         run: ./scripts/validate-skills.sh
 
       - name: Audit workflows
         run: ./skills/r-ci-hardening/scripts/audit-actions.sh .github/workflows
-
-      - name: ShellCheck shell scripts
-        shell: bash
-        run: |
-          if ! command -v shellcheck >/dev/null 2>&1; then
-            echo "shellcheck not found; skipping"
-            exit 0
-          fi
-
-          mapfile -t shell_files < <(find . -path ./.git -prune -o -type f -name '*.sh' -print)
-          if ((${#shell_files[@]} == 0)); then
-            echo "No shell scripts found"
-            exit 0
-          fi
-
-          shellcheck "${shell_files[@]}"
