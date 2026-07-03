@@ -1,0 +1,4 @@
+interface:
+  display_name: "Planning Workflow"
+  short_description: "Plan complex work across sessions"
+  default_prompt: "Use $planning-workflow to plan and hand off this multi-step repository change."
