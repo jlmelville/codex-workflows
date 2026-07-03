@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rcpp Package Work"
+  short_description: "Handle Rcpp package changes safely"
+  default_prompt: "Use $r-rcpp-package to make this Rcpp package change."

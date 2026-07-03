@@ -1,0 +1,4 @@
+interface:
+  display_name: "R Package Workflow"
+  short_description: "Work safely across R package repos"
+  default_prompt: "Use $r-package-workflow to make this R package change with the right checks."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "R Test Hygiene"
+  short_description: "Keep R package tests readable"
+  default_prompt: "Use $r-test-hygiene to revise these R package tests cleanly."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "R CI Hardening"
+  short_description: "Harden R GitHub Actions workflows"
+  default_prompt: "Use $r-ci-hardening to update this R package workflow securely."

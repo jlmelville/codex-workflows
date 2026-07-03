@@ -1,0 +1,4 @@
+interface:
+  display_name: "R Docs and pkgdown"
+  short_description: "Maintain R docs, README, and pkgdown"
+  default_prompt: "Use $r-docs-pkgdown to update this R package documentation."

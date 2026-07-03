@@ -1,0 +1,24 @@
+.DS_Store
+*.swp
+*.tmp
+
+# Local/editor state
+.idea/
+.vscode/
+
+# Temporary validation artifacts
+tmp/
+.tmp/
+
+# Never commit copied Codex runtime state here.
+auth.json
+history.jsonl
+session_index.jsonl
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+sessions/
+archived_sessions/
+attachments/
+cache/
+plugins/cache/

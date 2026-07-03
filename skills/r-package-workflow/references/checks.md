@@ -1,0 +1,51 @@
+# R Package Check Selection
+
+Use the smallest check set that gives real confidence. Broaden when touching
+shared behavior, generated files, infrastructure, or compiled code.
+
+## R Behavior
+
+- Focused test file: `Rscript -e 'testthat::test_local(filter = "pattern")'`
+- Full tests: `Rscript -e 'testthat::test_local()'`
+- Full package check: `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'`
+
+Run full tests after changes to exported behavior, validation, data conversion,
+cross-module helpers, or test fixtures used by multiple files.
+
+## Documentation
+
+- Roxygen refresh: `Rscript -e 'roxygen2::roxygenise()'`
+- README/article smoke tests if present.
+- pkgdown build when changing `_pkgdown.yml`, articles, examples, or generated
+  docs: `Rscript -e 'pkgdown::build_site(new_process = FALSE)'`
+
+Network-restricted environments may need escalation for pkgdown external
+assets or CRAN metadata.
+
+## Rcpp
+
+- Attribute refresh: `Rscript -e 'Rcpp::compileAttributes()'`
+- Full tests after compiled changes.
+- `R CMD check` or `devtools::check()` for installation and compiled-code
+  checks.
+- Run clang-format checks for hand-maintained C++ if configured.
+
+## Formatting and Lint
+
+- Air owns R/Rmd formatting: `air format . --check`
+- Lintr should not fight Air:
+  `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
+
+For test fixtures, use `# fmt: skip` around shape-sensitive matrix/list
+fixtures where Air reduces readability.
+
+## GitHub Actions
+
+- Syntax/security checks: `actionlint` and `uvx zizmor .github/workflows`
+- Inspect all `uses:` entries for full-length SHA pins.
+- Confirm checkout steps set `persist-credentials: false`.
+
+## Coverage
+
+- `Rscript -e 'covr::package_coverage()'`
+- Use `.covrignore` only for intentional exclusions.
