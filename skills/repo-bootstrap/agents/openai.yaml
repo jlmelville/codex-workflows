@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Bootstrap"
+  short_description: "Bootstrap a GitHub-backed repo"
+  default_prompt: "Use $repo-bootstrap to turn this local project into a clean GitHub repository."

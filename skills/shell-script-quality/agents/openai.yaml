@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shell Script Quality"
+  short_description: "Improve Bash script reliability"
+  default_prompt: "Use $shell-script-quality to review and harden these shell scripts."

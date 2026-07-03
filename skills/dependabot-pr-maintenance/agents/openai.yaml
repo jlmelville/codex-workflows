@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dependabot PR Maintenance"
+  short_description: "Review and merge Dependabot PRs"
+  default_prompt: "Use $dependabot-pr-maintenance to review this Dependabot PR before merging."

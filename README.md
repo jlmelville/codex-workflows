@@ -15,6 +15,8 @@ configuration.
 ```text
 skills/
   r-*              R package development workflows
+  python-*         Python project workflows, when added
+  <generic>        Cross-language repo, CI, shell, and dependency workflows
 scripts/
   validate-skills.sh
 install.sh
@@ -39,8 +41,9 @@ needs them.
 - `r-*`: R package workflows, tests, documentation, Rcpp, and CI hardening.
 - `python-*`: reserved for Python packaging, testing, linting, typing, and
   project workflow skills.
-- Generic skills can live beside language-specific skills, for example
-  `plan-work`, `design-system`, or `review-architecture`.
+- Generic skills cover cross-language operations such as skill repository
+  maintenance, GitHub Actions hardening, dependency PR review, repository
+  bootstrap, and shell script quality.
 
 Prefer concise skills with narrow trigger descriptions. Put repo/user
 documentation here in the README, not inside individual skill folders.

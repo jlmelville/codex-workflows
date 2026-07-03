@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Skill Repo"
+  short_description: "Maintain Codex skill repositories"
+  default_prompt: "Use $codex-skill-repo to update this Codex skill repository safely."

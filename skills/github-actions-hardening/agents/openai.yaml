@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Actions Hardening"
+  short_description: "Harden GitHub Actions workflows"
+  default_prompt: "Use $github-actions-hardening to review and harden this GitHub Actions workflow."
