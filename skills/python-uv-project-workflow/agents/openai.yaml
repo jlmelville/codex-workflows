@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python uv Workflow"
+  short_description: "Work in Python uv projects"
+  default_prompt: "Use $python-uv-project-workflow to make and validate this Python project change."

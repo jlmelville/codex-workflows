@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notebook Inspection"
+  short_description: "Inspect notebooks without output noise"
+  default_prompt: "Use $notebook-inspection to inspect this Jupyter notebook without loading bulky outputs."

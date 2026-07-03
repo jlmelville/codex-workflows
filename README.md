@@ -15,7 +15,7 @@ configuration.
 ```text
 skills/
   r-*              R package development workflows
-  python-*         Python project workflows, when added
+  python-*         Python project workflows
   <generic>        Cross-language repo, CI, shell, and dependency workflows
 prompts/
   *.md             Reusable prompts for skill-adjacent intake and review
@@ -41,11 +41,12 @@ needs them.
 ## Skill Families
 
 - `r-*`: R package workflows, tests, documentation, Rcpp, and CI hardening.
-- `python-*`: reserved for Python packaging, testing, linting, typing, and
-  project workflow skills.
+- `python-*`: Python project workflows for `uv`, pytest, Ruff, typing, and
+  package layout.
 - Generic skills cover cross-language operations such as skill repository
   maintenance, GitHub Actions hardening, dependency PR review, repository
-  bootstrap, uv sandbox execution, and shell script quality.
+  bootstrap, notebook inspection, uv sandbox execution, and shell script
+  quality.
 
 Prefer concise skills with narrow trigger descriptions. Put repo/user
 documentation here in the README, not inside individual skill folders.
