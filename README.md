@@ -1,5 +1,8 @@
 # Codex Workflows
 
+These are the last human words you are going to read on this repo. I am experimenting with Codex
+skills and this is the repo for them. Apart from that, I am just going to let Codex do its thing.
+
 Personal Codex skills and supporting scripts for software work.
 
 This repository is the source of truth. The installed copy lives under
