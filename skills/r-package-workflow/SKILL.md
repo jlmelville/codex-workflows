@@ -36,7 +36,7 @@ Use this as the default operating procedure for R package work.
 ## Checks
 
 Choose checks based on blast radius. See [checks.md](references/checks.md) for
-the command matrix.
+the command matrix and warning attribution workflow.
 
 Common commands:
 

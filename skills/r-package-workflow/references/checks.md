@@ -20,6 +20,27 @@ behavior, when no package code was loaded.
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
 
+## R Warning Attribution
+
+When a warning mentions symbols that could be local code, graphics/device state,
+or dependency internals, prove the source before assigning blame:
+
+1. Reproduce a minimal path and the user's full path.
+2. Search local package code first for the warning text, symbol, helper name, or
+   call path.
+3. If the signal points into a dependency, inspect exported and unexported
+   helpers:
+   `getAnywhere("name")`, then
+   `get("name", envir = asNamespace("pkg"), inherits = FALSE)` when the package
+   is known.
+4. Use `options(warn = 2)` or focused tracing only when needed to turn an
+   intermittent warning into a traceback.
+5. Do not attribute the warning to platform graphics, headless devices, or local
+   plotting code until both the local path and dependency path have been checked.
+
+Record the exact warning text, local call path, dependency package/helper, and
+line or expression that emits the warning.
+
 ## Documentation
 
 - Roxygen refresh: `Rscript -e 'roxygen2::roxygenise()'`
