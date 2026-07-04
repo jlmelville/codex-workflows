@@ -36,11 +36,13 @@ copy the complete feature bundle from a reference repo.
 
 After `usethis::use_pkgdown_github_pages()` or similar helpers:
 
-1. Inspect all changes, especially `.github/workflows/pkgdown.yaml`.
+1. Inspect all changes, especially `.github/workflows/pkgdown.yaml` and
+   `_pkgdown.yml`.
 2. Restore or apply hardened GitHub Actions patterns.
-3. Keep `_pkgdown.yml`, `DESCRIPTION` URL/config, `.Rbuildignore`,
+3. Verify remote GitHub Pages and repo homepage state when publishing matters.
+4. Keep `_pkgdown.yml`, `DESCRIPTION` URL/config, `.Rbuildignore`,
    articles, and workflow in sync.
-4. Run pkgdown and workflow checks.
+5. Run pkgdown and workflow checks.
 
 See [pkgdown.md](references/pkgdown.md).
 

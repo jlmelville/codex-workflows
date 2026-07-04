@@ -40,16 +40,47 @@ Move detailed metric theory, literature background, and long examples to
 Use pkgdown articles, not CRAN vignettes, when the goal is website guidance.
 Build-ignore article infrastructure appropriately.
 
+When helpers rewrite `_pkgdown.yml`, compare the result against intentional
+navigation choices. Restore curated `articles:` or reference structure before
+validating so user-facing site organization is not silently replaced by helper
+defaults.
+
 ## GitHub Pages
 
-`usethis::use_pkgdown_github_pages()` may rewrite workflows. After running it,
-reconcile `.github/workflows/pkgdown.yaml` against hardened patterns:
+`usethis::use_pkgdown_github_pages()` has both local scaffolding and remote
+GitHub side effects. It can enable Pages, set repository homepage metadata, add
+pkgdown URLs, add ignore files, and rewrite local workflow/config files. Treat
+these effects separately: preserve useful remote state and ignore-file updates,
+but restore hardened workflows and curated `_pkgdown.yml` content when helper
+defaults are too broad or remove intentional navigation.
+
+After running it, reconcile `.github/workflows/pkgdown.yaml` against hardened
+patterns:
 
 - SHA-pinned actions,
 - top-level read-only permissions,
 - `persist-credentials: false`,
 - build/deploy split with artifact handoff,
 - `contents: write` only on deploy.
+
+Also verify remote state, not just local files:
+
+```sh
+gh api repos/OWNER/REPO/pages
+gh repo view --json homepageUrl
+git ls-remote --heads origin gh-pages
+curl -I -L https://OWNER.github.io/REPO/
+```
+
+Expected Pages state for a `gh-pages` deploy is usually `status: built`,
+`source.branch: gh-pages`, and `source.path: /`. A missing GitHub repository
+homepage link can mean the remote repo metadata was not updated even when
+`_pkgdown.yml`, a deploy workflow, and a `gh-pages` branch exist locally or on
+the remote.
+
+If `gh` authentication or PAT scopes block Pages setup or API reads, report the
+exact permission failure. Public repos can often be checked through public HTTP
+and read APIs, but enabling or updating Pages requires repository permissions.
 
 Run:
 

@@ -53,6 +53,12 @@ suspicious: it can leave `R CMD build` free to rebuild vignettes while
 
 ## Pkgdown
 
+When `usethis::use_pkgdown_github_pages()` rewrites a pkgdown workflow, keep
+useful remote Pages/homepage side effects but restore the hardened workflow
+shape below. Confirm publishing state through `$r-docs-pkgdown`; actionlint,
+zizmor, and SHA audits do not prove that GitHub Pages is enabled or that the
+repo homepage points at the pkgdown site.
+
 Hardened shape:
 
 ```yaml
