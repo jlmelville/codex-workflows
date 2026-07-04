@@ -152,6 +152,24 @@ the repo tracks pkgdown output or the user asked to update the site.
 - Lintr should not fight Air:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
 
+When changing `.lintr` policy in an Air-formatted repo, trial candidate linters
+without editing the config first:
+
+```sh
+Rscript -e 'linters <- lintr::linters_with_defaults(line_length_linter = NULL, object_usage_linter = NULL); lints <- lintr::lint_package(linters = linters); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
+```
+
+Enable only rules that stay low-noise on the real package. Treat
+`object_usage_linter` and `line_length_linter` as high-risk in same-package
+work until proven otherwise: `object_usage_linter` can flag local/test helpers
+as missing globals, and Air-clean code can still exceed lintr's default line
+length rule.
+
+After editing `.lintr`, rerun both `air format . --check` and
+`lintr::lint_package()` from the saved config. Keep multi-line `.lintr` values
+as valid DCF: continuation lines, including closing parentheses for R
+expressions, must stay indented rather than starting at column 1.
+
 For test fixtures, use `# fmt: skip` around shape-sensitive matrix/list
 fixtures where Air reduces readability.
 
