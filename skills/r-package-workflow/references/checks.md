@@ -20,6 +20,31 @@ behavior, when no package code was loaded.
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
 
+## Vignette Skip Semantics
+
+When CI policy is "do not build vignettes", distinguish the two `rcmdcheck`
+layers:
+
+- `build_args` is passed to `R CMD build`.
+- `args` is passed to `R CMD check`.
+
+For `r-lib/actions/check-r-package`, putting `--no-build-vignettes` only in
+`args` does not stop build-time vignette rebuilds. When no `inst/doc` vignette
+output is expected, use `--no-build-vignettes` on the build side and
+`--ignore-vignettes` on the check side:
+
+```r
+rcmdcheck::rcmdcheck(
+  args = c("--no-manual", "--ignore-vignettes"),
+  build_args = c("--no-manual", "--no-build-vignettes"),
+  error_on = "never"
+)
+```
+
+If local or CI output says a vignette was rebuilt despite an intended skip, or
+reports "Package vignette without corresponding single PDF/HTML", inspect both
+layers before changing vignette sources.
+
 ## R Warning Attribution
 
 When a warning mentions symbols that could be local code, graphics/device state,

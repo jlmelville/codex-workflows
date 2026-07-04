@@ -66,6 +66,13 @@ Treat tool failures from network or missing dependencies separately from
 workflow findings, and rerun after installing or approving the needed tool.
 Prefer an installed `zizmor` when present; use `uvx zizmor` as the fallback.
 
+## CI Triage Fallback
+
+When `gh auth status` is invalid in the Codex environment but the repository is
+public, use public Actions run/job metadata and public job-page annotations as a
+fallback. Be explicit that authenticated raw logs may remain unavailable; do
+not claim certainty beyond the visible annotations and status metadata.
+
 ## Dependabot
 
 Use a minimal Dependabot configuration for GitHub Actions unless the repository

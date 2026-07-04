@@ -22,6 +22,35 @@ Use the same pinned SHA for `r-lib/actions` actions in a workflow when possible:
 - uses: r-lib/actions/setup-r-dependencies@<full-sha>
 ```
 
+## R CMD Check Vignettes
+
+Static workflow checks do not validate the package semantics of
+`r-lib/actions/check-r-package` inputs. When a workflow intentionally skips
+vignettes, especially PDF vignettes, check both `rcmdcheck` layers:
+
+- `with.args` passes arguments to `R CMD check`.
+- `with.build_args` passes arguments to `R CMD build`.
+
+If the policy is "do not build vignettes" and no `inst/doc` output is expected,
+use this shape:
+
+```yaml
+- uses: r-lib/actions/check-r-package@<full-sha>
+  with:
+    args: 'c("--no-manual", "--ignore-vignettes")'
+    build_args: 'c("--no-manual", "--no-build-vignettes")'
+```
+
+Validate the exact action inputs locally when diagnosing failures:
+
+```sh
+Rscript -e 'rcmdcheck::rcmdcheck(args = c("--no-manual", "--ignore-vignettes"), build_args = c("--no-manual", "--no-build-vignettes"), error_on = "never")'
+```
+
+Treat `--no-build-vignettes` in `args` without matching `build_args` as
+suspicious: it can leave `R CMD build` free to rebuild vignettes while
+`actionlint`, `zizmor`, and action-pin audits still pass.
+
 ## Pkgdown
 
 Hardened shape:
