@@ -121,6 +121,11 @@ For workflow changes, also run the repository's workflow audit if present:
 If the generic audit script is not present, run `actionlint`, `zizmor`, and
 ShellCheck as applicable.
 
+When changing shared tool policy, common command examples, or duplicated
+bundled scripts, search the whole skill tree for stale parallel guidance before
+committing. If two scripts are intentionally mirrored across skills, update both
+or record why they differ.
+
 Before committing, stage only intended files, inspect `git diff --cached --stat`
 and `git diff --cached --name-only`, then commit and push when publishing is in
 scope.
