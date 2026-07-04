@@ -71,6 +71,21 @@ runtime directory.
 7. Install the updated skills and confirm the installed copies match the source
    repo when that matters.
 
+## Promoting Local Guidance
+
+When turning repo-local `.agents/skills`, `docs/agents`, `AGENTS.md`, or
+`PLANS.md` material into global skills:
+
+1. Inventory the local guidance and classify it as generic, language-specific,
+   repo-specific, stale duplicate, or ordinary engineering judgment.
+2. Promote only reusable, non-obvious workflows that are likely to recur.
+3. Generalize names, triggers, paths, and examples so the new skill does not
+   leak one repo's domain model.
+4. Leave domain-specific contracts local until the same pattern appears in
+   another repo.
+5. Replace duplicated local rules with short references to the global skill when
+   editing that repo is in scope.
+
 ## Validation
 
 Run the repository validator before committing:
@@ -85,6 +100,18 @@ After installing, verify the source and installed skill trees match:
 diff -qr ./skills "${CODEX_HOME:-$HOME/.codex}/skills" -x .system
 ```
 
+For new or substantially changed skills, also run the system quick validator:
+
+```sh
+python /path/to/quick_validate.py skills/<skill-name>
+```
+
+If the validator needs Python packages such as PyYAML, run it through `uv` and
+follow `$uv-sandbox-workflow` so caches live under `/tmp`.
+
+For bundled scripts, run representative behavior checks and remove generated
+test artifacts such as `__pycache__` before staging.
+
 For workflow changes, also run the repository's workflow audit if present:
 
 ```sh
@@ -93,6 +120,10 @@ For workflow changes, also run the repository's workflow audit if present:
 
 If the generic audit script is not present, run `actionlint`, `zizmor`, and
 ShellCheck as applicable.
+
+Before committing, stage only intended files, inspect `git diff --cached --stat`
+and `git diff --cached --name-only`, then commit and push when publishing is in
+scope.
 
 ## Skill Family Growth
 

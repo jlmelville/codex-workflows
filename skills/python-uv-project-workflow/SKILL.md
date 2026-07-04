@@ -98,6 +98,10 @@ Avoid committing large regenerated outputs unless requested. Generated artifacts
 should record the command, data source, random seed, and important parameters
 when practical.
 
+Prefer fixtures or small synthetic data for tests. If a Python task depends on
+external data, make the missing-data behavior explicit instead of assuming the
+file exists on every machine.
+
 ## Review Checklist
 
 Before finalizing a substantial diff, check:

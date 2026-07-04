@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Instructions Maintenance"
+  short_description: "Audit and shrink AGENTS.md guidance"
+  default_prompt: "Use $agent-instructions-maintenance to audit and simplify this repository AGENTS.md."

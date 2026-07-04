@@ -179,6 +179,24 @@ When creating a persistent plan, choose a location deliberately:
 Avoid adding or expanding generic `PLANS.md` or `AGENTS.md` rules when this
 skill already covers them. Keep repo instructions short and repo-specific.
 
+## Cleaning Local Planning Files
+
+When asked to clean up `PLANS.md`, `AGENTS.md`, plan directories, or old
+handoff files after this skill exists:
+
+1. Search tracked, untracked, and ignored paths before deciding what is active.
+2. Separate active execution state from historical notes, scratch research,
+   audits, and completed handoffs.
+3. Preserve durable current state: goal, decisions, validation, next action,
+   guardrails, and user vetoes.
+4. Shrink root `PLANS.md` or `AGENTS.md` to repo-specific addenda and skill
+   routing. Remove copied skeletons, generic handoff templates, and fixed
+   marker rules when this skill covers them.
+5. Do not delete ignored plans, scratch files, or historical handoffs unless the
+   user explicitly asks; report their status instead.
+6. Note whether resulting files are tracked, untracked, or ignored, because
+   future agents may not see them in ordinary status output.
+
 ## Resume And Recovery
 
 When resuming after compaction, interruption, or a fresh-agent handoff:

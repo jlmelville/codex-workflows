@@ -100,6 +100,21 @@ python3 <skill-dir>/scripts/notebook_inspect.py validate path/to/notebook.ipynb
 If the repo has notebook execution tooling, use it when execution is required.
 Otherwise do not claim the notebook was executed.
 
+## Generated Artifacts
+
+Treat notebooks, plots, generated markdown, and example outputs as artifacts,
+not as the primary implementation surface.
+
+- Inspect only artifacts relevant to the task.
+- Prefer code-level tests when they prove the behavior.
+- Avoid committing large regenerated outputs unless the user asks or repo
+  convention requires it.
+- Prefer fixtures or small synthetic data for tests.
+- If external data is required, document where it is expected to live and how
+  failure should look when it is missing.
+- Make generated plots deterministic when practical by recording commands, data
+  sources, random seeds, and important parameters.
+
 ## Cleaning Outputs
 
 Do not strip notebook outputs unless the user asks or repo convention requires
