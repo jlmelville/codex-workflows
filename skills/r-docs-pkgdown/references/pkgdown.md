@@ -32,6 +32,12 @@ Keep README short:
 - one or two quick examples,
 - links to articles and reference pages.
 
+Use badges sparingly. Prefer glanceable project status badges: `R-CMD-check`,
+test coverage, CRAN status when the package is on CRAN, and optionally a last
+updated or last commit badge. Avoid badges for implementation-maintenance
+checks such as Air, lintr, pkgdown, actionlint, or zizmor unless the user asks
+for them; keep those signals in CI instead of the README badge row.
+
 Move detailed metric theory, literature background, and long examples to
 `vignettes/articles/`.
 
