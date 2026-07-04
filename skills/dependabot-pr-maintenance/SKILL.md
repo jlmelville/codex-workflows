@@ -1,6 +1,6 @@
 ---
 name: dependabot-pr-maintenance
-description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree or temp-merge validation, red-check triage, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
+description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree or temp-merge validation, red-check triage, verified PR merges, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
 ---
 
 # Dependabot PR Maintenance
@@ -47,17 +47,24 @@ If a `gh` command fails with sandboxed DNS or network errors, rerun the same
 command with network approval and a narrow `gh pr ...` prefix rule. Treat that
 as an environment retry, not as evidence that the PR or authentication is bad.
 
-For stale-base GitHub Actions PRs, validate the state that would actually be
-merged:
+## Pinned Actions PR Audit
 
-1. Compare the PR base with current remote `main`.
-2. Check action SHAs against the advertised tags, for example with
-   `git ls-remote` on the action repository.
-3. Apply the PR patch to a clean temporary checkout when the local worktree is
+For GitHub Actions PRs that update SHA-pinned `uses:` entries:
+
+1. Confirm bot author, patch scope, changed workflow files, and nearby version
+   comments.
+2. Verify updated refs remain full-length SHAs.
+3. Check each new SHA against the advertised upstream tag or tags with
+   `git ls-remote`.
+4. Compare the PR base with the current remote base branch; validate the state
+   that would actually be merged, not only the displayed PR diff.
+5. Apply the PR patch to a clean temporary checkout when the local worktree is
    dirty or the PR branch is stale.
-4. Run workflow linters on the patched or merged state.
-5. For a batch of narrow action-update PRs, test each PR individually and then
+6. Run workflow linters on the patched or merged state.
+7. For a batch of narrow action-update PRs, test each PR individually and then
    test the combined merge result in `/tmp` before recommending merge order.
+8. Report a merge-safety summary that separates patch safety, stale CI state,
+   missing network/tool validation, and local dirty-worktree constraints.
 
 For workflow dependency PRs, run the repository's workflow audit on the merged
 or current workflow state when possible:
@@ -106,13 +113,28 @@ manual fix is clearly safer.
 
 ## Merge
 
-1. Re-check PR state after any push to the branch.
-2. Merge only when required checks pass and the patch is understood.
-3. Use an expected head SHA when the tool supports it so the merge fails if the
-   branch moves.
-4. Prefer squash merge for routine dependency updates unless the repository has
-   a different convention.
-5. Pull or fetch `main` after merging and confirm the local checkout is clean.
+1. Re-read PR state immediately before merging, including head SHA, mergeable
+   state, base branch, check status, and whether the branch is already merged.
+2. Confirm the head SHA matches the commit that was validated. If it changed,
+   restart validation.
+3. Merge only when required checks pass, or when failed checks have been
+   classified and accepted according to repository policy.
+4. Use an expected head SHA so the merge fails if the branch moves, for example:
+
+   ```sh
+   gh pr merge <number> --repo owner/repo --squash --match-head-commit <sha>
+   ```
+
+   Add `--delete-branch` when the user or repository policy requests branch
+   deletion. Use `--merge` or `--rebase` only when that matches repository
+   convention.
+5. If `gh pr merge` fails with a sandboxed network or API connection error,
+   re-read PR state first. If it did not merge, rerun the same merge command
+   with network approval.
+6. Confirm the PR is merged, record the merge commit or resulting commit SHA,
+   and verify branch deletion when requested.
+7. Fetch the remote base branch after merging without disturbing local changes.
+   Avoid `git pull` or checkout changes when the worktree is dirty.
 
 ## Report
 
