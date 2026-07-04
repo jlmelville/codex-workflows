@@ -8,15 +8,23 @@ After adding, removing, or changing `// [[Rcpp::export]]` functions:
 Rscript -e 'Rcpp::compileAttributes()'
 git diff -- R/RcppExports.R src/RcppExports.cpp
 Rscript -e 'Rcpp::compileAttributes()'
+git diff -- R/RcppExports.R src/RcppExports.cpp
 ```
 
-The second run should be idempotent.
+The first diff should show only the intended wrapper, registration, or signature
+change. The second run should be idempotent: no new generated-file diff should
+appear after rerunning `compileAttributes()`.
+
+Do not hand-edit `R/RcppExports.R` or `src/RcppExports.cpp` to make the diff
+look right. Fix the exported C++ signature or attributes and regenerate.
 
 ## Formatting
 
 - Format hand-maintained C++ files with the repo's `.clang-format`.
 - Do not manually format generated `src/RcppExports.cpp` unless the repo has
   explicitly decided to do so.
+- Keep generated-file refresh separate from broad formatting commits so review
+  can distinguish interface changes from style churn.
 - Use explicit target lists for clang-format when needed:
 
 ```sh

@@ -27,8 +27,18 @@ Expected generated outputs:
 - `R/RcppExports.R`
 - `src/RcppExports.cpp`
 
-If these change unexpectedly, inspect the diff and rerun
-`Rcpp::compileAttributes()` to confirm idempotence.
+After changing `// [[Rcpp::export]]` functions or attributes:
+
+1. Run `Rscript -e 'Rcpp::compileAttributes()'`.
+2. Inspect only the generated export diff and confirm it matches the intended
+   signature or registration change.
+3. Run `Rscript -e 'Rcpp::compileAttributes()'` again; the second run should be
+   idempotent.
+4. Keep hand-maintained C++ formatting separate from generated
+   `src/RcppExports.cpp`.
+
+If generated files change unexpectedly, stop and inspect before layering on
+more edits.
 
 ## C++ Safety
 

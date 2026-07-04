@@ -40,7 +40,8 @@ needs them.
 
 ## Skill Families
 
-- `r-*`: R package workflows, tests, documentation, Rcpp, and CI hardening.
+- `r-*`: R package workflows, tests, documentation, Rcpp, performance, and CI
+  hardening.
 - `python-*`: Python project workflows for `uv`, pytest, Ruff, typing, and
   package layout.
 - Generic skills cover cross-language operations such as skill repository

@@ -30,6 +30,26 @@ assets or CRAN metadata.
   checks.
 - Run clang-format checks for hand-maintained C++ if configured.
 
+## Restricted Environment Notes
+
+Codex sandboxes and CI-like containers can produce notes that are environmental
+rather than regressions. Classify and report them once instead of rediscovering
+them every run.
+
+Common examples:
+
+- unable to verify current time or internet-dependent metadata;
+- CRAN source index, package repository, or URL access blocked by network
+  policy;
+- system bus or desktop-service warnings from headless environments;
+- compiler flag notes from local toolchains, such as
+  `-mno-omit-leaf-frame-pointer`, when already present before the change.
+
+Do not hide these notes. Record the exact note, explain why it is believed to be
+environmental, and say whether the same note was present before the change. If
+a note is new, code-specific, or changes package behavior, treat it as a real
+finding until proven otherwise.
+
 ## Formatting and Lint
 
 - Air owns R/Rmd formatting: `air format . --check`

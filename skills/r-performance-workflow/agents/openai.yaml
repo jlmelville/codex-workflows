@@ -1,0 +1,4 @@
+interface:
+  display_name: "R Performance Workflow"
+  short_description: "Run phased R performance work"
+  default_prompt: "Use $r-performance-workflow to run and document this R package performance optimization."

@@ -67,3 +67,5 @@ available:
 - Tests and fixtures: `$r-test-hygiene`.
 - README, NEWS, roxygen, articles, pkgdown: `$r-docs-pkgdown`.
 - Rcpp, compiled code, `src/`, `Makevars`: `$r-rcpp-package`.
+- Performance benchmarks, phased optimization, before/after evidence:
+  `$r-performance-workflow`.
