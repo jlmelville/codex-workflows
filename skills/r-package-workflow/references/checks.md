@@ -41,6 +41,32 @@ or dependency internals, prove the source before assigning blame:
 Record the exact warning text, local call path, dependency package/helper, and
 line or expression that emits the warning.
 
+## Final Validation Bundles
+
+For final cleanup chunks, release-like checks, or package-wide infrastructure
+and documentation work, run the broadest feasible bundle and classify notes
+against the known baseline:
+
+- full tests: `Rscript -e 'testthat::test_local()'`
+- package check:
+  `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'`
+- formatting: `air format . --check`
+- lint:
+  `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
+- workflow checks when workflows changed: `actionlint` and
+  `zizmor .github/workflows`
+- pkgdown build when site output, articles, examples, or `_pkgdown.yml` changed.
+
+Inspect generated and temporary output before finalizing:
+
+1. Run `scripts/audit-generated-r-files.sh` when present.
+2. If absent, inspect
+   `git diff --name-status -- NAMESPACE man docs`, check whether `docs/`
+   exists or is tracked, and review generated Rd, NAMESPACE, or pkgdown output.
+3. Run `git diff --check`.
+4. Confirm no local `*.Rcheck`, temporary pkgdown destination, or other build
+   artifact remains in the repo.
+
 ## Documentation
 
 - Roxygen refresh: `Rscript -e 'roxygen2::roxygenise()'`
@@ -59,11 +85,11 @@ assets or CRAN metadata.
   checks.
 - Run clang-format checks for hand-maintained C++ if configured.
 
-## Restricted Environment Notes
+## Check Notes and Restricted Environments
 
-Codex sandboxes and CI-like containers can produce notes that are environmental
-rather than regressions. Classify and report them once instead of rediscovering
-them every run.
+Codex sandboxes, CI-like containers, and local planning artifacts can produce
+notes that are not regressions. Classify and report them once instead of
+rediscovering them every run.
 
 When R tooling needs caches in a restricted filesystem, redirect them to a
 writable temporary path, for example `XDG_CACHE_HOME=/tmp/r-cache`. If
@@ -77,13 +103,20 @@ Common examples:
 - CRAN source index, package repository, or URL access blocked by network
   policy;
 - system bus or desktop-service warnings from headless environments;
+- top-level planning directories such as `plans` during `R CMD check`, when
+  they are active local work artifacts;
 - compiler flag notes from local toolchains, such as
   `-mno-omit-leaf-frame-pointer`, when already present before the change.
 
-Do not hide these notes. Record the exact note, explain why it is believed to be
-environmental, and say whether the same note was present before the change. If
-a note is new, code-specific, or changes package behavior, treat it as a real
-finding until proven otherwise.
+Do not hide these notes. Record the exact note, explain whether it is believed
+to be environmental or known repo state, and say whether the same note was
+present before the change. If a note is new, code-specific, or changes package
+behavior, treat it as a real finding until proven otherwise.
+
+For `R CMD check` notes caused by local planning directories, record whether the
+path is tracked, untracked, or ignored. Do not move or delete active plans only
+to silence the note unless the user chooses a different plan location or
+`.Rbuildignore` policy.
 
 Do not treat missing or untracked `docs/` output as a package source diff unless
 the repo tracks pkgdown output or the user asked to update the site.

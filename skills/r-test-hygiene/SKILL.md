@@ -1,6 +1,6 @@
 ---
 name: r-test-hygiene
-description: R package test design and cleanup for testthat suites, fixtures, snapshots, helper files, internal-only tests, test-only hooks, and Air readability guards. Use when Codex writes, reviews, refactors, or cleans tests in tests/testthat or test helpers for an R package.
+description: R package test design and cleanup for testthat suites, fixtures, snapshots, helper files, internal-only tests, testthat edition migrations, test-only hooks, and Air readability guards. Use when Codex writes, reviews, refactors, migrates, or cleans tests in tests/testthat or test helpers for an R package.
 ---
 
 # R Test Hygiene
@@ -33,6 +33,24 @@ For shape-sensitive fixtures, preserve visual structure:
 
 Use `# fmt: skip` immediately before the expression when Air would obscure the
 shape. See [fixtures.md](references/fixtures.md).
+
+## testthat Edition Migrations
+
+When opting an existing package into `Config/testthat/edition: 3`, isolate the
+migration if initial probing shows broad numerical fallout:
+
+1. Remove deprecated `context()` calls and update `DESCRIPTION`/`Suggests`
+   deliberately.
+2. Run the full suite immediately. If testthat's failure cap hides the pattern,
+   rerun
+   `Rscript -e 'testthat::set_max_fails(Inf); testthat::test_local()'`.
+3. Record the complete failure set before editing expectations.
+4. Prefer explicit tolerances, near-zero thresholds, optimizer invariants, or
+   success properties over production changes.
+5. Do not change production behavior unless the migration exposes a real bug
+   with independent evidence.
+6. Rerun full tests, then broaden to format, lint, or package checks according
+   to blast radius.
 
 ## Review Checklist
 

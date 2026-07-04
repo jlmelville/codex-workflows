@@ -21,6 +21,11 @@ Use this as the default operating procedure for R package work.
 ## Change Discipline
 
 - Prefer existing repo patterns over new abstractions.
+- For scientific or multi-author cleanup work, preserve contributed methods,
+  mathematical code, historical bridge code, and long-form vignettes unless a
+  change fixes an objective bug, resource-safety issue, packaging integration,
+  tests, or safe typo. Use wrapper docs/articles for navigation and defer
+  structural rewrites to separate tested plans.
 - Before finalizing new exported functions or metrics, check that public names
   are literal, discoverable, and defensible without private project backstory.
   Reserve niche terminology for documentation when a clearer API name exists.
@@ -36,7 +41,7 @@ Use this as the default operating procedure for R package work.
 ## Checks
 
 Choose checks based on blast radius. See [checks.md](references/checks.md) for
-the command matrix and warning attribution workflow.
+the command matrix, warning attribution, and final-validation workflows.
 
 Common commands:
 

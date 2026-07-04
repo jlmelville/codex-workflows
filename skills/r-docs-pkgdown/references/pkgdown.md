@@ -68,3 +68,15 @@ In restricted Codex sandboxes, set cache paths to writable temporary
 directories when needed, for example `XDG_CACHE_HOME=/tmp/pkgdown-cache`. Treat
 generated `docs/` output as source diff only when the repo tracks or explicitly
 requests committed site output.
+
+When validating pkgdown without committing generated site output, combine a
+writable cache with a temporary destination:
+
+```sh
+XDG_CACHE_HOME=/tmp/r-cache Rscript -e 'dest <- tempfile("pkgdown-"); dir.create(dest); pkgdown::build_site(new_process = FALSE, override = list(destination = dest))'
+```
+
+Use a project-specific `tempfile()` prefix when it helps identify cleanup
+artifacts. DNS errors such as `Could not resolve hostname [cloud.r-project.org]`
+are sandbox/network evidence; rerun with approval only when a final pkgdown
+result is required.

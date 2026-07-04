@@ -208,6 +208,11 @@ When creating a persistent plan, choose a location deliberately:
 - Explain the location choice in the plan when ignored paths or visibility
   could surprise a later agent.
 
+In package repositories, root planning directories can trigger package-check
+notes, such as an `R CMD check` top-level-file note for `plans`. Record the
+tracking/ignored state and intended policy; do not move or delete active plans
+solely to silence package tooling.
+
 Avoid adding or expanding generic `PLANS.md` or `AGENTS.md` rules when this
 skill already covers them. Keep repo instructions short and repo-specific.
 
