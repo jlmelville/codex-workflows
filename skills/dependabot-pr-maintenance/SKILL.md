@@ -1,6 +1,6 @@
 ---
 name: dependabot-pr-maintenance
-description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree validation, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
+description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree or temp-merge validation, red-check triage, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
 ---
 
 # Dependabot PR Maintenance
@@ -56,6 +56,8 @@ merged:
 3. Apply the PR patch to a clean temporary checkout when the local worktree is
    dirty or the PR branch is stale.
 4. Run workflow linters on the patched or merged state.
+5. For a batch of narrow action-update PRs, test each PR individually and then
+   test the combined merge result in `/tmp` before recommending merge order.
 
 For workflow dependency PRs, run the repository's workflow audit on the merged
 or current workflow state when possible:
@@ -66,6 +68,31 @@ uvx zizmor .github/workflows
 ```
 
 If checks are still running, wait for completion before merging.
+
+## Failed Check Triage
+
+For a red check on a narrow bot PR:
+
+1. Inspect the failing log enough to identify the file, line, command, and
+   failure class.
+2. Compare the failure location with the PR patch. If the failed line or command
+   is untouched, treat it as unrelated until proven otherwise.
+3. Compare the same location against current remote `main`; stale bot bases can
+   fail on code that has already been fixed.
+4. If the PR merges cleanly into current `main` and the merged state passes the
+   relevant local checks, classify the original failure as stale CI and
+   recommend rebase, rerun, or merge according to repository policy.
+5. Do not change unrelated product or language code on a dependency bot branch
+   merely to make a stale-base check green.
+
+Separate conclusions clearly:
+
+- `unsafe patch`: the dependency update changes risky behavior or fails on the
+  merged state.
+- `stale CI failure`: the bot branch failed because its base or check run was
+  old, while the patch and current merge result are acceptable.
+- `inconclusive`: validation could not inspect logs, fetch upstream refs, or
+  run the relevant checks.
 
 ## Updating The PR
 
