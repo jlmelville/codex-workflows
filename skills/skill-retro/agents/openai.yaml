@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Retro"
+  short_description: "Capture reusable workflow lessons"
+  default_prompt: "Use $skill-retro to produce a Skill Candidate Report for this session."
