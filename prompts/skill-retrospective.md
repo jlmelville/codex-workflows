@@ -27,6 +27,11 @@ Do not create files. Output a concise Skill Candidate Report with:
 - Scope: generic, language-specific, or repo-specific
 - Suggested home: new skill, existing skill update, script, reference, prompt,
   or no action
+- Suggested destination path, when known, such as
+  `skills/r-docs-pkgdown/references/pkgdown.md`
+- Ownership: source-owned in `codex-workflows`, repo-local, external/plugin-owned,
+  or unknown
+- State surface: local files, remote service state, or both
 - Missing delta: what existing guidance did not already cover
 - Why it is not just ordinary coding knowledge
 ```
@@ -55,6 +60,9 @@ Exact failure signal:
 Proposed behavior:
 Scope:
 Suggested home:
+Suggested destination path:
+Ownership:
+State surface:
 Missing delta:
 Validation or script opportunity:
 Risk if omitted:
