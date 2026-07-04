@@ -196,6 +196,10 @@ Respect the repo's existing convention for plan locations. Search ignored paths
 because active plans may live under ignored `plans/`, `plans_pending/`, or
 `docs/plans/` directories.
 
+When editing an ignored active plan, use ignored-aware status or discovery such
+as `git status --ignored --short` or `rg --files -uu`, and call out the hidden
+plan edit in the final response.
+
 When creating a persistent plan, choose a location deliberately:
 
 - Use the established plan directory when it is intentionally local or ignored.

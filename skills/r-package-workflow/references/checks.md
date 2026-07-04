@@ -6,8 +6,16 @@ shared behavior, generated files, infrastructure, or compiled code.
 ## R Behavior
 
 - Focused test file: `Rscript -e 'testthat::test_local(filter = "pattern")'`
+- Focused package-style test file:
+  `Rscript -e 'pkgload::load_all(); testthat::test_file("tests/testthat/test-name.R")'`
 - Full tests: `Rscript -e 'testthat::test_local()'`
 - Full package check: `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'`
+
+Before running a single `tests/testthat/test-*.R` file directly, inspect
+`tests/testthat.R`. If the suite loads the package before running tests, use
+`pkgload::load_all()` before `testthat::test_file()`. A bare `test_file()`
+failure such as "could not find function" may be a harness failure, not package
+behavior, when no package code was loaded.
 
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
