@@ -21,6 +21,9 @@ Use this as the default operating procedure for R package work.
 ## Change Discipline
 
 - Prefer existing repo patterns over new abstractions.
+- Before finalizing new exported functions or metrics, check that public names
+  are literal, discoverable, and defensible without private project backstory.
+  Reserve niche terminology for documentation when a clearer API name exists.
 - Prefer exported API tests over private-helper tests. If an internal test
   remains, document the safety or user-visible behavior it protects.
 - Treat these as generated unless intentionally refreshed:

@@ -17,6 +17,18 @@ Use this for documentation and pkgdown work in R packages.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Avoid broad roxygen churn during narrow correctness phases.
 
+## Exported API Renames
+
+When exported functions, topics, aliases, or return names are renamed:
+
+1. Edit roxygen sources first and remove stale source references.
+2. Run `roxygen2::roxygenise()`, inspect generated additions/deletions, then run
+   it a second time to confirm idempotence after topic or export churn.
+3. Search for stale public names across `R/`, `tests/`, `vignettes/`,
+   `README*`, `NEWS*`, `_pkgdown.yml`, `NAMESPACE`, and `man/`.
+4. Run focused tests, examples, or documentation builds that exercise the
+   renamed public API.
+
 ## pkgdown Workflow
 
 Use complete scaffolding. Either run the relevant `usethis` helper first, or

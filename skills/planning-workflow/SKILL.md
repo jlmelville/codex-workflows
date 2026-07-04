@@ -49,6 +49,15 @@ Classify planning files explicitly when creating or updating them:
 Do not mix all artifact types into one file unless the repo already requires
 that shape.
 
+## State Reconciliation
+
+For fresh-agent starts, handoffs, or long-running plans, assume chat summaries
+can be stale until checked. Compare the latest handoff against the active plan,
+worktree status, and source files that show actual completion. Search untracked
+and ignored planning paths when the repo uses local plans. If the artifacts
+disagree, record the reconciliation as a discovery or current-state update
+before continuing.
+
 ## ExecPlans
 
 Create or update an ExecPlan when a future agent must be able to continue from

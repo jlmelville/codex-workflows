@@ -35,13 +35,20 @@ Prefer one scoped optimization per phase. For each phase:
 3. Run focused semantic validation before interpreting timings.
 4. Benchmark current versus baseline or old wrapper with identical inputs,
    seeds, thread counts, and repetitions.
-5. Update the active plan with files changed, validation, benchmark table,
+5. Audit generated-file churn when roxygen, Rcpp attributes, or package metadata
+   changed.
+6. Update the active plan with files changed, validation, benchmark table,
    decision, residual risk, and next phase.
-6. Stop at a coherent boundary when the next optimization is separable.
+7. Stop at a coherent boundary when the next optimization is separable.
 
 Do not claim a performance win from smoke tests, tiny toy data, or noisy single
 runs. Use smoke benchmarks to prove the harness works; use evidence benchmarks
 to justify source decisions.
+
+Do not move code into C++ or a lower-level path merely because it looks
+optimizable. Require benchmark evidence that the R path is the relevant
+bottleneck, and record explicit defer/continue decisions for plausible but
+unproven optimizations.
 
 ## Semantic Guardrails
 
@@ -104,7 +111,9 @@ When an execution plan is active, update durable state after every phase:
 - phase goal and implementation summary;
 - semantic validation commands and results;
 - benchmark command, metadata, and table;
+- generated-file audit results when generated artifacts may have changed;
 - decision: keep, revert, broaden testing, or continue;
+- explicit deferrals with the evidence threshold needed to revisit them;
 - next recommended phase and guardrails.
 
 Use `$planning-workflow` for handoff format and local plan artifact discipline.

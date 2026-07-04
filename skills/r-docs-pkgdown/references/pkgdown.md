@@ -18,6 +18,10 @@ Common fields:
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
 - Check whether regenerated files include unrelated version churn before
   committing.
+- For exported renames, run roxygen twice: the first pass may delete old topics,
+  aliases, or exports, and the second pass should be idempotent.
+- Search for stale public names after renames, including examples, articles,
+  README, NEWS, `_pkgdown.yml`, `NAMESPACE`, and `man/*.Rd`.
 
 ## README
 
@@ -59,3 +63,8 @@ uvx zizmor .github/workflows
 `pkgdown::build_site()` may need network access for external JavaScript assets
 or CRAN metadata. If sandboxed network fails and the build matters, request
 approval and rerun with escalation.
+
+In restricted Codex sandboxes, set cache paths to writable temporary
+directories when needed, for example `XDG_CACHE_HOME=/tmp/pkgdown-cache`. Treat
+generated `docs/` output as source diff only when the repo tracks or explicitly
+requests committed site output.

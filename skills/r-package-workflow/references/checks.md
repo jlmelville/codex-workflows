@@ -36,6 +36,12 @@ Codex sandboxes and CI-like containers can produce notes that are environmental
 rather than regressions. Classify and report them once instead of rediscovering
 them every run.
 
+When R tooling needs caches in a restricted filesystem, redirect them to a
+writable temporary path, for example `XDG_CACHE_HOME=/tmp/r-cache`. If
+pkgdown/check validation fails because DNS, CRAN metadata, or external assets
+are blocked and the validation matters, rerun with approved network escalation
+instead of treating the first sandbox failure as package evidence.
+
 Common examples:
 
 - unable to verify current time or internet-dependent metadata;
@@ -49,6 +55,9 @@ Do not hide these notes. Record the exact note, explain why it is believed to be
 environmental, and say whether the same note was present before the change. If
 a note is new, code-specific, or changes package behavior, treat it as a real
 finding until proven otherwise.
+
+Do not treat missing or untracked `docs/` output as a package source diff unless
+the repo tracks pkgdown output or the user asked to update the site.
 
 ## Formatting and Lint
 
