@@ -8,7 +8,8 @@
 - Set `persist-credentials: false` for checkout.
 - Prefer `permissions: contents: read` at workflow top level.
 - Put write permissions only on deploy or publish jobs.
-- Run `actionlint` and `uvx zizmor .github/workflows`.
+- Run `actionlint` and `zizmor .github/workflows`; use `uvx zizmor` when
+  `zizmor` is not installed.
 
 ## R Setup
 

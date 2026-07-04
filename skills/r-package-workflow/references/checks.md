@@ -78,7 +78,8 @@ fixtures where Air reduces readability.
 
 ## GitHub Actions
 
-- Syntax/security checks: `actionlint` and `uvx zizmor .github/workflows`
+- Syntax/security checks: `actionlint` and `zizmor .github/workflows`; use
+  `uvx zizmor .github/workflows` when `zizmor` is not installed.
 - Inspect all `uses:` entries for full-length SHA pins.
 - Confirm checkout steps set `persist-credentials: false`.
 

@@ -51,7 +51,7 @@ Rscript -e 'roxygen2::roxygenise()'
 Rscript -e 'pkgdown::build_site(new_process = FALSE)'
 Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
 actionlint
-uvx zizmor .github/workflows
+zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 ```
 
 Network-restricted environments may need approval for pkgdown external assets

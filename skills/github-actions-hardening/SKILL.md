@@ -46,7 +46,7 @@ Run the checks that exist in the repository:
 
 ```sh
 actionlint
-uvx zizmor .github/workflows
+zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 shellcheck path/to/scripts/*.sh
 ```
 
@@ -64,6 +64,7 @@ From a skill repository root, the same script may be under:
 
 Treat tool failures from network or missing dependencies separately from
 workflow findings, and rerun after installing or approving the needed tool.
+Prefer an installed `zizmor` when present; use `uvx zizmor` as the fallback.
 
 ## Dependabot
 

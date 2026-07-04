@@ -43,8 +43,10 @@ Run after workflow changes:
 
 ```sh
 actionlint
-uvx zizmor .github/workflows
+zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 scripts/audit-actions.sh
 ```
 
 Use the bundled `scripts/audit-actions.sh` from this skill when available.
+It prefers an installed `zizmor`, falls back to `uvx zizmor`, and treats uvx
+network/download failures as environment issues rather than workflow findings.

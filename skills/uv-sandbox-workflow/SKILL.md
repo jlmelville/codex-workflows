@@ -63,6 +63,11 @@ of the task.
 
 ## Preferred Patterns
 
+If a one-off tool is already installed and acceptable for the repository, prefer
+the installed binary before `uvx` to avoid avoidable network and tool-cache
+downloads. For example, run `zizmor` directly when present; use `uvx zizmor`
+only as the fallback.
+
 For one-off tool execution:
 
 ```sh
@@ -105,3 +110,7 @@ uv sync
 Report whether the command required network approval, changed project files, or
 used temporary uv state. If a command used `/tmp` caches, do not imply the result
 will remain available across sessions.
+
+If `uvx <tool>` fails with DNS, registry, or package-download errors, classify
+that as environment/tool acquisition failure, not as a finding from the tool
+itself. Retry with network approval or use an installed binary when available.

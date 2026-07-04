@@ -55,7 +55,7 @@ Run:
 
 ```sh
 actionlint
-uvx zizmor .github/workflows
+zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 ```
 
 ## Build Notes

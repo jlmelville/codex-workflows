@@ -48,7 +48,7 @@ Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
 air format . --check
 Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
 actionlint
-uvx zizmor .github/workflows
+zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 ```
 
 Scripts:

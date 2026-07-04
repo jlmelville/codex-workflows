@@ -1,6 +1,6 @@
 ---
 name: dependabot-pr-maintenance
-description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree or temp-merge validation, red-check triage, verified PR merges, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
+description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree or temp-merge validation, red-check triage, verified or batch PR merges, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
 ---
 
 # Dependabot PR Maintenance
@@ -47,6 +47,11 @@ If a `gh` command fails with sandboxed DNS or network errors, rerun the same
 command with network approval and a narrow `gh pr ...` prefix rule. Treat that
 as an environment retry, not as evidence that the PR or authentication is bad.
 
+For scripted `gh pr view --json` checks, prefer portable fields:
+`state`, `mergedAt`, `mergeCommit`, `headRefOid`, `mergeable`, and
+`mergeStateStatus`. Avoid relying on a `merged` field; older `gh` versions may
+not expose it.
+
 ## Pinned Actions PR Audit
 
 For GitHub Actions PRs that update SHA-pinned `uses:` entries:
@@ -71,7 +76,7 @@ or current workflow state when possible:
 
 ```sh
 actionlint
-uvx zizmor .github/workflows
+zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 ```
 
 If checks are still running, wait for completion before merging.
@@ -135,6 +140,25 @@ manual fix is clearly safer.
    and verify branch deletion when requested.
 7. Fetch the remote base branch after merging without disturbing local changes.
    Avoid `git pull` or checkout changes when the worktree is dirty.
+
+## Batch Merge
+
+When merging multiple bot PRs, especially overlapping Dependabot action PRs,
+repeat the verified merge loop for each PR:
+
+1. Re-read the PR with portable JSON fields and confirm bot author, target repo,
+   base branch, head SHA, check state, and mergeability.
+2. If mergeability is `UNKNOWN`, wait briefly and re-read. GitHub may report
+   `UNKNOWN` immediately after a preceding merge while it recomputes the next
+   PR's merge result.
+3. Confirm the head SHA is unchanged from validation and use
+   `--match-head-commit` on every merge.
+4. Merge with the repository's strategy and `--delete-branch` when requested.
+5. Confirm merged state, merge commit, and branch deletion before moving to the
+   next PR.
+6. After each merge, fetch the remote base branch without disturbing local
+   changes, then re-read the remaining PRs because mergeability and checks may
+   have changed.
 
 ## Report
 

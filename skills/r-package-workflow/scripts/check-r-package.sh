@@ -3,6 +3,38 @@ set -euo pipefail
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
 export UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}"
 
+run_zizmor() {
+  local target_dir="$1"
+  local output
+
+  if command -v zizmor >/dev/null 2>&1; then
+    zizmor "${target_dir}"
+    return
+  fi
+
+  if ! command -v uvx >/dev/null 2>&1; then
+    echo "zizmor and uvx not found; skipped zizmor." >&2
+    return 0
+  fi
+
+  output="$(mktemp)"
+  if uvx zizmor "${target_dir}" >"${output}" 2>&1; then
+    cat "${output}"
+    rm -f "${output}"
+    return 0
+  fi
+
+  cat "${output}" >&2
+  if grep -Eiq 'temporary failure|name or service not known|could not resolve|failed to resolve|dns|pypi|no such host|network is unreachable|connection (refused|reset|timed out|error)|failed to fetch|failed to download|error downloading|request failed|error sending request' "${output}"; then
+    echo "uvx could not run zizmor because of network/tool download failure; rerun with network approval or use installed zizmor." >&2
+    rm -f "${output}"
+    return 0
+  fi
+
+  rm -f "${output}"
+  return 1
+}
+
 usage() {
   cat <<'USAGE'
 Usage: check-r-package.sh [fast|full|ci]
@@ -63,7 +95,5 @@ if [[ -d .github/workflows ]]; then
   if command -v actionlint >/dev/null 2>&1; then
     actionlint
   fi
-  if command -v uvx >/dev/null 2>&1; then
-    uvx zizmor .github/workflows
-  fi
+  run_zizmor .github/workflows
 fi
