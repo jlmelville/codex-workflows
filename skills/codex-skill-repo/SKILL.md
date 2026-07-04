@@ -65,7 +65,9 @@ runtime directory.
 3. Keep `SKILL.md` concise and put trigger conditions in frontmatter
    `description`.
 4. Add `agents/openai.yaml` with a short display name, short description, and
-   default prompt.
+   default prompt. When passing `$skill-name` through shell arguments, use
+   single quotes or escape `$`, then inspect the generated file to confirm the
+   default prompt contains the literal skill invocation.
 5. Add bundled scripts only when deterministic reuse is worth the extra file.
 6. Validate the repository and any new skill folders.
 7. Install the updated skills and confirm the installed copies match the source
@@ -73,8 +75,8 @@ runtime directory.
 
 ## Promoting Local Guidance
 
-When turning repo-local `.agents/skills`, `docs/agents`, `AGENTS.md`, or
-`PLANS.md` material into global skills:
+When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,
+`AGENTS.md`, or `PLANS.md` material into global skills:
 
 1. Inventory the local guidance and classify it as generic, language-specific,
    repo-specific, stale duplicate, or ordinary engineering judgment.
@@ -83,7 +85,9 @@ When turning repo-local `.agents/skills`, `docs/agents`, `AGENTS.md`, or
    leak one repo's domain model.
 4. Leave domain-specific contracts local until the same pattern appears in
    another repo.
-5. Replace duplicated local rules with short references to the global skill when
+5. When promoting a stable prompt into a skill, replace the old prompt file with
+   a short pointer if existing workflows may still link to that path.
+6. Replace duplicated local rules with short references to the global skill when
    editing that repo is in scope.
 
 ## Validation
