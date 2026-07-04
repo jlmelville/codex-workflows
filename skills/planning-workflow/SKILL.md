@@ -115,6 +115,25 @@ Review packets should be self-contained and should ask the reviewer to
 challenge assumptions, gaps, and risks, not merely summarize the plan. Include
 the narrow evidence needed for review and the specific questions to answer.
 
+## Workflow Retrospective Notes
+
+During multi-agent work, record reusable process findings as they arise, not
+only at the final retrospective. Put them under `Artifacts and Notes`,
+`Outcomes & Retrospective`, or a local equivalent.
+
+Capture feature-orthogonal observations such as:
+
+- repeated workflow, validation, benchmark, or handoff patterns;
+- tool failures, sandbox limitations, or environment-specific workarounds;
+- repo conventions that were not obvious from existing guidance;
+- planning friction, missing context, or handoff gaps;
+- candidate skills, scripts, prompts, or references;
+- why the lesson is reusable beyond the current feature.
+
+Keep these notes concise and evidence-based. They should let the final agent run
+a skill retrospective using evidence from every phase, not only its current
+context window.
+
 ## Handoffs
 
 Use a fresh-agent handoff when ending a meaningful phase, stopping with
@@ -225,6 +244,7 @@ A plan is good enough when a future agent can identify:
 - relevant files, commands, and expected observations;
 - validation already run and remaining gaps;
 - the exact next action and guardrails.
+- any reusable workflow-retrospective notes gathered during the work.
 
 If any of those are missing at a stopping point, update the plan or include a
 handoff before ending the turn.
