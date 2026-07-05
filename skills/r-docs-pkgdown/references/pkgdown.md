@@ -47,6 +47,16 @@ Common fields:
 - For full markdown modernization, run `roxygen2::roxygenise()` twice and then
   `devtools::check(document = FALSE, args = c("--no-manual"))` before handing
   off the docs chunk.
+- After broad conversions, check for malformed inline markdown and Rd validity:
+
+  ```sh
+  perl -ne 'if (/^#\x27/ && (tr/`// % 2)) { print "$ARGV:$.:$_" }' R/*.R
+  Rscript -e 'invisible(lapply(list.files("man", pattern = "\\.Rd$", full.names = TRUE), tools::checkRd))'
+  ```
+
+  Use `#\x27` instead of literal `#'` in single-quoted shell programs that
+  match roxygen prefixes. Include `man-roxygen/*.R` in the Perl check when that
+  directory exists.
 
 ## README
 

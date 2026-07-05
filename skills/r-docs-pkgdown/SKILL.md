@@ -50,6 +50,31 @@ generated output:
 5. Treat `man/*.Rd` macros as expected generated output. Search generated Rd
    only when checking source/generated drift after `roxygen2::roxygenise()`.
 
+## Roxygen Markdown Conversions
+
+After a package-wide roxygen markdown conversion:
+
+1. Rerun the roxygen-only macro searches. Classify intentionally retained raw
+   Rd separately, especially `\eqn{}` and `\deqn{}` math and example wrappers
+   such as `\dontrun{}`.
+2. Check odd backtick counts in roxygen lines after multiline `\code{}`
+   rewrites. Include `man-roxygen/*.R` when present:
+
+   ```sh
+   perl -ne 'if (/^#\x27/ && (tr/`// % 2)) { print "$ARGV:$.:$_" }' R/*.R
+   ```
+
+   Avoid literal `#'` inside single-quoted shell programs; use `#\x27`, a
+   checked-in helper, or another quoting-safe approach.
+3. Run `tools::checkRd` over generated Rd files:
+
+   ```sh
+   Rscript -e 'invisible(lapply(list.files("man", pattern = "\\.Rd$", full.names = TRUE), tools::checkRd))'
+   ```
+
+4. Run `roxygen2::roxygenise()` a second time and confirm it makes no
+   additional `NAMESPACE` or `man/*.Rd` changes.
+
 ## Exported API Renames
 
 When exported functions, topics, aliases, or return names are renamed:
