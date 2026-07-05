@@ -68,6 +68,14 @@ these effects separately: preserve useful remote state and ignore-file updates,
 but restore hardened workflows and curated `_pkgdown.yml` content when helper
 defaults are too broad or remove intentional navigation.
 
+When running the helper mainly for remote Pages or repository-homepage side
+effects, expect local overwrites. Start from a clean worktree or save the
+pre-helper state, then compare against `HEAD` afterward and restore curated
+`_pkgdown.yml`, workflow hardening, destination choices, and ignore policy. If
+the helper fails with unset PAT, insufficient scopes, or remote configuration
+errors such as `maybe_ours_or_theirs`, treat that as GitHub auth/config state;
+do not accept partially written local scaffold files as final.
+
 Before adding pkgdown to a repo, run `git ls-files docs`. If `docs/` is tracked
 and contains hand-authored, historical, or non-pkgdown site material, do not use
 pkgdown's default `docs/` destination. Set a distinct `_pkgdown.yml`
