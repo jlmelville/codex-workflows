@@ -15,6 +15,8 @@ Use this for documentation and pkgdown work in R packages.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
 - Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
+- Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen
+  source change that produced them. Avoid unrelated generated churn.
 - Avoid broad roxygen churn during narrow correctness phases.
 
 ## Exported API Renames

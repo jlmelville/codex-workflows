@@ -120,6 +120,13 @@ combine unrelated chunks just because context remains.
 Keep audits and execution plans separate when possible. Audits preserve raw
 critique and evidence; execution plans convert that evidence into ordered work.
 
+When converting an external audit or model review into a chunk plan, preserve
+the source audit, statically confirm findings before making them tasks, mark
+unverified claims, and resolve open questions into explicit decisions where
+possible. The resulting plan should include the source audit pointer, confirmed
+findings, guardrails, a decision log, open questions, and which claims still
+need test evidence.
+
 Review packets should be self-contained and should ask the reviewer to
 challenge assumptions, gaps, and risks, not merely summarize the plan. Include
 the narrow evidence needed for review and the specific questions to answer.

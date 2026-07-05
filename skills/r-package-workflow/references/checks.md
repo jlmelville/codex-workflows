@@ -82,6 +82,20 @@ against the known baseline:
   `zizmor .github/workflows`
 - pkgdown build when site output, articles, examples, or `_pkgdown.yml` changed.
 
+For CRAN-published packages or explicit release-prep work, add a separate CRAN
+release lane after the development checks:
+
+- CRAN-style local check:
+  `Rscript -e 'rcmdcheck::rcmdcheck(args = c("--as-cran", "--no-manual"))'`
+- External platform checks such as R-hub and win-builder when submission
+  compatibility matters.
+- `revdepcheck` when the package has downstream dependencies and the change can
+  affect public behavior.
+
+Treat R-hub, win-builder, CRAN metadata, and reverse-dependency results as
+remote service state. Report queued, unavailable, or network-blocked checks
+separately from local package failures.
+
 Inspect generated and temporary output before finalizing:
 
 1. Run `scripts/audit-generated-r-files.sh` when present.
