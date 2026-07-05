@@ -191,10 +191,12 @@ such as `R/RcppExports.R`, `src/RcppExports.cpp`, `NAMESPACE`, `man/*.Rd`, or
 pkgdown output unless those files are intentionally being regenerated.
 
 When changing `.lintr` policy in an Air-formatted repo, trial candidate linters
-without editing the config first:
+without editing the config first. During discovery, isolate the trial from
+inherited user or local config by using explicit linters and
+`parse_settings = FALSE`:
 
 ```sh
-Rscript -e 'linters <- lintr::linters_with_defaults(line_length_linter = NULL, object_usage_linter = NULL); lints <- lintr::lint_package(linters = linters); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
+Rscript -e 'linters <- lintr::linters_with_defaults(line_length_linter = NULL, object_usage_linter = NULL); lints <- lintr::lint_package(linters = linters, parse_settings = FALSE); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
 ```
 
 Enable only rules that stay low-noise on the real package. Treat
@@ -204,9 +206,10 @@ as missing globals, and Air-clean code can still exceed lintr's default line
 length rule.
 
 After editing `.lintr`, rerun both `air format . --check` and
-`lintr::lint_package()` from the saved config. Keep multi-line `.lintr` values
-as valid DCF: continuation lines, including closing parentheses for R
-expressions, must stay indented rather than starting at column 1.
+`lintr::lint_package()` from the saved config with normal settings parsing.
+Keep multi-line `.lintr` values as valid DCF: continuation lines, including
+closing parentheses for R expressions, must stay indented rather than starting
+at column 1.
 
 For test fixtures, use `# fmt: skip` around shape-sensitive matrix/list
 fixtures where Air reduces readability.

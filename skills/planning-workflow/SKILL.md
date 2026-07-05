@@ -120,6 +120,12 @@ the likely commit boundaries before editing. Keep fixes and tests independently
 stageable by bug whenever practical, instead of making one shared regression
 file or broad hunk that later requires delicate partial staging.
 
+When a chunk accepts a remaining warning, note, or validation anomaly, assign
+ownership before moving on. Either fix it in the chunk, classify it as
+environmental or non-actionable with exact evidence, or add a named pending
+follow-up chunk. Do not leave "known warning" language without an owner and next
+action.
+
 ## Audits And Review Packets
 
 Keep audits and execution plans separate when possible. Audits preserve raw
