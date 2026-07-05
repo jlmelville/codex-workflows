@@ -11,6 +11,8 @@ Inspect:
 
 - `skills/*/SKILL.md` trigger descriptions and core workflow guidance;
 - `skills/*/references/` for duplicated or drifting detailed guidance;
+- `skills/skill-retro/references/maintenance-ledger.md` for deferred
+  observations, review triggers, and script/consolidation thresholds;
 - bundled scripts under `skills/*/scripts/`;
 - `prompts/skill-retrospective.md` and recent prompt files;
 - recent commits when available, especially clusters of skill-retro updates.
@@ -36,6 +38,7 @@ Report using this shape:
 ### Bloat Or Drift Risks
 ### Trigger Boundary Issues
 ### Script Opportunities
+### Deferred Maintenance Ledger
 ### Reference/Structure Improvements
 ### No-Action Findings
 ### Recommended Edits
@@ -53,3 +56,7 @@ For each recommended edit, include:
 Prefer pruning, consolidating, or clarifying existing skills over creating new
 skills. Recommend a new skill only when no existing skill, reference, prompt, or
 script is a natural home.
+
+When a deferred ledger item is no longer useful, recommend closing it. When its
+trigger has fired, recommend the concrete skill, reference, script, or prompt
+change and cite the evidence.

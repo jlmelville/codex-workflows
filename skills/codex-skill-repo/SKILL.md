@@ -136,6 +136,15 @@ Before committing, stage only intended files, inspect `git diff --cached --stat`
 and `git diff --cached --name-only`, then commit and push when publishing is in
 scope.
 
+## Deferred Maintenance Memory
+
+For observations about this skill repository that should survive chat
+compaction but are not yet ready for direct skill, script, or prompt changes,
+use the `$skill-retro` maintenance ledger at
+`skills/skill-retro/references/maintenance-ledger.md`. Review it during
+periodic skill repository retrospectives and when a cluster of skill-retro
+commits suggests consolidation or script opportunities.
+
 ## Skill Family Growth
 
 Use short prefixes for related skills:

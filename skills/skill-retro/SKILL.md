@@ -41,6 +41,20 @@ retrospective itself; output the report in chat.
 - Add nothing when it is ordinary engineering judgment or one project's local
   convention.
 
+## Maintenance Ledger
+
+For ordinary project retrospectives, output the report in chat and do not edit
+files. When explicitly maintaining `codex-workflows` or triaging multiple
+candidate reports for this repo, use
+[maintenance-ledger.md](references/maintenance-ledger.md) for deferred,
+threshold-based observations that are not ready to become skill text, scripts,
+or prompts.
+
+Review the ledger after several accepted skill-retro updates, during a skill
+repository retrospective, or when a user asks how the triage workflow is
+shaping up. Close, promote, or refresh entries rather than letting them become
+stale repo folklore.
+
 ## Report Shape
 
 ```md

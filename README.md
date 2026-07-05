@@ -60,6 +60,12 @@ Use [prompts/skill-retrospective.md](prompts/skill-retrospective.md) at the end
 of project work to ask an agent for skill candidates. Prompt templates are for
 skill-adjacent intake and review; they are not installed into `~/.codex/skills`.
 
+For deferred observations about this repository that should survive chat
+compaction but are not yet ready for a direct skill, prompt, or script change,
+use the [skill maintenance ledger](skills/skill-retro/references/maintenance-ledger.md).
+Review it during periodic skill repository retrospectives or after several
+skill-retro-driven commits.
+
 ## Install
 
 From this repo:
