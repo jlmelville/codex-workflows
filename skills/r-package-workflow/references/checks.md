@@ -20,6 +20,13 @@ behavior, when no package code was loaded.
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
 
+For baseline or no-change validation, treat `devtools::run_examples()` as a
+potentially mutating command. Check `git status` immediately afterward and
+record or revert unrelated metadata churn, especially roxygen maintenance in
+`DESCRIPTION` such as `Config/roxygen2/version` changes. When examples need to
+be exercised without documentation upkeep, prefer
+`devtools::check(document = FALSE, ...)` when it gives enough coverage.
+
 ## Vignette Skip Semantics
 
 When CI policy is "do not build vignettes", distinguish the two `rcmdcheck`

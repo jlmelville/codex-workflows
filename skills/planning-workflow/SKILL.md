@@ -115,6 +115,11 @@ Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
 
+For cleanup chunks that may reveal several unrelated correctness bugs, decide
+the likely commit boundaries before editing. Keep fixes and tests independently
+stageable by bug whenever practical, instead of making one shared regression
+file or broad hunk that later requires delicate partial staging.
+
 ## Audits And Review Packets
 
 Keep audits and execution plans separate when possible. Audits preserve raw

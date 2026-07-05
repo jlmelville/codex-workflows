@@ -14,6 +14,9 @@ Use this for R package tests and fixtures.
   invariant that cannot be observed through public paths; document why.
 - Remove test-only exported R or C++ hooks before release unless explicitly
   justified.
+- For cleanup chunks that fix multiple unrelated bugs, organize regression tests
+  by bug-scoped files or clearly separated sections so each fix can be reviewed,
+  staged, and committed independently.
 - Keep tests readable enough to explain the behavior under review. Test files
   can use different formatting choices from application code when clarity
   requires it.
