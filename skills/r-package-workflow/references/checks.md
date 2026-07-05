@@ -152,6 +152,14 @@ the repo tracks pkgdown output or the user asked to update the site.
 - Lintr should not fight Air:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
 
+For scoped formatting work, format the intended scope first and confirm it with
+a scoped check, such as `air format tests/testthat --check` for test cleanup.
+Then finish with `air format . --check`. If the repo-wide check reports
+additional non-generated `R/` files, review a temporary-copy Air diff before
+applying the formatting. Do not let formatting sweeps touch generated files
+such as `R/RcppExports.R`, `src/RcppExports.cpp`, `NAMESPACE`, `man/*.Rd`, or
+pkgdown output unless those files are intentionally being regenerated.
+
 When changing `.lintr` policy in an Air-formatted repo, trial candidate linters
 without editing the config first:
 
