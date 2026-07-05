@@ -140,6 +140,8 @@ Use short prefixes for related skills:
 
 - `r-*` for R package workflows.
 - `python-*` for Python package workflows.
+- `local-*` for durable James-local workflows tied to local files or data
+  surfaces that recur across sessions.
 - Generic names for cross-language operations such as repository bootstrap,
   dependency PR maintenance, uv sandbox execution, shell quality, and planning.
 

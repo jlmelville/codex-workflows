@@ -44,6 +44,8 @@ needs them.
   hardening.
 - `python-*`: Python project workflows for `uv`, pytest, Ruff, typing, and
   package layout.
+- `local-*`: durable James-local workflows for machine-local files or data
+  surfaces that recur across sessions.
 - Generic skills cover cross-language operations such as skill repository
   maintenance, AGENTS.md maintenance, GitHub Actions hardening, dependency PR
   review, repository bootstrap, notebook inspection, uv sandbox execution, and

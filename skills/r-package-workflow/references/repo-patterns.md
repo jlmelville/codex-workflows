@@ -62,6 +62,9 @@ files into an isolated environment, not `.GlobalEnv`. The canonical WSL data
 root is usually `/mnt/e/dev/R/datasets`; on non-WSL machines this path may be
 absent.
 
+If asked to validate, update, or regenerate the manifest itself, use
+`$local-r-dataset-manifest`.
+
 ## Documentation
 
 - Keep README quick-start focused.

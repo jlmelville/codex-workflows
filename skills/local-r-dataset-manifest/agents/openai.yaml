@@ -1,0 +1,4 @@
+interface:
+  display_name: "Local R Dataset Manifest"
+  short_description: "Maintain local R dataset manifests"
+  default_prompt: "Use $local-r-dataset-manifest to validate or update James's local R dataset manifest."
