@@ -27,6 +27,18 @@ Use this for documentation and pkgdown work in R packages.
   before formatting, lint, pkgdown, CI, or structural refactors.
 - Avoid broad roxygen churn during narrow correctness phases.
 
+## Roxygen Markdown Audits
+
+When asked whether roxygen markdown is complete or partial, audit source before
+generated output:
+
+1. Check `DESCRIPTION` for `Roxygen: list(markdown = TRUE)`.
+2. Search `R/` roxygen comments for `@md`, `@noMd`, and raw Rd macros such as
+   `\code{}`, `\link{}`, `\url{}`, `\itemize{}`, and `\describe{}`.
+3. Classify intentional raw Rd in examples separately, such as `\dontrun{}`.
+4. Treat `man/*.Rd` macros as expected generated output. Search generated Rd
+   only when checking source/generated drift after `roxygen2::roxygenise()`.
+
 ## Exported API Renames
 
 When exported functions, topics, aliases, or return names are renamed:
