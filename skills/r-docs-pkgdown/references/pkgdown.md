@@ -18,6 +18,10 @@ Common fields:
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
 - Check whether regenerated files include unrelated version churn before
   committing.
+- For inline algebra in markdown roxygen, prefer Rd-friendly plain forms such
+  as `D^(-1/2)` over TeX-like text in backticks such as `D^{-1/2}`. After
+  regenerating, inspect `man/*.Rd` for awkward formula rendering, not just the
+  roxygen source.
 - For exported renames, run roxygen twice: the first pass may delete old topics,
   aliases, or exports, and the second pass should be idempotent.
 - Search for stale public names after renames, including examples, articles,

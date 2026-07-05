@@ -104,6 +104,12 @@ benchmark_cases <- list(
 Report median elapsed time and relative speed versus the baseline label. If
 results are noisy, say so and record what stronger workload is needed.
 
+For expensive exploratory benchmark grids, define the evidence threshold and
+stop rule before running the full grid. Start with rows likely to distinguish
+hypotheses, summarize after each tranche, and skip expensive remaining rows when
+they are unlikely to change the decision. Record the stop rationale in the plan
+or handoff.
+
 ## Plan And Handoff Updates
 
 When an execution plan is active, update durable state after every phase:
@@ -113,6 +119,9 @@ When an execution plan is active, update durable state after every phase:
 - benchmark command, metadata, and table;
 - generated-file audit results when generated artifacts may have changed;
 - decision: keep, revert, broaden testing, or continue;
+- if tracked experiment code is reverted while benchmark scripts or results are
+  kept, state whether retained artifacts still run against current `HEAD`, are
+  evidence-only, or depend on reverted local APIs;
 - explicit deferrals with the evidence threshold needed to revisit them;
 - next recommended phase and guardrails.
 
