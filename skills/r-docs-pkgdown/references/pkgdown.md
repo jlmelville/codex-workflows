@@ -40,6 +40,10 @@ Keep README short:
 - one or two quick examples,
 - links to articles and reference pages.
 
+For GitHub install instructions, use `pak::pak("owner/repo")`. When refreshing
+older READMEs, replace `devtools::install_github("owner/repo")` examples rather
+than preserving legacy installation guidance.
+
 Use badges sparingly. Prefer glanceable project status badges: `R-CMD-check`,
 test coverage, CRAN status when the package is on CRAN, and optionally a last
 updated or last commit badge. Avoid badges for implementation-maintenance

@@ -10,6 +10,8 @@ Use this for documentation and pkgdown work in R packages.
 ## Documentation Rules
 
 - Keep README focused on installation, quick start, and links.
+- For GitHub installation instructions in new or refreshed READMEs, prefer
+  `pak::pak("owner/repo")` over deprecated `devtools::install_github()`.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
