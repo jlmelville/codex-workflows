@@ -166,6 +166,11 @@ the repo tracks pkgdown output or the user asked to update the site.
 - Lintr should not fight Air:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
 
+When Air CI fails, inspect the workflow and `air.toml` before editing, confirm
+the local `air --version` matches CI when the workflow pins Air, then run
+`air format .` followed by `air format . --check`. Report the changed files and
+diff scope; even roxygen trailing whitespace can be the whole failure.
+
 For scoped formatting work, format the intended scope first and confirm it with
 a scoped check, such as `air format tests/testthat --check` for test cleanup.
 Then finish with `air format . --check`. If the repo-wide check reports
