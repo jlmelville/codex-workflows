@@ -24,11 +24,18 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install ShellCheck
+      - name: Install validation dependencies
         run: |
+          missing_packages=()
           if ! command -v shellcheck >/dev/null 2>&1; then
+            missing_packages+=(shellcheck)
+          fi
+          if ! command -v Rscript >/dev/null 2>&1; then
+            missing_packages+=(r-base-core)
+          fi
+          if ((${#missing_packages[@]} > 0)); then
             sudo apt-get update
-            sudo apt-get install -y shellcheck
+            sudo apt-get install -y "${missing_packages[@]}"
           fi
 
       - name: Validate skills
