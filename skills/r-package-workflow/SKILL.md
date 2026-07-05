@@ -34,6 +34,9 @@ Use this as the default operating procedure for R package work.
 - Treat these as generated unless intentionally refreshed:
   `R/RcppExports.R`, `src/RcppExports.cpp`, `NAMESPACE`, `man/*.Rd`,
   pkgdown output under `docs/`.
+- When introducing top-level hidden development config files such as
+  `.air.toml`, `.lintr`, or `.styler.R`, add exact anchored `.Rbuildignore`
+  entries in the same phase and confirm the R CMD check hidden-file check is OK.
 - Use `apply_patch` for manual edits. Use package tools for generated output.
 - After `usethis` modifies infrastructure, re-harden generated files rather
   than accepting templates as final.
