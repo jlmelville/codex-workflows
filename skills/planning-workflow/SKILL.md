@@ -115,6 +115,12 @@ Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
 
+For behavior-neutral file splits, add a mechanical verification step before
+tests when practical. Snapshot the original source file, split it
+mechanically, rejoin the new files with the same separators the original used,
+and run a unified diff against the snapshot. Treat any non-separator diff as a
+source-content change that needs review before proceeding.
+
 For cleanup chunks that may reveal several unrelated correctness bugs, decide
 the likely commit boundaries before editing. Keep fixes and tests independently
 stageable by bug whenever practical, instead of making one shared regression

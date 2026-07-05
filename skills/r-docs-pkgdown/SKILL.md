@@ -19,6 +19,10 @@ Use this for documentation and pkgdown work in R packages.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen
   source change that produced them. Avoid unrelated generated churn.
+- When roxygen blocks move files without wording changes, regenerate docs and
+  classify generated `man/*.Rd` diffs that only update
+  `% Please edit documentation in ...` source comments as expected source-path
+  churn. Run `roxygen2::roxygenise()` a second time to confirm idempotence.
 - After `roxygen2::roxygenise()`, inspect `git diff -- DESCRIPTION`
   separately. Restore roxygen metadata churn, such as `RoxygenNote` being
   replaced by `Config/roxygen2/version`, unless metadata modernization is
