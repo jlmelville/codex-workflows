@@ -96,6 +96,10 @@ ShellCheck results, and executable bits for bundled shell scripts.
 GitHub Actions runs the same validation on pushes and pull requests, plus a
 lightweight workflow audit.
 
+## License
+
+This repository is licensed under the [MIT License](LICENSE).
+
 ## Local Tooling
 
 Some skills assume these tools may be available in project worktrees:
