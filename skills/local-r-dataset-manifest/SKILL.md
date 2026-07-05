@@ -22,8 +22,8 @@ absent instead of trying to recreate it.
 Each manifest row names a curated bundle:
 
 - `file` maps to `path` basename `<file>l.Rda`.
-- The `.Rda` loads exactly one object named `<file>`.
-- The object is a list with `X`, `Y`, and `nn`.
+- The `.Rda` loads exactly one object whose value is a list with `X`, `Y`, and
+  `nn`.
 - `X` is a matrix; never record or enumerate `colnames(X)`.
 - `nn$idx` and `nn$dist` are both `nrow(X) x 150`.
 - `nn_k` is `150`, and neighbor row counts match `nrow(X)`.
