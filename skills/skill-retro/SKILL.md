@@ -11,6 +11,8 @@ retrospective itself; output the report in chat.
 
 ## Report Rules
 
+- Start each candidate with a `Triage intent` line: `update existing skill`,
+  `no change`, `new skill`, `new script`, `new prompt`, or `uncertain`.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
 - Deduplicate related observations. If several events point to the same
@@ -20,10 +22,15 @@ retrospective itself; output the report in chat.
   reference, script, prompt, or no action.
 - Include exact failure signals when available: command, error text, annotation,
   API response, warning, or behavior.
+- For command or shell-pattern suggestions, say whether the command was
+  smoke-tested and whether any quoting or sandbox caveat remains. Mark untested
+  commands explicitly.
 - Distinguish local files from remote service state when that changed the
   investigation.
 - Identify ownership when known: source-owned in `codex-workflows`, repo-local,
   external/plugin-owned, or unknown.
+- For no-change recommendations, cite the existing skill, reference, script,
+  prompt, or local convention that already covers the lesson.
 
 ## Triage Rules
 
@@ -40,6 +47,7 @@ retrospective itself; output the report in chat.
 ## Skill Candidate Report
 
 ### candidate-name
+Triage intent:
 Trigger:
 Evidence:
 Exact failure signal:

@@ -14,18 +14,8 @@ Common fields:
 ## Roxygen
 
 - Prefer markdown roxygen globally.
-- Treat enabling `Roxygen: list(markdown = TRUE)` as a docs-modernization
-  commitment, not a local cleanup. Either complete the full roxygen markdown
-  conversion immediately or record a required follow-up chunk before moving on
-  to formatting, lint, pkgdown, CI, or structural refactors.
-- Use roxygen-only searches to size the conversion without matching ordinary
-  source comments:
-
-  ```sh
-  rg -n "^#'\\s*@(md|noMd)\\b" R
-  rg -n "^#'.*\\\\(code|link|url|href|itemize|item|emph|strong|describe|dontrun|donttest|dontshow|eqn|deqn|Sexpr|tabular)" R
-  ```
-
+- For roxygen markdown audits or package-wide conversions, use
+  [roxygen-markdown.md](roxygen-markdown.md).
 - Convert old `\code{}` and `\emph{}` markup when touching a topic.
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
 - After regenerating, inspect `git diff -- DESCRIPTION` separately.
@@ -36,27 +26,10 @@ Common fields:
   as `D^(-1/2)` over TeX-like text in backticks such as `D^{-1/2}`. After
   regenerating, inspect `man/*.Rd` for awkward formula rendering, not just the
   roxygen source.
-- For nested list conversions, keep continuation paragraphs indented under the
-  intended parent bullet. Inspect generated Rd for changed `\itemize{` and `}`
-  boundaries; successful roxygen generation can still hide list-structure
-  drift.
 - For exported renames, run roxygen twice: the first pass may delete old topics,
   aliases, or exports, and the second pass should be idempotent.
 - Search for stale public names after renames, including examples, articles,
   README, NEWS, `_pkgdown.yml`, `NAMESPACE`, and `man/*.Rd`.
-- For full markdown modernization, run `roxygen2::roxygenise()` twice and then
-  `devtools::check(document = FALSE, args = c("--no-manual"))` before handing
-  off the docs chunk.
-- After broad conversions, check for malformed inline markdown and Rd validity:
-
-  ```sh
-  perl -ne 'if (/^#\x27/ && (tr/`// % 2)) { print "$ARGV:$.:$_" }' R/*.R
-  Rscript -e 'invisible(lapply(list.files("man", pattern = "\\.Rd$", full.names = TRUE), tools::checkRd))'
-  ```
-
-  Use `#\x27` instead of literal `#'` in single-quoted shell programs that
-  match roxygen prefixes. Include `man-roxygen/*.R` in the Perl check when that
-  directory exists.
 
 ## README
 

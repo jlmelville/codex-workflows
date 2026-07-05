@@ -25,55 +25,9 @@ Use this for documentation and pkgdown work in R packages.
   change. Once roxygen markdown is enabled, complete the markdown conversion in
   the same docs-modernization chunk or add an explicit required follow-up chunk
   before formatting, lint, pkgdown, CI, or structural refactors.
-- When converting nested `\itemize{}` blocks to markdown bullets, indent
-  continuation paragraphs under the parent bullet and inspect generated
-  `man/*.Rd` diffs for changed `\itemize{` and `}` boundaries. Roxygen command
-  success does not prove list structure was preserved.
+- For roxygen markdown audits or package-wide conversions, use
+  [roxygen-markdown.md](references/roxygen-markdown.md).
 - Avoid broad roxygen churn during narrow correctness phases.
-
-## Roxygen Markdown Audits
-
-When asked whether roxygen markdown is complete or partial, audit source before
-generated output:
-
-1. Check `DESCRIPTION` for `Roxygen: list(markdown = TRUE)`.
-2. Use roxygen-only searches for markdown overrides and raw Rd macros:
-
-   ```sh
-   rg -n "^#'\\s*@(md|noMd)\\b" R
-   rg -n "^#'.*\\\\(code|link|url|href|itemize|item|emph|strong|describe|dontrun|donttest|dontshow|eqn|deqn|Sexpr|tabular)" R
-   ```
-
-3. Classify intentional raw Rd in examples separately, such as `\dontrun{}`.
-4. Treat ordinary `#` comments from broader source searches as source cleanup
-   candidates, not RDoc markdown evidence.
-5. Treat `man/*.Rd` macros as expected generated output. Search generated Rd
-   only when checking source/generated drift after `roxygen2::roxygenise()`.
-
-## Roxygen Markdown Conversions
-
-After a package-wide roxygen markdown conversion:
-
-1. Rerun the roxygen-only macro searches. Classify intentionally retained raw
-   Rd separately, especially `\eqn{}` and `\deqn{}` math and example wrappers
-   such as `\dontrun{}`.
-2. Check odd backtick counts in roxygen lines after multiline `\code{}`
-   rewrites. Include `man-roxygen/*.R` when present:
-
-   ```sh
-   perl -ne 'if (/^#\x27/ && (tr/`// % 2)) { print "$ARGV:$.:$_" }' R/*.R
-   ```
-
-   Avoid literal `#'` inside single-quoted shell programs; use `#\x27`, a
-   checked-in helper, or another quoting-safe approach.
-3. Run `tools::checkRd` over generated Rd files:
-
-   ```sh
-   Rscript -e 'invisible(lapply(list.files("man", pattern = "\\.Rd$", full.names = TRUE), tools::checkRd))'
-   ```
-
-4. Run `roxygen2::roxygenise()` a second time and confirm it makes no
-   additional `NAMESPACE` or `man/*.Rd` changes.
 
 ## Exported API Renames
 
