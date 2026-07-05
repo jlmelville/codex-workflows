@@ -29,8 +29,10 @@ retrospective itself; output the report in chat.
   investigation.
 - Identify ownership when known: source-owned in `codex-workflows`, repo-local,
   external/plugin-owned, or unknown.
-- For no-change recommendations, cite the existing skill, reference, script,
-  prompt, or local convention that already covers the lesson.
+- For no-change recommendations, cite the specific existing skill, reference,
+  script, prompt, or local convention that already covers the lesson. Prefer a
+  section name, heading, or numbered item such as
+  `dependabot-pr-maintenance > Batch Merge item 2` over a broad skill name.
 
 ## Triage Rules
 
@@ -72,10 +74,12 @@ Suggested destination path:
 Ownership:
 State surface:
 Missing delta:
+Existing coverage:
 Validation or script opportunity:
 Risk if omitted:
 Preliminary recommendation:
 ```
 
 If no change is warranted, say that directly and explain which existing skill,
-reference, script, prompt, or local convention already covers the lesson.
+reference, script, prompt, or local convention already covers the lesson, with a
+section or item citation when available.
