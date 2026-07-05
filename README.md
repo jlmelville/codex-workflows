@@ -94,6 +94,7 @@ lightweight workflow audit.
 
 Some skills assume these tools may be available in project worktrees:
 
+- `python3` for bundled Python script validation
 - `ruby` for repository validation
 - `shellcheck` for shell script validation
 - `Rscript`

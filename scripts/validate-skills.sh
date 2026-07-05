@@ -4,6 +4,8 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 status=0
 shell_files=()
+python_files=()
+r_files=()
 
 shopt -s nullglob
 for skill_dir in "${repo_dir}"/skills/*; do
@@ -52,6 +54,16 @@ mapfile -d '' shell_files < <(
     -type f \( -name '*.sh' -o -name 'install.sh' \) -print0
 )
 
+mapfile -d '' python_files < <(
+  find "${repo_dir}/skills" \
+    -type f -path '*/scripts/*.py' -print0
+)
+
+mapfile -d '' r_files < <(
+  find "${repo_dir}/skills" \
+    -type f -path '*/scripts/*.R' -print0
+)
+
 for script in "${shell_files[@]}"; do
   if ! bash -n "${script}"; then
     status=1
@@ -65,6 +77,61 @@ elif ((${#shell_files[@]} > 0)); then
   if ! shellcheck "${shell_files[@]}"; then
     status=1
   fi
+fi
+
+if ((${#python_files[@]} > 0)); then
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required to validate bundled Python scripts" >&2
+    status=1
+  else
+    if ! python3 - "${python_files[@]}" <<'PY'
+import pathlib
+import sys
+
+status = 0
+for path_text in sys.argv[1:]:
+    path = pathlib.Path(path_text)
+    try:
+        compile(path.read_text(encoding="utf-8"), str(path), "exec")
+    except SyntaxError as exc:
+        print(f"{path}: {exc}", file=sys.stderr)
+        status = 1
+
+sys.exit(status)
+PY
+    then
+      status=1
+    fi
+  fi
+fi
+
+if ((${#r_files[@]} > 0)); then
+  if ! command -v Rscript >/dev/null 2>&1; then
+    echo "Rscript is required to validate bundled R scripts" >&2
+    status=1
+  elif ! Rscript --vanilla -e '
+    status <- 0L
+    for (path in commandArgs(TRUE)) {
+      tryCatch(
+        invisible(parse(file = path)),
+        error = function(e) {
+          message(path, ": ", conditionMessage(e))
+          status <<- 1L
+        }
+      )
+    }
+    quit(status = status)
+  ' "${r_files[@]}"; then
+    status=1
+  fi
+fi
+
+generic_actions_audit="${repo_dir}/skills/github-actions-hardening/scripts/audit-actions.sh"
+r_actions_audit="${repo_dir}/skills/r-ci-hardening/scripts/audit-actions.sh"
+if [[ -f "${generic_actions_audit}" && -f "${r_actions_audit}" ]] &&
+  ! cmp -s "${generic_actions_audit}" "${r_actions_audit}"; then
+  echo "audit-actions.sh mirrors differ; update both or document why validation should change" >&2
+  status=1
 fi
 
 exit "${status}"

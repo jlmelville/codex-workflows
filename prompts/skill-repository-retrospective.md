@@ -43,6 +43,7 @@ Report using this shape:
 
 For each recommended edit, include:
 
+- file and line evidence for the current state;
 - current location;
 - proposed destination;
 - reason;
