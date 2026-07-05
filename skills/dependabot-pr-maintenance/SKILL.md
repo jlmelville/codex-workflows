@@ -156,7 +156,11 @@ repeat the verified merge loop for each PR:
 4. Merge with the repository's strategy and `--delete-branch` when requested.
 5. Confirm merged state, merge commit, and branch deletion before moving to the
    next PR.
-6. After each merge, fetch the remote base branch without disturbing local
+6. For the PR just merged, treat direct
+   `gh pr view <number> --json state,mergedAt,mergeCommit` as the source of
+   truth. If `gh pr list --state open` still shows it, wait and re-read before
+   retrying the merge or reporting an inconsistency.
+7. After each merge, fetch the remote base branch without disturbing local
    changes, then re-read the remaining PRs because mergeability and checks may
    have changed.
 
