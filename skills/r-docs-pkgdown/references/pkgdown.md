@@ -14,6 +14,16 @@ Common fields:
 ## Roxygen
 
 - Prefer markdown roxygen globally.
+- Treat enabling `Roxygen: list(markdown = TRUE)` as a docs-modernization
+  commitment, not a local cleanup. Either complete the full roxygen markdown
+  conversion immediately or record a required follow-up chunk before moving on
+  to formatting, lint, pkgdown, CI, or structural refactors.
+- Use a legacy Rd-markup search to size the conversion:
+
+  ```sh
+  rg -n '\\(code|link|url|href|itemize|enumerate|describe)\{' R
+  ```
+
 - Convert old `\code{}` and `\emph{}` markup when touching a topic.
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
 - After regenerating, inspect `git diff -- DESCRIPTION` separately.
@@ -28,6 +38,9 @@ Common fields:
   aliases, or exports, and the second pass should be idempotent.
 - Search for stale public names after renames, including examples, articles,
   README, NEWS, `_pkgdown.yml`, `NAMESPACE`, and `man/*.Rd`.
+- For full markdown modernization, run `roxygen2::roxygenise()` twice and then
+  `devtools::check(document = FALSE, args = c("--no-manual"))` before handing
+  off the docs chunk.
 
 ## README
 

@@ -21,6 +21,10 @@ Use this for documentation and pkgdown work in R packages.
   separately. Restore roxygen metadata churn, such as `RoxygenNote` being
   replaced by `Config/roxygen2/version`, unless metadata modernization is
   explicitly in scope.
+- Do not enable `Roxygen: list(markdown = TRUE)` as an opportunistic partial
+  change. Once roxygen markdown is enabled, complete the markdown conversion in
+  the same docs-modernization chunk or add an explicit required follow-up chunk
+  before formatting, lint, pkgdown, CI, or structural refactors.
 - Avoid broad roxygen churn during narrow correctness phases.
 
 ## Exported API Renames
