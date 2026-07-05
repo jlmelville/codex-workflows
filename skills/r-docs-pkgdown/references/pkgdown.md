@@ -18,10 +18,12 @@ Common fields:
   commitment, not a local cleanup. Either complete the full roxygen markdown
   conversion immediately or record a required follow-up chunk before moving on
   to formatting, lint, pkgdown, CI, or structural refactors.
-- Use a legacy Rd-markup search to size the conversion:
+- Use roxygen-only searches to size the conversion without matching ordinary
+  source comments:
 
   ```sh
-  rg -n '\\(code|link|url|href|itemize|enumerate|describe)\{' R
+  rg -n "^#'\\s*@(md|noMd)\\b" R
+  rg -n "^#'.*\\\\(code|link|url|href|itemize|item|emph|strong|describe|dontrun|donttest|dontshow|eqn|deqn|Sexpr|tabular)" R
   ```
 
 - Convert old `\code{}` and `\emph{}` markup when touching a topic.
@@ -34,6 +36,10 @@ Common fields:
   as `D^(-1/2)` over TeX-like text in backticks such as `D^{-1/2}`. After
   regenerating, inspect `man/*.Rd` for awkward formula rendering, not just the
   roxygen source.
+- For nested list conversions, keep continuation paragraphs indented under the
+  intended parent bullet. Inspect generated Rd for changed `\itemize{` and `}`
+  boundaries; successful roxygen generation can still hide list-structure
+  drift.
 - For exported renames, run roxygen twice: the first pass may delete old topics,
   aliases, or exports, and the second pass should be idempotent.
 - Search for stale public names after renames, including examples, articles,

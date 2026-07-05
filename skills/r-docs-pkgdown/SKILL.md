@@ -25,6 +25,10 @@ Use this for documentation and pkgdown work in R packages.
   change. Once roxygen markdown is enabled, complete the markdown conversion in
   the same docs-modernization chunk or add an explicit required follow-up chunk
   before formatting, lint, pkgdown, CI, or structural refactors.
+- When converting nested `\itemize{}` blocks to markdown bullets, indent
+  continuation paragraphs under the parent bullet and inspect generated
+  `man/*.Rd` diffs for changed `\itemize{` and `}` boundaries. Roxygen command
+  success does not prove list structure was preserved.
 - Avoid broad roxygen churn during narrow correctness phases.
 
 ## Roxygen Markdown Audits
@@ -33,10 +37,17 @@ When asked whether roxygen markdown is complete or partial, audit source before
 generated output:
 
 1. Check `DESCRIPTION` for `Roxygen: list(markdown = TRUE)`.
-2. Search `R/` roxygen comments for `@md`, `@noMd`, and raw Rd macros such as
-   `\code{}`, `\link{}`, `\url{}`, `\itemize{}`, and `\describe{}`.
+2. Use roxygen-only searches for markdown overrides and raw Rd macros:
+
+   ```sh
+   rg -n "^#'\\s*@(md|noMd)\\b" R
+   rg -n "^#'.*\\\\(code|link|url|href|itemize|item|emph|strong|describe|dontrun|donttest|dontshow|eqn|deqn|Sexpr|tabular)" R
+   ```
+
 3. Classify intentional raw Rd in examples separately, such as `\dontrun{}`.
-4. Treat `man/*.Rd` macros as expected generated output. Search generated Rd
+4. Treat ordinary `#` comments from broader source searches as source cleanup
+   candidates, not RDoc markdown evidence.
+5. Treat `man/*.Rd` macros as expected generated output. Search generated Rd
    only when checking source/generated drift after `roxygen2::roxygenise()`.
 
 ## Exported API Renames
