@@ -113,8 +113,10 @@ python /path/to/quick_validate.py skills/<skill-name>
 If the validator needs Python packages such as PyYAML, run it through `uv` and
 follow `$uv-sandbox-workflow` so caches live under `/tmp`.
 
-For bundled scripts, run representative behavior checks and remove generated
-test artifacts such as `__pycache__` before staging.
+For bundled scripts, prefer validation that does not write artifacts into
+`skills/`, such as in-memory parsing or caches under `/tmp`. Run representative
+behavior checks and remove any generated test artifacts such as `__pycache__`
+before staging.
 
 For workflow changes, also run the repository's workflow audit if present:
 
