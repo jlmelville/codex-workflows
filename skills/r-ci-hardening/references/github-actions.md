@@ -5,6 +5,10 @@
 - Use full-length SHA pins for all `uses:` entries.
 - Add a comment near pinned actions: `Pinned to a full-length commit SHA for
   immutability; Dependabot updates this reference.`
+- Run `actionlint` before pinning existing workflows when practical. If it
+  rejects an action major as obsolete, such as `actions/checkout@v3`, upgrade
+  to a supported major before resolving and pinning the tag commit. Record why
+  the major changed so the pin does not preserve an already-broken action.
 - Set `persist-credentials: false` for checkout.
 - Prefer `permissions: contents: read` at workflow top level.
 - Put write permissions only on deploy or publish jobs.

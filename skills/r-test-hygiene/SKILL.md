@@ -37,6 +37,14 @@ For shape-sensitive fixtures, preserve visual structure:
 Use `# fmt: skip` immediately before the expression when Air would obscure the
 shape. See [fixtures.md](references/fixtures.md).
 
+## Warning Regressions
+
+For R partial-match warnings, fix the source by using exact `[[...]]` access for
+optional list fields instead of suppressing the warning. Add a focused
+regression with `options(warnPartialMatchDollar = TRUE)`, restore options with
+`on.exit()`, and assert `expect_warning(..., NA)` around the behavior that
+previously emitted the partial match.
+
 ## testthat Edition Migrations
 
 When opting an existing package into `Config/testthat/edition: 3`, isolate the
