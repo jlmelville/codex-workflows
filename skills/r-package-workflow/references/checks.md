@@ -120,6 +120,10 @@ Inspect generated and temporary output before finalizing:
 - pkgdown build when changing `_pkgdown.yml`, articles, examples, or generated
   docs: `Rscript -e 'pkgdown::build_site(new_process = FALSE)'`
 
+After roxygen refreshes, inspect `git diff -- DESCRIPTION` separately and
+restore unrelated roxygen metadata churn, such as `RoxygenNote` being replaced
+by `Config/roxygen2/version`, unless that modernization is explicitly in scope.
+
 Network-restricted environments may need escalation for pkgdown external
 assets or CRAN metadata.
 

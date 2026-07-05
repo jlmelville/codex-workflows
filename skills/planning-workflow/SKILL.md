@@ -212,6 +212,11 @@ When editing an ignored active plan, use ignored-aware status or discovery such
 as `git status --ignored --short` or `rg --files -uu`, and call out the hidden
 plan edit in the final response.
 
+When editing an untracked active plan, report that status explicitly. Ordinary
+`git diff -- path/to/plan.md` has no baseline and may show no content for a
+`??` file; use file line references, a short summary, or `git diff --no-index`
+against a saved prior copy only when a content diff is necessary.
+
 When creating a persistent plan, choose a location deliberately:
 
 - Use the established plan directory when it is intentionally local or ignored.

@@ -16,8 +16,10 @@ Common fields:
 - Prefer markdown roxygen globally.
 - Convert old `\code{}` and `\emph{}` markup when touching a topic.
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
-- Check whether regenerated files include unrelated version churn before
-  committing.
+- After regenerating, inspect `git diff -- DESCRIPTION` separately.
+  `roxygen2::roxygenise()` can replace `RoxygenNote` with
+  `Config/roxygen2/version`; restore that churn unless metadata modernization
+  is explicitly in scope.
 - For inline algebra in markdown roxygen, prefer Rd-friendly plain forms such
   as `D^(-1/2)` over TeX-like text in backticks such as `D^{-1/2}`. After
   regenerating, inspect `man/*.Rd` for awkward formula rendering, not just the
