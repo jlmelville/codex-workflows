@@ -113,6 +113,11 @@ Inspect generated and temporary output before finalizing:
 4. Confirm no local `*.Rcheck`, temporary pkgdown destination, or other build
    artifact remains in the repo.
 
+`git diff --check` does not cover files that are still untracked. After
+creating new files, run an explicit whitespace check over those paths, such as
+`rg -n '[ \t]+$' <new-files>`, or use
+`git diff --no-index --check /dev/null <new-file>` for a single file.
+
 ## Documentation
 
 - Roxygen refresh: `Rscript -e 'roxygen2::roxygenise()'`

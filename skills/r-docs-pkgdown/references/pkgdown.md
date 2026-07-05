@@ -68,6 +68,13 @@ these effects separately: preserve useful remote state and ignore-file updates,
 but restore hardened workflows and curated `_pkgdown.yml` content when helper
 defaults are too broad or remove intentional navigation.
 
+Before adding pkgdown to a repo, run `git ls-files docs`. If `docs/` is tracked
+and contains hand-authored, historical, or non-pkgdown site material, do not use
+pkgdown's default `docs/` destination. Set a distinct `_pkgdown.yml`
+`destination`, such as `pkgdown-site`, add matching `.gitignore` and
+`.Rbuildignore` entries when generated output should stay untracked, and align
+workflow artifact upload/download paths with that destination.
+
 After running it, reconcile `.github/workflows/pkgdown.yaml` against hardened
 patterns:
 
@@ -105,9 +112,10 @@ zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 
 ## Build Notes
 
-`pkgdown::build_site()` may need network access for external JavaScript assets
-or CRAN metadata. If sandboxed network fails and the build matters, request
-approval and rerun with escalation.
+`pkgdown::build_site()` may need network access for external JavaScript assets,
+CRAN package metadata, and CRAN news timeline metadata. DNS errors for hosts
+such as `cloud.r-project.org` or `crandb.r-pkg.org` are sandbox/network
+evidence; if the build matters, request approval and rerun with escalation.
 
 In restricted Codex sandboxes, set cache paths to writable temporary
 directories when needed, for example `XDG_CACHE_HOME=/tmp/pkgdown-cache`. Treat
@@ -122,6 +130,4 @@ XDG_CACHE_HOME=/tmp/r-cache Rscript -e 'dest <- tempfile("pkgdown-"); dir.create
 ```
 
 Use a project-specific `tempfile()` prefix when it helps identify cleanup
-artifacts. DNS errors such as `Could not resolve hostname [cloud.r-project.org]`
-are sandbox/network evidence; rerun with approval only when a final pkgdown
-result is required.
+artifacts. Rerun with approval only when a final pkgdown result is required.
