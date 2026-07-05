@@ -111,13 +111,16 @@ read_manifest <- function(path) {
   manifest
 }
 
-load_bundle <- function(path) {
+load_bundle <- function(path, expected_name) {
   env <- new.env(parent = emptyenv())
   object_names <- load(path, envir = env)
   if (length(object_names) != 1L) {
     stop("expected one object, found: ", paste(object_names, collapse = ", "), call. = FALSE)
   }
-  env[[object_names]]
+  if (!identical(object_names, expected_name)) {
+    stop("expected object '", expected_name, "', found '", object_names, "'", call. = FALSE)
+  }
+  env[[expected_name]]
 }
 
 inspect_row <- function(row, data_root) {
@@ -142,7 +145,7 @@ inspect_row <- function(row, data_root) {
   }
 
   obj <- tryCatch(
-    load_bundle(path),
+    load_bundle(path, name),
     error = function(e) {
       errors <<- c(errors, conditionMessage(e))
       NULL
