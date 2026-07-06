@@ -63,6 +63,13 @@ regression with `options(warnPartialMatchDollar = TRUE)`, restore options with
 `on.exit()`, and assert `expect_warning(..., NA)` around the behavior that
 previously emitted the partial match.
 
+## Looped Test Diagnostics
+
+Not every testthat expectation accepts `info` consistently across installed
+versions. For table-driven comparison diagnostics, prefer
+`expect_true(<comparison>, info = case$name)` when the case label matters, and
+smoke-run the focused test immediately after adding diagnostic arguments.
+
 ## testthat Edition Migrations
 
 When opting an existing package into `Config/testthat/edition: 3`, isolate the
