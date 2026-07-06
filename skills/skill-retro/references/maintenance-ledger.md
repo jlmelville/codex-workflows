@@ -58,7 +58,10 @@ rule for permanent benchmark harnesses, also below the split threshold. Another
 guidance; the accumulated R test patterns should be reviewed together before
 adding much more top-level detail. A later 2026-07-06 R test triage promoted
 coverage details into `skills/r-test-hygiene/references/coverage-roi.md` while
-keeping the obsolete-helper cleanup rule visible in `SKILL.md`.
+keeping the obsolete-helper cleanup rule visible in `SKILL.md`. Another
+2026-07-06 numerical-package triage added
+`skills/r-test-hygiene/references/numerical-contracts.md` rather than growing
+the always-read file with derivative and metadata testing details.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.

@@ -15,7 +15,9 @@ Use this for R package tests and fixtures.
 - For numerical or statistical robustness work, inventory existing tests by
   algorithm family before changing behavior. Separate golden trace/output
   regressions from mathematical invariant or property tests, then list missing
-  invariants in the active plan.
+  invariants in the active plan. For factory-return objects, benchmark
+  functions, or derivative code, also use
+  [numerical-contracts.md](references/numerical-contracts.md).
 - Remove test-only exported R or C++ hooks before release unless explicitly
   justified.
 - For cleanup chunks that fix multiple unrelated bugs, organize regression tests
