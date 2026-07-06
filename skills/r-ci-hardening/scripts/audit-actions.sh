@@ -67,7 +67,7 @@ while IFS= read -r match; do
     found_unpinned=true
     status=1
   fi
-done < <(grep -RInE 'uses:[[:space:]]*[^#]+@[^[:space:]#]+' "${workflow_dir}" || true)
+done < <(grep -RInE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*[^#]+@[^[:space:]#]+' "${workflow_dir}" || true)
 
 if [[ "${found_unpinned}" == false ]]; then
   echo "No non-SHA action refs found."
@@ -97,7 +97,7 @@ while IFS= read -r match; do
     echo "${file}:${line_no}: checkout step may be missing persist-credentials: false" >&2
     status=1
   fi
-done < <(grep -RInE 'uses:[[:space:]]*actions/checkout@' "${workflow_dir}" || true)
+done < <(grep -RInE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*actions/checkout@' "${workflow_dir}" || true)
 
 if command -v actionlint >/dev/null 2>&1; then
   mapfile -d '' workflow_files < <(

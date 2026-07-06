@@ -58,12 +58,19 @@ run_benchmark_smoke() {
   cat >"${cases}" <<'RS'
 benchmark_metadata <- list(scope = "smoke")
 benchmark_cases <- list(
-  base = function() sum(1:3)
+  base = function() {
+    Sys.sleep(0.01)
+    sum(1:3)
+  }
 )
 RS
 
   Rscript --vanilla "${script}" --help >/dev/null
   Rscript --vanilla "${script}" "${cases}" --reps 1 --out "${out_prefix}" >/dev/null
+  if Rscript --vanilla "${script}" "${cases}" --baseline missing --out "${out_prefix}-missing" >/dev/null 2>&1; then
+    echo "benchmark-evidence.R should fail for an unknown baseline" >&2
+    return 1
+  fi
   [[ -s "${out_prefix}.csv" ]]
   [[ -s "${out_prefix}.md" ]]
 }
@@ -221,6 +228,36 @@ run_shell_script_smoke() {
   "${repo_dir}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh" --help >/dev/null
 }
 
+run_audit_actions_smoke() {
+  local script="${repo_dir}/skills/github-actions-hardening/scripts/audit-actions.sh"
+  local workflow_dir="${tmp_root}/audit-actions-commented-only"
+  local fake_bin="${tmp_root}/audit-actions-fake-bin"
+
+  mkdir -p "${workflow_dir}" "${fake_bin}"
+  cat >"${workflow_dir}/commented.yml" <<'EOF_COMMENTED_WORKFLOW'
+name: commented
+jobs:
+  test:
+    steps:
+      # - uses: actions/checkout@v4
+      # - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567
+      - run: echo ok
+EOF_COMMENTED_WORKFLOW
+  cat >"${fake_bin}/actionlint" <<'EOF_FAKE_ACTIONLINT'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF_FAKE_ACTIONLINT
+  cat >"${fake_bin}/zizmor" <<'EOF_FAKE_ZIZMOR'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF_FAKE_ZIZMOR
+  chmod +x "${fake_bin}/actionlint" "${fake_bin}/zizmor"
+
+  PATH="${fake_bin}:${PATH}" "${script}" "${workflow_dir}" >/dev/null
+}
+
 run_action_tag_comment_smoke() {
   local script="${repo_dir}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh"
   local sha="0123456789abcdef0123456789abcdef01234567"
@@ -349,6 +386,7 @@ run_benchmark_smoke
 run_manifest_smoke
 run_roxygen_smoke
 run_shell_script_smoke
+run_audit_actions_smoke
 run_action_tag_comment_smoke
 run_skill_index_smoke
 

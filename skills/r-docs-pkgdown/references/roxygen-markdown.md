@@ -78,7 +78,7 @@ After a package-wide conversion:
 3. Run `tools::checkRd` over generated Rd files:
 
    ```sh
-   Rscript -e 'invisible(lapply(list.files("man", pattern = "\\.Rd$", full.names = TRUE), tools::checkRd))'
+   Rscript -e 'invisible(lapply(list.files("man", pattern = "[.]Rd$", full.names = TRUE), tools::checkRd))'
    ```
 
 4. Run `roxygen2::roxygenise()` a second time and confirm it makes no

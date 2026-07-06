@@ -9,12 +9,19 @@ run_zizmor() {
   local output
 
   if command -v zizmor >/dev/null 2>&1; then
-    zizmor "${target_dir}"
-    return
+    if ! zizmor "${target_dir}"; then
+      echo "zizmor reported issues for ${target_dir}." >&2
+      return 1
+    fi
+    return 0
   fi
 
   if ! command -v uvx >/dev/null 2>&1; then
     echo "zizmor and uvx not found; skipped zizmor." >&2
+    if [[ "${CI:-false}" == "true" ]]; then
+      echo "zizmor or uvx is required in CI." >&2
+      return 1
+    fi
     return 0
   fi
 
@@ -29,10 +36,15 @@ run_zizmor() {
   if grep -Eiq 'temporary failure|name or service not known|could not resolve|failed to resolve|dns|pypi|no such host|network is unreachable|connection (refused|reset|timed out|error)|failed to fetch|failed to download|error downloading|request failed|error sending request' "${output}"; then
     echo "uvx could not run zizmor because of network/tool download failure; rerun with network approval or use installed zizmor." >&2
     rm -f "${output}"
+    if [[ "${CI:-false}" == "true" ]]; then
+      echo "zizmor download/tool acquisition is required to succeed in CI." >&2
+      return 1
+    fi
     return 0
   fi
 
   rm -f "${output}"
+  echo "zizmor reported issues for ${target_dir}." >&2
   return 1
 }
 
@@ -46,6 +58,8 @@ Modes:
   fast  Rcpp attributes when relevant, then testthat::test_local()
   full  fast checks plus Air, lintr, and devtools::check(--no-manual)
   ci    full checks plus actionlint and zizmor when workflows exist
+
+Rcpp attributes may update R/RcppExports.R or src/RcppExports.cpp.
 USAGE
 }
 
@@ -83,6 +97,8 @@ fi
 
 if command -v air >/dev/null 2>&1; then
   air format . --check
+else
+  echo "air not found; skipped Air format check." >&2
 fi
 
 Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'

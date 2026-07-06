@@ -44,7 +44,7 @@ manifest is the curated source of truth for agents choosing benchmark data.
 3. Validate all rows before changing the live manifest:
 
    ```sh
-   Rscript --vanilla skills/local-r-dataset-manifest/scripts/validate_manifest.R
+   Rscript --vanilla "${CODEX_HOME:-$HOME/.codex}/skills/local-r-dataset-manifest/scripts/validate_manifest.R"
    ```
 
 4. Write proposed changes to `/tmp` first. Review the draft and failure report.
@@ -52,7 +52,7 @@ manifest is the curated source of truth for agents choosing benchmark data.
    writes outside the repo, request sandbox approval before using `--replace`.
 
    ```sh
-   Rscript --vanilla skills/local-r-dataset-manifest/scripts/validate_manifest.R --replace
+   Rscript --vanilla "${CODEX_HOME:-$HOME/.codex}/skills/local-r-dataset-manifest/scripts/validate_manifest.R" --replace
    ```
 
 Load data in isolated R environments, never `.GlobalEnv`. If validation reports

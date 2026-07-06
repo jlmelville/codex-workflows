@@ -51,15 +51,17 @@ Run after workflow changes:
 ```sh
 actionlint
 zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
-scripts/audit-actions.sh
+${CODEX_HOME:-$HOME/.codex}/skills/r-ci-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
-Use the bundled `scripts/audit-actions.sh` from this skill when available.
-It prefers an installed `zizmor`, falls back to `uvx zizmor`, and treats uvx
-network/download failures as environment issues rather than workflow findings.
-It also runs an offline nearby-comment check for full-SHA action pins.
+Use the bundled `audit-actions.sh` from this skill when available. It prefers an
+installed `zizmor`, falls back to `uvx zizmor`, and treats uvx network/download
+failures as environment issues rather than workflow findings. It also runs an
+offline nearby-comment check for full-SHA action pins. From this source
+repository, the same helper is available at
+`skills/r-ci-hardening/scripts/audit-actions.sh`.
 
 For rare reviews that need to confirm nearby version tags against full-SHA pins,
 use
-`skills/github-actions-hardening/scripts/check-action-tag-comments.sh`; its
-`--verify-remote` mode uses `git ls-remote` and may need network approval.
+`${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh`;
+its `--verify-remote` mode uses `git ls-remote` and may need network approval.

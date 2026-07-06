@@ -169,7 +169,7 @@ check_rd() {
   fi
 
   if ! Rscript --vanilla -e '
-    files <- list.files("man", pattern = "\\.Rd$", full.names = TRUE)
+    files <- list.files("man", pattern = "[.]Rd$", full.names = TRUE)
     if (!length(files)) {
       message("No generated Rd files found.")
       quit(status = 0L)

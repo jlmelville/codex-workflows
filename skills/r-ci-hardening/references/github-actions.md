@@ -5,10 +5,11 @@
 - Use full-length SHA pins for all `uses:` entries.
 - Add a comment near pinned actions: `Pinned to a full-length commit SHA for
   immutability; Dependabot updates this reference.`
-- `scripts/audit-actions.sh` checks for nearby comments in offline mode. When
-  the human-readable action version comment is in doubt, run the tag comment
-  checker in `--require-tag` mode first, then use `--verify-remote` only when
-  remote tag verification is worth the network request.
+- `${CODEX_HOME:-$HOME/.codex}/skills/r-ci-hardening/scripts/audit-actions.sh`
+  checks for nearby comments in offline mode. When the human-readable action
+  version comment is in doubt, run the tag comment checker in `--require-tag`
+  mode first, then use `--verify-remote` only when remote tag verification is
+  worth the network request.
 - Run `actionlint` before pinning existing workflows when practical. If it
   rejects an action major as obsolete, such as `actions/checkout@v3`, upgrade
   to a supported major before resolving and pinning the tag commit. Record why

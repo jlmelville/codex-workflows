@@ -134,13 +134,19 @@ summarize_results <- function(results, baseline) {
   if (is.na(baseline)) {
     baseline <- summary$case[[1L]]
   }
+  if (!baseline %in% summary$case) {
+    stop("Unknown benchmark baseline: ", baseline, call. = FALSE)
+  }
   baseline_elapsed <- summary$median_elapsed[summary$case == baseline]
   if (length(baseline_elapsed) == 1L && is.finite(baseline_elapsed) &&
       baseline_elapsed > 0) {
     summary$relative_speed <- baseline_elapsed / summary$median_elapsed
     summary$relative_speed[summary$median_elapsed <= 0] <- NA_real_
   } else {
-    summary$relative_speed <- NA_real_
+    stop("Benchmark baseline has non-positive or non-finite median elapsed time: ",
+      baseline,
+      call. = FALSE
+    )
   }
   summary
 }

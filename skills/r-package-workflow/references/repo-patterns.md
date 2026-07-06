@@ -1,7 +1,9 @@
 # James's R Repository Patterns
 
-Use these conventions across `/home/james/dev` R packages unless a repository
-clearly establishes a different local standard.
+Use these conventions across James's local R packages unless a repository
+clearly establishes a different local standard. The repo root is usually under
+`~/dev`; verify the actual path on the current machine before using a concrete
+reference path.
 
 ## Infrastructure
 
@@ -74,11 +76,11 @@ If asked to validate, update, or regenerate the manifest itself, use
 
 ## Reference Repos
 
-Useful comparisons:
+Useful comparisons, when present under the current machine's `~/dev`:
 
-- `/home/james/dev/flotsam`
-- `/home/james/dev/rnndescent`
-- `/home/james/dev/snedata`
-- `/home/james/dev/uwot`
-- `/home/james/dev/RcppHNSW`
-- `/home/james/dev/vizier`
+- `flotsam`
+- `rnndescent`
+- `snedata`
+- `uwot`
+- `RcppHNSW`
+- `vizier`
