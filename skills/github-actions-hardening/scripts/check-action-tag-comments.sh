@@ -122,9 +122,8 @@ action_repo() {
 }
 
 nearby_comment() {
-  local -n lines_ref="$1"
-  local index="$2"
-  local line="${lines_ref[${index}]}"
+  local index="$1"
+  local line="${lines[${index}]}"
   local comment=""
   local previous
 
@@ -137,11 +136,11 @@ nearby_comment() {
       if ((previous < 0)); then
         continue
       fi
-      if [[ "${lines_ref[${previous}]}" =~ ^[[:space:]]*#(.*)$ ]]; then
+      if [[ "${lines[${previous}]}" =~ ^[[:space:]]*#(.*)$ ]]; then
         comment="${BASH_REMATCH[1]}"
         break
       fi
-      if [[ "${lines_ref[${previous}]}" =~ [^[:space:]] ]]; then
+      if [[ "${lines[${previous}]}" =~ [^[:space:]] ]]; then
         break
       fi
     done
@@ -168,7 +167,7 @@ while IFS= read -r -d '' file; do
     action="${BASH_REMATCH[2]}"
     sha="${BASH_REMATCH[4]}"
     line_no=$((index + 1))
-    comment="$(nearby_comment lines "${index}")"
+    comment="$(nearby_comment "${index}")"
     tag="$(extract_tag "${comment}")"
 
     if [[ -z "${comment//[[:space:]]/}" ]]; then
