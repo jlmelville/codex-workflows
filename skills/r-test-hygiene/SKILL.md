@@ -86,11 +86,20 @@ migration if initial probing shows broad numerical fallout:
 5. Run `air format . --check` after adding formatter guards.
 6. Run lintr when manual alignment is introduced.
 
+## Focused Package Tests
+
+Prefer `testthat::test_local(filter = "pattern")` for focused package runs. A
+bare `testthat::test_file()` can fail with missing package functions,
+internals, or helpers because package loading did not happen. Use
+`pkgload::load_all()` before `test_file()` only for explicit ad hoc probes that
+need direct file execution.
+
 ## Common Commands
 
 ```sh
 rg -n ":::|getFromNamespace|\\.Call|RcppExports|sourceCpp" tests
 air format tests/testthat --check
+Rscript -e 'testthat::test_local(filter = "pattern")'
 Rscript -e 'testthat::test_local()'
 Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
 ```

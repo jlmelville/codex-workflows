@@ -24,6 +24,11 @@ When editing an untracked active plan, report that status explicitly. Ordinary
 `??` file; use file line references, a short summary, or `git diff --no-index`
 against a saved prior copy only when a content diff is necessary.
 
+`git diff --check` also does not cover untracked plan files. When a new or
+ignored plan file is part of the work, pair diff hygiene with an explicit
+whitespace check over those paths, such as
+`rg -n '[ \t]+$' plans/new-plan.md`, before claiming whitespace is clean.
+
 ## Location Choice
 
 When creating a persistent plan, choose a location deliberately:
