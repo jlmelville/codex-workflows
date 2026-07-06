@@ -12,6 +12,10 @@ Use this for R package tests and fixtures.
 - Test user-visible behavior through exported APIs where practical.
 - Keep internal-helper tests only when they protect a meaningful safety
   invariant that cannot be observed through public paths; document why.
+- For numerical or statistical robustness work, inventory existing tests by
+  algorithm family before changing behavior. Separate golden trace/output
+  regressions from mathematical invariant or property tests, then list missing
+  invariants in the active plan.
 - Remove test-only exported R or C++ hooks before release unless explicitly
   justified.
 - For cleanup chunks that fix multiple unrelated bugs, organize regression tests
