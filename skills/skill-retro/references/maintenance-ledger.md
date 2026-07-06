@@ -36,7 +36,7 @@ Close when:
 ## Open Entries
 
 ### always-read-skill-density
-Status: Monitoring, action identified.
+Status: Monitoring, planning split acted.
 Last reviewed: 2026-07-06.
 Review trigger: Another cluster of skill-retro commits adds detailed command
 recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
@@ -47,31 +47,13 @@ conversion workflow into `skills/r-docs-pkgdown/references/roxygen-markdown.md`.
 The 2026-07-06 skill repository retrospective identified
 `skills/planning-workflow/SKILL.md` as the next large always-read candidate:
 its core routing is useful, but chunk-plan details, audit/review-packet
-recipes, visibility edge cases, and handoff examples can move to references.
-Next action: Split the detailed `planning-workflow` material into focused
-references while keeping the top-level skill as routing and minimum operating
-procedure.
+recipes, visibility edge cases, and handoff examples could move to references.
+That split now lives under `skills/planning-workflow/references/`.
+Next action: On the next repository retrospective, scan recently changed
+always-read skills for another concrete split candidate before adding more
+top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
-
-### roxygen-markdown-audit-helper-script
-Status: Accepted, implement next.
-Last reviewed: 2026-07-06.
-Review trigger: One more R package hits the same roxygen markdown audit command
-set, or an agent again trips over regex/shell quoting while auditing markdown
-conversion.
-Evidence: Several triage reports converged on roxygen-only `rg` searches, odd
-backtick detection, `tools::checkRd`, second `roxygenise()` idempotence, and
-shell-safe `#\x27` matching. The current guidance lives in
-`skills/r-docs-pkgdown/references/roxygen-markdown.md`. The 2026-07-06 skill
-repository retrospective treated this as recurring enough to promote.
-Next action: Create `skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`
-with modes or clear output for global markdown config, `@md`/`@noMd`, raw
-roxygen macros, odd backticks, and generated-doc drift checks. Validate with
-`bash -n`, ShellCheck, `./scripts/validate-skills.sh`, and a representative
-run in an R package.
-Close when: The script is added and documented, or future retrospectives show
-the commands are not recurring enough to justify a bundled script.
 
 ### action-pin-comment-tag-verification
 Status: Monitoring.
@@ -95,3 +77,20 @@ Next action: If the trigger fires, decide whether to add a short note to
 caveats.
 Close when: Two skill repository retrospectives find this was isolated, or the
 item is promoted to hardening guidance or a bundled script.
+
+## Closed Entries
+
+### roxygen-markdown-audit-helper-script
+Status: Closed by script.
+Last reviewed: 2026-07-06.
+Review trigger: One more R package hits the same roxygen markdown audit command
+set, or an agent again trips over regex/shell quoting while auditing markdown
+conversion.
+Evidence: Several triage reports converged on roxygen-only `rg` searches, odd
+backtick detection, `tools::checkRd`, second `roxygenise()` idempotence, and
+shell-safe `#\x27` matching.
+Resolution: Added
+`skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh` and documented it in
+`skills/r-docs-pkgdown/SKILL.md` and
+`skills/r-docs-pkgdown/references/roxygen-markdown.md`.
+Closed when: The script was added and documented.

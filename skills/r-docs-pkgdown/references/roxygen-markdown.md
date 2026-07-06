@@ -12,6 +12,17 @@ formatting, lint, pkgdown, CI, or structural refactors.
 
 ## Source-First Audit
 
+Prefer the bundled helper over hand-typed searches when it is available:
+
+```sh
+${CODEX_HOME:-$HOME/.codex}/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh --all
+```
+
+Use individual modes such as `--raw-rd`, `--md-overrides`, `--odd-backticks`,
+`--check-rd`, and `--idempotence` when a full `--all` run is too broad for the
+current chunk. In the `codex-workflows` source repo, the helper lives at
+`skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`.
+
 Audit source roxygen before generated output:
 
 1. Check `DESCRIPTION` for `Roxygen: list(markdown = TRUE)`.

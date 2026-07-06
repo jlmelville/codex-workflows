@@ -115,25 +115,8 @@ Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
 
-For behavior-neutral file splits, add a mechanical verification step before
-tests when practical. Snapshot the original source file, split it
-mechanically, rejoin the new files with the same separators the original used,
-and run a unified diff against the snapshot. Treat any non-separator diff as a
-source-content change that needs review before proceeding. Treat blank lines at
-new file boundaries as reconstruction separators, not content that must remain
-at the end of split files; strip trailing blank lines from the new files and
-make the separator counts explicit in the rejoin command.
-
-For cleanup chunks that may reveal several unrelated correctness bugs, decide
-the likely commit boundaries before editing. Keep fixes and tests independently
-stageable by bug whenever practical, instead of making one shared regression
-file or broad hunk that later requires delicate partial staging.
-
-When a chunk accepts a remaining warning, note, or validation anomaly, assign
-ownership before moving on. Either fix it in the chunk, classify it as
-environmental or non-actionable with exact evidence, or add a named pending
-follow-up chunk. Do not leave "known warning" language without an owner and next
-action.
+See [chunk-plans.md](references/chunk-plans.md) for behavior-neutral file split
+verification, bug-scoped staging, and warning ownership rules.
 
 ## Audits And Review Packets
 
@@ -147,14 +130,9 @@ possible. The resulting plan should include the source audit pointer, confirmed
 findings, guardrails, a decision log, open questions, and which claims still
 need test evidence.
 
-When a post-cleanup audit mixes small completion defects with broader future
-quality work, keep the active cleanup bounded. Add a stabilization chunk for
-confirmed finish-hygiene items, and move roadmap, research, or long-horizon
-validation work into a separate plan with its own acceptance criteria.
-
-Review packets should be self-contained and should ask the reviewer to
-challenge assumptions, gaps, and risks, not merely summarize the plan. Include
-the narrow evidence needed for review and the specific questions to answer.
+For stabilization chunks, review packet structure, and audit-to-plan conversion
+details, see
+[audits-and-review-packets.md](references/audits-and-review-packets.md).
 
 ## Workflow Retrospective Notes
 
@@ -186,56 +164,16 @@ Put handoffs in the chat response by default. Write persistent handoff files
 only when the user asks or the repo already uses them for active work. The
 active plan should hold durable state; the handoff should point to it.
 
-Use a fenced `text` block:
-
-```text
-Fresh-agent handoff prompt
-
-We are working in <repo path> on <goal>. Phase/chunk <id> is <complete/in progress/blocked>.
-
-Read first:
-- <repo instructions or active plan>
-- <supporting audit/review file, if needed>
-
-Current state:
-- <what changed or was learned>
-- <important files touched or inspected>
-- <key decisions, constraints, or user vetoes>
-
-Validation:
-- Ran `<command>`: <result>
-- Ran `<command>`: <result or failure>
-
-Open issues:
-- <bug/failure/uncertainty>
-- <thing not yet tested>
-
-Next recommended steps:
-1. <next task>
-2. <next task>
-3. <tests or smoke checks to run>
-
-Guardrails:
-- <do not revisit / do not broaden / preserve this behavior>
-```
-
-Keep handoffs concise. Prefer exact file paths, function names, commands,
-statuses, and error messages over broad narrative.
+Keep handoffs concise. Include the goal, read-first files, current state,
+validation, open issues, next steps, and guardrails. Prefer exact file paths,
+function names, commands, statuses, and error messages over broad narrative.
+See [handoffs.md](references/handoffs.md) for the full template.
 
 ## Location And Visibility
 
 Respect the repo's existing convention for plan locations. Search ignored paths
 because active plans may live under ignored `plans/`, `plans_pending/`, or
 `docs/plans/` directories.
-
-When editing an ignored active plan, use ignored-aware status or discovery such
-as `git status --ignored --short` or `rg --files -uu`, and call out the hidden
-plan edit in the final response.
-
-When editing an untracked active plan, report that status explicitly. Ordinary
-`git diff -- path/to/plan.md` has no baseline and may show no content for a
-`??` file; use file line references, a short summary, or `git diff --no-index`
-against a saved prior copy only when a content diff is necessary.
 
 When creating a persistent plan, choose a location deliberately:
 
@@ -245,31 +183,19 @@ When creating a persistent plan, choose a location deliberately:
 - Explain the location choice in the plan when ignored paths or visibility
   could surprise a later agent.
 
-In package repositories, root planning directories can trigger package-check
-notes, such as an `R CMD check` top-level-file note for `plans`. Record the
-tracking/ignored state and intended policy; do not move or delete active plans
-solely to silence package tooling.
-
 Avoid adding or expanding generic `PLANS.md` or `AGENTS.md` rules when this
 skill already covers them. Keep repo instructions short and repo-specific.
+
+See [plan-file-visibility.md](references/plan-file-visibility.md) for ignored
+or untracked plan edits, package-check visibility issues, and cleanup rules.
 
 ## Cleaning Local Planning Files
 
 When asked to clean up `PLANS.md`, `AGENTS.md`, plan directories, or old
-handoff files after this skill exists:
-
-1. Search tracked, untracked, and ignored paths before deciding what is active.
-2. Separate active execution state from historical notes, scratch research,
-   audits, and completed handoffs.
-3. Preserve durable current state: goal, decisions, validation, next action,
-   guardrails, and user vetoes.
-4. Shrink root `PLANS.md` or `AGENTS.md` to repo-specific addenda and skill
-   routing. Remove copied skeletons, generic handoff templates, and fixed
-   marker rules when this skill covers them.
-5. Do not delete ignored plans, scratch files, or historical handoffs unless the
-   user explicitly asks; report their status instead.
-6. Note whether resulting files are tracked, untracked, or ignored, because
-   future agents may not see them in ordinary status output.
+handoff files after this skill exists, preserve durable current state and remove
+generic copied rules only after checking tracked, untracked, and ignored paths.
+Use [plan-file-visibility.md](references/plan-file-visibility.md) for the full
+cleanup checklist.
 
 ## Resume And Recovery
 

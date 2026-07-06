@@ -32,7 +32,8 @@ Use this for documentation and pkgdown work in R packages.
   the same docs-modernization chunk or add an explicit required follow-up chunk
   before formatting, lint, pkgdown, CI, or structural refactors.
 - For roxygen markdown audits or package-wide conversions, use
-  [roxygen-markdown.md](references/roxygen-markdown.md).
+  the bundled `scripts/audit-roxygen-markdown.sh` helper when available, then
+  follow [roxygen-markdown.md](references/roxygen-markdown.md).
 - Avoid broad roxygen churn during narrow correctness phases.
 
 ## Exported API Renames

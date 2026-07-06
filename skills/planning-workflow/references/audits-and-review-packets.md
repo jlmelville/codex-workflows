@@ -1,0 +1,31 @@
+# Audits And Review Packets
+
+Use this with `$planning-workflow` when converting an audit, model critique, or
+external review into executable repository work.
+
+## Audit-To-Plan Conversion
+
+Keep audits and execution plans separate when possible. Audits preserve raw
+critique and evidence; execution plans convert that evidence into ordered work.
+
+When converting an external audit or model review into a chunk plan:
+
+1. Preserve the source audit.
+2. Statically confirm findings before making them tasks.
+3. Mark unverified claims.
+4. Resolve open questions into explicit decisions where possible.
+5. Include the source audit pointer, confirmed findings, guardrails, a decision
+   log, open questions, and which claims still need test evidence.
+
+## Stabilization Chunks
+
+When a post-cleanup audit mixes small completion defects with broader future
+quality work, keep the active cleanup bounded. Add a stabilization chunk for
+confirmed finish-hygiene items, and move roadmap, research, or long-horizon
+validation work into a separate plan with its own acceptance criteria.
+
+## Review Packets
+
+Review packets should be self-contained and should ask the reviewer to
+challenge assumptions, gaps, and risks, not merely summarize the plan. Include
+the narrow evidence needed for review and the specific questions to answer.
