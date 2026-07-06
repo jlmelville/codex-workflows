@@ -42,8 +42,48 @@ jobs:
           fi
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+          python_user_base="$(python3 -m site --user-base)"
           python3 -m pip install --user uv
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          echo "${python_user_base}/bin" >> "${GITHUB_PATH}"
+
+      - name: Validate skills
+        run: ./scripts/validate-skills.sh
+
+      - name: Audit workflows
+        run: ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+
+  skills-macos:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        # Pinned to actions/checkout v7.
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Install validation dependencies
+        run: |
+          missing_packages=()
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            missing_packages+=(shellcheck)
+          fi
+          if ! command -v Rscript >/dev/null 2>&1; then
+            missing_packages+=(r)
+          fi
+          if ! command -v rg >/dev/null 2>&1; then
+            missing_packages+=(ripgrep)
+          fi
+          if ((${#missing_packages[@]} > 0)); then
+            brew update
+            brew install "${missing_packages[@]}"
+          fi
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+          python_user_base="$(python3 -m site --user-base)"
+          python3 -m pip install --user uv
+          echo "${python_user_base}/bin" >> "${GITHUB_PATH}"
 
       - name: Validate skills
         run: ./scripts/validate-skills.sh

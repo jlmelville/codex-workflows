@@ -1,0 +1,12 @@
+# section	pattern	rationale
+Description Overlap	github-actions-hardening <-> r-ci-hardening	R CI hardening intentionally overlaps the generic GitHub Actions hardening trigger surface.
+Repeated Helper Names	frontmatter:	Small parser helper names are acceptable in separate repository scripts.
+Repeated Helper Names	require_command:	Small smoke-test helper names are acceptable in unrelated script contexts.
+Repeated Helper Names	run_zizmor:	The duplicated CI helper is known; exact audit-actions copies remain protected by mirrored-files.tsv.
+Machine-Specific Paths	skills/local-r-dataset-manifest/	The local dataset skill intentionally names James-local paths and requires path verification before use.
+Machine-Specific Paths	skills/r-package-workflow/references/repo-patterns.md	Repo-pattern notes intentionally document James-local dataset helpers and absence handling.
+Repo-Relative Skill Script References	skills/codex-skill-repo/SKILL.md	Source-repository validation examples intentionally use source-tree script paths.
+Repo-Relative Skill Script References	skills/github-actions-hardening/SKILL.md	Installed command examples are paired with explicit source-repository alternatives.
+Repo-Relative Skill Script References	skills/r-ci-hardening/SKILL.md	Installed command examples are paired with explicit source-repository alternatives.
+Repo-Relative Skill Script References	skills/r-docs-pkgdown/references/roxygen-markdown.md	Installed command examples are paired with explicit source-repository alternatives.
+Repo-Relative Skill Script References	skills/skill-retro/references/maintenance-ledger.md	Historical maintenance ledger entries cite source paths rather than installed commands.

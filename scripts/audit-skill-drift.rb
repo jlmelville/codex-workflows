@@ -10,7 +10,11 @@ options = {
   max_description: 420,
   max_total_description: 6_000,
   overlap_threshold: 0.20,
-  strict: false
+  strict: false,
+  strict_hard: false,
+  hard_only: false,
+  show_triaged: false,
+  triage_path: File.join(repo_dir, "scripts", "audit-skill-drift-triage.tsv")
 }
 
 OptionParser.new do |opts|
@@ -24,8 +28,20 @@ OptionParser.new do |opts|
   opts.on("--overlap-threshold N", Float, "Flag description token overlap above N") do |value|
     options[:overlap_threshold] = value
   end
-  opts.on("--strict", "Exit nonzero when review findings are present") do
+  opts.on("--strict", "Exit nonzero when any untriaged findings are present") do
     options[:strict] = true
+  end
+  opts.on("--strict-hard", "Exit nonzero when hard untriaged findings are present") do
+    options[:strict_hard] = true
+  end
+  opts.on("--hard-only", "Show only hard findings") do
+    options[:hard_only] = true
+  end
+  opts.on("--triage PATH", "Use a TSV triage manifest") do |value|
+    options[:triage_path] = value
+  end
+  opts.on("--show-triaged", "Show findings accepted by the triage manifest") do
+    options[:show_triaged] = true
   end
 end.parse!
 
@@ -64,6 +80,9 @@ IGNORED_DUPLICATE_HELPERS = Set.new(%w[
   usage
 ])
 
+SKILL_SCRIPT_PATH_PATTERN = %r{(?:[.]/)?skills/[A-Za-z0-9._-]+/scripts/[A-Za-z0-9._/-]+}.freeze
+SOURCE_REPO_CONTEXT_PATTERN = /\b(?:source repo|source repository|source tree|repository root|from this repo)\b/i
+
 def read_text(path)
   File.read(path, encoding: "UTF-8", invalid: :replace, undef: :replace)
 end
@@ -87,6 +106,76 @@ def line_hits(repo_dir, files, pattern)
     end
   end
   hits
+end
+
+def load_triage_entries(path)
+  return [] unless File.file?(path)
+
+  entries = []
+  read_text(path).each_line.with_index(1) do |line, line_no|
+    row = line.chomp
+    next if row.empty? || row.start_with?("#")
+
+    section, pattern, rationale = row.split("\t", 3)
+    if [section, pattern, rationale].any? { |field| field.nil? || field.empty? }
+      raise ArgumentError, "#{path}:#{line_no}: expected section<TAB>pattern<TAB>rationale"
+    end
+
+    entries << {
+      section: section,
+      pattern: pattern,
+      rationale: rationale
+    }
+  end
+  entries
+end
+
+def triage_entry(entries, section, row)
+  entries.find { |entry|
+    (entry[:section] == "*" || entry[:section] == section) &&
+      row.include?(entry[:pattern])
+  }
+end
+
+def record_findings(findings, triaged_findings, triage_entries, severity, section, rows)
+  rows.each do |row|
+    entry = triage_entry(triage_entries, section, row)
+    if entry
+      triaged_findings << "#{section}: #{row} [#{entry[:rationale]}]"
+    else
+      findings.fetch(severity)[section] << row
+    end
+  end
+end
+
+def executable_skill_script_command?(line)
+  stripped = line.strip.sub(/\A[$>]\s*/, "")
+  return false if stripped.include?("${CODEX_HOME")
+  return false unless stripped.match?(SKILL_SCRIPT_PATH_PATTERN)
+  return true if stripped.start_with?("./skills/", "skills/")
+
+  stripped.match?(
+    %r{\A(?:env\s+)?(?:bash|sh|ruby|python3?|Rscript(?:\s+--vanilla)?)\s+(?:[.]/)?skills/}
+  )
+end
+
+def source_repo_context?(lines, index)
+  start_index = [index - 4, 0].max
+  lines[start_index...index].join(" ").match?(SOURCE_REPO_CONTEXT_PATTERN)
+end
+
+def installed_breaking_command_rows(repo_dir, files)
+  rows = []
+  files.each do |path|
+    lines = read_text(path).lines
+    lines.each_with_index do |line, index|
+      next unless executable_skill_script_command?(line)
+      next if source_repo_context?(lines, index)
+
+      rows << "#{relative_path(repo_dir, path)}:#{index + 1}: #{line.strip}"
+    end
+  end
+  rows
 end
 
 def description_tokens(text)
@@ -115,13 +204,19 @@ def script_function_definitions(repo_dir, script_files)
   definitions.select { |_name, hits| hits.map(&:first).uniq.length > 1 }
 end
 
-def print_section(title, rows)
-  return 0 if rows.empty?
+def print_findings(title, sections)
+  count = sections.values.sum(&:length)
+  return 0 if count.zero?
 
   puts
   puts "#{title}:"
-  rows.each { |row| puts "  #{row}" }
-  rows.length
+  sections.each do |section, rows|
+    next if rows.empty?
+
+    puts "  #{section}:"
+    rows.each { |row| puts "    #{row}" }
+  end
+  count
 end
 
 skill_dirs = Dir.glob(File.join(repo_dir, "skills", "*")).select { |path|
@@ -156,7 +251,16 @@ script_files = Dir.glob([
 ]).select { |path| File.file?(path) }.sort
 
 all_review_files = (markdown_files + script_files).uniq
-finding_count = 0
+skill_markdown_files = markdown_files.select { |path|
+  path.start_with?(File.join(repo_dir, "skills", ""))
+}
+triage_entries = load_triage_entries(options[:triage_path])
+findings = {
+  hard: Hash.new { |hash, key| hash[key] = [] },
+  review: Hash.new { |hash, key| hash[key] = [] },
+  info: Hash.new { |hash, key| hash[key] = [] }
+}
+triaged_findings = []
 
 total_description_chars = skills.sum { |skill| skill[:description].length }
 puts "Skill Drift Audit"
@@ -164,7 +268,11 @@ puts "Skills: #{skills.length}"
 puts "Always-loaded description budget: #{total_description_chars} characters (~#{(total_description_chars / 4.0).round} tokens)"
 
 if total_description_chars > options[:max_total_description]
-  finding_count += print_section(
+  record_findings(
+    findings,
+    triaged_findings,
+    triage_entries,
+    :info,
     "Description Budget",
     ["total description text exceeds #{options[:max_total_description]} characters"]
   )
@@ -175,12 +283,12 @@ long_description_rows = skills.select { |skill|
 }.map { |skill|
   "#{skill[:name]}: #{skill[:description].length} chars"
 }
-finding_count += print_section("Long Descriptions", long_description_rows)
+record_findings(findings, triaged_findings, triage_entries, :info, "Long Descriptions", long_description_rows)
 
 long_skill_rows = skills.select { |skill| skill[:skill_lines] > 200 }.map { |skill|
   "#{skill[:name]}: #{skill[:skill_lines]} SKILL.md lines"
 }
-finding_count += print_section("Large Always-Read Skill Files", long_skill_rows)
+record_findings(findings, triaged_findings, triage_entries, :info, "Large Always-Read Skill Files", long_skill_rows)
 
 overlap_rows = []
 skills.combination(2) do |left, right|
@@ -197,13 +305,13 @@ skills.combination(2) do |left, right|
     overlap
   )
 end
-finding_count += print_section("Description Overlap", overlap_rows.sort)
+record_findings(findings, triaged_findings, triage_entries, :review, "Description Overlap", overlap_rows.sort)
 
 duplicate_helper_rows = script_function_definitions(repo_dir, script_files).sort.map do |name, hits|
   locations = hits.map { |path, line_no| "#{path}:#{line_no}" }.join(", ")
   "#{name}: #{locations}"
 end
-finding_count += print_section("Repeated Helper Names", duplicate_helper_rows)
+record_findings(findings, triaged_findings, triage_entries, :review, "Repeated Helper Names", duplicate_helper_rows)
 
 repeated_command_rows = COMMAND_PATTERNS.filter_map do |label, pattern|
   hits = line_hits(repo_dir, markdown_files, pattern)
@@ -211,12 +319,22 @@ repeated_command_rows = COMMAND_PATTERNS.filter_map do |label, pattern|
 
   "#{label}: #{hits.length} hits in #{hits.map(&:first).uniq.length} files"
 end
-finding_count += print_section("Repeated Command Guidance", repeated_command_rows)
+record_findings(findings, triaged_findings, triage_entries, :review, "Repeated Command Guidance", repeated_command_rows)
 
 machine_path_rows = line_hits(repo_dir, all_review_files, %r{/(?:home|Users)/james|/mnt/[A-Za-z]/}).map { |path, line_no, line|
   "#{path}:#{line_no}: #{line}"
 }
-finding_count += print_section("Machine-Specific Paths", machine_path_rows)
+record_findings(findings, triaged_findings, triage_entries, :review, "Machine-Specific Paths", machine_path_rows)
+
+installed_command_rows = installed_breaking_command_rows(repo_dir, skill_markdown_files)
+record_findings(
+  findings,
+  triaged_findings,
+  triage_entries,
+  :hard,
+  "Installed-Breaking Skill Script Commands",
+  installed_command_rows
+)
 
 repo_relative_helper_rows = line_hits(
   repo_dir,
@@ -227,15 +345,53 @@ repo_relative_helper_rows = line_hits(
 }.map { |path, line_no, line|
   "#{path}:#{line_no}: #{line}"
 }
-finding_count += print_section("Repo-Relative Skill Script References", repo_relative_helper_rows)
+record_findings(
+  findings,
+  triaged_findings,
+  triage_entries,
+  :review,
+  "Repo-Relative Skill Script References",
+  repo_relative_helper_rows
+)
 
-if finding_count.zero?
-  puts
-  puts "No drift review findings."
-else
-  puts
-  puts "Review findings: #{finding_count}"
-  puts "Default mode is advisory. Re-run with --strict to make findings exit nonzero."
+hard_count = findings.fetch(:hard).values.sum(&:length)
+review_count = findings.fetch(:review).values.sum(&:length)
+info_count = findings.fetch(:info).values.sum(&:length)
+active_count = hard_count + review_count + info_count
+
+if options[:hard_only]
+  print_findings("Hard Findings", findings.fetch(:hard))
+elsif active_count.positive?
+  print_findings("Hard Findings", findings.fetch(:hard))
+  print_findings("Review Findings", findings.fetch(:review))
+  print_findings("Informational Findings", findings.fetch(:info))
 end
 
-exit(options[:strict] && finding_count.positive? ? 1 : 0)
+if options[:show_triaged] && triaged_findings.any?
+  puts
+  puts "Triaged Findings:"
+  triaged_findings.each { |row| puts "  #{row}" }
+elsif triaged_findings.any? && !options[:hard_only]
+  puts
+  puts "Triaged findings: #{triaged_findings.length} accepted by #{relative_path(repo_dir, options[:triage_path])}"
+end
+
+if options[:hard_only] && hard_count.zero?
+  puts
+  puts "No hard drift findings."
+elsif active_count.zero?
+  puts
+  puts "No untriaged drift findings."
+else
+  puts
+  puts "Hard findings: #{hard_count}"
+  puts "Review findings: #{review_count}"
+  puts "Informational findings: #{info_count}"
+  puts "Default mode is advisory. Re-run with --strict-hard to fail on hard findings."
+  puts "Use --strict when a cleanup branch should fail on any untriaged finding."
+end
+
+exit(1) if options[:strict_hard] && hard_count.positive?
+exit(1) if options[:strict] && active_count.positive?
+
+exit(0)

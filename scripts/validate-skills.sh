@@ -272,4 +272,12 @@ if [[ -f "${mirror_manifest}" ]]; then
   done <"${mirror_manifest}"
 fi
 
+drift_audit="${repo_dir}/scripts/audit-skill-drift.rb"
+if [[ ! -x "${drift_audit}" ]]; then
+  echo "${drift_audit}: missing or not executable" >&2
+  status=1
+elif ! "${drift_audit}" --strict-hard --hard-only; then
+  status=1
+fi
+
 exit "${status}"

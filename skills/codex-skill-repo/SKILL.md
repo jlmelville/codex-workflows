@@ -19,6 +19,21 @@ Codex runtime directory.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
 
+## Consistency Surfaces
+
+Check this repo across four surfaces:
+
+1. Source validity: frontmatter, metadata, links, scripts, smoke tests, mirrored
+   files, and workflow hardening.
+2. Installed validity: executable commands in installed skills should use
+   `${CODEX_HOME:-$HOME/.codex}/skills/...` unless explicitly marked as
+   source-repository commands.
+3. Cross-platform validity: shell, Ruby, Python, and R behavior should account
+   for Linux and macOS when scripts become substantial.
+4. Drift validity: duplicated helpers, repeated command prose, overlapping
+   triggers, machine-local paths, and large always-read skills need triage
+   rather than automatic churn.
+
 ## Repository Shape
 
 Keep the top level small:
@@ -119,11 +134,14 @@ For bundled scripts, prefer validation that does not write artifacts into
 behavior checks and remove any generated test artifacts such as `__pycache__`
 before staging.
 
-For workflow changes, also run the repository's workflow audit if present:
+For workflow changes from this source repository root, run the workflow audit if present:
 
 ```sh
 ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
+
+Use `${CODEX_HOME:-$HOME/.codex}/skills/...` command paths inside installed
+skill workflows unless the text explicitly says it is source-repository only.
 
 If the generic audit script is not present, run `actionlint`, `zizmor`, and
 ShellCheck as applicable.
@@ -139,10 +157,14 @@ Run the advisory drift and bloat audit before or after consolidation work:
 ./scripts/audit-skill-drift.rb
 ```
 
-Use `--strict` only when the current branch is meant to remove all reported
-review findings. The audit surfaces long descriptions, overlapping trigger
-surfaces, repeated helper names, repeated command guidance, machine-specific
-paths, and repo-relative skill script references.
+Use `--strict-hard --hard-only` for validation that should fail only on hard
+installed-runtime problems. Use `--strict` only when the current branch is meant
+to remove all untriaged findings. The audit surfaces hard, review, and
+informational findings for long descriptions, overlapping trigger surfaces,
+repeated helper names, repeated command guidance, machine-specific paths, and
+repo-relative skill script references. Accepted advisory findings live in
+`scripts/audit-skill-drift-triage.tsv`; each row records the audit section, a
+row substring to match, and the rationale for accepting that finding.
 
 Before committing, stage only intended files, inspect `git diff --cached --stat`
 and `git diff --cached --name-only`, then commit and push when publishing is in

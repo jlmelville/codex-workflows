@@ -23,6 +23,7 @@ scripts/
   validate-skills.sh
   list-skills.rb
   audit-skill-drift.rb
+  audit-skill-drift-triage.tsv
 install.sh
 ```
 
@@ -94,8 +95,8 @@ Run:
 
 This checks basic skill frontmatter, UI metadata YAML, shell script syntax,
 ShellCheck results, Ruby/Python/R script syntax, local links, skill references,
-mirrored files, executable bits for bundled shell scripts, and smoke tests for
-substantial bundled script interfaces.
+mirrored files, executable bits for bundled shell scripts, hard drift findings,
+and smoke tests for substantial bundled script interfaces.
 
 To review skill trigger and metadata shape, run:
 
@@ -112,11 +113,34 @@ To run a bloat and drift review, run:
 This advisory audit reports always-loaded description budget, long or overlapping
 skill descriptions, repeated helper names, repeated command guidance,
 machine-specific paths, and repo-relative skill script references that may break
-after installation. Use `--strict` when a cleanup branch should fail if review
-findings remain.
+after installation. Findings are grouped as hard, review, or informational.
+Accepted advisory findings live in
+[scripts/audit-skill-drift-triage.tsv](scripts/audit-skill-drift-triage.tsv).
+Each triage row records the audit section, a row substring to match, and the
+rationale for accepting that finding.
+
+Use `--strict-hard --hard-only` for validation that should fail only on hard
+installed-runtime problems. Use `--strict` when a cleanup branch should fail if
+any untriaged findings remain.
+
+## Consistency Surfaces
+
+Maintain this repo across four surfaces:
+
+- Source validity: frontmatter, metadata, links, scripts, smoke tests, mirrored
+  files, and workflow hardening.
+- Installed validity: executable commands in installed skills should use
+  `${CODEX_HOME:-$HOME/.codex}/skills/...` unless explicitly marked as
+  source-repository commands.
+- Cross-platform validity: shell, Ruby, Python, and R checks should keep Linux
+  and macOS behavior in view when scripts become substantial.
+- Drift validity: duplicated helpers, repeated command prose, overlapping
+  triggers, machine-local paths, and large always-read skills need triage rather
+  than automatic churn.
 
 GitHub Actions runs the same validation on pushes and pull requests, plus a
-lightweight workflow audit.
+lightweight workflow audit. A manual macOS validation job is available through
+`workflow_dispatch` for cross-platform checks.
 
 ## License
 
