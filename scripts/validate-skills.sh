@@ -159,12 +159,97 @@ if ((${#r_files[@]} > 0)); then
   fi
 fi
 
-generic_actions_audit="${repo_dir}/skills/github-actions-hardening/scripts/audit-actions.sh"
-r_actions_audit="${repo_dir}/skills/r-ci-hardening/scripts/audit-actions.sh"
-if [[ -f "${generic_actions_audit}" && -f "${r_actions_audit}" ]] &&
-  ! cmp -s "${generic_actions_audit}" "${r_actions_audit}"; then
-  echo "audit-actions.sh mirrors differ; update both or document why validation should change" >&2
+# shellcheck disable=SC2016
+if ! ruby -e '
+  repo = ARGV.fetch(0)
+  skills_dir = File.join(repo, "skills")
+  skill_names = Dir.children(skills_dir).select { |name|
+    File.directory?(File.join(skills_dir, name))
+  }
+
+  markdown_files = Dir.glob([
+    File.join(repo, "README.md"),
+    File.join(repo, "AGENTS.md"),
+    File.join(repo, "prompts", "**", "*.md"),
+    File.join(repo, "skills", "**", "*.md")
+  ])
+
+  status = 0
+  markdown_files.each do |path|
+    text = File.read(path)
+    rel_path = path.delete_prefix("#{repo}/")
+
+    text.scan(/\[[^\]\n]+\]\(([^)\s]+)(?:\s+[^)]*)?\)/).each do |match|
+      target = match.fetch(0)
+      next if target.start_with?("#")
+      next if target.match?(/\A[A-Za-z][A-Za-z0-9+.-]*:/)
+
+      target_path = target.sub(/#.*/, "")
+      next if target_path.empty?
+
+      resolved = File.expand_path(target_path, File.dirname(path))
+      unless File.exist?(resolved)
+        warn "#{rel_path}: markdown link target not found: #{target}"
+        status = 1
+      end
+    end
+
+    text.scan(/\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)/).each do |match|
+      skill_ref = match.fetch(0)
+      next if skill_ref == "skill-name"
+      next if !skill_ref.include?("-") && !skill_names.include?(skill_ref)
+
+      unless skill_names.include?(skill_ref)
+        warn "#{rel_path}: unknown skill reference $#{skill_ref}"
+        status = 1
+      end
+    end
+
+    text.scan(/\bskills\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*[A-Za-z0-9_-]/).each do |target|
+      resolved = File.join(repo, target)
+      unless File.exist?(resolved)
+        warn "#{rel_path}: repo path not found: #{target}"
+        status = 1
+      end
+    end
+  end
+
+  exit(status)
+' "${repo_dir}"; then
   status=1
+fi
+
+smoke_script="${repo_dir}/scripts/smoke-test-skill-scripts.sh"
+if [[ ! -x "${smoke_script}" ]]; then
+  echo "${smoke_script}: missing or not executable" >&2
+  status=1
+elif ! "${smoke_script}"; then
+  status=1
+fi
+
+mirror_manifest="${repo_dir}/scripts/mirrored-files.tsv"
+if [[ -f "${mirror_manifest}" ]]; then
+  while IFS=$'\t' read -r canonical mirror; do
+    [[ -z "${canonical}" || "${canonical}" == \#* ]] && continue
+    if [[ -z "${mirror}" ]]; then
+      echo "${mirror_manifest}: missing mirror path for ${canonical}" >&2
+      status=1
+      continue
+    fi
+
+    canonical_path="${repo_dir}/${canonical}"
+    mirror_path="${repo_dir}/${mirror}"
+    if [[ ! -f "${canonical_path}" ]]; then
+      echo "${mirror_manifest}: canonical file not found: ${canonical}" >&2
+      status=1
+    elif [[ ! -f "${mirror_path}" ]]; then
+      echo "${mirror_manifest}: mirror file not found: ${mirror}" >&2
+      status=1
+    elif ! cmp -s "${canonical_path}" "${mirror_path}"; then
+      echo "${mirror_manifest}: mirrored files differ: ${canonical} ${mirror}" >&2
+      status=1
+    fi
+  done <"${mirror_manifest}"
 fi
 
 exit "${status}"
