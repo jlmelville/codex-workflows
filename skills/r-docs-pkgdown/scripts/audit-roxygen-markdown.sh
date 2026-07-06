@@ -65,7 +65,9 @@ load_roxygen_files() {
     return 1
   fi
 
-  mapfile -d '' roxygen_files < <(
+  while IFS= read -r -d '' file; do
+    roxygen_files+=("${file}")
+  done < <(
     find "${search_dirs[@]}" -type f -name '*.R' -print0
   )
 

@@ -82,24 +82,32 @@ for skill_dir in "${repo_dir}"/skills/*; do
   done
 done
 
-mapfile -d '' shell_files < <(
+while IFS= read -r -d '' file; do
+  shell_files+=("${file}")
+done < <(
   find "${repo_dir}" \
     -path "${repo_dir}/.git" -prune -o \
     -type f \( -name '*.sh' -o -name 'install.sh' \) -print0
 )
 
-mapfile -d '' python_files < <(
+while IFS= read -r -d '' file; do
+  python_files+=("${file}")
+done < <(
   find "${repo_dir}/skills" \
     -type f -path '*/scripts/*.py' -print0
 )
 
-mapfile -d '' ruby_files < <(
+while IFS= read -r -d '' file; do
+  ruby_files+=("${file}")
+done < <(
   find "${repo_dir}" \
     -path "${repo_dir}/.git" -prune -o \
     -type f -path '*/scripts/*.rb' -print0
 )
 
-mapfile -d '' r_files < <(
+while IFS= read -r -d '' file; do
+  r_files+=("${file}")
+done < <(
   find "${repo_dir}/skills" \
     -type f -path '*/scripts/*.R' -print0
 )

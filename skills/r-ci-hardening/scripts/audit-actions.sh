@@ -100,7 +100,10 @@ while IFS= read -r match; do
 done < <(grep -RInE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*actions/checkout@' "${workflow_dir}" || true)
 
 if command -v actionlint >/dev/null 2>&1; then
-  mapfile -d '' workflow_files < <(
+  workflow_files=()
+  while IFS= read -r -d '' file; do
+    workflow_files+=("${file}")
+  done < <(
     find "${workflow_dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0
   )
   if ((${#workflow_files[@]} > 0)); then

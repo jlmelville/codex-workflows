@@ -154,7 +154,10 @@ status=0
 found=false
 
 while IFS= read -r -d '' file; do
-  mapfile -t lines <"${file}"
+  lines=()
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    lines+=("${line}")
+  done <"${file}"
   for index in "${!lines[@]}"; do
     line="${lines[${index}]}"
     if [[ ! "${line}" =~ ${uses_pattern} ]]; then
