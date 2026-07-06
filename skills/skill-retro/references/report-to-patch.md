@@ -18,13 +18,16 @@ For each candidate:
 3. Write one atomic edit per missing delta.
 4. Add or update validation when the lesson is about command behavior, schema,
    file shape, generated output, or fragile search patterns.
-5. Run `./scripts/validate-skills.sh`.
-6. If files under `skills/` changed and installed runtime parity matters, run
+5. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
+   change, run `./scripts/list-skills.rb` and inspect affected rows for
+   description length, display text, and default prompt shape.
+6. Run `./scripts/validate-skills.sh`.
+7. If files under `skills/` changed and installed runtime parity matters, run
    `./install.sh` and compare source to installed skills with:
 
 ```sh
 diff -qr ./skills "${CODEX_HOME:-$HOME/.codex}/skills" -x .system
 ```
 
-7. In the final response, cite the candidate source, files changed, validation
+8. In the final response, cite the candidate source, files changed, validation
    run, install/sync status, and any deferred items.

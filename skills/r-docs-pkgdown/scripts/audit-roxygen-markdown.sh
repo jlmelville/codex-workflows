@@ -190,9 +190,44 @@ check_rd() {
   fi
 }
 
+checksum_file() {
+  local path="$1"
+
+  if command -v shasum >/dev/null 2>&1; then
+    shasum "${path}"
+  elif command -v sha1sum >/dev/null 2>&1; then
+    sha1sum "${path}"
+  else
+    cksum "${path}"
+  fi
+}
+
+snapshot_generated_checksums() {
+  local generated_paths=()
+  local path
+
+  for path in DESCRIPTION NAMESPACE man; do
+    [[ -e "${path}" ]] && generated_paths+=("${path}")
+  done
+
+  if ((${#generated_paths[@]} == 0)); then
+    return
+  fi
+
+  find "${generated_paths[@]}" -type f -print 2>/dev/null |
+    LC_ALL=C sort |
+    while IFS= read -r path; do
+      checksum_file "${path}"
+    done
+}
+
 snapshot_generated_state() {
+  printf '## git status\n'
   git status --porcelain -- DESCRIPTION NAMESPACE man
+  printf '## git diff\n'
   git diff --no-ext-diff -- DESCRIPTION NAMESPACE man
+  printf '## generated file checksums\n'
+  snapshot_generated_checksums
 }
 
 check_idempotence() {
@@ -225,9 +260,10 @@ check_idempotence() {
 
   snapshot_generated_state >"${after}"
   if cmp -s "${before}" "${after}"; then
-    echo "roxygenise generated no additional DESCRIPTION, NAMESPACE, or man changes."
+    echo "roxygenise generated no additional DESCRIPTION, NAMESPACE, or man file changes."
   else
     echo "roxygenise changed generated documentation state." >&2
+    git status --short -- DESCRIPTION NAMESPACE man || true
     git diff --stat -- DESCRIPTION NAMESPACE man || true
     status=1
   fi

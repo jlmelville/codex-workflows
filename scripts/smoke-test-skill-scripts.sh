@@ -131,8 +131,11 @@ RS
 run_roxygen_smoke() {
   local script="${repo_dir}/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh"
   local pkg_dir="${tmp_root}/roxygen-pkg"
+  local idempotence_dir="${tmp_root}/roxygen-idempotence"
+  local fake_bin="${tmp_root}/fake-rscript-bin"
 
   require_command Rscript
+  require_command git
   require_command rg
   mkdir -p "${pkg_dir}/R" "${pkg_dir}/man"
   cat >"${pkg_dir}/DESCRIPTION" <<'EOF_DESCRIPTION'
@@ -171,6 +174,44 @@ EOF_RD
       --raw-rd \
       --odd-backticks \
       --check-rd >/dev/null
+  )
+
+  mkdir -p "${idempotence_dir}/man" "${fake_bin}"
+  cat >"${idempotence_dir}/DESCRIPTION" <<'EOF_IDEMPOTENCE_DESCRIPTION'
+Package: tiny
+Version: 0.0.0
+Title: Tiny Package
+Description: Tiny package.
+License: MIT
+Encoding: UTF-8
+EOF_IDEMPOTENCE_DESCRIPTION
+  cat >"${idempotence_dir}/man/tiny.Rd" <<'EOF_IDEMPOTENCE_RD'
+\name{tiny}
+\title{Tiny}
+EOF_IDEMPOTENCE_RD
+  cat >"${fake_bin}/Rscript" <<'EOF_FAKE_RSCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$1" == "--vanilla" && "$2" == "-e" ]]; then
+  cat >man/tiny.Rd <<'EOF_FAKE_RD'
+\name{tiny}
+\title{Tiny changed}
+EOF_FAKE_RD
+  exit 0
+fi
+
+echo "unexpected Rscript invocation: $*" >&2
+exit 1
+EOF_FAKE_RSCRIPT
+  chmod +x "${fake_bin}/Rscript"
+  (
+    cd "${idempotence_dir}"
+    git init >/dev/null 2>&1
+    if PATH="${fake_bin}:${PATH}" "${script}" --idempotence >/dev/null 2>&1; then
+      echo "roxygen idempotence should detect untracked generated-file content changes" >&2
+      exit 1
+    fi
   )
 }
 
