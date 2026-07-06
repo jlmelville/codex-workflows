@@ -160,6 +160,9 @@ Common examples:
 - system bus or desktop-service warnings from headless environments;
 - top-level planning directories such as `plans` during `R CMD check`, when
   they are active local work artifacts;
+- `R CMD build` or `devtools::check()` messages such as
+  `Removed empty directory 'pkg/.agents'`, `pkg/.codex`, or `pkg/plans` when
+  they refer to temporary build-source cleanup rather than repository files;
 - compiler flag notes from local toolchains, such as
   `-mno-omit-leaf-frame-pointer`, when already present before the change.
 
@@ -172,6 +175,10 @@ For `R CMD check` notes caused by local planning directories, record whether the
 path is tracked, untracked, or ignored. Do not move or delete active plans only
 to silence the note unless the user chooses a different plan location or
 `.Rbuildignore` policy.
+
+For "Removed empty directory" messages, check `git status` before reporting
+local deletions. Treat them as package-build temporary-source cleanup unless
+the working tree actually changed.
 
 Do not treat missing or untracked `docs/` output as a package source diff unless
 the repo tracks pkgdown output or the user asked to update the site.
