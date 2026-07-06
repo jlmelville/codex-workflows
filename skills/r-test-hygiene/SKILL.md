@@ -34,6 +34,20 @@ a target. Use `as.data.frame(covr::package_coverage(type = "tests"))` when you
 need inspectable uncovered ranges; direct `$` access on coverage internals can
 be brittle.
 
+When file-level coverage is too blunt, optionally aggregate the inspectable
+coverage data by function before choosing test targets:
+
+```sh
+Rscript -e 'cov <- covr::package_coverage(type = "tests")
+df <- as.data.frame(cov)
+fn <- aggregate(
+  df$value,
+  list(filename = df$filename, functions = df$functions),
+  function(x) mean(x > 0)
+)
+print(fn[order(fn$filename, fn$functions), ], row.names = FALSE)'
+```
+
 Classify gaps by user-visible risk before adding tests. Prefer default public
 paths, deterministic internal algebra, and diagnostics users can observe. Do
 not invent APIs, exported hooks, or artificial C++ entry points just to cover
@@ -54,6 +68,18 @@ For shape-sensitive fixtures, preserve visual structure:
 
 Use `# fmt: skip` immediately before the expression when Air would obscure the
 shape. See [fixtures.md](references/fixtures.md).
+
+## Local Download Fixtures
+
+When a public download, dataset, or parser wrapper accepts `base_url`, `url`,
+or `tmpdir`, prefer tiny local fixtures over remote integration tests for
+wrapper plumbing. Use `file://` gzip fixtures for byte parsers and local tar or
+folder fixtures for archive/directory readers.
+
+Keep payloads minimal, but include non-contiguous labels or ids when the parser
+maps codes to descriptions or factors. Include boundary-like values such as
+`0` and a high label so tests catch factor-code indexing mistakes, including
+patterns like `description_levels[as.numeric(label)]`.
 
 ## Warning Regressions
 

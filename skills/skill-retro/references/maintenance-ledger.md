@@ -49,7 +49,10 @@ The 2026-07-06 skill repository retrospective identified
 `skills/planning-workflow/SKILL.md` as the next large always-read candidate:
 its core routing is useful, but chunk-plan details, audit/review-packet
 recipes, visibility edge cases, and handoff examples could move to references.
-That split now lives under `skills/planning-workflow/references/`.
+That split now lives under `skills/planning-workflow/references/`. A 2026-07-06
+`r-test-hygiene` triage added one focused coverage command and a short local
+download fixture note, but did not show enough repeated detail to split another
+reference.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
