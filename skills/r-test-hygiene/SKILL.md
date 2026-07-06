@@ -55,6 +55,20 @@ defensive-only branches such as overflow guards, dependency failure paths,
 builder misuse, or unload cleanup, unless there is a concrete regression or
 release risk.
 
+## Visualization Outputs
+
+For visualization-heavy packages, do not treat plots as untestable just because
+browser, snapshot, or pixel comparisons would be brittle. Use coverage to find
+deterministic helpers, branch logic, and public plot constructors that return
+inspectable objects.
+
+For Plotly outputs, call `plotly::plotly_build()` and assert trace, marker,
+color, axis, and layout fields that express the user-visible contract. Normalize
+vectors with `as.character()` or `as.numeric()` when names or attributes such
+as `apiSrc` are irrelevant to the behavior under test. For base graphics paths,
+use a temporary graphics device for no-error smoke coverage, then close it with
+`on.exit()` cleanup.
+
 ## Fixture Formatting
 
 For shape-sensitive fixtures, preserve visual structure:

@@ -53,10 +53,13 @@ That split now lives under `skills/planning-workflow/references/`. A 2026-07-06
 `r-test-hygiene` triage added one focused coverage command and a short local
 download fixture note, but did not show enough repeated detail to split another
 reference. A 2026-07-06 `r-performance-workflow` triage added one adjacent-docs
-rule for permanent benchmark harnesses, also below the split threshold.
+rule for permanent benchmark harnesses, also below the split threshold. Another
+2026-07-06 `r-test-hygiene` triage added concise visualization-output testing
+guidance; the accumulated R test patterns should be reviewed together before
+adding much more top-level detail.
 Next action: On the next repository retrospective, scan recently changed
-always-read skills for another concrete split candidate before adding more
-top-level detail.
+always-read skills, especially `r-test-hygiene`, for a concrete split candidate
+before adding more top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
 
