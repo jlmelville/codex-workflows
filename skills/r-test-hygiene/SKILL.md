@@ -32,21 +32,8 @@ Use this for R package tests and fixtures.
 When an R package already has high coverage, treat `covr` output as a map, not
 a target. Use `as.data.frame(covr::package_coverage(type = "tests"))` when you
 need inspectable uncovered ranges; direct `$` access on coverage internals can
-be brittle.
-
-When file-level coverage is too blunt, optionally aggregate the inspectable
-coverage data by function before choosing test targets:
-
-```sh
-Rscript -e 'cov <- covr::package_coverage(type = "tests")
-df <- as.data.frame(cov)
-fn <- aggregate(
-  df$value,
-  list(filename = df$filename, functions = df$functions),
-  function(x) mean(x > 0)
-)
-print(fn[order(fn$filename, fn$functions), ], row.names = FALSE)'
-```
+be brittle. See [coverage-roi.md](references/coverage-roi.md) for
+function-level aggregation and visualization-output patterns.
 
 Classify gaps by user-visible risk before adding tests. Prefer default public
 paths, deterministic internal algebra, and diagnostics users can observe. Do
@@ -55,19 +42,11 @@ defensive-only branches such as overflow guards, dependency failure paths,
 builder misuse, or unload cleanup, unless there is a concrete regression or
 release risk.
 
-## Visualization Outputs
-
-For visualization-heavy packages, do not treat plots as untestable just because
-browser, snapshot, or pixel comparisons would be brittle. Use coverage to find
-deterministic helpers, branch logic, and public plot constructors that return
-inspectable objects.
-
-For Plotly outputs, call `plotly::plotly_build()` and assert trace, marker,
-color, axis, and layout fields that express the user-visible contract. Normalize
-vectors with `as.character()` or `as.numeric()` when names or attributes such
-as `apiSrc` are irrelevant to the behavior under test. For base graphics paths,
-use a temporary graphics device for no-error smoke coverage, then close it with
-`on.exit()` cleanup.
+Before writing direct tests for uncovered private helpers, classify each helper
+as test, remove, or consciously retain. Use `rg` to confirm active references
+in `R/` and `tests/testthat/`; when current public paths no longer use the
+helper, prefer removal plus public-contract tests over preserving dead internals
+with direct coverage tests.
 
 ## Fixture Formatting
 

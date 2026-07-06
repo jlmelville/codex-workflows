@@ -37,7 +37,7 @@ Close when:
 ## Open Entries
 
 ### always-read-skill-density
-Status: Monitoring, planning split acted.
+Status: Monitoring, planning and R test splits acted.
 Last reviewed: 2026-07-06.
 Review trigger: Another cluster of skill-retro commits adds detailed command
 recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
@@ -56,10 +56,12 @@ reference. A 2026-07-06 `r-performance-workflow` triage added one adjacent-docs
 rule for permanent benchmark harnesses, also below the split threshold. Another
 2026-07-06 `r-test-hygiene` triage added concise visualization-output testing
 guidance; the accumulated R test patterns should be reviewed together before
-adding much more top-level detail.
+adding much more top-level detail. A later 2026-07-06 R test triage promoted
+coverage details into `skills/r-test-hygiene/references/coverage-roi.md` while
+keeping the obsolete-helper cleanup rule visible in `SKILL.md`.
 Next action: On the next repository retrospective, scan recently changed
-always-read skills, especially `r-test-hygiene`, for a concrete split candidate
-before adding more top-level detail.
+always-read skills for another concrete split candidate before adding more
+top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
 
