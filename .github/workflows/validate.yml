@@ -81,15 +81,15 @@ jobs:
           if ! command -v go >/dev/null 2>&1; then
             missing_packages+=(go)
           fi
+          if ! command -v uvx >/dev/null 2>&1; then
+            missing_packages+=(uv)
+          fi
           if ((${#missing_packages[@]} > 0)); then
             brew update
             brew install "${missing_packages[@]}"
           fi
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
-          python_user_base="$(python3 -m site --user-base)"
-          python3 -m pip install --user uv
-          echo "${python_user_base}/bin" >> "${GITHUB_PATH}"
 
       - name: Validate skills
         run: ./scripts/validate-skills.sh
