@@ -12,6 +12,7 @@ Each open entry needs a review trigger and a next action.
 Review this ledger:
 
 - during `prompts/skill-repository-retrospective.md`;
+- when using `$skill-retro-triage` on accepted reports;
 - after several accepted skill-retro-driven commits in one area;
 - when a candidate report says "no script needed" but command recipes are
   recurring;

@@ -118,6 +118,34 @@ for script in "${shell_files[@]}"; do
   fi
 done
 
+if ((${#shell_files[@]} > 0)); then
+  if ! ruby - "${shell_files[@]}" <<'RUBY'
+patterns = [
+  ["map" + "file", Regexp.new("\\bmap" + "file\\b")],
+  ["read" + "array", Regexp.new("\\bread" + "array\\b")],
+  ["local " + "-n", Regexp.new("\\blocal[[:space:]]+-n\\b")],
+  ["declare " + "-n", Regexp.new("\\bdeclare[[:space:]]+-n\\b")]
+]
+
+status = 0
+ARGV.each do |path|
+  File.readlines(path, chomp: true).each_with_index do |line, index|
+    patterns.each do |label, pattern|
+      next unless line.match?(pattern)
+
+      warn "#{path}:#{index + 1}: avoid Bash 4-only #{label}; macOS /bin/bash is Bash 3.2"
+      status = 1
+    end
+  end
+end
+
+exit(status)
+RUBY
+  then
+    status=1
+  fi
+fi
+
 if ! command -v shellcheck >/dev/null 2>&1; then
   echo "shellcheck is required for repository validation" >&2
   status=1

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Retro Triage"
+  short_description: "Triage accepted skill retros"
+  default_prompt: "Use $skill-retro-triage to triage accepted Skill Candidate Reports for codex-workflows."

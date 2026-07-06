@@ -140,6 +140,9 @@ For workflow changes from this source repository root, run the workflow audit if
 ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
+When adding/changing a manual validation lane, push it, trigger it once with
+`gh workflow run`, watch to completion, and fix setup failures.
+
 Use `${CODEX_HOME:-$HOME/.codex}/skills/...` command paths inside installed
 skill workflows unless the text explicitly says it is source-repository only.
 
@@ -170,10 +173,7 @@ Before committing, stage only intended files, inspect `git diff --cached --stat`
 and `git diff --cached --name-only`, then commit and push when publishing is in
 scope.
 
-When converting accepted Skill Candidate Reports into repository changes, use
-the `$skill-retro` implementation guide at
-`skills/skill-retro/references/report-to-patch.md` after re-reading each
-candidate's cited destination files.
+Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading cited destination files.
 
 ## Deferred Maintenance Memory
 

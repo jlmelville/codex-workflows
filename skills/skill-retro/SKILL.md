@@ -57,8 +57,9 @@ threshold-based observations that are not ready to become skill text, scripts,
 or prompts.
 
 When a Skill Candidate Report has been accepted for `codex-workflows`, follow
-[report-to-patch.md](references/report-to-patch.md) to convert it into scoped
-repo edits, validation, and install/commit decisions.
+`$skill-retro-triage`; it uses [report-to-patch.md](references/report-to-patch.md)
+to convert accepted reports into scoped repo edits, validation, and
+install/commit decisions.
 
 Review the ledger after several accepted skill-retro updates, during a skill
 repository retrospective, or when a user asks how the triage workflow is

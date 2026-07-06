@@ -33,6 +33,13 @@ Then handle expected nonzero commands explicitly with `if`, `case`, or `|| true`
 where silence is intentional. Avoid letting `set -e` obscure a meaningful
 failure message.
 
+## Bash Portability
+
+If a script may run under macOS `/bin/bash`, target Bash 3.2 unless the workflow
+explicitly installs and invokes a newer Bash. Avoid Bash 4+ features such as
+`mapfile`, `readarray`, `local -n`, and `declare -n`; use `while read` loops and
+ordinary arrays instead.
+
 ## Robust Patterns
 
 - Quote expansions unless word splitting is required.
