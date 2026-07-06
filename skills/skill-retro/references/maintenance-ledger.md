@@ -61,7 +61,11 @@ coverage details into `skills/r-test-hygiene/references/coverage-roi.md` while
 keeping the obsolete-helper cleanup rule visible in `SKILL.md`. Another
 2026-07-06 numerical-package triage added
 `skills/r-test-hygiene/references/numerical-contracts.md` rather than growing
-the always-read file with derivative and metadata testing details.
+the always-read file with derivative and metadata testing details. A later
+2026-07-06 skill repository retrospective found no urgent broad cleanup after
+those moves, and promoted the remaining `r-test-hygiene` testthat edition
+migration block into
+`skills/r-test-hygiene/references/testthat-edition-migrations.md`.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.

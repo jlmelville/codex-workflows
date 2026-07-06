@@ -22,6 +22,10 @@ print(fn[order(fn$filename, fn$functions), ], row.names = FALSE)'
 Use the result to find user-visible gaps or deterministic helper families, not
 to chase a package-wide percentage.
 
+For compiled packages, do not run coverage and `testthat::test_local()` in
+parallel from the same worktree; see the sequencing caveat in
+`r-package-workflow > Checks`.
+
 ## Private Helper Cleanup
 
 When uncovered ranges sit in private helpers, check whether the helper still
