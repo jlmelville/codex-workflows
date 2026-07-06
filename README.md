@@ -22,6 +22,7 @@ prompts/
 scripts/
   validate-skills.sh
   list-skills.rb
+  audit-skill-drift.rb
 install.sh
 ```
 
@@ -101,6 +102,18 @@ To review skill trigger and metadata shape, run:
 ```sh
 ./scripts/list-skills.rb
 ```
+
+To run a bloat and drift review, run:
+
+```sh
+./scripts/audit-skill-drift.rb
+```
+
+This advisory audit reports always-loaded description budget, long or overlapping
+skill descriptions, repeated helper names, repeated command guidance,
+machine-specific paths, and repo-relative skill script references that may break
+after installation. Use `--strict` when a cleanup branch should fail if review
+findings remain.
 
 GitHub Actions runs the same validation on pushes and pull requests, plus a
 lightweight workflow audit.

@@ -133,6 +133,17 @@ bundled scripts, search the whole skill tree for stale parallel guidance before
 committing. If two scripts are intentionally mirrored across skills, update both
 or record why they differ.
 
+Run the advisory drift and bloat audit before or after consolidation work:
+
+```sh
+./scripts/audit-skill-drift.rb
+```
+
+Use `--strict` only when the current branch is meant to remove all reported
+review findings. The audit surfaces long descriptions, overlapping trigger
+surfaces, repeated helper names, repeated command guidance, machine-specific
+paths, and repo-relative skill script references.
+
 Before committing, stage only intended files, inspect `git diff --cached --stat`
 and `git diff --cached --name-only`, then commit and push when publishing is in
 scope.
