@@ -27,6 +27,20 @@ Use this for R package tests and fixtures.
 - Avoid mixing unrelated fixture reformatting with correctness changes unless
   the user asks for a test-readability sweep.
 
+## Coverage ROI Triage
+
+When an R package already has high coverage, treat `covr` output as a map, not
+a target. Use `as.data.frame(covr::package_coverage(type = "tests"))` when you
+need inspectable uncovered ranges; direct `$` access on coverage internals can
+be brittle.
+
+Classify gaps by user-visible risk before adding tests. Prefer default public
+paths, deterministic internal algebra, and diagnostics users can observe. Do
+not invent APIs, exported hooks, or artificial C++ entry points just to cover
+defensive-only branches such as overflow guards, dependency failure paths,
+builder misuse, or unload cleanup, unless there is a concrete regression or
+release risk.
+
 ## Fixture Formatting
 
 For shape-sensitive fixtures, preserve visual structure:
