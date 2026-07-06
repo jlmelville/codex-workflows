@@ -36,6 +36,9 @@ jobs:
           if ! command -v rg >/dev/null 2>&1; then
             missing_packages+=(ripgrep)
           fi
+          if ! command -v go >/dev/null 2>&1; then
+            missing_packages+=(golang-go)
+          fi
           if ((${#missing_packages[@]} > 0)); then
             sudo apt-get update
             sudo apt-get install -y "${missing_packages[@]}"
@@ -74,6 +77,9 @@ jobs:
           fi
           if ! command -v rg >/dev/null 2>&1; then
             missing_packages+=(ripgrep)
+          fi
+          if ! command -v go >/dev/null 2>&1; then
+            missing_packages+=(go)
           fi
           if ((${#missing_packages[@]} > 0)); then
             brew update
