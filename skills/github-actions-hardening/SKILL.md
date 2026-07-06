@@ -69,13 +69,15 @@ From a skill repository root, the same script may be under:
 ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
-When a review specifically needs to confirm that nearby version comments still
-match full-SHA pins, use the optional tag comment checker. Its default mode is
-offline; `--verify-remote` uses `git ls-remote` and may need network approval:
+The audit script runs the tag comment checker in offline `--require-comment`
+mode, so every full-SHA pin needs a nearby version or reason comment. When a
+review specifically needs to confirm that nearby version comments still match
+full-SHA pins, use `--require-tag`; `--verify-remote` uses `git ls-remote` and
+may need network approval:
 
 ```sh
-./skills/github-actions-hardening/scripts/check-action-tag-comments.sh .github/workflows
-./skills/github-actions-hardening/scripts/check-action-tag-comments.sh --verify-remote .github/workflows
+./skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag .github/workflows
+./skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag --verify-remote .github/workflows
 ```
 
 Treat tool failures from network or missing dependencies separately from

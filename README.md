@@ -115,7 +115,9 @@ Some skills assume these tools may be available in project worktrees:
 
 - `python3` for bundled Python script validation
 - `ruby` for repository validation
+- `rg` / `ripgrep` for repository and roxygen source searches
 - `shellcheck` for shell script validation
+- `perl` for roxygen odd-backtick audits
 - `Rscript`
 - `air`
 - `actionlint`

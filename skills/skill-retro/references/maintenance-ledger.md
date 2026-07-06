@@ -58,7 +58,7 @@ always-read density problem.
 ## Closed Entries
 
 ### action-pin-comment-tag-verification
-Status: Closed by script.
+Status: Closed by routine audit and optional remote script.
 Last reviewed: 2026-07-06.
 Review trigger: Another non-Dependabot review questions whether GitHub Actions
 version comments beside full-SHA pins match upstream tag refs, or an agent
@@ -73,10 +73,10 @@ verification for GitHub Actions dependency PRs, while
 make remote comment verification a routine audit step.
 Resolution: Added
 `skills/github-actions-hardening/scripts/check-action-tag-comments.sh` with
-offline parsing by default and an explicit `--verify-remote` mode for
-`git ls-remote` checks.
-Closed when: The script was added and documented in GitHub Actions hardening
-guidance.
+offline nearby-comment parsing in routine `audit-actions.sh`, plus explicit
+`--require-tag --verify-remote` mode for `git ls-remote` checks.
+Closed when: Routine workflow audits check nearby pin comments, and stricter
+remote tag verification remains available for targeted reviews.
 
 ### roxygen-markdown-audit-helper-script
 Status: Closed by script.

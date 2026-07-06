@@ -2,6 +2,7 @@
 set -euo pipefail
 
 workflow_dir="${1:-.github/workflows}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
 export UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}"
 export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python}"
@@ -70,6 +71,20 @@ done < <(grep -RInE 'uses:[[:space:]]*[^#]+@[^[:space:]#]+' "${workflow_dir}" ||
 
 if [[ "${found_unpinned}" == false ]]; then
   echo "No non-SHA action refs found."
+fi
+
+echo "Checking nearby action pin comments..."
+action_comment_checker="${script_dir}/check-action-tag-comments.sh"
+if [[ ! -x "${action_comment_checker}" ]]; then
+  action_comment_checker="${script_dir}/../../github-actions-hardening/scripts/check-action-tag-comments.sh"
+fi
+
+if [[ -x "${action_comment_checker}" ]]; then
+  if ! "${action_comment_checker}" --require-comment "${workflow_dir}"; then
+    status=1
+  fi
+else
+  echo "check-action-tag-comments.sh not found; skipped action pin comment check." >&2
 fi
 
 echo "Checking checkout credential persistence..."

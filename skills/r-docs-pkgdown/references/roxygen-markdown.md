@@ -15,12 +15,18 @@ formatting, lint, pkgdown, CI, or structural refactors.
 Prefer the bundled helper over hand-typed searches when it is available:
 
 ```sh
-${CODEX_HOME:-$HOME/.codex}/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh --all
+${CODEX_HOME:-$HOME/.codex}/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh \
+  --check-description \
+  --md-overrides \
+  --raw-rd \
+  --odd-backticks \
+  --check-rd
 ```
 
-Use individual modes such as `--raw-rd`, `--md-overrides`, `--odd-backticks`,
-`--check-rd`, and `--idempotence` when a full `--all` run is too broad for the
-current chunk. In the `codex-workflows` source repo, the helper lives at
+Start with non-mutating checks unless the docs chunk is allowed to regenerate
+documentation. Run `--idempotence` or `--all` only when generated documentation
+updates are in scope and the worktree state has been inspected first. In the
+`codex-workflows` source repo, the helper lives at
 `skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`.
 
 Audit source roxygen before generated output:

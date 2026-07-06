@@ -10,7 +10,8 @@ Codex runtime directory.
 
 ## Source Of Truth
 
-- Treat the repository under `~/dev` as source of truth.
+- Treat the version-controlled source repository, not the installed runtime
+  copy, as source of truth.
 - Treat `${CODEX_HOME:-$HOME/.codex}/skills` as installed output.
 - Edit, validate, commit, and push in the source repo before or alongside
   installation.

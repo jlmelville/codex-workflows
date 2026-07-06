@@ -2,17 +2,20 @@
 set -euo pipefail
 
 workflow_dir=".github/workflows"
+require_mode="tag"
 verify_remote=false
+uses_pattern="^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*['\"]?([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*)@([0-9a-fA-F]{40})['\"]?([[:space:]#]|$)"
 
 usage() {
   cat <<'USAGE'
-Usage: check-action-tag-comments.sh [--verify-remote] [WORKFLOW_DIR]
+Usage: check-action-tag-comments.sh [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_DIR]
 
 Check SHA-pinned GitHub Actions uses: entries for nearby version/tag comments.
 
-By default this is an offline parse check. With --verify-remote, each detected
-tag such as v4 or v4.1.2 is resolved with git ls-remote over public HTTPS and
-compared to the pinned SHA.
+By default this requires a nearby tag-like comment such as v4 or v4.1.2. Use
+--require-comment to accept any nearby non-empty comment. With --verify-remote,
+each detected tag is resolved with git ls-remote over public HTTPS and compared
+to the pinned SHA.
 USAGE
 }
 
@@ -24,6 +27,14 @@ while (($# > 0)); do
       ;;
     --verify-remote)
       verify_remote=true
+      shift
+      ;;
+    --require-comment)
+      require_mode="comment"
+      shift
+      ;;
+    --require-tag)
+      require_mode="tag"
       shift
       ;;
     -*)
@@ -62,21 +73,52 @@ extract_tag() {
 }
 
 resolve_tag_sha() {
-  local action="$1"
+  local repo="$1"
   local tag="$2"
+  local fallback=""
   local output
+  local ref
+  local sha
 
-  output="$(
+  if ! output="$(
     GIT_CONFIG_GLOBAL=/dev/null \
       GIT_CONFIG_NOSYSTEM=1 \
       GIT_TERMINAL_PROMPT=0 \
-      git ls-remote --tags "https://github.com/${action}.git" "refs/tags/${tag}"
-  )"
+      git ls-remote --tags "https://github.com/${repo}.git" \
+        "refs/tags/${tag}" \
+        "refs/tags/${tag}^{}"
+  )"; then
+    return 1
+  fi
   if [[ -z "${output}" ]]; then
     return 1
   fi
 
-  printf '%s\n' "${output%%$'\t'*}"
+  while IFS=$'\t' read -r sha ref; do
+    if [[ "${ref}" == "refs/tags/${tag}^{}" ]]; then
+      printf '%s\n' "${sha}"
+      return 0
+    fi
+    if [[ "${ref}" == "refs/tags/${tag}" && -z "${fallback}" ]]; then
+      fallback="${sha}"
+    fi
+  done <<<"${output}"
+
+  if [[ -n "${fallback}" ]]; then
+    printf '%s\n' "${fallback}"
+    return 0
+  fi
+
+  return 1
+}
+
+action_repo() {
+  local action="$1"
+  local owner
+  local repo
+
+  IFS=/ read -r owner repo _ <<<"${action}"
+  printf '%s/%s\n' "${owner}" "${repo}"
 }
 
 nearby_comment() {
@@ -115,31 +157,42 @@ while IFS= read -r -d '' file; do
   mapfile -t lines <"${file}"
   for index in "${!lines[@]}"; do
     line="${lines[${index}]}"
-    if [[ ! "${line}" =~ uses:[[:space:]]*([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@([0-9a-fA-F]{40}) ]]; then
+    if [[ ! "${line}" =~ ${uses_pattern} ]]; then
       continue
     fi
 
     found=true
-    action="${BASH_REMATCH[1]}"
-    sha="${BASH_REMATCH[2]}"
+    action="${BASH_REMATCH[2]}"
+    sha="${BASH_REMATCH[4]}"
     line_no=$((index + 1))
     comment="$(nearby_comment lines "${index}")"
     tag="$(extract_tag "${comment}")"
 
-    if [[ -z "${tag}" ]]; then
+    if [[ -z "${comment//[[:space:]]/}" ]]; then
+      echo "${file}:${line_no}: ${action}@${sha} has no nearby version/reason comment" >&2
+      status=1
+      continue
+    fi
+
+    if [[ "${require_mode}" == "tag" && -z "${tag}" ]]; then
       echo "${file}:${line_no}: ${action}@${sha} has no nearby tag/version comment" >&2
       status=1
       continue
     fi
 
-    echo "${file}:${line_no}: ${action}@${sha} comment tag ${tag}"
+    if [[ -n "${tag}" ]]; then
+      echo "${file}:${line_no}: ${action}@${sha} comment tag ${tag}"
+    else
+      echo "${file}:${line_no}: ${action}@${sha} nearby comment present"
+    fi
 
-    if [[ "${verify_remote}" != true ]]; then
+    if [[ "${verify_remote}" != true || -z "${tag}" ]]; then
       continue
     fi
 
-    if ! remote_sha="$(resolve_tag_sha "${action}" "${tag}")"; then
-      echo "${file}:${line_no}: could not resolve ${action} tag ${tag}" >&2
+    repo="$(action_repo "${action}")"
+    if ! remote_sha="$(resolve_tag_sha "${repo}" "${tag}")"; then
+      echo "${file}:${line_no}: could not resolve ${action} tag ${tag} in ${repo}" >&2
       status=1
     elif [[ "${remote_sha}" != "${sha}" ]]; then
       echo "${file}:${line_no}: ${action} ${tag} resolves to ${remote_sha}, not ${sha}" >&2
