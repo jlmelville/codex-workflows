@@ -45,6 +45,13 @@ Do not claim a performance win from smoke tests, tiny toy data, or noisy single
 runs. Use smoke benchmarks to prove the harness works; use evidence benchmarks
 to justify source decisions.
 
+When adding a permanent developer benchmark harness under `scripts/` or a
+similar repo-local path, document it adjacent to the script. State whether it is
+developer evidence rather than package validation, list required and optional
+dependencies or datasets, give a tiny smoke command distinct from evidence
+benchmark commands, and describe where generated CSV or other benchmark
+artifacts may be written and whether they should be committed.
+
 Do not move code into C++ or a lower-level path merely because it looks
 optimizable. Require benchmark evidence that the R path is the relevant
 bottleneck, and record explicit defer/continue decisions for plausible but
