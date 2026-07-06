@@ -147,6 +147,11 @@ possible. The resulting plan should include the source audit pointer, confirmed
 findings, guardrails, a decision log, open questions, and which claims still
 need test evidence.
 
+When a post-cleanup audit mixes small completion defects with broader future
+quality work, keep the active cleanup bounded. Add a stabilization chunk for
+confirmed finish-hygiene items, and move roadmap, research, or long-horizon
+validation work into a separate plan with its own acceptance criteria.
+
 Review packets should be self-contained and should ask the reviewer to
 challenge assumptions, gaps, and risks, not merely summarize the plan. Include
 the narrow evidence needed for review and the specific questions to answer.

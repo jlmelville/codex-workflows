@@ -68,3 +68,24 @@ ShellCheck, `./scripts/validate-skills.sh`, and a representative run in an R
 package.
 Close when: The script is added and documented, or future retrospectives show
 the commands are not recurring enough to justify a bundled script.
+
+### action-pin-comment-tag-verification
+Status: Monitoring.
+Last reviewed: 2026-07-06.
+Review trigger: Another non-Dependabot review questions whether GitHub Actions
+version comments beside full-SHA pins match upstream tag refs, or an agent
+manually repeats `git ls-remote` checks for several actions outside dependency
+update PR validation.
+Evidence: A follow-up review questioned comments such as `# v7.0.0`; manual
+`git ls-remote` checks confirmed the pinned SHAs matched upstream tags for
+`actions/checkout`, `actions/upload-artifact`, and
+`actions/download-artifact`. Existing `dependabot-pr-maintenance` covers tag
+verification for GitHub Actions dependency PRs, while
+`github-actions-hardening` covers stale nearby version comments but does not
+make remote comment verification a routine audit step.
+Next action: If the trigger fires, decide whether to add a short note to
+`github-actions-hardening` and `r-ci-hardening`, or create a script that parses
+`uses: owner/repo@sha # tag` and compares `git ls-remote` results with network
+caveats.
+Close when: Two skill repository retrospectives find this was isolated, or the
+item is promoted to hardening guidance or a bundled script.
