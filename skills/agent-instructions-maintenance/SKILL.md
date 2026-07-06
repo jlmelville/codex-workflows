@@ -8,6 +8,15 @@ description: Create, audit, shrink, or update repository agent instruction files
 Use this skill to keep always-loaded repository guidance short, local, and
 non-duplicative.
 
+## Use A More Specific Skill When
+
+- Use ordinary docs editing for README, changelog, or user-facing docs changes
+  that do not affect always-loaded agent instructions.
+- Use `$planning-workflow` for active plans, handoffs, audits, or plan-file
+  cleanup when the main task is execution state rather than instruction policy.
+- Use `$github-actions-hardening` or `$r-ci-hardening` for CI workflow rules
+  before promoting any CI guidance into `AGENTS.md`.
+
 ## First Pass
 
 1. Inspect the worktree before editing:
