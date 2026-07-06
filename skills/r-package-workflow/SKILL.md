@@ -1,6 +1,6 @@
 ---
 name: r-package-workflow
-description: General R package development workflow for repositories under /home/james/dev, including CRAN-style packages with testthat, roxygen2, pkgdown, Air, lintr, Rcpp, GitHub Actions, and local plans or handoff files. Use whenever Codex is asked to edit, review, clean up, test, document, release-check, or otherwise work inside an R package repository.
+description: General R package development workflow, especially James's R package repositories, including CRAN-style packages with testthat, roxygen2, pkgdown, Air, lintr, Rcpp, GitHub Actions, and local plans or handoff files. Use whenever Codex is asked to edit, review, clean up, test, document, release-check, or otherwise work inside an R package repository.
 ---
 
 # R Package Workflow

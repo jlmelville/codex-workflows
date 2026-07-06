@@ -7,6 +7,13 @@ description: Harden and maintain GitHub Actions, pkgdown deploy workflows, cover
 
 Use this when working on GitHub Actions or CI-related package infrastructure.
 
+## Use A More Specific Skill When
+
+- Use `$dependabot-pr-maintenance` for automated dependency PR review, stale
+  branch validation, or merge decisions.
+- Use `$repo-bootstrap` when creating first-pass CI for a new repository before
+  R-specific hardening starts.
+
 ## Workflow Rules
 
 1. Treat `usethis` workflow output as scaffolding, not final hardening.

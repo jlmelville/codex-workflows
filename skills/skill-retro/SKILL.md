@@ -25,6 +25,10 @@ retrospective itself; output the report in chat.
 - For command or shell-pattern suggestions, say whether the command was
   smoke-tested and whether any quoting or sandbox caveat remains. Mark untested
   commands explicitly.
+- When the lesson is about deterministic command behavior, file layout,
+  metadata, generated output, or a recurring fragile search, prefer a validator
+  or bundled script over prose-only guidance. If no script is warranted, explain
+  why the rule should remain prose.
 - Distinguish local files from remote service state when that changed the
   investigation.
 - Identify ownership when known: source-owned in `codex-workflows`, repo-local,
@@ -52,6 +56,10 @@ candidate reports for this repo, use
 threshold-based observations that are not ready to become skill text, scripts,
 or prompts.
 
+When a Skill Candidate Report has been accepted for `codex-workflows`, follow
+[report-to-patch.md](references/report-to-patch.md) to convert it into scoped
+repo edits, validation, and install/commit decisions.
+
 Review the ledger after several accepted skill-retro updates, during a skill
 repository retrospective, or when a user asks how the triage workflow is
 shaping up. Close, promote, or refresh entries rather than letting them become
@@ -76,6 +84,8 @@ State surface:
 Missing delta:
 Existing coverage:
 Validation or script opportunity:
+Executable check:
+Prose-only rationale:
 Risk if omitted:
 Preliminary recommendation:
 ```

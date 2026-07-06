@@ -8,6 +8,13 @@ description: Harden and maintain GitHub Actions workflows in any repository, inc
 Use this for GitHub Actions infrastructure that is not covered by a more
 specific language or package skill.
 
+## Use A More Specific Skill When
+
+- Use `$r-ci-hardening` for workflows in R package repositories.
+- Use `$dependabot-pr-maintenance` for automated dependency PR review or merge
+  decisions.
+- Use `$repo-bootstrap` when creating first-pass CI for a new repository.
+
 ## Workflow Rules
 
 1. Pin third-party `uses:` entries to full-length commit SHAs.

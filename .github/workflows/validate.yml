@@ -37,6 +37,10 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y "${missing_packages[@]}"
           fi
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+          python3 -m pip install --user uv
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
 
       - name: Validate skills
         run: ./scripts/validate-skills.sh

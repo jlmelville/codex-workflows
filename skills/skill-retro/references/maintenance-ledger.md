@@ -36,36 +36,40 @@ Close when:
 ## Open Entries
 
 ### always-read-skill-density
-Status: Monitoring, partially acted.
-Last reviewed: 2026-07-05.
+Status: Monitoring, action identified.
+Last reviewed: 2026-07-06.
 Review trigger: Another cluster of skill-retro commits adds detailed command
 recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
 repeated guidance that could move to `references/`.
 Evidence: Roxygen markdown guidance grew in `r-docs-pkgdown/SKILL.md` during
 R package cleanup triage. Commit `c7782cd` moved the detailed audit and
 conversion workflow into `skills/r-docs-pkgdown/references/roxygen-markdown.md`.
-Next action: On the next review, scan recent commits and large `SKILL.md`
-files for detailed command blocks or repeated edge-case bullets. Move detail to
-references when the top-level skill is no longer a routing/checklist layer.
+The 2026-07-06 skill repository retrospective identified
+`skills/planning-workflow/SKILL.md` as the next large always-read candidate:
+its core routing is useful, but chunk-plan details, audit/review-packet
+recipes, visibility edge cases, and handoff examples can move to references.
+Next action: Split the detailed `planning-workflow` material into focused
+references while keeping the top-level skill as routing and minimum operating
+procedure.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
 
 ### roxygen-markdown-audit-helper-script
-Status: Deferred script candidate.
-Last reviewed: 2026-07-05.
+Status: Accepted, implement next.
+Last reviewed: 2026-07-06.
 Review trigger: One more R package hits the same roxygen markdown audit command
 set, or an agent again trips over regex/shell quoting while auditing markdown
 conversion.
 Evidence: Several triage reports converged on roxygen-only `rg` searches, odd
 backtick detection, `tools::checkRd`, second `roxygenise()` idempotence, and
 shell-safe `#\x27` matching. The current guidance lives in
-`skills/r-docs-pkgdown/references/roxygen-markdown.md`.
-Next action: If the trigger fires, create
-`skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh` with modes or clear
-output for global markdown config, `@md`/`@noMd`, raw roxygen macros, odd
-backticks, and generated-doc drift checks. Validate with `bash -n`,
-ShellCheck, `./scripts/validate-skills.sh`, and a representative run in an R
-package.
+`skills/r-docs-pkgdown/references/roxygen-markdown.md`. The 2026-07-06 skill
+repository retrospective treated this as recurring enough to promote.
+Next action: Create `skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`
+with modes or clear output for global markdown config, `@md`/`@noMd`, raw
+roxygen macros, odd backticks, and generated-doc drift checks. Validate with
+`bash -n`, ShellCheck, `./scripts/validate-skills.sh`, and a representative
+run in an R package.
 Close when: The script is added and documented, or future retrospectives show
 the commands are not recurring enough to justify a bundled script.
 
@@ -82,7 +86,9 @@ Evidence: A follow-up review questioned comments such as `# v7.0.0`; manual
 `actions/download-artifact`. Existing `dependabot-pr-maintenance` covers tag
 verification for GitHub Actions dependency PRs, while
 `github-actions-hardening` covers stale nearby version comments but does not
-make remote comment verification a routine audit step.
+make remote comment verification a routine audit step. The bundled
+`audit-actions.sh` checks full-SHA pins and checkout credential persistence,
+but not tag/comment consistency.
 Next action: If the trigger fires, decide whether to add a short note to
 `github-actions-hardening` and `r-ci-hardening`, or create a script that parses
 `uses: owner/repo@sha # tag` and compares `git ls-remote` results with network

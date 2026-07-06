@@ -136,6 +136,11 @@ Before committing, stage only intended files, inspect `git diff --cached --stat`
 and `git diff --cached --name-only`, then commit and push when publishing is in
 scope.
 
+When converting accepted Skill Candidate Reports into repository changes, use
+the `$skill-retro` implementation guide at
+`skills/skill-retro/references/report-to-patch.md` after re-reading each
+candidate's cited destination files.
+
 ## Deferred Maintenance Memory
 
 For observations about this skill repository that should survive chat

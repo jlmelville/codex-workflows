@@ -4,6 +4,7 @@ set -euo pipefail
 workflow_dir="${1:-.github/workflows}"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
 export UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}"
+export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python}"
 
 run_zizmor() {
   local target_dir="$1"
@@ -19,6 +20,10 @@ run_zizmor() {
 
   if ! command -v uvx >/dev/null 2>&1; then
     echo "zizmor and uvx not found; skipped zizmor." >&2
+    if [[ "${CI:-false}" == "true" ]]; then
+      echo "zizmor or uvx is required in CI." >&2
+      return 1
+    fi
     return 0
   fi
 
@@ -33,6 +38,10 @@ run_zizmor() {
   if grep -Eiq 'temporary failure|name or service not known|could not resolve|failed to resolve|dns|pypi|no such host|network is unreachable|connection (refused|reset|timed out|error)|failed to fetch|failed to download|error downloading|request failed|error sending request' "${output}"; then
     echo "uvx could not run zizmor because of network/tool download failure; rerun with network approval or use installed zizmor." >&2
     rm -f "${output}"
+    if [[ "${CI:-false}" == "true" ]]; then
+      echo "zizmor download/tool acquisition is required to succeed in CI." >&2
+      return 1
+    fi
     return 0
   fi
 
@@ -76,9 +85,22 @@ while IFS= read -r match; do
 done < <(grep -RInE 'uses:[[:space:]]*actions/checkout@' "${workflow_dir}" || true)
 
 if command -v actionlint >/dev/null 2>&1; then
-  actionlint
+  mapfile -d '' workflow_files < <(
+    find "${workflow_dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0
+  )
+  if ((${#workflow_files[@]} > 0)); then
+    if ! actionlint "${workflow_files[@]}"; then
+      status=1
+    fi
+  else
+    echo "No workflow YAML files found for actionlint."
+  fi
 else
   echo "actionlint not found; skipped syntax check." >&2
+  if [[ "${CI:-false}" == "true" ]]; then
+    echo "actionlint is required in CI." >&2
+    status=1
+  fi
 fi
 
 if ! run_zizmor "${workflow_dir}"; then
