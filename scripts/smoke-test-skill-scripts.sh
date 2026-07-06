@@ -177,6 +177,12 @@ EOF_RD
 run_shell_script_smoke() {
   "${repo_dir}/skills/r-package-workflow/scripts/check-r-package.sh" --help >/dev/null
   "${repo_dir}/skills/r-package-workflow/scripts/audit-generated-r-files.sh" >/dev/null
+  "${repo_dir}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh" --help >/dev/null
+}
+
+run_skill_index_smoke() {
+  ruby "${repo_dir}/scripts/list-skills.rb" >/dev/null
+  ruby "${repo_dir}/scripts/list-skills.rb" --markdown >/dev/null
 }
 
 run_notebook_smoke
@@ -184,5 +190,6 @@ run_benchmark_smoke
 run_manifest_smoke
 run_roxygen_smoke
 run_shell_script_smoke
+run_skill_index_smoke
 
 echo "Skill script smoke tests passed."

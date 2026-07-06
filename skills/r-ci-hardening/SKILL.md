@@ -57,3 +57,8 @@ scripts/audit-actions.sh
 Use the bundled `scripts/audit-actions.sh` from this skill when available.
 It prefers an installed `zizmor`, falls back to `uvx zizmor`, and treats uvx
 network/download failures as environment issues rather than workflow findings.
+
+For rare reviews that need to confirm nearby version comments against
+full-SHA pins, use
+`skills/github-actions-hardening/scripts/check-action-tag-comments.sh`; its
+`--verify-remote` mode uses `git ls-remote` and may need network approval.

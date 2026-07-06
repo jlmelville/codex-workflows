@@ -55,8 +55,10 @@ top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
 
+## Closed Entries
+
 ### action-pin-comment-tag-verification
-Status: Monitoring.
+Status: Closed by script.
 Last reviewed: 2026-07-06.
 Review trigger: Another non-Dependabot review questions whether GitHub Actions
 version comments beside full-SHA pins match upstream tag refs, or an agent
@@ -67,18 +69,14 @@ Evidence: A follow-up review questioned comments such as `# v7.0.0`; manual
 `actions/checkout`, `actions/upload-artifact`, and
 `actions/download-artifact`. Existing `dependabot-pr-maintenance` covers tag
 verification for GitHub Actions dependency PRs, while
-`github-actions-hardening` covers stale nearby version comments but does not
-make remote comment verification a routine audit step. The bundled
-`audit-actions.sh` checks full-SHA pins and checkout credential persistence,
-but not tag/comment consistency.
-Next action: If the trigger fires, decide whether to add a short note to
-`github-actions-hardening` and `r-ci-hardening`, or create a script that parses
-`uses: owner/repo@sha # tag` and compares `git ls-remote` results with network
-caveats.
-Close when: Two skill repository retrospectives find this was isolated, or the
-item is promoted to hardening guidance or a bundled script.
-
-## Closed Entries
+`github-actions-hardening` covers stale nearby version comments but did not
+make remote comment verification a routine audit step.
+Resolution: Added
+`skills/github-actions-hardening/scripts/check-action-tag-comments.sh` with
+offline parsing by default and an explicit `--verify-remote` mode for
+`git ls-remote` checks.
+Closed when: The script was added and documented in GitHub Actions hardening
+guidance.
 
 ### roxygen-markdown-audit-helper-script
 Status: Closed by script.

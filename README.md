@@ -21,6 +21,7 @@ prompts/
   *.md             Reusable prompts for skill-adjacent intake and review
 scripts/
   validate-skills.sh
+  list-skills.rb
 install.sh
 ```
 
@@ -91,7 +92,15 @@ Run:
 ```
 
 This checks basic skill frontmatter, UI metadata YAML, shell script syntax,
-ShellCheck results, and executable bits for bundled shell scripts.
+ShellCheck results, Ruby/Python/R script syntax, local links, skill references,
+mirrored files, executable bits for bundled shell scripts, and smoke tests for
+substantial bundled script interfaces.
+
+To review skill trigger and metadata shape, run:
+
+```sh
+./scripts/list-skills.rb
+```
 
 GitHub Actions runs the same validation on pushes and pull requests, plus a
 lightweight workflow audit.

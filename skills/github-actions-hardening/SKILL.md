@@ -69,6 +69,15 @@ From a skill repository root, the same script may be under:
 ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
+When a review specifically needs to confirm that nearby version comments still
+match full-SHA pins, use the optional tag comment checker. Its default mode is
+offline; `--verify-remote` uses `git ls-remote` and may need network approval:
+
+```sh
+./skills/github-actions-hardening/scripts/check-action-tag-comments.sh .github/workflows
+./skills/github-actions-hardening/scripts/check-action-tag-comments.sh --verify-remote .github/workflows
+```
+
 Treat tool failures from network or missing dependencies separately from
 workflow findings, and rerun after installing or approving the needed tool.
 Prefer an installed `zizmor` when present; use `uvx zizmor` as the fallback.

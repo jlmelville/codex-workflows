@@ -5,6 +5,7 @@ repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 status=0
 shell_files=()
 python_files=()
+ruby_files=()
 r_files=()
 
 shopt -s nullglob
@@ -92,6 +93,12 @@ mapfile -d '' python_files < <(
     -type f -path '*/scripts/*.py' -print0
 )
 
+mapfile -d '' ruby_files < <(
+  find "${repo_dir}" \
+    -path "${repo_dir}/.git" -prune -o \
+    -type f -path '*/scripts/*.rb' -print0
+)
+
 mapfile -d '' r_files < <(
   find "${repo_dir}/skills" \
     -type f -path '*/scripts/*.R' -print0
@@ -135,6 +142,19 @@ PY
     then
       status=1
     fi
+  fi
+fi
+
+if ((${#ruby_files[@]} > 0)); then
+  if ! command -v ruby >/dev/null 2>&1; then
+    echo "ruby is required to validate bundled Ruby scripts" >&2
+    status=1
+  else
+    for script in "${ruby_files[@]}"; do
+      if ! ruby -c "${script}" >/dev/null; then
+        status=1
+      fi
+    done
   fi
 fi
 
