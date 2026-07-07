@@ -37,7 +37,7 @@ Close when:
 ## Open Entries
 
 ### always-read-skill-density
-Status: Monitoring, planning and R test splits acted.
+Status: Monitoring, one no-action repository retrospective recorded.
 Last reviewed: 2026-07-07.
 Review trigger: Another cluster of skill-retro commits adds detailed command
 recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
@@ -78,31 +78,35 @@ threshold for another reference split. A later 2026-07-07 Python CLI triage
 added one short numeric-vector parser smoke-test note to
 `skills/python-uv-project-workflow/SKILL.md`, also below the split threshold. A
 later 2026-07-07 performance triage added one short benchmark-gated public
-method graduation rule to `skills/r-performance-workflow/SKILL.md`.
+method graduation rule to `skills/r-performance-workflow/SKILL.md`. A
+2026-07-07 skill repository retrospective reviewed the recent cluster, drift
+audit output, and current always-read file sizes; it found no new split
+candidate beyond the already completed planning and R test reference moves.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
 
+## Closed Entries
+
 ### plugin-gh-fix-ci-public-run-fallback
-Status: Advisory, external plugin-owned.
+Status: Closed by source-owned GitHub Actions guidance.
 Last reviewed: 2026-07-07.
 Review trigger: Another CI debugging session hits invalid `gh` auth while a
 public repo's push workflow run is missing from connector or PR-oriented lookup,
 or the GitHub plugin source becomes editable through an upstream path.
 Evidence: A pkgdown CI investigation had invalid local `gh` auth, connector
 lookup returned no PR-triggered runs for the target head, and the public GitHub
-Actions REST run list identified the failing push run.
-Next action: If the trigger fires, propose an upstream `github:gh-fix-ci`
-fallback note: for public repos, query
-`GET /repos/{owner}/{repo}/actions/runs?per_page=10` to identify a run, then
-use available run, job, or log tools by id.
-Close when: `github:gh-fix-ci` includes a public unauthenticated run-list
-fallback, or a source-owned GitHub CI debugging skill supersedes the plugin
-workflow.
-
-## Closed Entries
+Actions REST run list identified the failing push run. A later repository
+retrospective found that `skills/github-actions-hardening/SKILL.md` now carries
+a source-owned public CI triage fallback for invalid `gh` auth and public
+Actions metadata.
+Resolution: Closed the external/plugin-owned advisory instead of editing the
+plugin cache; use the source-owned `github-actions-hardening` fallback unless
+upstream plugin maintenance is explicitly in scope.
+Closed when: Source-owned GitHub CI debugging guidance covered the public
+unauthenticated metadata fallback.
 
 ### action-pin-comment-tag-verification
 Status: Closed by routine audit and optional remote script.
