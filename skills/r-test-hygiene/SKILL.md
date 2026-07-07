@@ -95,6 +95,14 @@ regression with `options(warnPartialMatchDollar = TRUE)`, restore options with
 `on.exit()`, and assert `expect_warning(..., NA)` around the behavior that
 previously emitted the partial match.
 
+## Validation Diagnostics
+
+For paired validation branches, test both directions and assert diagnostic
+direction through public APIs. Examples include sparse versus dense inputs,
+logical versus numeric storage, reference versus query data, and model versus
+newdata compatibility. Prefer expectations that distinguish which side is
+wrong; a loose substring can preserve an inverted user-facing error.
+
 ## Looped Test Diagnostics
 
 Not every testthat expectation accepts `info` consistently across installed

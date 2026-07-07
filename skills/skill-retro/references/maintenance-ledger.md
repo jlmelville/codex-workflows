@@ -87,12 +87,30 @@ audit output, and current always-read file sizes; it found no new split
 candidate beyond the already completed planning and R test reference moves. A
 later 2026-07-07 coverage-blind semantic-probe triage added focused guidance
 to `skills/r-test-hygiene/references/coverage-roi.md`, keeping another R test
-lesson out of the always-read `SKILL.md`.
+lesson out of the always-read `SKILL.md`. A later 2026-07-07 symmetric
+validation diagnostic triage added one short `r-test-hygiene/SKILL.md` section
+because paired validation branches are a test-design rule rather than a command
+recipe.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
+
+### quiet-r-parse-checks
+Status: Monitoring after one noisy ad hoc parse-check transcript.
+Last reviewed: 2026-07-07.
+Review trigger: Another R package session uses `R -q -e 'parse(...)'` or a
+similar ad hoc syntax check and prints parsed expressions or truncates tool
+output.
+Evidence: A 2026-07-07 R package cleanup used `R -q -e 'parse(...)'`; the
+syntax check succeeded but printed parsed expressions and produced a truncated
+transcript with original token count 24921.
+Next action: If this recurs, smoke-test a quiet command such as
+`invisible(lapply(files, parse)); cat("parse OK\n")`, then add a short note to
+`skills/r-package-workflow/references/checks.md`.
+Close when: The quiet parse-check note is added after recurrence, or two skill
+repository retrospectives find no repeated parse-check noise.
 
 ## Closed Entries
 
