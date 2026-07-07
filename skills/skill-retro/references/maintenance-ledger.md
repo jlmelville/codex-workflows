@@ -71,12 +71,32 @@ triage added concise lifecycle/state refactor contract-test guidance to
 rule for when internal synthetic tests are justified, not a command recipe or
 long example. A later 2026-07-07 autodiff-oracle triage put separate AD oracle
 repo guidance in `skills/r-test-hygiene/references/numerical-contracts.md`,
-avoiding another top-level `r-test-hygiene` section.
+avoiding another top-level `r-test-hygiene` section. A 2026-07-07 pkgdown
+strict-reference-index triage added one short
+`skills/r-docs-pkgdown/SKILL.md` bullet for a terse pkgdown failure, below the
+threshold for another reference split.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
+
+### plugin-gh-fix-ci-public-run-fallback
+Status: Advisory, external plugin-owned.
+Last reviewed: 2026-07-07.
+Review trigger: Another CI debugging session hits invalid `gh` auth while a
+public repo's push workflow run is missing from connector or PR-oriented lookup,
+or the GitHub plugin source becomes editable through an upstream path.
+Evidence: A pkgdown CI investigation had invalid local `gh` auth, connector
+lookup returned no PR-triggered runs for the target head, and the public GitHub
+Actions REST run list identified the failing push run.
+Next action: If the trigger fires, propose an upstream `github:gh-fix-ci`
+fallback note: for public repos, query
+`GET /repos/{owner}/{repo}/actions/runs?per_page=10` to identify a run, then
+use available run, job, or log tools by id.
+Close when: `github:gh-fix-ci` includes a public unauthenticated run-list
+fallback, or a source-owned GitHub CI debugging skill supersedes the plugin
+workflow.
 
 ## Closed Entries
 

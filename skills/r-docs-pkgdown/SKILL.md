@@ -61,7 +61,11 @@ After `usethis::use_pkgdown_github_pages()` or similar helpers:
 3. Verify remote GitHub Pages and repo homepage state when publishing matters.
 4. Keep `_pkgdown.yml`, `DESCRIPTION` URL/config, `.Rbuildignore`,
    articles, and workflow in sync.
-5. Run pkgdown and workflow checks.
+5. If pkgdown reports `Reference metadata not ok` with a topic missing from
+   an explicit `_pkgdown.yml` `reference:` index, decide whether the exported
+   topic is public. Add public topics to the index; mark non-public topics
+   `@keywords internal` in roxygen and regenerate.
+6. Run pkgdown and workflow checks.
 
 See [pkgdown.md](references/pkgdown.md).
 
