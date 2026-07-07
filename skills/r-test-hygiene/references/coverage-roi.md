@@ -26,6 +26,21 @@ For compiled packages, do not run coverage and `testthat::test_local()` in
 parallel from the same worktree; see the sequencing caveat in
 `r-package-workflow > Checks`.
 
+## Coverage-Blind Semantic Probes
+
+When coverage is already high and uncovered R ranges are mostly validation or
+defensive branches, add a few minimal public API probes before concluding the
+remaining work is pure test fill-in. Focus on semantics that coverage
+percentages do not expose: sentinel or missing-value handling, zero-length or
+boundary `k` values, duplicated ids, ordering ties, and default versus explicit
+argument paths.
+
+Classify any failing public probe as a bug-revealing test, not a pure test
+addition. Preserve the exact public call, observed behavior, expected behavior,
+and whether implementation changes are required in the handoff or plan. This is
+especially important when missing-value sentinels such as `0`, `NA`, or empty
+neighbors could be accidentally counted as ordinary data.
+
 ## Private Helper Cleanup
 
 When uncovered ranges sit in private helpers, check whether the helper still

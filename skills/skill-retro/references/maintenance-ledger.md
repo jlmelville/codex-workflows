@@ -81,7 +81,10 @@ later 2026-07-07 performance triage added one short benchmark-gated public
 method graduation rule to `skills/r-performance-workflow/SKILL.md`. A
 2026-07-07 skill repository retrospective reviewed the recent cluster, drift
 audit output, and current always-read file sizes; it found no new split
-candidate beyond the already completed planning and R test reference moves.
+candidate beyond the already completed planning and R test reference moves. A
+later 2026-07-07 coverage-blind semantic-probe triage added focused guidance
+to `skills/r-test-hygiene/references/coverage-roi.md`, keeping another R test
+lesson out of the always-read `SKILL.md`.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
