@@ -57,6 +57,11 @@ optimizable. Require benchmark evidence that the R path is the relevant
 bottleneck, and record explicit defer/continue decisions for plausible but
 unproven optimizations.
 
+For new optimizer or algorithm method profiles, keep experimental variants as
+internal prototypes until benchmark evidence, failure diagnostics, and
+complementarity against existing methods justify making them public documented
+choices. Do not graduate a method on raw speed alone.
+
 ## Semantic Guardrails
 
 Performance changes must preserve user-visible behavior unless the plan

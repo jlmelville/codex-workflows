@@ -76,7 +76,9 @@ strict-reference-index triage added one short
 `skills/r-docs-pkgdown/SKILL.md` bullet for a terse pkgdown failure, below the
 threshold for another reference split. A later 2026-07-07 Python CLI triage
 added one short numeric-vector parser smoke-test note to
-`skills/python-uv-project-workflow/SKILL.md`, also below the split threshold.
+`skills/python-uv-project-workflow/SKILL.md`, also below the split threshold. A
+later 2026-07-07 performance triage added one short benchmark-gated public
+method graduation rule to `skills/r-performance-workflow/SKILL.md`.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
