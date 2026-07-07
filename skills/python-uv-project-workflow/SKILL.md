@@ -83,8 +83,10 @@ For cross-language numeric oracle comparisons, such as R/Python, Python/C++,
 NumPy/Torch, or autograd checks, report both absolute and relative differences.
 Accept either a meaningful absolute tolerance or a tight relative tolerance so
 large-scale objectives, gradients, or Hessians do not become false formula
-diffs from roundoff alone. Keep absolute tolerances for small or near-zero
-reference values.
+diffs from roundoff alone. For derivative or autograd checks, make the scalar
+objective or function value match the oracle first; only interpret gradient or
+Hessian diffs as derivative bugs after the scalar agrees. Keep absolute
+tolerances for small or near-zero reference values.
 
 ## Project Layout
 
