@@ -92,7 +92,11 @@ to `skills/r-test-hygiene/references/coverage-roi.md`, keeping another R test
 lesson out of the always-read `SKILL.md`. A later 2026-07-07 symmetric
 validation diagnostic triage added one short `r-test-hygiene/SKILL.md` section
 because paired validation branches are a test-design rule rather than a command
-recipe.
+recipe. A later 2026-07-07 planning triage added concise top-level
+`planning-workflow/SKILL.md` notes for filtered artifact discovery,
+self-referential commit hashes in plans, and managed-sandbox `git -C` fallback;
+the cluster was reviewed against the existing planning reference split and did
+not justify another reference yet.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.

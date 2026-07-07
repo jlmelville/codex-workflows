@@ -13,10 +13,17 @@ on chat history.
 1. Inspect the current worktree before trusting any plan:
    `git --no-optional-locks status --short --untracked-files=all`.
 2. Discover existing planning artifacts, including ignored files. Adapt this
-   search to the repo:
+   search to the repo, and prefer targeted globs over a broad ignored-file
+   scan in dependency-heavy trees:
 
    ```sh
-   rg --files -uu | rg '(^|/)(AGENTS|PLANS)\.md$|(^|/)plans(_pending)?/|(^|/)docs/plans/|(^|/)EXECPLAN.*\.md$|handoff|audit|review-packet|briefing'
+   rg --files -uu \
+     -g '**/AGENTS.md' -g '**/PLANS.md' -g '**/plans/**' \
+     -g '**/plans_pending/**' -g '**/docs/plans/**' \
+     -g '**/EXECPLAN*.md' -g '**/*handoff*.md' -g '**/*audit*.md' \
+     -g '**/*review-packet*.md' -g '**/*briefing*.md' \
+     -g '!**/.git/**' -g '!**/.venv/**' -g '!**/node_modules/**' \
+     -g '!**/__pycache__/**'
    ```
 
 3. Read only the relevant artifacts: repo instructions, the active plan or
@@ -89,6 +96,11 @@ and outcomes whenever work pauses, changes direction, completes a milestone, or
 hands off. Put the active state and next action near the top so large plans do
 not bury what matters.
 
+Do not record the hash of the commit currently being created in a file included
+in that same commit; amending the file changes the commit hash immediately.
+Record prior commit hashes in the plan, and report the final hash in chat or in
+a later commit.
+
 Use decision entries with this shape:
 
 ```md
@@ -114,6 +126,11 @@ A chunk plan should include:
 Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
+
+If staging or committing fails under managed sandboxing with a read-only
+`.git/index.lock` error, and `git -C <repo>` is an approved command form, retry
+the git operation with `git -C <repo>` before considering permission changes or
+lock-file cleanup.
 
 See [chunk-plans.md](references/chunk-plans.md) for behavior-neutral file split
 verification, bug-scoped staging, and warning ownership rules.
