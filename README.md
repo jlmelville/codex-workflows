@@ -63,6 +63,32 @@ Use [prompts/skill-retrospective.md](prompts/skill-retrospective.md) at the end
 of project work to ask an agent for skill candidates. Prompt templates are for
 skill-adjacent intake and review; they are not installed into `~/.codex/skills`.
 
+## Retrospective Workflow
+
+There are three loops:
+
+1. **Project/session loop**: in another repo, ask an agent to use
+   `$skill-retro` at the end of a meaningful coding session, investigation, CI
+   debug, or cleanup. The output is a Skill Candidate Report in chat; it should
+   not edit `codex-workflows` directly.
+2. **Accepted-report loop**: in this repo, paste accepted candidate reports and
+   invoke `$skill-retro-triage`. That workflow turns accepted reports into
+   scoped source edits, validation, install sync when `skills/` changed, commit,
+   and push.
+3. **Repository outer loop**: periodically run the
+   [Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
+   in this repo after several skill-retro-driven updates. This is the "take
+   stock of the whole skill system" pass: it reviews all skills, references,
+   bundled scripts, prompts, recent commits, drift audit output, and the
+   maintenance ledger for consolidation, bloat, trigger overlap, script
+   opportunities, stale ledger entries, and no-action findings.
+
+The outer loop is a prompt, not an installed skill. Ask for it explicitly, for
+example: "Use `prompts/skill-repository-retrospective.md` to audit the current
+state of this repo and all skills." It should produce a report in chat first.
+Apply any accepted recommendations afterward with `$skill-retro-triage` or a
+normal scoped repo-edit request.
+
 For deferred observations about this repository that should survive chat
 compaction but are not yet ready for a direct skill, prompt, or script change,
 use the [skill maintenance ledger](skills/skill-retro/references/maintenance-ledger.md).
