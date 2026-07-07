@@ -74,7 +74,9 @@ repo guidance in `skills/r-test-hygiene/references/numerical-contracts.md`,
 avoiding another top-level `r-test-hygiene` section. A 2026-07-07 pkgdown
 strict-reference-index triage added one short
 `skills/r-docs-pkgdown/SKILL.md` bullet for a terse pkgdown failure, below the
-threshold for another reference split.
+threshold for another reference split. A later 2026-07-07 Python CLI triage
+added one short numeric-vector parser smoke-test note to
+`skills/python-uv-project-workflow/SKILL.md`, also below the split threshold.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.

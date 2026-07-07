@@ -72,6 +72,13 @@ For behavior changes, state what failed or was missing before and what now
 passes or works after. If a command is expensive, optional-data-dependent, or
 unavailable, report that honestly and name the command that should be run.
 
+For Python CLIs that accept arbitrary numeric vectors, add smoke tests for
+negative values and scientific notation, especially when the command is called
+from R or shell scripts. Avoid assuming `argparse` vector options with
+`nargs="+"` will handle signed numeric tokens robustly; consider a delimiter or
+CSV argument, or parse trailing tokens deliberately when the CLI needs raw
+numeric vectors.
+
 ## Project Layout
 
 Infer layout from the repo, but common paths are:
