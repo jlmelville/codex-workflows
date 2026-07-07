@@ -50,6 +50,17 @@ in `R/` and `tests/testthat/`; when current public paths no longer use the
 helper, prefer removal plus public-contract tests over preserving dead internals
 with direct coverage tests.
 
+## Refactor Safety Nets
+
+Before refactoring state machines, hook dispatchers, staged pipelines, caches,
+or lifecycle controllers, add small synthetic contract tests before changing
+code, even when existing coverage or integration traces look broad. Build tiny
+custom hooks or stages that mutate state and assert downstream effects: event
+order, stage or sub-stage writeback, termination short-circuiting, validation
+rollback, eager parameter propagation, and restart hook replacement. Direct
+internal probes are justified when public golden traces cannot localize those
+lifecycle invariants; keep them named and narrow.
+
 ## Fixture Formatting
 
 For shape-sensitive fixtures, preserve visual structure:

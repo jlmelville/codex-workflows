@@ -38,7 +38,7 @@ Close when:
 
 ### always-read-skill-density
 Status: Monitoring, planning and R test splits acted.
-Last reviewed: 2026-07-06.
+Last reviewed: 2026-07-07.
 Review trigger: Another cluster of skill-retro commits adds detailed command
 recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
 repeated guidance that could move to `references/`.
@@ -65,7 +65,11 @@ the always-read file with derivative and metadata testing details. A later
 2026-07-06 skill repository retrospective found no urgent broad cleanup after
 those moves, and promoted the remaining `r-test-hygiene` testthat edition
 migration block into
-`skills/r-test-hygiene/references/testthat-edition-migrations.md`.
+`skills/r-test-hygiene/references/testthat-edition-migrations.md`. A 2026-07-07
+triage added concise lifecycle/state refactor contract-test guidance to
+`skills/r-test-hygiene/SKILL.md`; it stayed top-level because it is a routing
+rule for when internal synthetic tests are justified, not a command recipe or
+long example.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
