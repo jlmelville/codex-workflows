@@ -79,6 +79,13 @@ from R or shell scripts. Avoid assuming `argparse` vector options with
 CSV argument, or parse trailing tokens deliberately when the CLI needs raw
 numeric vectors.
 
+For cross-language numeric oracle comparisons, such as R/Python, Python/C++,
+NumPy/Torch, or autograd checks, report both absolute and relative differences.
+Accept either a meaningful absolute tolerance or a tight relative tolerance so
+large-scale objectives, gradients, or Hessians do not become false formula
+diffs from roundoff alone. Keep absolute tolerances for small or near-zero
+reference values.
+
 ## Project Layout
 
 Infer layout from the repo, but common paths are:

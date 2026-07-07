@@ -77,6 +77,9 @@ strict-reference-index triage added one short
 threshold for another reference split. A later 2026-07-07 Python CLI triage
 added one short numeric-vector parser smoke-test note to
 `skills/python-uv-project-workflow/SKILL.md`, also below the split threshold. A
+later 2026-07-07 numeric-oracle triage added one short cross-language tolerance
+note to `skills/python-uv-project-workflow/SKILL.md`; the repeated Python
+workflow additions remain concise and below a reference-split threshold. A
 later 2026-07-07 performance triage added one short benchmark-gated public
 method graduation rule to `skills/r-performance-workflow/SKILL.md`. A
 2026-07-07 skill repository retrospective reviewed the recent cluster, drift
