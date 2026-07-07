@@ -69,7 +69,9 @@ migration block into
 triage added concise lifecycle/state refactor contract-test guidance to
 `skills/r-test-hygiene/SKILL.md`; it stayed top-level because it is a routing
 rule for when internal synthetic tests are justified, not a command recipe or
-long example.
+long example. A later 2026-07-07 autodiff-oracle triage put separate AD oracle
+repo guidance in `skills/r-test-hygiene/references/numerical-contracts.md`,
+avoiding another top-level `r-test-hygiene` section.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.

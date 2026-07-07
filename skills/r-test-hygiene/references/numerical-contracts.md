@@ -30,3 +30,18 @@ Large absolute error alone is weak evidence for ill-scaled objectives. Look for
 patterns that stay bad across reasonable step sizes, relative-error outliers,
 shape or symmetry violations, or failures that are localized to a specific
 dimension branch. Record the evidence before changing analytic derivative code.
+
+## External AD Oracles
+
+When a package with hand-coded gradients or Hessians needs more assurance than
+finite differences can provide, consider a separate sibling oracle repository
+instead of adding an automatic-differentiation stack to the package test suite.
+Use the oracle to implement scalar objectives or residuals independently in a
+float64-capable AD backend, derive gradients or Hessians through autograd, and
+compare against the source package through optional scripts.
+
+Keep the oracle independent: do not transliterate the package's analytic
+derivative code or copy branch logic verbatim. Share only stable problem
+definitions, input cases, tolerances, and comparison reports. Treat oracle
+scripts as supplemental evidence; the source package should still keep
+lightweight finite-difference checks and contract tests for routine CI.
