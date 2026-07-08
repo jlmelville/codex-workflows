@@ -34,6 +34,13 @@ intentional version boundary and prefer Renovate `packageRules`,
 `allowedVersions`, or manager-specific constraint filtering when one island
 cannot accept a proposed update.
 
+When editing Renovate config, validate in a safe ladder: JSON syntax first,
+Renovate docs for option names and parent sections, then an installed local
+`renovate-config-validator` if present. Treat `npx` or other external validator
+downloads as networked code execution that needs explicit approval; if used,
+prefer a temporary directory containing only the config file over running from a
+dirty or private worktree.
+
 ## Safety Checks
 
 - For GitHub Actions, confirm the new ref is still a full-length SHA, nearby

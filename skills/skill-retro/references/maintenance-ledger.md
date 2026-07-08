@@ -55,7 +55,9 @@ merge or immediate split, but noted `skills/planning-workflow/SKILL.md` remains
 the largest always-read skill and deferred a possible ExecPlan reference split.
 A later 2026-07-08 Renovate triage added concise dashboard and Python
 compatibility-island guidance to `skills/dependabot-pr-maintenance/SKILL.md`,
-which remains below the threshold for a separate reference.
+which remains below the threshold for a separate reference. A later 2026-07-08
+Renovate config triage added one short safe-validation ladder to the same skill,
+still below the reference threshold.
 Next action: When `planning-workflow` is next edited for ExecPlan guidance,
 consider moving the detailed ExecPlan skeleton and decision-entry template into
 a new reference; otherwise review again after another cluster of top-level
