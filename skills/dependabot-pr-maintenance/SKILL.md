@@ -19,6 +19,21 @@ Use this for automated dependency update pull requests.
 5. Check whether the branch is behind `main` and whether the displayed diff is a
    direct branch comparison rather than the true merge result.
 
+## Renovate
+
+When reviewing Renovate-managed repositories, inspect the Dependency Dashboard
+issue as a control surface, not as an ordinary bug. Use it to cross-check open
+PRs, detected dependency managers, update groups, file categories, rebase
+controls, and immortal or blocked updates.
+
+For Python or uv repositories with multiple workspaces, plugin SDKs, or legacy
+packages, treat different `requires-python`, `.python-version`, `pyproject.toml`,
+and lockfile constraints as possible compatibility islands. Before recommending
+broad dependency loosening or root Python requirement changes, inspect every
+intentional version boundary and prefer Renovate `packageRules`,
+`allowedVersions`, or manager-specific constraint filtering when one island
+cannot accept a proposed update.
+
 ## Safety Checks
 
 - For GitHub Actions, confirm the new ref is still a full-length SHA, nearby
