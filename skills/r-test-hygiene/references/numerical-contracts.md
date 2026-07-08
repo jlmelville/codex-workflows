@@ -19,6 +19,21 @@ metadata, test those contracts through the public object:
 Prefer these user-visible contracts over hand-maintained local fixtures when
 the fixture can drift away from the package's own metadata.
 
+## Variant Equivalence Invariants
+
+When a numerical algorithm exposes multiple update recipes or formula variants
+that should coincide under idealized conditions, test that mathematical
+invariant separately from broad nonlinear benchmark coverage. Use a small exact
+fixture with a known oracle, such as a positive-definite quadratic for conjugate
+gradient recipes, and compare each variant with a reference recipe under fixed
+starts, tolerances, and deterministic controls.
+
+Assert both the final contract and the trace-level behavior that theory says
+should match: iterates, objective values, gradients, directions, step lengths,
+update coefficients, or finite-termination counts where relevant. Golden output
+on a difficult nonlinear benchmark can cover recipe wiring, but it does not
+prove exact-condition equivalence or N-step termination.
+
 ## Derivative Evidence Before Fixes
 
 For gradients, Hessians, and related analytic derivatives, do not treat one

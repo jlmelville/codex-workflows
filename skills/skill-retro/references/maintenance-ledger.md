@@ -96,7 +96,10 @@ recipe. A later 2026-07-07 planning triage added concise top-level
 `planning-workflow/SKILL.md` notes for filtered artifact discovery,
 self-referential commit hashes in plans, and managed-sandbox `git -C` fallback;
 the cluster was reviewed against the existing planning reference split and did
-not justify another reference yet.
+not justify another reference yet. A later 2026-07-07 numerical optimizer
+variant triage added trace-level recipe-equivalence invariant guidance to
+`skills/r-test-hygiene/references/numerical-contracts.md`, again keeping the
+R test always-read file from growing.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
