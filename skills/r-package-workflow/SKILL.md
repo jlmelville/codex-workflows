@@ -37,6 +37,10 @@ Use this as the default operating procedure for R package work.
 - When introducing top-level hidden development config files such as
   `.air.toml`, `.lintr`, or `.styler.R`, add exact anchored `.Rbuildignore`
   entries in the same phase and confirm the R CMD check hidden-file check is OK.
+- When moving runtime dependencies to `Suggests`, guard every execution path
+  with `requireNamespace()`, give users a clear install message, document the
+  optional requirement, and skip tests that execute the optional path when the
+  package is absent.
 - Use `apply_patch` for manual edits. Use package tools for generated output.
 - After `usethis` modifies infrastructure, re-harden generated files rather
   than accepting templates as final.

@@ -38,7 +38,7 @@ Close when:
 
 ### always-read-skill-density
 Status: Monitoring, one no-action repository retrospective recorded.
-Last reviewed: 2026-07-07.
+Last reviewed: 2026-07-08.
 Review trigger: Another cluster of skill-retro commits adds detailed command
 recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
 repeated guidance that could move to `references/`.
@@ -99,7 +99,10 @@ the cluster was reviewed against the existing planning reference split and did
 not justify another reference yet. A later 2026-07-07 numerical optimizer
 variant triage added trace-level recipe-equivalence invariant guidance to
 `skills/r-test-hygiene/references/numerical-contracts.md`, again keeping the
-R test always-read file from growing.
+R test always-read file from growing. A 2026-07-08 R package dependency hygiene
+triage added one short optional-runtime-dependency guard rule to
+`skills/r-package-workflow/SKILL.md`; this was concise enough to keep
+top-level.
 Next action: On the next repository retrospective, scan recently changed
 always-read skills for another concrete split candidate before adding more
 top-level detail.
@@ -108,7 +111,7 @@ always-read density problem.
 
 ### quiet-r-parse-checks
 Status: Monitoring after one noisy ad hoc parse-check transcript.
-Last reviewed: 2026-07-07.
+Last reviewed: 2026-07-08.
 Review trigger: Another R package session uses `R -q -e 'parse(...)'` or a
 similar ad hoc syntax check and prints parsed expressions or truncates tool
 output.
