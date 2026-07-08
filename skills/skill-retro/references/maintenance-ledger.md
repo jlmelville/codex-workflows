@@ -37,75 +37,26 @@ Close when:
 ## Open Entries
 
 ### always-read-skill-density
-Status: Monitoring, one no-action repository retrospective recorded.
+Status: Monitoring after two repository retrospectives; one deferred planning
+reference split candidate recorded.
 Last reviewed: 2026-07-08.
 Review trigger: Another cluster of skill-retro commits adds detailed command
-recipes to one always-read `SKILL.md`, or a skill repository retrospective sees
-repeated guidance that could move to `references/`.
-Evidence: Roxygen markdown guidance grew in `r-docs-pkgdown/SKILL.md` during
-R package cleanup triage. Commit `c7782cd` moved the detailed audit and
-conversion workflow into `skills/r-docs-pkgdown/references/roxygen-markdown.md`.
-The 2026-07-06 skill repository retrospective identified
-`skills/planning-workflow/SKILL.md` as the next large always-read candidate:
-its core routing is useful, but chunk-plan details, audit/review-packet
-recipes, visibility edge cases, and handoff examples could move to references.
-That split now lives under `skills/planning-workflow/references/`. A 2026-07-06
-`r-test-hygiene` triage added one focused coverage command and a short local
-download fixture note, but did not show enough repeated detail to split another
-reference. A 2026-07-06 `r-performance-workflow` triage added one adjacent-docs
-rule for permanent benchmark harnesses, also below the split threshold. Another
-2026-07-06 `r-test-hygiene` triage added concise visualization-output testing
-guidance; the accumulated R test patterns should be reviewed together before
-adding much more top-level detail. A later 2026-07-06 R test triage promoted
-coverage details into `skills/r-test-hygiene/references/coverage-roi.md` while
-keeping the obsolete-helper cleanup rule visible in `SKILL.md`. Another
-2026-07-06 numerical-package triage added
-`skills/r-test-hygiene/references/numerical-contracts.md` rather than growing
-the always-read file with derivative and metadata testing details. A later
-2026-07-06 skill repository retrospective found no urgent broad cleanup after
-those moves, and promoted the remaining `r-test-hygiene` testthat edition
-migration block into
-`skills/r-test-hygiene/references/testthat-edition-migrations.md`. A 2026-07-07
-triage added concise lifecycle/state refactor contract-test guidance to
-`skills/r-test-hygiene/SKILL.md`; it stayed top-level because it is a routing
-rule for when internal synthetic tests are justified, not a command recipe or
-long example. A later 2026-07-07 autodiff-oracle triage put separate AD oracle
-repo guidance in `skills/r-test-hygiene/references/numerical-contracts.md`,
-avoiding another top-level `r-test-hygiene` section. A 2026-07-07 pkgdown
-strict-reference-index triage added one short
-`skills/r-docs-pkgdown/SKILL.md` bullet for a terse pkgdown failure, below the
-threshold for another reference split. A later 2026-07-07 Python CLI triage
-added one short numeric-vector parser smoke-test note to
-`skills/python-uv-project-workflow/SKILL.md`, also below the split threshold. A
-later 2026-07-07 numeric-oracle triage added one short cross-language tolerance
-note to `skills/python-uv-project-workflow/SKILL.md`; the repeated Python
-workflow additions remain concise and below a reference-split threshold. A
-later 2026-07-07 derivative-oracle triage added one scalar-first sequencing
-sentence to the same paragraph, still below the split threshold. A
-later 2026-07-07 performance triage added one short benchmark-gated public
-method graduation rule to `skills/r-performance-workflow/SKILL.md`. A
-2026-07-07 skill repository retrospective reviewed the recent cluster, drift
-audit output, and current always-read file sizes; it found no new split
-candidate beyond the already completed planning and R test reference moves. A
-later 2026-07-07 coverage-blind semantic-probe triage added focused guidance
-to `skills/r-test-hygiene/references/coverage-roi.md`, keeping another R test
-lesson out of the always-read `SKILL.md`. A later 2026-07-07 symmetric
-validation diagnostic triage added one short `r-test-hygiene/SKILL.md` section
-because paired validation branches are a test-design rule rather than a command
-recipe. A later 2026-07-07 planning triage added concise top-level
-`planning-workflow/SKILL.md` notes for filtered artifact discovery,
-self-referential commit hashes in plans, and managed-sandbox `git -C` fallback;
-the cluster was reviewed against the existing planning reference split and did
-not justify another reference yet. A later 2026-07-07 numerical optimizer
-variant triage added trace-level recipe-equivalence invariant guidance to
-`skills/r-test-hygiene/references/numerical-contracts.md`, again keeping the
-R test always-read file from growing. A 2026-07-08 R package dependency hygiene
-triage added one short optional-runtime-dependency guard rule to
-`skills/r-package-workflow/SKILL.md`; this was concise enough to keep
-top-level.
-Next action: On the next repository retrospective, scan recently changed
-always-read skills for another concrete split candidate before adding more
-top-level detail.
+recipes to one always-read `SKILL.md`, the deferred `planning-workflow`
+ExecPlan split is touched, or a skill repository retrospective sees repeated
+guidance that could move to `references/`.
+Evidence: Earlier triage moved detailed roxygen markdown, planning, coverage
+ROI, numerical contract, and testthat edition migration guidance into
+references instead of growing always-read `SKILL.md` files. Later accepted
+triages mostly added concise top-level routing rules where immediacy mattered
+or placed details in existing references. The 2026-07-07 repository
+retrospective found no urgent broad cleanup beyond completed planning and R test
+reference moves. The 2026-07-08 repository retrospective again found no broad
+merge or immediate split, but noted `skills/planning-workflow/SKILL.md` remains
+the largest always-read skill and deferred a possible ExecPlan reference split.
+Next action: When `planning-workflow` is next edited for ExecPlan guidance,
+consider moving the detailed ExecPlan skeleton and decision-entry template into
+a new reference; otherwise review again after another cluster of top-level
+skill-retro additions.
 Close when: Two consecutive skill repository retrospectives find no actionable
 always-read density problem.
 
@@ -117,7 +68,8 @@ similar ad hoc syntax check and prints parsed expressions or truncates tool
 output.
 Evidence: A 2026-07-07 R package cleanup used `R -q -e 'parse(...)'`; the
 syntax check succeeded but printed parsed expressions and produced a truncated
-transcript with original token count 24921.
+transcript with original token count 24921. The 2026-07-08 repository
+retrospective saw no recurrence.
 Next action: If this recurs, smoke-test a quiet command such as
 `invisible(lapply(files, parse)); cat("parse OK\n")`, then add a short note to
 `skills/r-package-workflow/references/checks.md`.

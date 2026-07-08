@@ -177,7 +177,7 @@ This repository is licensed under the [MIT License](LICENSE).
 Some skills assume these tools may be available in project worktrees:
 
 - `python3` for bundled Python script validation
-- Bash 4+ for bundled shell scripts
+- Bash 3.2-compatible Bash for bundled shell scripts
 - `ruby` for repository validation
 - `rg` / `ripgrep` for repository and roxygen source searches
 - `shellcheck` for shell script validation
