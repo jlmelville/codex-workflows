@@ -51,9 +51,23 @@ Before changing dependencies, inspect dependency groups and lock policy in
 `pyproject.toml`. Use `uv lock` or `uv sync` only when dependency or lockfile
 updates are intended. Do not edit `uv.lock` manually.
 
+For multi-workspace repos or nested uv projects, enumerate every
+`pyproject.toml` before changing resolver settings such as `[tool.uv]`
+`exclude-newer`. Root settings may not apply when a nested project is run from
+its own directory. After changing resolver settings, run `uv lock` and then
+`uv lock --check` in each affected workspace; lockfile metadata can change even
+when package versions do not.
+
 When running uv in Codex, follow `$uv-sandbox-workflow` first so mutable uv
 caches and downloaded tools live under `/tmp` and network approval is requested
 when needed.
+
+For uv warnings about invalid dependency metadata or version specifiers,
+distinguish the resolved lock state from remote release metadata. The warning
+may come from historical releases that were inspected but not selected. After
+identifying the package, use `uv tree --locked --invert --package <name>` to
+confirm the local reverse dependency path before recommending local dependency
+changes.
 
 ## Tests And Validation
 
@@ -67,6 +81,12 @@ Choose validation based on blast radius:
   `uv run ruff format <paths>` and `uv run ruff check <paths>`.
 - API, dependency, or broad package change:
   run focused tests first, then `uv run pytest` when feasible.
+
+When auditing Ruff config, check whether `select` is replacing Ruff's default
+rules. Use `extend-select` for additive choices such as import sorting, or make
+the default safety set explicit with rules such as `E4`, `E7`, `E9`, `F`, and
+`I`. Decide notebook lint policy explicitly before treating exploratory notebook
+findings like package source or test failures.
 
 For behavior changes, state what failed or was missing before and what now
 passes or works after. If a command is expensive, optional-data-dependent, or
