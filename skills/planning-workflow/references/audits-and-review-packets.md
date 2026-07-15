@@ -16,6 +16,12 @@ When converting an external audit or model review into a chunk plan:
 4. Resolve open questions into explicit decisions where possible.
 5. Include the source audit pointer, confirmed findings, guardrails, a decision
    log, open questions, and which claims still need test evidence.
+6. Surface recommendations that consume paid services or quotas before
+   accepting them into scope, especially model or API evals, paid CI, and
+   hosted runners. Separate free static or local validation from cost-bearing
+   execution, state whether the cost is one-time or recurring, and obtain
+   explicit user acceptance before adding model-backed evals or recurring paid
+   infrastructure.
 
 ## Stabilization Chunks
 
