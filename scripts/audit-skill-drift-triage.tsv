@@ -9,4 +9,4 @@ Repo-Relative Skill Script References	skills/codex-skill-repo/SKILL.md	Source-re
 Repo-Relative Skill Script References	skills/github-actions-hardening/SKILL.md	Installed command examples are paired with explicit source-repository alternatives.
 Repo-Relative Skill Script References	skills/r-ci-hardening/SKILL.md	Installed command examples are paired with explicit source-repository alternatives.
 Repo-Relative Skill Script References	skills/r-docs-pkgdown/references/roxygen-markdown.md	Installed command examples are paired with explicit source-repository alternatives.
-Repo-Relative Skill Script References	skills/skill-retro/references/maintenance-ledger.md	Historical maintenance ledger entries cite source paths rather than installed commands.
+Repo-Relative Skill Script References	skills/skill-retro/references/state-protocol.md	The source-repository helper example is paired with the canonical installed command.

@@ -381,6 +381,51 @@ run_skill_index_smoke() {
   ruby "${repo_dir}/scripts/list-skills.rb" --markdown >/dev/null
 }
 
+run_retro_state_smoke() {
+  local script="${repo_dir}/skills/skill-retro/scripts/retro-state.rb"
+  local smoke_dir="${tmp_root}/retro-state"
+  local state_root="${smoke_dir}/state"
+  local candidate="${smoke_dir}/candidate.md"
+  local fallback="${smoke_dir}/fallback.md"
+  local candidate_path
+
+  require_command ruby
+  mkdir -p "${smoke_dir}"
+  "${script}" --help >/dev/null
+  "${script}" template candidate >"${candidate}"
+
+  if (
+    unset CODEX_WORKFLOWS_STATE_DIR
+    "${script}" route --file "${candidate}" >"${fallback}" 2>/dev/null
+  ); then
+    echo "retro-state route should report fallback when the state root is unset" >&2
+    return 1
+  else
+    local fallback_status=$?
+    if [[ "${fallback_status}" -ne 2 ]]; then
+      echo "retro-state unset-root fallback should exit 2, got ${fallback_status}" >&2
+      return 1
+    fi
+  fi
+  [[ -s "${fallback}" ]]
+  rg -q 'record_type: candidate' "${fallback}"
+  rg -q 'Short candidate title' "${fallback}"
+
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" init >/dev/null
+  candidate_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" route --file "${candidate}")"
+  [[ -s "${candidate_path}" ]]
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" pending | rg -q 'Atomic routing|Short candidate title'
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" validate >/dev/null
+  "${script}" self-test >/dev/null
+
+  mkdir -p "${smoke_dir}/git-root/.git"
+  printf '%s\n' 'ref: refs/heads/main' >"${smoke_dir}/git-root/.git/HEAD"
+  if CODEX_WORKFLOWS_STATE_DIR="${smoke_dir}/git-root/state" "${script}" init >/dev/null 2>&1; then
+    echo "retro-state should refuse a state root inside a Git worktree" >&2
+    return 1
+  fi
+}
+
 run_notebook_smoke
 run_benchmark_smoke
 run_manifest_smoke
@@ -389,5 +434,6 @@ run_shell_script_smoke
 run_audit_actions_smoke
 run_action_tag_comment_smoke
 run_skill_index_smoke
+run_retro_state_smoke
 
 echo "Skill script smoke tests passed."

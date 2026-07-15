@@ -73,6 +73,8 @@ Never copy or commit raw Codex runtime state:
 - caches and installed plugin caches
 - temporary files from validation or experiments
 - machine-specific secrets or credentials
+- retrospective inbox, archive, accepted records, drafts, ledgers, learning
+  audits, or cadence state from `CODEX_WORKFLOWS_STATE_DIR`
 
 Review `.gitignore` before staging whenever the repo was created from a
 runtime directory.
@@ -187,10 +189,14 @@ Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading 
 
 For observations about this skill repository that should survive chat
 compaction but are not yet ready for direct skill, script, or prompt changes,
-use the `$skill-retro` maintenance ledger at
-`skills/skill-retro/references/maintenance-ledger.md`. Review it during
-periodic skill repository retrospectives and when a cluster of skill-retro
-commits suggests consolidation or script opportunities.
+use the external maintenance ledger beneath `CODEX_WORKFLOWS_STATE_DIR` as
+defined by `$skill-retro` in
+`skills/skill-retro/references/state-protocol.md`. Never put personal ledger,
+inbox, archive, accepted-record, draft, audit, or cadence state in this source
+repository. Review external state during periodic learning-process
+retrospectives and when a cluster of skill-retro changes suggests consolidation
+or script opportunities. Source validity must not depend on that state being
+available.
 
 ## Skill Family Growth
 

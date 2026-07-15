@@ -22,3 +22,10 @@ archived_sessions/
 attachments/
 cache/
 plugins/cache/
+
+# Operational retro state belongs outside every Git worktree.
+/.retro-state/
+/retro-state/
+/retrospectives/
+/skill-drafts/
+/retro/

@@ -1,65 +1,59 @@
 # Skill Candidate Implementation
 
-Use after a Skill Candidate Report has been accepted for `codex-workflows`.
+Use after triage has judged external candidate evidence and the user has
+accepted the proposed implementation batch.
 
-For each candidate:
+## State Before Source
 
-1. Re-read the cited existing skill, reference, prompt, or script before
-   editing.
-2. Create or update an accepted record under `retrospectives/accepted/` only
-   after user acceptance. Use `retrospectives/templates/accepted-candidate.md`
-   and summarize the report instead of storing raw transcripts, session logs,
-   tool outputs, credentials, private repository contents, or unredacted
-   machine-local evidence.
-3. Persist these accepted-record fields:
-   - stable `id` using `SCR-YYYYMMDD-short-slug`;
-   - source-report summary;
-   - expected behavior and observed behavior;
-   - decisive evidence and materially distinct attempts;
-   - trigger and non-trigger;
-   - destination;
-   - verification opportunity;
-   - redaction review;
-   - `disposition`: `accepted`, `implemented`, `no-change`, `superseded`, or
-     `reverted`;
-   - `verification`: `unverified`, `supported`, or `contradicted`;
-   - `verification_basis`: `none`, `later-session`, or `deterministic-test`;
-   - implementation commit when known.
-4. Treat disposition and verification as independent. A deterministic validator
-   can support directly executable behavior, but a static validation pass for a
-   prose or routing change does not prove the rule worked in a later session.
-5. Use `verification_basis: later-session` only for ordinary-session evidence
-   that cites the observed task, decisive behavior or failure, affected skill
-   or prompt, and why it supports or contradicts the rule. Model self-report
-   alone is insufficient.
-6. Do not create maintained prompt corpora, synthetic fixture repositories for
-   model execution, `codex exec` benchmark runners, positive-control model
-   calls, raw trace archives, or model-backed CI lanes merely to validate a
-   skill edit.
-7. Classify the smallest destination:
-   - `SKILL.md`: routing, trigger boundaries, must-remember rules, or short
-     checklists.
-   - `references/`: detailed edge cases, command recipes, workflows, or
-     examples.
-   - `scripts/`: deterministic checks or repeated fragile commands.
-   - `prompts/`: reusable instructions for another agent or model.
-   - `maintenance-ledger.md`: threshold-based observations not ready for a
-     direct change.
-8. Write one atomic edit per missing delta.
-9. Add or update validation when the lesson is about command behavior, schema,
-   file shape, generated output, or fragile search patterns.
-10. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
-   change, run `./scripts/list-skills.rb` and inspect affected rows for
-   description length, display text, and default prompt shape.
-11. Run `./scripts/validate-retrospectives.rb --self-test` when accepted records
-   or archive policy changed.
-12. Run `./scripts/validate-skills.sh`.
-13. If files under `skills/` changed and installed runtime parity matters, run
-   `./install.sh` and confirm managed installed skills with:
+Read [state-protocol.md](state-protocol.md). Use the external helper to attach a
+complete verdict and archive each processed candidate. A deferred decision must
+name a review trigger, next action, and close condition. Split and merge
+decisions must retain all originating opaque IDs.
 
-```sh
-./install.sh --check
-```
+Do not copy inbox, archive, accepted, draft, ledger, audit, or cadence documents
+into the source repository. They are disposable operational state beneath
+`CODEX_WORKFLOWS_STATE_DIR`.
 
-14. In the final response, cite the candidate source, accepted-record status,
-   files changed, validation run, install/check status, and any deferred items.
+## Public Change
+
+For each accepted candidate:
+
+1. Re-read the destination before editing.
+2. Identify one atomic missing delta.
+3. Choose the smallest destination:
+   - `SKILL.md` for triggers, routing, must-remember rules, or short checklists;
+   - `references/` for detailed edge cases, recipes, workflows, or examples;
+   - `scripts/` for deterministic checks or repeated fragile commands;
+   - `prompts/` for reusable instructions to ask another agent or model;
+   - no public edit when existing coverage is sufficient or evidence remains
+     local.
+4. Add or update deterministic validation for command behavior, schema, file
+   shape, generated output, or fragile searches.
+5. Make the source change understandable without the external record. Do not
+   leak private repository names, candidate evidence, or opaque state IDs into
+   Git merely to preserve provenance.
+6. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
+   change, run `./scripts/list-skills.rb` and inspect the affected rows.
+7. Run `./scripts/validate-skills.sh`.
+8. If files under `skills/` changed, run `./install.sh` and
+   `./install.sh --check`.
+9. Inspect staged paths, commit only intended public source, and push when
+   repository instructions require it.
+
+## External Accepted Record
+
+After the public commit exists, create or update a concise external accepted
+record. Store plural `originating_candidate_ids`, sanitized evidence,
+destination, trigger and non-trigger, verification opportunity, disposition,
+verification state and basis, and known implementation commits.
+
+Keep disposition and verification independent. A static validation pass for a
+prose or routing edit does not prove the guidance worked later. Use
+`later-session` only for an ordinary task that records the decisive behavior or
+failure and explains why it supports or contradicts the guidance. Model
+self-report alone is insufficient. Use `deterministic-test` only for executable
+behavior actually exercised.
+
+Finish by running the external helper's `validate` command. Failure to update
+disposable state does not invalidate an otherwise correct public source commit;
+repair the record later if it remains useful.

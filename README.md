@@ -20,8 +20,6 @@ skills/
   <generic>        Cross-language repo, CI, shell, and dependency workflows
 prompts/
   *.md             Reusable prompts for skill-adjacent intake and review
-retrospectives/
-  accepted/        Sanitized records for accepted skill candidate reports
 scripts/
   validate-skills.sh
   list-skills.rb
@@ -68,16 +66,20 @@ skill-adjacent intake and review; they are not installed into `~/.codex/skills`.
 
 ## Retrospective Workflow
 
-There are three loops:
+There are three loops. Git stores their reusable mechanism; personal reports,
+verdict history, drafts, ledgers, and audit cadence live as disposable Markdown
+beneath `CODEX_WORKFLOWS_STATE_DIR`.
 
 1. **Project/session loop**: in another repo, ask an agent to use
    `$skill-retro` at the end of a meaningful coding session, investigation, CI
-   debug, or cleanup. The output is a Skill Candidate Report in chat; it should
-   not edit `codex-workflows` directly.
-2. **Accepted-report loop**: in this repo, paste accepted candidate reports and
-   invoke `$skill-retro-triage`. That workflow turns accepted reports into
-   scoped source edits, sanitized accepted records under `retrospectives/`,
-   validation, install sync when `skills/` changed, commit, and push.
+   debug, or cleanup. Default output stays in chat. Explicit `route` or `auto`
+   mode may write a sanitized candidate only to the configured external inbox;
+   the producer never needs the location of this source checkout.
+2. **Triage loop**: in this repo, invoke `$skill-retro-triage` to judge pending
+   external candidates independently. By default it presents verdicts and a
+   proposed implementation batch before editing. After acceptance it updates
+   external outcome records, makes scoped public source changes, validates,
+   installs when `skills/` changed, commits, and pushes.
 3. **Repository outer loop**: periodically run the
    [Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
    in this repo after several skill-retro-driven updates. This is the "take
@@ -86,23 +88,36 @@ There are three loops:
    maintenance ledger for consolidation, bloat, trigger overlap, script
    opportunities, stale ledger entries, and no-action findings.
 
-The outer loop is a prompt, not an installed skill. Ask for it explicitly, for
+The artifact-focused outer loop is a prompt, not an installed skill. Ask for it explicitly, for
 example: "Use `prompts/skill-repository-retrospective.md` to audit the current
 state of this repo and all skills." It should produce a report in chat first.
 Apply any accepted recommendations afterward with `$skill-retro-triage` or a
 normal scoped repo-edit request.
 
-For deferred observations about this repository that should survive chat
-compaction but are not yet ready for a direct skill, prompt, or script change,
-use the [skill maintenance ledger](skills/skill-retro/references/maintenance-ledger.md).
-Review it during periodic skill repository retrospectives or after several
-skill-retro-driven commits.
+Use [prompts/learning-process-retrospective.md](prompts/learning-process-retrospective.md)
+for the separate review of external report quality, verdict patterns,
+deferrals, drafts, and verification evidence. The complete state boundary and
+lifecycle are documented in
+[state-protocol.md](skills/skill-retro/references/state-protocol.md).
 
-Accepted candidate records are different from the maintenance ledger. Use
-[retrospectives/README.md](retrospectives/README.md) for the archive policy and
-template. Records summarize accepted evidence and verification state; they
-should not contain raw transcripts, session logs, tool dumps, credentials,
-private repository contents, or unredacted machine-local evidence.
+Configure an external filesystem location when routing or triaging:
+
+```sh
+export CODEX_WORKFLOWS_STATE_DIR=/path/to/personal/codex-workflows-state
+```
+
+Initialize and inspect it with the installed helper:
+
+```sh
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" init
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" pending
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" validate
+```
+
+The helper refuses state inside a Git worktree. If the variable is unset,
+routing prints a paste-ready candidate and writes nothing. External state may
+be pruned or lost without invalidating the source repository or installed
+skills.
 
 ## Install
 
@@ -148,8 +163,9 @@ Run:
 This checks basic skill frontmatter, UI metadata YAML, shell script syntax,
 ShellCheck results, Ruby/Python/R script syntax, local links, skill references,
 mirrored files, executable bits for bundled shell scripts, hard drift findings,
-retrospective archive records, and smoke tests for substantial bundled script
-interfaces.
+and smoke tests for substantial bundled script interfaces. The retro-state
+smoke test uses temporary fixtures; repository validation never reads the live
+`CODEX_WORKFLOWS_STATE_DIR`.
 
 To review skill trigger and metadata shape, run:
 
