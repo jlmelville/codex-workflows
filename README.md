@@ -20,6 +20,8 @@ skills/
   <generic>        Cross-language repo, CI, shell, and dependency workflows
 prompts/
   *.md             Reusable prompts for skill-adjacent intake and review
+retrospectives/
+  accepted/        Sanitized records for accepted skill candidate reports
 scripts/
   validate-skills.sh
   list-skills.rb
@@ -74,8 +76,8 @@ There are three loops:
    not edit `codex-workflows` directly.
 2. **Accepted-report loop**: in this repo, paste accepted candidate reports and
    invoke `$skill-retro-triage`. That workflow turns accepted reports into
-   scoped source edits, validation, install sync when `skills/` changed, commit,
-   and push.
+   scoped source edits, sanitized accepted records under `retrospectives/`,
+   validation, install sync when `skills/` changed, commit, and push.
 3. **Repository outer loop**: periodically run the
    [Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
    in this repo after several skill-retro-driven updates. This is the "take
@@ -95,6 +97,12 @@ compaction but are not yet ready for a direct skill, prompt, or script change,
 use the [skill maintenance ledger](skills/skill-retro/references/maintenance-ledger.md).
 Review it during periodic skill repository retrospectives or after several
 skill-retro-driven commits.
+
+Accepted candidate records are different from the maintenance ledger. Use
+[retrospectives/README.md](retrospectives/README.md) for the archive policy and
+template. Records summarize accepted evidence and verification state; they
+should not contain raw transcripts, session logs, tool dumps, credentials,
+private repository contents, or unredacted machine-local evidence.
 
 ## Install
 
@@ -140,7 +148,8 @@ Run:
 This checks basic skill frontmatter, UI metadata YAML, shell script syntax,
 ShellCheck results, Ruby/Python/R script syntax, local links, skill references,
 mirrored files, executable bits for bundled shell scripts, hard drift findings,
-and smoke tests for substantial bundled script interfaces.
+retrospective archive records, and smoke tests for substantial bundled script
+interfaces.
 
 To review skill trigger and metadata shape, run:
 

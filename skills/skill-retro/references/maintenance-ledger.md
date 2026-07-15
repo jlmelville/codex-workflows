@@ -7,6 +7,11 @@ direct skill guidance, a bundled script, or a prompt.
 This is not a project plan. Keep entries short, evidence-based, and actionable.
 Each open entry needs a review trigger and a next action.
 
+This is also not the accepted-candidate archive. When a Skill Candidate Report
+has been accepted, store the sanitized event record under
+`retrospectives/accepted/`; use this ledger only to aggregate hypotheses,
+thresholds, and review triggers across reports.
+
 ## Review Cadence
 
 Review this ledger:

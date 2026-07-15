@@ -11,8 +11,13 @@ retrospective itself; output the report in chat.
 
 ## Report Rules
 
+- Keep the chat report concise. Include enough evidence for the user to decide
+  whether to accept the candidate, but do not produce the full persisted archive
+  record unless explicitly asked.
 - Start each candidate with a `Triage intent` line: `update existing skill`,
   `no change`, `new skill`, `new script`, `new prompt`, or `uncertain`.
+- Include observation or surprise, decisive evidence, reusable lesson, likely
+  home, testability, and recommendation.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
 - Deduplicate related observations. If several events point to the same
@@ -37,6 +42,9 @@ retrospective itself; output the report in chat.
   script, prompt, or local convention that already covers the lesson. Prefer a
   section name, heading, or numbered item such as
   `dependabot-pr-maintenance > Batch Merge item 2` over a broad skill name.
+- If no skill change is warranted, use the compact no-candidate form in
+  `Report Shape` instead of stretching ordinary project details into a
+  candidate.
 
 ## Triage Rules
 
@@ -59,7 +67,9 @@ or prompts.
 When a Skill Candidate Report has been accepted for `codex-workflows`, follow
 `$skill-retro-triage`; it uses [report-to-patch.md](references/report-to-patch.md)
 to convert accepted reports into scoped repo edits, validation, and
-install/commit decisions.
+install/commit decisions. Accepted reports may be summarized into
+`retrospectives/accepted/` only after the user accepts them; do not archive raw
+transcripts or speculative candidates.
 
 Review the ledger after several accepted skill-retro updates, during a skill
 repository retrospective, or when a user asks how the triage workflow is
@@ -73,24 +83,23 @@ stale repo folklore.
 
 ### candidate-name
 Triage intent:
-Trigger:
-Evidence:
-Exact failure signal:
-Proposed behavior:
-Scope:
+Observation or surprise:
+Decisive evidence:
+Reusable lesson:
 Suggested home:
-Suggested destination path:
-Ownership:
-State surface:
-Missing delta:
-Existing coverage:
-Validation or script opportunity:
-Executable check:
-Prose-only rationale:
-Risk if omitted:
+Testability:
 Preliminary recommendation:
 ```
 
 If no change is warranted, say that directly and explain which existing skill,
 reference, script, prompt, or local convention already covers the lesson, with a
 section or item citation when available.
+
+```md
+## Skill Candidate Report
+
+No candidate.
+
+Reason:
+Existing coverage:
+```

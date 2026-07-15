@@ -227,6 +227,7 @@ if ! ruby -e '
     File.join(repo, "README.md"),
     File.join(repo, "AGENTS.md"),
     File.join(repo, "prompts", "**", "*.md"),
+    File.join(repo, "retrospectives", "**", "*.md"),
     File.join(repo, "skills", "**", "*.md")
   ])
 
@@ -288,6 +289,14 @@ if [[ ! -x "${installer_smoke_script}" ]]; then
   echo "${installer_smoke_script}: missing or not executable" >&2
   status=1
 elif ! "${installer_smoke_script}"; then
+  status=1
+fi
+
+retrospective_validator="${repo_dir}/scripts/validate-retrospectives.rb"
+if [[ ! -x "${retrospective_validator}" ]]; then
+  echo "${retrospective_validator}: missing or not executable" >&2
+  status=1
+elif ! "${retrospective_validator}" --self-test; then
   status=1
 fi
 
