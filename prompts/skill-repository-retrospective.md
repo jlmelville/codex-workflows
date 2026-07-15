@@ -10,10 +10,19 @@ asked. Produce a report in chat.
 Inspect:
 
 - `skills/*/SKILL.md` trigger descriptions and core workflow guidance;
+- `skills/*/agents/openai.yaml` display metadata and default prompts;
 - `skills/*/references/` for duplicated or drifting detailed guidance;
 - `skills/skill-retro/references/maintenance-ledger.md` for deferred
   observations, review triggers, and script/consolidation thresholds;
 - bundled scripts under `skills/*/scripts/`;
+- root scripts under `scripts/` and the installer ownership contract in
+  `install.sh`;
+- repository instructions in `AGENTS.md`;
+- `.github/workflows/` and `.github/dependabot.yml`, including pinned tool
+  acquisition and update ownership;
+- accepted retrospective records under `retrospectives/accepted/`, especially
+  disposition, verification state, and later-session evidence;
+- managed runtime parity checks, when the installed runtime is available;
 - `prompts/skill-retrospective.md` and recent prompt files;
 - recent commits when available, especially clusters of skill-retro updates.
 
@@ -26,6 +35,9 @@ Focus on:
 - guidance that should move from `SKILL.md` into `references/`;
 - guidance that should become a deterministic script;
 - bundled scripts that are stale, too narrow, duplicated, or under-validated;
+- accepted candidate evidence that overstates verification or lacks a clear
+  redaction/implementation state;
+- CI or installer drift that can change validation without a repository diff;
 - missing cross-links between related skills;
 - no-action findings where existing guidance is already enough.
 
