@@ -36,6 +36,29 @@ Close when:
 
 ## Open Entries
 
+### experimental-audit-plan-controls
+Status: Deferred pending evidence from the first eval feasibility spike.
+Last reviewed: 2026-07-14.
+Review trigger: The accepted report's Chunk 3 positive-control run completes,
+another experimental audit plan encounters partially independent eval signals,
+or a null eval result is interpreted without first demonstrating harness
+sensitivity.
+Evidence: The accepted 2026-07-14 candidate reports that an initial audit plan
+conflated implicit routing observability with explicit skill effectiveness and
+broadly gated later work on an all-or-nothing feasibility result. The revised
+local plan now treats those questions as independent and requires a deliberately
+degraded skill variant before interpreting a null result, but Chunk 3 remains
+unrun. Existing audit-to-plan guidance requires explicit decisions and marked
+unverified claims but does not yet cover harness sensitivity or independent
+go/no-go outcomes.
+Next action: After Chunk 3, determine whether the degraded control or separated
+outcomes materially changed an eval decision. If so, promote the smallest
+reusable rule into
+`skills/planning-workflow/references/audits-and-review-packets.md`; otherwise
+record why the experiment did not justify general guidance.
+Close when: The candidate is promoted after behavioral evidence, or the
+completed spike shows that the controls add no reusable planning guidance.
+
 ### always-read-skill-density
 Status: Monitoring after two repository retrospectives; one deferred planning
 reference split candidate recorded.
