@@ -38,6 +38,10 @@ For each accepted candidate:
 3. Track `disposition`, `verification`, and `verification_basis` separately.
    Static validation of a prose or trigger change can justify `implemented`,
    but it does not by itself justify `verification: supported`.
+   `verification_basis: later-session` requires a concrete ordinary-session
+   observation: task, decisive behavior or failure, affected skill or prompt,
+   and why it supports or contradicts the rule. Model self-report alone is
+   insufficient.
 4. Compare the candidate against open ledger entries. If the review trigger has
    fired or evidence has accumulated, promote the entry into a concrete change
    or close it. If not, refresh `Last reviewed`, `Evidence`, and `Next action`.
@@ -46,7 +50,10 @@ For each accepted candidate:
    touching the same consistency surface.
 6. Prefer validator or script changes for deterministic command behavior, file
    shape, schema, generated output, or fragile searches.
-7. Keep edits scoped, validate with `./scripts/validate-skills.sh`, and install
+7. Do not add maintained prompt corpora, synthetic model fixtures, repeated
+   model runs, `codex exec` benchmarks, raw trace archives, or model-backed CI
+   merely to verify a skill edit.
+8. Keep edits scoped, validate with `./scripts/validate-skills.sh`, and install
    plus `./install.sh --check` when files under `skills/` changed.
 
 ## Output

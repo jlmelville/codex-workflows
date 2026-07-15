@@ -11,7 +11,7 @@ materially_distinct_attempts:
 trigger: "When this guidance should apply."
 non_trigger: "When this guidance should not apply."
 destination: "skills/skill-retro/SKILL.md or another repository-relative destination."
-verification_opportunity: "How a future session or deterministic test could support or contradict the change."
+verification_opportunity: "Name a deterministic local check or ordinary later-session observation; do not propose synthetic model evals."
 redaction_review: "Confirm that raw transcripts, secrets, private repo contents, and unredacted local paths were excluded."
 disposition: accepted
 verification: unverified
@@ -25,3 +25,8 @@ implementation_commit: ""
 
 Keep this record concise. Store the accepted evidence and decision context, not
 a transcript.
+
+For `verification_basis: later-session`, cite the observed task, decisive
+behavior or failure, affected skill or prompt, and why the observation supports
+or contradicts the rule. For prose or trigger changes with no such evidence,
+leave `verification: unverified` and `verification_basis: none`.

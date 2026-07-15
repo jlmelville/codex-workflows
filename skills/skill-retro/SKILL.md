@@ -34,6 +34,14 @@ retrospective itself; output the report in chat.
   metadata, generated output, or a recurring fragile search, prefer a validator
   or bundled script over prose-only guidance. If no script is warranted, explain
   why the rule should remain prose.
+- For prose or trigger changes, do not claim behavioral verification from the
+  implementation itself. A later session can support or contradict a rule only
+  when it gives a concrete observed task, decisive behavior or failure, affected
+  skill or prompt, and why that observation matters. Model self-report alone is
+  insufficient.
+- Do not recommend maintained prompt corpora, synthetic model fixtures,
+  repeated model runs, `codex exec` benchmarks, raw trace archives, or
+  model-backed CI merely to validate a skill edit.
 - Distinguish local files from remote service state when that changed the
   investigation.
 - Identify ownership when known: source-owned in `codex-workflows`, repo-local,

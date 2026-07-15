@@ -33,6 +33,22 @@ implementation when no later session or deterministic behavior check has
 actually tested the rule. A static validation pass for a prose change is not
 behavioral support.
 
+Use `verification_basis: deterministic-test` only for directly executable
+contracts such as scripts, schemas, generated output, metadata shape, installer
+behavior, or other behavior that a local test actually exercised.
+
+Use `verification_basis: later-session` only when an ordinary later session
+supplies concrete evidence. The record must cite the observed task, the
+decisive behavior or failure, the affected skill or prompt, and why the
+observation supports or contradicts the rule. Model self-report alone is not
+evidence.
+
+Do not create maintained prompt corpora, synthetic fixture repositories for
+model execution, `codex exec` benchmark runners, positive-control model calls,
+raw trace archives, or model-backed CI lanes merely to verify skill edits.
+Behavioral evidence should come from deterministic local checks or ordinary
+later sessions.
+
 ## Validation
 
 Run:
