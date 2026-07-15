@@ -137,6 +137,11 @@ For bundled scripts, prefer validation that does not write artifacts into
 behavior checks and remove any generated test artifacts such as `__pycache__`
 before staging.
 
+Markdown templates and documentation are subject to repository-path
+validation. Use real existing repository paths in examples, or avoid
+placeholder text shaped like a repository-relative path when no such file
+exists.
+
 For workflow changes from this source repository root, run the workflow audit if present:
 
 ```sh

@@ -41,6 +41,23 @@ Close when:
 
 ## Open Entries
 
+### ruby-yaml-date-fixtures
+Status: Monitoring after one Ruby YAML fixture date-coercion failure.
+Last reviewed: 2026-07-14.
+Review trigger: Another Ruby validator fails because `YAML.safe_load` coerces
+an unquoted ISO date to `Date`, or repository validators develop inconsistent
+date-handling policies.
+Evidence: The retrospective archive validator self-test initially raised
+`Tried to load unspecified class: Date` for an unquoted fixture date. Quoting
+fixture dates and deliberately permitting `Date` resolved the deterministic
+self-test. No second Ruby validator occurrence or shared ownership surface is
+known yet.
+Next action: On recurrence, review Ruby YAML parsing across repository
+validators and add the smallest shared validation note or helper that makes
+the chosen date policy explicit.
+Close when: A shared rule or helper covers repeated date coercion, or two skill
+repository retrospectives find no recurrence and no inconsistent policy.
+
 ### experimental-audit-plan-controls
 Status: Deferred after the first planned eval feasibility spike was rejected on
 cost grounds.
