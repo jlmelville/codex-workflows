@@ -258,6 +258,7 @@ if ! ruby -e '
   markdown_files = Dir.glob([
     File.join(repo, "README.md"),
     File.join(repo, "AGENTS.md"),
+    File.join(repo, "docs", "**", "*.md"),
     File.join(repo, "prompts", "**", "*.md"),
     File.join(repo, "skills", "**", "*.md")
   ])

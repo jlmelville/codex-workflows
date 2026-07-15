@@ -6,12 +6,69 @@ skills and this is the repo for them. Apart from that, I am just going to let Co
 Personal Codex skills and supporting scripts for software work.
 
 This repository is the source of truth. The installed copy lives under
-`~/.codex/skills`, where Codex can discover skills automatically. Edit skills
-here, commit them, then run `./install.sh` to sync them into the active Codex
-configuration. The installer manages only the skills recorded in its manifest
-under `CODEX_HOME`; unrelated installed skills are preserved.
+`${CODEX_HOME:-$HOME/.codex}/skills`, where Codex discovers skills
+automatically. Personal retrospective reports and housekeeping state live
+outside Git beneath `CODEX_WORKFLOWS_STATE_DIR`.
 
-## Layout
+## Quick Start
+
+Run these commands from the repository root.
+
+1. Install the managed skills:
+
+   ```sh
+   ./install.sh
+   ```
+
+2. Choose an external state directory and initialize it with the source-tree
+   helper:
+
+   ```sh
+   export CODEX_WORKFLOWS_STATE_DIR=/path/to/personal/codex-workflows-state
+   ./skills/skill-retro/scripts/retro-state.rb init
+   ```
+
+   Keep this environment variable available in shells where Codex should route
+   or triage retrospective records. The helper creates the directory when
+   needed and refuses to put operational state inside a Git worktree.
+
+3. Confirm that the installed skills match the source tree:
+
+   ```sh
+   ./install.sh --check
+   ```
+
+After installation, the helper is available from any project repository:
+
+```sh
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" init
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" pending
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" validate
+```
+
+If `CODEX_WORKFLOWS_STATE_DIR` is unset, retrospective routing prints a
+paste-ready candidate and writes nothing. External state may be pruned or lost
+without invalidating the source repository or installed skills.
+
+See [Repository Maintenance](docs/repository-maintenance.md) for custom
+`CODEX_HOME` installation, dry runs, validation, audits, CI, and local tooling.
+
+## How Source And State Fit Together
+
+Edit skills in this repository, validate and commit them, then run
+`./install.sh` to sync them into the active Codex configuration. The installer
+manages only skills recorded in its manifest under `CODEX_HOME`; unrelated
+installed skills are preserved.
+
+Git stores reusable skills, prompts, deterministic tooling, schemas, fixtures,
+and the small documentation needed to run the loops. The configured external
+state directory stores disposable inbox reports, verdict history, accepted
+evidence, drafts, ledgers, learning-process audits, and cadence state.
+
+The complete state boundary and record lifecycle are documented in
+[External Retrospective State Protocol](skills/skill-retro/references/state-protocol.md).
+
+## Repository Layout
 
 ```text
 skills/
@@ -20,6 +77,8 @@ skills/
   <generic>        Cross-language repo, CI, shell, and dependency workflows
 prompts/
   *.md             Reusable prompts for skill-adjacent intake and review
+docs/
+  *.md             Human-facing architecture and maintenance documentation
 scripts/
   validate-skills.sh
   list-skills.rb
@@ -28,21 +87,7 @@ scripts/
 install.sh
 ```
 
-Future skills should use the same shape:
-
-```text
-skills/<skill-name>/
-  SKILL.md
-  agents/openai.yaml
-  references/
-  scripts/
-  assets/
-```
-
-Only include `references/`, `scripts/`, or `assets/` when the skill actually
-needs them.
-
-## Skill Families
+### Skill Families
 
 - `r-*`: R package workflows, tests, documentation, Rcpp, performance, and CI
   hardening.
@@ -55,181 +100,61 @@ needs them.
   review, repository bootstrap, notebook inspection, uv sandbox execution, and
   shell script quality.
 
-Prefer concise skills with narrow trigger descriptions. Put repo/user
-documentation here in the README, not inside individual skill folders.
-
-## Prompts
-
-Use [prompts/skill-retrospective.md](prompts/skill-retrospective.md) at the end
-of project work to ask an agent for skill candidates. Prompt templates are for
-skill-adjacent intake and review; they are not installed into `~/.codex/skills`.
+Prefer concise skills with narrow trigger descriptions. Detailed authoring and
+validation conventions are in
+[Repository Maintenance](docs/repository-maintenance.md).
 
 ## Retrospective Workflow
 
-There are three loops. Git stores their reusable mechanism; personal reports,
-verdict history, drafts, ledgers, and audit cadence live as disposable Markdown
-beneath `CODEX_WORKFLOWS_STATE_DIR`.
+There are three related loops:
 
-1. **Project/session loop**: in another repo, ask an agent to use
-   `$skill-retro` at the end of a meaningful coding session, investigation, CI
-   debug, or cleanup. Default output stays in chat. Explicit `route` or `auto`
-   mode may write a sanitized candidate only to the configured external inbox;
-   the producer never needs the location of this source checkout.
-2. **Triage loop**: in this repo, invoke `$skill-retro-triage` to judge pending
-   external candidates independently. By default it presents verdicts and a
-   proposed implementation batch before editing. After acceptance it updates
-   external outcome records, makes scoped public source changes, validates,
-   installs when `skills/` changed, commits, and pushes.
-3. **Repository outer loop**: periodically run the
+1. **Project/session loop:** In another repository, ask an agent to use
+   `$skill-retro` after meaningful coding, investigation, CI debugging, or
+   cleanup. Default output stays in chat. Explicit `route` or `auto` mode may
+   write a sanitized candidate only to the configured external inbox; the
+   producing repository never needs the location of this source checkout.
+2. **Triage loop:** In this repository, invoke `$skill-retro-triage` to judge
+   pending external candidates independently. By default it presents verdicts
+   and a proposed implementation batch before editing. After acceptance it
+   updates external outcome records, makes scoped public source changes,
+   validates, installs when needed, commits, and pushes.
+3. **Repository outer loop:** Periodically use the
    [Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
-   in this repo after several skill-retro-driven updates. This is the "take
-   stock of the whole skill system" pass: it reviews all skills, references,
-   bundled scripts, prompts, recent commits, drift audit output, and the
-   maintenance ledger for consolidation, bloat, trigger overlap, script
-   opportunities, stale ledger entries, and no-action findings.
+   to review the public skill system for consolidation, bloat, trigger overlap,
+   script opportunities, and drift. It reports in chat before changes are
+   applied.
 
-The artifact-focused outer loop is a prompt, not an installed skill. Ask for it explicitly, for
-example: "Use `prompts/skill-repository-retrospective.md` to audit the current
-state of this repo and all skills." It should produce a report in chat first.
-Apply any accepted recommendations afterward with `$skill-retro-triage` or a
-normal scoped repo-edit request.
+Use [the stable retrospective prompt](prompts/skill-retrospective.md) to request
+session candidates. Prompt templates are skill-adjacent entry points and are
+not installed into `CODEX_HOME`.
 
-Use [prompts/learning-process-retrospective.md](prompts/learning-process-retrospective.md)
-for the separate review of external report quality, verdict patterns,
-deferrals, drafts, and verification evidence. The complete state boundary and
-lifecycle are documented in
-[state-protocol.md](skills/skill-retro/references/state-protocol.md).
+The artifact-focused repository retrospective deliberately does not inspect
+personal state. Use the separate
+[Learning Process Retrospective Prompt](prompts/learning-process-retrospective.md)
+to review external report quality, verdict patterns, deferrals, drafts, and
+verification evidence.
 
-Configure an external filesystem location when routing or triaging:
+## Routine Maintenance
 
-```sh
-export CODEX_WORKFLOWS_STATE_DIR=/path/to/personal/codex-workflows-state
-```
-
-Initialize and inspect it with the installed helper:
-
-```sh
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" init
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" pending
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" validate
-```
-
-The helper refuses state inside a Git worktree. If the variable is unset,
-routing prints a paste-ready candidate and writes nothing. External state may
-be pruned or lost without invalidating the source repository or installed
-skills.
-
-## Install
-
-From this repo:
-
-```sh
-./install.sh
-```
-
-To install to a different Codex home:
-
-```sh
-CODEX_HOME=/path/to/.codex ./install.sh
-```
-
-The installer syncs `skills/*` into `${CODEX_HOME:-$HOME/.codex}/skills`.
-It writes a managed-skill manifest at
-`${CODEX_HOME:-$HOME/.codex}/codex-workflows-managed-skills.tsv`. On the first
-run without a manifest, the current source skill names become the ownership set;
-later runs remove only stale skills named in the previous manifest.
-
-Preview changes without replacing installed skills:
-
-```sh
-./install.sh --dry-run
-```
-
-Confirm managed installed skills match the source tree, including relevant file
-modes:
-
-```sh
-./install.sh --check
-```
-
-## Validate
-
-Run:
+The normal repository checks are:
 
 ```sh
 ./scripts/validate-skills.sh
+./install.sh
+./install.sh --check
 ```
 
-This checks basic skill frontmatter, UI metadata YAML, shell script syntax,
-ShellCheck results, Ruby/Python/R script syntax, local links, skill references,
-mirrored files, executable bits for bundled shell scripts, hard drift findings,
-and smoke tests for substantial bundled script interfaces. The retro-state
-smoke test uses temporary fixtures; repository validation never reads the live
-`CODEX_WORKFLOWS_STATE_DIR`.
-
-To review skill trigger and metadata shape, run:
-
-```sh
-./scripts/list-skills.rb
-```
-
-To run a bloat and drift review, run:
+Run the advisory skill-system audit when reviewing trigger overlap, bloat, or
+drift:
 
 ```sh
 ./scripts/audit-skill-drift.rb
 ```
 
-This advisory audit reports always-loaded description budget, long or overlapping
-skill descriptions, repeated helper names, repeated command guidance,
-machine-specific paths, and repo-relative skill script references that may break
-after installation. Findings are grouped as hard, review, or informational.
-Accepted advisory findings live in
-[scripts/audit-skill-drift-triage.tsv](scripts/audit-skill-drift-triage.tsv).
-Each triage row records the audit section, a row substring to match, and the
-rationale for accepting that finding.
-
-Use `--strict-hard --hard-only` for validation that should fail only on hard
-installed-runtime problems. Use `--strict` when a cleanup branch should fail if
-any untriaged findings remain.
-
-## Consistency Surfaces
-
-Maintain this repo across four surfaces:
-
-- Source validity: frontmatter, metadata, links, scripts, smoke tests, mirrored
-  files, and workflow hardening.
-- Installed validity: executable commands in installed skills should use
-  `${CODEX_HOME:-$HOME/.codex}/skills/...` unless explicitly marked as
-  source-repository commands.
-- Cross-platform validity: shell, Ruby, Python, and R checks should keep Linux
-  and macOS behavior in view when scripts become substantial.
-- Drift validity: duplicated helpers, repeated command prose, overlapping
-  triggers, machine-local paths, and large always-read skills need triage rather
-  than automatic churn.
-
-GitHub Actions runs the same validation on pushes and pull requests, plus a
-lightweight workflow audit. A manual macOS validation job is available through
-`workflow_dispatch` for cross-platform checks.
+See [Repository Maintenance](docs/repository-maintenance.md) for the full
+command reference, validation scope, consistency surfaces, CI behavior, and
+tool prerequisites.
 
 ## License
 
 This repository is licensed under the [MIT License](LICENSE).
-
-## Local Tooling
-
-Some skills assume these tools may be available in project worktrees:
-
-- `python3` for bundled Python script validation
-- Bash 3.2-compatible Bash for bundled shell scripts
-- `ruby` for repository validation
-- `rg` / `ripgrep` for repository and roxygen source searches
-- `shellcheck` for shell script validation
-- `perl` for roxygen odd-backtick audits
-- `Rscript`
-- `air`
-- `actionlint`
-- `uvx`
-- `clang-format`
-
-Project-specific package dependencies still belong in the project repo, not in
-this workflow repository.
