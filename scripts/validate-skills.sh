@@ -82,6 +82,38 @@ for skill_dir in "${repo_dir}"/skills/*; do
   done
 done
 
+if ! ruby -e '
+  require "yaml"
+
+  repo = ARGV.fetch(0)
+  max_description = 420
+  max_total_description = 6_000
+  status = 0
+  total = 0
+
+  Dir.glob(File.join(repo, "skills", "*", "SKILL.md")).sort.each do |path|
+    text = File.read(path, encoding: "UTF-8")
+    frontmatter = text.split(/^---\s*$/, 3)[1]
+    data = YAML.safe_load(frontmatter)
+    description = data.fetch("description")
+    total += description.length
+
+    next unless description.length > max_description
+
+    warn "#{path.delete_prefix("#{repo}/")}: description is #{description.length} characters; max is #{max_description}"
+    status = 1
+  end
+
+  if total > max_total_description
+    warn "skill descriptions total #{total} characters; max is #{max_total_description}"
+    status = 1
+  end
+
+  exit(status)
+' "${repo_dir}"; then
+  status=1
+fi
+
 while IFS= read -r -d '' file; do
   shell_files+=("${file}")
 done < <(

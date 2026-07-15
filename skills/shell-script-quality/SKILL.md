@@ -1,6 +1,6 @@
 ---
 name: shell-script-quality
-description: Review, write, and harden shell scripts for reliability, portability, validation, quoting, error handling, executable bits, ShellCheck, Bash syntax, command availability, and safe filesystem operations. Use when Codex edits .sh files, install scripts, CI shell snippets, or shell-heavy automation in any repository.
+description: Review, write, and harden shell scripts for reliability, portability, validation, quoting, error handling, executable bits, ShellCheck, Bash syntax, command availability, and safe filesystem operations. Use when Codex edits .sh files, install scripts, CI snippets, or shell-heavy automation.
 ---
 
 # Shell Script Quality

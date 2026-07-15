@@ -1,6 +1,6 @@
 ---
 name: r-rcpp-package
-description: Rcpp and compiled-code workflow for R packages, including src changes, Makevars, Rcpp attributes, generated RcppExports files, C++ formatting, thread safety, exception propagation, and compiled-code checks. Use when Codex edits or reviews C/C++/Rcpp code, src/ headers, Rcpp wrappers, Makevars, or compiled behavior in an R package.
+description: Rcpp and compiled-code workflow for R packages, including src changes, Makevars, Rcpp attributes, RcppExports, C++ formatting, thread safety, exception propagation, and compiled checks. Use when Codex edits or reviews C/C++/Rcpp code, headers, wrappers, Makevars, or compiled behavior.
 ---
 
 # Rcpp Package Work

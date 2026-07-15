@@ -1,6 +1,6 @@
 ---
 name: uv-sandbox-workflow
-description: Run uv and uvx reliably in Codex-managed sandboxes and restricted filesystems, including writable cache/tool/Python directories, network approval decisions, uv run --with, uvx, uv sync, uv lock, uv python, and avoiding false starts from read-only home caches or blocked dependency downloads. Use whenever Codex needs to execute uv, uvx, or uv-managed Python commands.
+description: Run uv and uvx reliably in Codex sandboxes and restricted filesystems, including writable cache, tool, and Python directories, network approval decisions, uv run --with, uvx, uv sync, uv lock, uv python, and avoiding read-only home caches or blocked dependency downloads.
 ---
 
 # uv Sandbox Workflow

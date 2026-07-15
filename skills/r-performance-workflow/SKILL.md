@@ -1,6 +1,6 @@
 ---
 name: r-performance-workflow
-description: Run phased R package performance optimization work with benchmarks, semantic validation, execution plans, and before/after evidence. Use when Codex works on R package speed, memory, allocation, parallelism, Rcpp performance, benchmark scripts, baseline/current comparisons, or plan-driven optimization phases.
+description: Run phased R package performance optimization with benchmarks, semantic validation, plans, and before/after evidence. Use when Codex works on speed, memory, allocation, parallelism, Rcpp performance, benchmark scripts, baseline comparisons, or plan-driven optimization phases.
 ---
 
 # R Performance Workflow

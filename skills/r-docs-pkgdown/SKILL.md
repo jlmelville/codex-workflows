@@ -1,6 +1,6 @@
 ---
 name: r-docs-pkgdown
-description: R package documentation workflow for README, NEWS, roxygen comments, man pages, vignettes/articles, pkgdown configuration, website metadata, and pkgdown GitHub Pages setup. Use when Codex edits or reviews user-facing docs, generated Rd files, _pkgdown.yml, DESCRIPTION documentation metadata, or pkgdown scaffolding in an R package.
+description: Maintain R package documentation for README, NEWS, roxygen comments, man pages, vignettes, pkgdown config, website metadata, and pkgdown Pages setup. Use when Codex edits or reviews user-facing docs, generated Rd files, _pkgdown.yml, DESCRIPTION metadata, or pkgdown scaffolding.
 ---
 
 # R Docs and pkgdown

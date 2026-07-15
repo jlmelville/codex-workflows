@@ -1,6 +1,6 @@
 ---
 name: r-test-hygiene
-description: R package test design and cleanup for testthat suites, fixtures, snapshots, helper files, internal-only tests, testthat edition migrations, test-only hooks, and Air readability guards. Use when Codex writes, reviews, refactors, migrates, or cleans tests in tests/testthat or test helpers for an R package.
+description: Design and clean R package tests for testthat suites, fixtures, snapshots, helpers, internal-only tests, edition migrations, test-only hooks, and Air readability. Use when Codex writes, reviews, refactors, migrates, or cleans tests in tests/testthat or test helpers.
 ---
 
 # R Test Hygiene

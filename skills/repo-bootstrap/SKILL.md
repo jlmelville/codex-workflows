@@ -1,6 +1,6 @@
 ---
 name: repo-bootstrap
-description: Bootstrap a local project into a clean Git and GitHub repository, including safe file selection, .gitignore, README, initial validation, first commit, remote setup, branch naming, first push, and minimal CI. Use when Codex is asked to create, initialize, publish, or prepare a new repository from local files.
+description: Bootstrap a local project into a clean Git and GitHub repo, including file selection, .gitignore, README, validation, first commit, remote setup, branch naming, first push, and minimal CI. Use when Codex creates, initializes, publishes, or prepares a new repo from local files.
 ---
 
 # Repo Bootstrap

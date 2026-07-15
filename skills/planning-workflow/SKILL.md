@@ -1,6 +1,6 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off plans for complex, multi-session coding work. Use when Codex is asked to plan or continue larger features, audits, cleanups, migrations, debugging phases, cross-module changes, or work involving PLANS.md, AGENTS.md, plans/, plans_pending/, docs/plans/, EXECPLAN*.md, audits, review packets, or fresh-agent handoffs. Also use to decide when planning ceremony should be skipped for small tasks.
+description: Create, execute, resume, and hand off plans for complex coding work. Use when Codex plans or continues features, audits, cleanups, migrations, debugging phases, cross-module changes, PLANS.md, AGENTS.md, plan directories, EXECPLAN files, review packets, or fresh-agent handoffs. Also use to skip planning for small tasks.
 ---
 
 # Planning Workflow
@@ -70,44 +70,8 @@ before continuing.
 Create or update an ExecPlan when a future agent must be able to continue from
 the repo plus the plan alone.
 
-Use these sections unless the local repo already has a compatible skeleton:
-
-- `Purpose / Big Picture`
-- `Current State` or a short status block near the top
-- `Progress`
-- `Surprises & Discoveries`
-- `Decision Log`
-- `Context and Orientation`
-- `Plan of Work`
-- `Concrete Steps`
-- `Validation and Acceptance`
-- `Idempotence and Recovery`
-- `Artifacts and Notes`
-- `Outcomes & Retrospective`
-- `Interfaces and Dependencies`, when public interfaces or APIs are changing
-
-Keep the plan self-contained. Name repository-relative files, functions,
-commands, fixtures, expected observations, acceptance criteria, non-goals, and
-user vetoes. Summarize logs and errors; do not paste long transcripts unless
-the exact output is necessary to continue.
-
-Update `Progress`, `Surprises & Discoveries`, `Decision Log`, validation state,
-and outcomes whenever work pauses, changes direction, completes a milestone, or
-hands off. Put the active state and next action near the top so large plans do
-not bury what matters.
-
-Do not record the hash of the commit currently being created in a file included
-in that same commit; amending the file changes the commit hash immediately.
-Record prior commit hashes in the plan, and report the final hash in chat or in
-a later commit.
-
-Use decision entries with this shape:
-
-```md
-- Decision: <choice made>
-  Rationale: <why this choice fits the evidence and constraints>
-  Date/Author: <YYYY-MM-DD> / Codex
-```
+Use [execplans.md](references/execplans.md) for the section skeleton, detailed
+update rules, decision-entry template, and commit-hash caveat.
 
 ## Chunk Plans
 
@@ -157,18 +121,10 @@ During multi-agent work, record reusable process findings as they arise, not
 only at the final retrospective. Put them under `Artifacts and Notes`,
 `Outcomes & Retrospective`, or a local equivalent.
 
-Capture feature-orthogonal observations such as:
-
-- repeated workflow, validation, benchmark, or handoff patterns;
-- tool failures, sandbox limitations, or environment-specific workarounds;
-- repo conventions that were not obvious from existing guidance;
-- planning friction, missing context, or handoff gaps;
-- candidate skills, scripts, prompts, or references;
-- why the lesson is reusable beyond the current feature.
-
-Keep these notes concise and evidence-based. They should let the final agent run
-a skill retrospective using evidence from every phase, not only its current
-context window.
+Keep notes concise, evidence-based, and focused on lessons reusable beyond the
+current feature. See
+[workflow-retrospective-notes.md](references/workflow-retrospective-notes.md)
+for examples.
 
 ## Handoffs
 
@@ -177,14 +133,9 @@ unfinished work, completing debugging or smoke-test follow-up, or when the user
 is likely to continue in a new session. Skip handoffs for ordinary Q&A, minor
 clarifications, and trivial edits unless the user asks.
 
-Put handoffs in the chat response by default. Write persistent handoff files
-only when the user asks or the repo already uses them for active work. The
-active plan should hold durable state; the handoff should point to it.
-
-Keep handoffs concise. Include the goal, read-first files, current state,
-validation, open issues, next steps, and guardrails. Prefer exact file paths,
-function names, commands, statuses, and error messages over broad narrative.
-See [handoffs.md](references/handoffs.md) for the full template.
+Put handoffs in chat by default and write files only when asked or when the repo
+already uses them. Keep durable state in the active plan and point to it from
+the handoff. See [handoffs.md](references/handoffs.md) for the full template.
 
 ## Location And Visibility
 
@@ -236,13 +187,10 @@ code, generated docs, commit messages, or copied terminal output.
 
 A plan is good enough when a future agent can identify:
 
-- the goal and current state;
-- what has already changed or been ruled out;
-- decisions made and why;
-- relevant files, commands, and expected observations;
-- validation already run and remaining gaps;
-- the exact next action and guardrails.
-- any reusable workflow-retrospective notes gathered during the work.
+the goal and current state; what changed or was ruled out; decisions made and
+why; relevant files, commands, and expected observations; validation already run
+and remaining gaps; the exact next action and guardrails; and any reusable
+workflow-retrospective notes gathered during the work.
 
 If any of those are missing at a stopping point, update the plan or include a
 handoff before ending the turn.

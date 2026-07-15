@@ -1,6 +1,6 @@
 ---
 name: notebook-inspection
-description: Inspect, search, edit, review, debug, or summarize Jupyter notebooks without loading noisy .ipynb JSON. Use when Codex works with .ipynb files, or when broad source searches may cross notebook-heavy trees with large outputs, embedded images, base64 blobs, Plotly HTML, widget state, execution metadata, stored tracebacks, or generated plots.
+description: Inspect, search, edit, review, debug, or summarize Jupyter notebooks without noisy .ipynb JSON. Use for .ipynb files or notebook-heavy trees with large outputs, embedded images, base64, Plotly HTML, widget state, execution metadata, tracebacks, or generated plots.
 ---
 
 # Notebook Inspection

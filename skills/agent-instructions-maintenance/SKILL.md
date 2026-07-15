@@ -1,6 +1,6 @@
 ---
 name: agent-instructions-maintenance
-description: Create, audit, shrink, or update repository agent instruction files such as AGENTS.md, CLAUDE.md, or repo-local agent guidance. Use when Codex is asked to decide whether an AGENTS.md is needed, reduce instruction drift, move generic workflow rules into skills, preserve repo-specific invariants, or review always-loaded instructions for maintainability.
+description: Create, audit, shrink, or update repo agent instructions such as AGENTS.md, CLAUDE.md, or local guidance. Use when Codex should decide whether instructions are needed, reduce drift, move generic workflow rules into skills, preserve repo invariants, or review always-loaded guidance.
 ---
 
 # Agent Instructions Maintenance

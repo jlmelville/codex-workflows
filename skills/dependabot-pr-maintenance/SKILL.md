@@ -1,6 +1,6 @@
 ---
 name: dependabot-pr-maintenance
-description: Review, validate, update, and merge Dependabot or Renovate dependency pull requests, especially GitHub Actions SHA pin updates, stale-base bot branches, dirty-worktree or temp-merge validation, red-check triage, verified or batch PR merges, and package version bumps. Use when Codex is asked to inspect an automated dependency PR, decide whether it is safe, handle stale generated changes, update comments or lockfiles, wait for checks, or merge with expected head SHA.
+description: Review, validate, update, and merge Dependabot or Renovate dependency PRs. Use for automated dependency updates, GitHub Actions SHA pins, stale bot branches, dirty-worktree or temp-merge validation, red-check triage, generated comment or lockfile fixes, batch PRs, and expected-head merges.
 ---
 
 # Dependabot PR Maintenance

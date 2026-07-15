@@ -1,6 +1,6 @@
 ---
 name: skill-retro-triage
-description: Triage accepted Skill Candidate Reports and maintenance-ledger items in codex-workflows. Use when Codex is asked to turn pasted retrospectives into repo changes, review deferred skill maintenance, decide whether ledger evidence now justifies action, or consolidate repeated skill-retro recommendations.
+description: Triage accepted Skill Candidate Reports and maintenance-ledger items in codex-workflows. Use when Codex turns pasted retrospectives into repo changes, reviews deferred maintenance, decides whether ledger evidence justifies action, or consolidates repeated skill-retro recommendations.
 ---
 
 # Skill Retro Triage

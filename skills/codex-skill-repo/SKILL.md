@@ -1,6 +1,6 @@
 ---
 name: codex-skill-repo
-description: Maintain a repository of Codex skills as a source of truth, including skill folder layout, repo validation, installation into ~/.codex/skills, avoiding runtime-state commits, adding new skill families, and keeping skill metadata concise. Use when Codex edits, reviews, installs, validates, documents, commits, or publishes a Codex skill repository.
+description: Maintain a Codex skill repository as source of truth. Use when Codex edits, reviews, installs, validates, documents, commits, or publishes skills, including layout, metadata, runtime install sync, validation scripts, and avoiding runtime-state commits.
 ---
 
 # Codex Skill Repo

@@ -1,6 +1,6 @@
 ---
 name: local-r-dataset-manifest
-description: Maintain James's local R benchmark dataset manifest under /mnt/e/dev/R/datasets, especially R-datasets-manifest.tsv. Use when Codex is asked to inventory, validate, update, or choose from local R benchmark datasets, saved 150-nearest-neighbor graphs, or helpers such as loadj(), savej(), nng(), and nngi().
+description: Maintain James's local R benchmark dataset manifest under /mnt/e/dev/R/datasets, especially R-datasets-manifest.tsv. Use to inventory, validate, update, or choose local R benchmark datasets, saved nearest-neighbor graphs, or helpers such as loadj(), savej(), nng(), and nngi().
 ---
 
 # Local R Dataset Manifest

@@ -1,6 +1,6 @@
 ---
 name: github-actions-hardening
-description: Harden and maintain GitHub Actions workflows in any repository, including action SHA pinning, permissions, checkout credentials, Dependabot updates, concurrency, actionlint, zizmor, ShellCheck, and safe pull_request behavior. Use when Codex edits, reviews, audits, or debugs .github/workflows or .github/dependabot.yml outside a more specific ecosystem skill.
+description: Harden and maintain GitHub Actions workflows. Use when Codex edits, reviews, audits, or debugs .github/workflows or .github/dependabot.yml, including SHA pinning, permissions, checkout credentials, concurrency, actionlint, zizmor, ShellCheck, and safe pull_request behavior.
 ---
 
 # GitHub Actions Hardening
