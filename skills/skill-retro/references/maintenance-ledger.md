@@ -84,39 +84,6 @@ Close when: The candidate is promoted after behavioral evidence, or a future
 accepted-cost experiment shows that the controls add no reusable planning
 guidance.
 
-### always-read-skill-density
-Status: Monitoring after two repository retrospectives; one deferred planning
-reference split candidate recorded.
-Last reviewed: 2026-07-08.
-Review trigger: Another cluster of skill-retro commits adds detailed command
-recipes to one always-read `SKILL.md`, the deferred `planning-workflow`
-ExecPlan split is touched, or a skill repository retrospective sees repeated
-guidance that could move to `references/`.
-Evidence: Earlier triage moved detailed roxygen markdown, planning, coverage
-ROI, numerical contract, and testthat edition migration guidance into
-references instead of growing always-read `SKILL.md` files. Later accepted
-triages mostly added concise top-level routing rules where immediacy mattered
-or placed details in existing references. The 2026-07-07 repository
-retrospective found no urgent broad cleanup beyond completed planning and R test
-reference moves. The 2026-07-08 repository retrospective again found no broad
-merge or immediate split, but noted `skills/planning-workflow/SKILL.md` remains
-the largest always-read skill and deferred a possible ExecPlan reference split.
-A later 2026-07-08 Renovate triage added concise dashboard and Python
-compatibility-island guidance to `skills/dependabot-pr-maintenance/SKILL.md`,
-which remains below the threshold for a separate reference. A later 2026-07-08
-Renovate config triage added one short safe-validation ladder to the same skill,
-still below the reference threshold. A later 2026-07-08 Python uv triage added
-concise workspace resolver, uv metadata-warning, and Ruff `select` guidance to
-`skills/python-uv-project-workflow/SKILL.md`; still below the reference
-threshold, but further uv/Ruff troubleshooting detail should be reviewed for a
-reference split.
-Next action: When `planning-workflow` is next edited for ExecPlan guidance,
-consider moving the detailed ExecPlan skeleton and decision-entry template into
-a new reference; otherwise review again after another cluster of top-level
-skill-retro additions.
-Close when: Two consecutive skill repository retrospectives find no actionable
-always-read density problem.
-
 ### quiet-r-parse-checks
 Status: Monitoring after one noisy ad hoc parse-check transcript.
 Last reviewed: 2026-07-08.
@@ -134,6 +101,25 @@ Close when: The quiet parse-check note is added after recurrence, or two skill
 repository retrospectives find no repeated parse-check noise.
 
 ## Closed Entries
+
+### always-read-skill-density
+Status: Closed after the deferred planning reference split and description
+budget ratchet were implemented.
+Last reviewed: 2026-07-14.
+Review trigger: The deferred `planning-workflow` ExecPlan split was implemented
+or another repository retrospective found an actionable density problem.
+Evidence: Two earlier repository retrospectives found no broad consolidation
+need but identified `planning-workflow` as the largest always-read skill. Chunk
+4 moved its detailed ExecPlan skeleton and update rules into
+`skills/planning-workflow/references/execplans.md`, shortened the main skill,
+and added deterministic per-skill and total description limits. The same review
+found no observed density problem or cleaner split for the other monitored
+skills.
+Resolution: Closed the broad monitoring entry after implementing its remaining
+concrete split and adding a no-growth ratchet. Future density findings should
+open a new evidence-specific candidate rather than revive the cluster.
+Closed when: The deferred planning split was complete after two retrospectives
+found no broader actionable density problem.
 
 ### plugin-gh-fix-ci-public-run-fallback
 Status: Closed by source-owned GitHub Actions guidance.
