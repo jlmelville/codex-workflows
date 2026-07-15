@@ -8,7 +8,8 @@ Personal Codex skills and supporting scripts for software work.
 This repository is the source of truth. The installed copy lives under
 `~/.codex/skills`, where Codex can discover skills automatically. Edit skills
 here, commit them, then run `./install.sh` to sync them into the active Codex
-configuration.
+configuration. The installer manages only the skills recorded in its manifest
+under `CODEX_HOME`; unrelated installed skills are preserved.
 
 ## Layout
 
@@ -110,6 +111,23 @@ CODEX_HOME=/path/to/.codex ./install.sh
 ```
 
 The installer syncs `skills/*` into `${CODEX_HOME:-$HOME/.codex}/skills`.
+It writes a managed-skill manifest at
+`${CODEX_HOME:-$HOME/.codex}/codex-workflows-managed-skills.tsv`. On the first
+run without a manifest, the current source skill names become the ownership set;
+later runs remove only stale skills named in the previous manifest.
+
+Preview changes without replacing installed skills:
+
+```sh
+./install.sh --dry-run
+```
+
+Confirm managed installed skills match the source tree, including relevant file
+modes:
+
+```sh
+./install.sh --check
+```
 
 ## Validate
 

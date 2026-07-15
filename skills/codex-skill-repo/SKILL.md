@@ -16,6 +16,9 @@ Codex runtime directory.
 - Edit, validate, commit, and push in the source repo before or alongside
   installation.
 - Install by running the repo's installer, usually `./install.sh`.
+- Confirm managed installed skills with `./install.sh --check`; installer
+  checks should ignore unrelated installed skills outside the repo's ownership
+  manifest.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
 
@@ -114,10 +117,10 @@ Run the repository validator before committing:
 ./scripts/validate-skills.sh
 ```
 
-After installing, verify the source and installed skill trees match:
+After installing, verify managed installed skills match source:
 
 ```sh
-diff -qr ./skills "${CODEX_HOME:-$HOME/.codex}/skills" -x .system
+./install.sh --check
 ```
 
 For new or substantially changed skills, also run the system quick validator:

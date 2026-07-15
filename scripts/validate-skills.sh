@@ -283,6 +283,14 @@ elif ! "${smoke_script}"; then
   status=1
 fi
 
+installer_smoke_script="${repo_dir}/scripts/smoke-test-installer.sh"
+if [[ ! -x "${installer_smoke_script}" ]]; then
+  echo "${installer_smoke_script}: missing or not executable" >&2
+  status=1
+elif ! "${installer_smoke_script}"; then
+  status=1
+fi
+
 mirror_manifest="${repo_dir}/scripts/mirrored-files.tsv"
 if [[ -f "${mirror_manifest}" ]]; then
   while IFS=$'\t' read -r canonical mirror; do
