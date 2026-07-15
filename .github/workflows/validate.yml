@@ -13,6 +13,11 @@ concurrency:
   group: validate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  # Manual update owner: prompts/skill-repository-retrospective.md.
+  # Keep this compatible with the Go version printed by the workflow.
+  ACTIONLINT_VERSION: v1.7.11
+
 jobs:
   skills:
     runs-on: ubuntu-latest
@@ -43,7 +48,7 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y "${missing_packages[@]}"
           fi
-          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          go install github.com/rhysd/actionlint/cmd/actionlint@"${ACTIONLINT_VERSION}"
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
           python_user_base="$(python3 -m site --user-base)"
           python3 -m pip install --user -r .github/requirements.txt
@@ -95,7 +100,7 @@ jobs:
             brew update
             brew install "${missing_packages[@]}"
           fi
-          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          go install github.com/rhysd/actionlint/cmd/actionlint@"${ACTIONLINT_VERSION}"
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
           python_user_base="$(python3 -m site --user-base)"
           python3 -m pip install --user -r .github/requirements.txt

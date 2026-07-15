@@ -17,7 +17,7 @@ redaction_review: "Raw transcripts, secrets, private repository contents, and un
 disposition: implemented
 verification: supported
 verification_basis: deterministic-test
-implementation_commit: ""
+implementation_commit: "7922c42"
 ---
 
 # SCR-20260714-markdown-template-path-validation
