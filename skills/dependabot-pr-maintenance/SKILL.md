@@ -93,6 +93,15 @@ For GitHub Actions PRs that update SHA-pinned `uses:` entries:
 8. Report a merge-safety summary that separates patch safety, stale CI state,
    missing network/tool validation, and local dirty-worktree constraints.
 
+If a clean checkout cannot fetch PR refs because inherited Git URL rewriting or
+local SSH configuration routes the remote through an unusable transport,
+materialize each already-reviewed patch with `gh pr diff <number> --patch` and
+apply the patches sequentially with `git apply --3way`. Confirm every patch
+applies cleanly, the combined diff contains every expected pin, and the final
+state passes the workflow validators. Writing patch files with shell
+redirection may require separate network approval when the redirection prevents
+an existing `gh pr diff` prefix rule from matching.
+
 For workflow dependency PRs, run the repository's workflow audit on the merged
 or current workflow state when possible:
 
