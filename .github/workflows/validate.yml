@@ -102,9 +102,10 @@ jobs:
           fi
           go install github.com/rhysd/actionlint/cmd/actionlint@"${ACTIONLINT_VERSION}"
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
-          python_user_base="$(python3 -m site --user-base)"
-          python3 -m pip install --user -r .github/requirements.txt
-          echo "${python_user_base}/bin" >> "${GITHUB_PATH}"
+          validation_venv="${RUNNER_TEMP}/validation-venv"
+          python3 -m venv "${validation_venv}"
+          "${validation_venv}/bin/python" -m pip install -r .github/requirements.txt
+          echo "${validation_venv}/bin" >> "${GITHUB_PATH}"
 
       - name: Print validation tool versions
         run: |
