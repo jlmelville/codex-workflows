@@ -24,15 +24,45 @@ Run these commands from the repository root.
    helper:
 
    ```sh
-   export CODEX_WORKFLOWS_STATE_DIR=/path/to/personal/codex-workflows-state
+   export CODEX_WORKFLOWS_STATE_DIR=/absolute/path/to/codex-workflows-state
    ./skills/skill-retro/scripts/retro-state.rb init
    ```
 
-   Keep this environment variable available in shells where Codex should route
-   or triage retrospective records. The helper creates the directory when
-   needed and refuses to put operational state inside a Git worktree.
+   The helper creates the directory when needed. Keep it outside Git worktrees
+   and outside `${CODEX_HOME:-$HOME/.codex}`; the helper rejects the former,
+   while Codex protects the latter from sandboxed writes.
 
-3. Confirm that the installed skills match the source tree:
+3. Make the state location available and writable in every Codex session. Add
+   the following to `~/.codex/config.toml`, using the same absolute path as
+   above:
+
+   ```toml
+   sandbox_mode = "workspace-write"
+   approval_policy = "on-request"
+
+   [sandbox_workspace_write]
+   writable_roots = ["/absolute/path/to/codex-workflows-state"]
+
+   [shell_environment_policy]
+   set = { CODEX_WORKFLOWS_STATE_DIR = "/absolute/path/to/codex-workflows-state" }
+   ```
+
+   Merge these keys into existing sections rather than defining a TOML table
+   twice. The top-level sandbox and approval settings may be omitted when an
+   active permissions profile already supplies them. A shell startup file such
+   as `.bashrc` can set the variable for Codex launched from that shell, but it
+   may not reach desktop- or IDE-launched sessions; the Codex configuration is
+   the reliable cross-surface setting.
+
+4. Restart Codex or open a new thread so the writable roots take effect. Use
+   `/status` to confirm the state directory is writable, then validate the
+   initialized state from a shell where the variable is available:
+
+   ```sh
+   ./skills/skill-retro/scripts/retro-state.rb validate
+   ```
+
+5. Confirm that the installed skills match the source tree:
 
    ```sh
    ./install.sh --check
