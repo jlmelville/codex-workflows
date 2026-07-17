@@ -38,6 +38,13 @@ file when practical. Do not discover or depend on the location of the
 unwritable, the helper prints a validated paste-ready report and writes no
 state.
 
+When an explicitly authorized route falls back because the configured state
+root is blocked only by the sandbox, distinguish that denial from unset or
+invalid state. Retry the same route through the platform's narrowly scoped
+approval path when available, or explain the durable writable-root
+configuration; neither action broadens routing authority. Keep the paste-ready
+report as the terminal fallback when approval is unavailable or denied.
+
 ## Candidate Rules
 
 - Keep the chat summary concise: observation, decisive evidence, reusable

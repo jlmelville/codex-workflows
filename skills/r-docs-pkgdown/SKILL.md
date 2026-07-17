@@ -15,6 +15,11 @@ Use this for documentation and pkgdown work in R packages.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
+- State the current supported contract in help pages, READMEs, and articles;
+  do not narrate removed options or reassure users about ordinary invariants
+  merely because they once regressed. Preserve regression mechanics in tests or
+  internal history, and include historical detail in NEWS or migration guides
+  only when it conveys user-visible behavior, compatibility impact, or action.
 - Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen

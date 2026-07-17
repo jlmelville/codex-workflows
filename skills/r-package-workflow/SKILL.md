@@ -29,6 +29,10 @@ Use this as the default operating procedure for R package work.
 - Before finalizing new exported functions or metrics, check that public names
   are literal, discoverable, and defensible without private project backstory.
   Reserve niche terminology for documentation when a clearer API name exists.
+- Emit runtime warnings only for exceptional conditions that callers can act on
+  during the current call. Put durable resource costs for documented default
+  behavior in parameter documentation, keep normal default calls silent, and
+  ensure warnings shown beside errors are causally relevant to those failures.
 - Prefer exported API tests over private-helper tests. If an internal test
   remains, document the safety or user-visible behavior it protects.
 - Treat these as generated unless intentionally refreshed:

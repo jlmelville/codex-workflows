@@ -87,6 +87,12 @@ maps codes to descriptions or factors. Include boundary-like values such as
 `0` and a high label so tests catch factor-code indexing mistakes, including
 patterns like `description_levels[as.numeric(label)]`.
 
+For untrusted tar archives, entry-name and normalized-path checks are not
+enough: inspect tar type flags before extraction and reject symbolic links,
+hard links, and unsupported special entries. Add a local link-containing tar
+fixture alongside traversal and duplicate-path regressions; keep tar and ZIP
+expectations separate because their metadata APIs and extractors differ.
+
 ## Warning Regressions
 
 For R partial-match warnings, fix the source by using exact `[[...]]` access for

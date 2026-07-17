@@ -176,6 +176,12 @@ path is tracked, untracked, or ignored. Do not move or delete active plans only
 to silence the note unless the user chooses a different plan location or
 `.Rbuildignore` policy.
 
+When a check NOTE reports a bare `as()` as having no visible global definition,
+do not assume its import suggestion requires a roxygen `@importFrom`. Follow the
+package's namespace style: normally qualify the call as `methods::as(...)` and
+declare `methods` in `DESCRIPTION`, unless the package intentionally imports
+`as` into its namespace.
+
 For "Removed empty directory" messages, check `git status` before reporting
 local deletions. Treat them as package-build temporary-source cleanup unless
 the working tree actually changed.
