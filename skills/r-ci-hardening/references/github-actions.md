@@ -50,6 +50,26 @@ coverage is visible in the job output. `actionlint`, zizmor, and pin audits
 validate workflow structure, not hosted dependency resolution; require a
 GitHub-hosted run before claiming this matrix is exercised.
 
+## External Source Health
+
+For packages that download external datasets or assets, keep endpoint health
+monitoring separate from pull-request tests and `R CMD check`. Use a dedicated
+read-only workflow with `workflow_dispatch` and a low-frequency schedule.
+Scheduled runs should be advisory by default; a manual input may opt into
+strict failure when a maintainer wants a hard availability check.
+
+- Probe a curated manifest of canonical download assets instead of scraping
+  README, article, or citation links.
+- Try `HEAD` first, then fall back to a one-byte range GET for servers that do
+  not implement `HEAD` reliably. Use short timeouts and no retries by default;
+  allow at most one bounded retry when the host warrants it.
+- Pin actions, retain read-only permissions, disable persisted checkout
+  credentials, and publish an endpoint-status table in the step summary.
+
+Treat unreachable sources as upstream service state, not package-regression
+evidence. Validate workflow structure and exercise parser or manifest behavior
+without network access; only a live probe can establish current reachability.
+
 ## R CMD Check Vignettes
 
 Static workflow checks do not validate the package semantics of
