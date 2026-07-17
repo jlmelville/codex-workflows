@@ -113,6 +113,12 @@ logical versus numeric storage, reference versus query data, and model versus
 newdata compatibility. Prefer expectations that distinguish which side is
 wrong; a loose substring can preserve an inverted user-facing error.
 
+When canonical metadata gains names, classes, or other attributes, rerun the
+raw parser/spec boundary with tiny local fixtures. `identical()` compares
+attributes as well as values, so normalize with `unname()` or a similarly
+explicit value-only comparison when raw attributes are not part of the
+contract, while preserving the canonical attributes in result expectations.
+
 ## Looped Test Diagnostics
 
 Not every testthat expectation accepts `info` consistently across installed

@@ -60,6 +60,11 @@ strict failure when a maintainer wants a hard availability check.
 
 - Probe a curated manifest of canonical download assets instead of scraping
   README, article, or citation links.
+- When the manifest repeats package downloader defaults or URL constants, run
+  a cheap local preflight before network work. Check required fields, empty or
+  malformed values, duplicate asset identities and URLs, and correspondence
+  with source-derived expected URLs so the manifest cannot silently become a
+  second source of truth.
 - Try `HEAD` first, then fall back to a one-byte range GET for servers that do
   not implement `HEAD` reliably. Use short timeouts and no retries by default;
   allow at most one bounded retry when the host warrants it.
