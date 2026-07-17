@@ -31,6 +31,25 @@ Use the same pinned SHA for `r-lib/actions` actions in a workflow when possible:
 - uses: r-lib/actions/setup-r-dependencies@<full-sha>
 ```
 
+## Optional Dependency Coverage
+
+When one `Suggests` package is intentionally unavailable, do not let an ignore
+rule hide all optional-path coverage. Use explicitly named jobs with distinct
+dependency modes:
+
+- `hard-only` uses `dependencies: '"hard"'` to exercise the package without
+  suggested dependencies.
+- `available-optional` uses `dependencies: '"all"'`, lists an unavailable
+  suggestion as `<package>=?ignore` in `extra-packages`, and sets
+  `_R_CHECK_FORCE_SUGGESTS_: false` only where that exception is intentional.
+
+After dependency setup, make the available-optional job fail when any expected
+installable suggestion is absent, for example with `requireNamespace()` checks.
+Log the ignored package and rationale beside the exception so the reduced
+coverage is visible in the job output. `actionlint`, zizmor, and pin audits
+validate workflow structure, not hosted dependency resolution; require a
+GitHub-hosted run before claiming this matrix is exercised.
+
 ## R CMD Check Vignettes
 
 Static workflow checks do not validate the package semantics of

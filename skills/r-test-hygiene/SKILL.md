@@ -92,6 +92,10 @@ enough: inspect tar type flags before extraction and reject symbolic links,
 hard links, and unsupported special entries. Add a local link-containing tar
 fixture alongside traversal and duplicate-path regressions; keep tar and ZIP
 expectations separate because their metadata APIs and extractors differ.
+Construct link fixtures by writing a minimal tar header or using an archive API
+that sets the entry type and link target directly; do not require
+`file.symlink()` as an intermediate step because CI runners may lack that
+filesystem capability.
 
 ## Warning Regressions
 

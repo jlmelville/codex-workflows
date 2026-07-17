@@ -22,6 +22,12 @@ When converting an external audit or model review into a chunk plan:
    execution, state whether the cost is one-time or recurring, and obtain
    explicit user acceptance before adding model-backed evals or recurring paid
    infrastructure.
+7. Give every substantive recommendation one disposition in an itemized
+   crosswalk: resolved with evidence, accepted into a named chunk, deferred
+   with a review trigger, or declined with rationale.
+8. Before closing the plan, re-read the source audit and reconcile the crosswalk
+   against it. Do not infer audit completeness only from finishing the tasks
+   that were transcribed into the execution queue.
 
 ## Stabilization Chunks
 
