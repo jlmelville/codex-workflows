@@ -16,7 +16,7 @@ concurrency:
 env:
   # Manual update owner: prompts/skill-repository-retrospective.md.
   # Keep this compatible with the Go version printed by the workflow.
-  ACTIONLINT_VERSION: v1.7.11
+  ACTIONLINT_VERSION: v1.7.12
 
 jobs:
   skills:

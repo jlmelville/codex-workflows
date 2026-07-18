@@ -125,63 +125,17 @@ After installing, verify managed installed skills match source:
 ./install.sh --check
 ```
 
-For new or substantially changed skills, also run the system quick validator:
-
-```sh
-python /path/to/quick_validate.py skills/<skill-name>
-```
-
-If the validator needs Python packages such as PyYAML, run it through `uv` and
-follow `$uv-sandbox-workflow` so caches live under `/tmp`.
-
-For bundled scripts, prefer validation that does not write artifacts into
-`skills/`, such as in-memory parsing or caches under `/tmp`. Run representative
-behavior checks and remove any generated test artifacts such as `__pycache__`
-before staging.
-
-Markdown templates and documentation are subject to repository-path
-validation. Use real existing repository paths in examples, or avoid
-placeholder text shaped like a repository-relative path when no such file
-exists.
-
 For workflow changes from this source repository root, run the workflow audit if present:
 
 ```sh
 ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
-When adding/changing a manual validation lane, push it, trigger it once with
-`gh workflow run`, watch to completion, and fix setup failures.
-
-Use `${CODEX_HOME:-$HOME/.codex}/skills/...` command paths inside installed
-skill workflows unless the text explicitly says it is source-repository only.
-
-If the generic audit script is not present, run `actionlint`, `zizmor`, and
-ShellCheck as applicable.
-
-When changing shared tool policy, common command examples, or duplicated
-bundled scripts, search the whole skill tree for stale parallel guidance before
-committing. If two scripts are intentionally mirrored across skills, update both
-or record why they differ.
-
-Run the advisory drift and bloat audit before or after consolidation work:
-
-```sh
-./scripts/audit-skill-drift.rb
-```
-
-Use `--strict-hard --hard-only` for validation that should fail only on hard
-installed-runtime problems. Use `--strict` only when the current branch is meant
-to remove all untriaged findings. The audit surfaces hard, review, and
-informational findings for long descriptions, overlapping trigger surfaces,
-repeated helper names, repeated command guidance, machine-specific paths, and
-repo-relative skill script references. Accepted advisory findings live in
-`scripts/audit-skill-drift-triage.tsv`; each row records the audit section, a
-row substring to match, and the rationale for accepting that finding.
-
-Before committing, stage only intended files, inspect `git diff --cached --stat`
-and `git diff --cached --name-only`, then commit and push when publishing is in
-scope.
+Before validating new or substantially changed skills, scripts, CI, installer
+behavior, shared tool policy, or drift cleanup, read
+[repository-validation.md](references/repository-validation.md). It covers the
+system quick validator, temporary tool state, generated artifacts, workflow
+lanes, mirrored scripts, advisory drift modes, and pre-commit review.
 
 Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading cited destination files.
 

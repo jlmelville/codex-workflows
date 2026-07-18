@@ -1,6 +1,6 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off plans for complex coding work. Use when Codex plans or continues features, audits, cleanups, migrations, debugging phases, cross-module changes, PLANS.md, AGENTS.md, plan directories, EXECPLAN files, review packets, or fresh-agent handoffs. Also use to skip planning for small tasks.
+description: Create, execute, resume, and hand off plans for complex coding work. Use for features, audits, cleanups, migrations, debugging phases, cross-module changes, PLANS.md, plan directories, EXECPLAN files, review packets, planning state referenced by AGENTS.md, or fresh-agent handoffs. Also use to skip planning for small tasks.
 ---
 
 # Planning Workflow
@@ -41,6 +41,9 @@ on chat history.
      another model to challenge conclusions.
    - Treat scratch notes and prototypes as inputs, not as the active source of
      truth, unless the user says otherwise.
+5. Use `$agent-instructions-maintenance` when the main task is creating,
+   auditing, shrinking, or updating `AGENTS.md` or equivalent instruction
+   policy rather than managing execution state.
 
 ## Artifact Types
 

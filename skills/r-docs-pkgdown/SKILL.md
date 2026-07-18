@@ -62,7 +62,8 @@ After `usethis::use_pkgdown_github_pages()` or similar helpers:
 
 1. Inspect all changes, especially `.github/workflows/pkgdown.yaml` and
    `_pkgdown.yml`.
-2. Restore or apply hardened GitHub Actions patterns.
+2. Apply `$r-ci-hardening` whenever a pkgdown workflow is created or changed;
+   keep generic workflow-hardening policy in that skill.
 3. Verify remote GitHub Pages and repo homepage state when publishing matters.
 4. Keep `_pkgdown.yml`, `DESCRIPTION` URL/config, `.Rbuildignore`,
    articles, and workflow in sync.
@@ -80,9 +81,10 @@ See [pkgdown.md](references/pkgdown.md).
 Rscript -e 'roxygen2::roxygenise()'
 Rscript -e 'pkgdown::build_site(new_process = FALSE)'
 Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
-actionlint
-zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 ```
+
+When a pkgdown workflow changes, also run the required checks from
+`$r-ci-hardening`.
 
 Network-restricted environments may need approval for pkgdown external assets
 or CRAN metadata.

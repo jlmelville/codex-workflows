@@ -8,6 +8,14 @@ python_files=()
 ruby_files=()
 r_files=()
 
+parity_script="${repo_dir}/scripts/check-ci-tool-parity.sh"
+if [[ ! -x "${parity_script}" ]]; then
+  echo "${parity_script}: missing or not executable" >&2
+  status=1
+elif ! "${parity_script}"; then
+  status=1
+fi
+
 shopt -s nullglob
 for skill_dir in "${repo_dir}"/skills/*; do
   [[ -d "${skill_dir}" ]] || continue

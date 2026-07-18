@@ -67,6 +67,16 @@ Run the repository validator before committing:
 ./scripts/validate-skills.sh
 ```
 
+The validator reports local `actionlint`, `uv`, and `zizmor` versions that do
+not match the versions pinned for CI. Treat the report as advisory locally and
+run the parity check explicitly before claiming CI-equivalent results:
+
+```sh
+./scripts/check-ci-tool-parity.sh --strict
+```
+
+Under `CI=true`, the parity check is strict automatically.
+
 It checks skill frontmatter, UI metadata YAML, shell syntax, ShellCheck results,
 Ruby/Python/R script syntax, local links, skill references, mirrored files,
 executable modes for bundled shell scripts, hard drift findings, installer
