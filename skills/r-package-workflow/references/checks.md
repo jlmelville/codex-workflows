@@ -223,6 +223,15 @@ work until proven otherwise: `object_usage_linter` can flag local/test helpers
 as missing globals, and Air-clean code can still exceed lintr's default line
 length rule.
 
+When `object_usage_linter` flags ordinary functions defined elsewhere in the
+same package, confirm that linting sees the current package namespace before
+adding suppressions. Call `pkgload::load_all(quiet = TRUE)` in the same R
+process before `lint_package()`, or install the current source into a temporary
+library and put that library first. A stale installed namespace can omit new
+helpers or global declarations. Reserve `utils::globalVariables()` for genuine
+NSE or data-mask symbols; registering ordinary helper functions can conceal
+real misspellings.
+
 After editing `.lintr`, rerun both `air format . --check` and
 `lintr::lint_package()` from the saved config with normal settings parsing.
 Keep multi-line `.lintr` values as valid DCF: continuation lines, including
