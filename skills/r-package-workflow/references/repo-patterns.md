@@ -18,7 +18,9 @@ reference path.
 
 ## Formatting
 
-- Air owns R/Rmd formatting.
+- Air owns supported R-source formatting. A clean `air format . --check` is not
+  evidence that embedded R in `.Rmd` or Quarto documents was checked; follow
+  [checks.md](checks.md) for mixed-document guidance.
 - Lintr should focus on non-formatting issues.
 - Use `# fmt: skip` for matrix/graph fixtures where row or block shape is part
   of test readability.

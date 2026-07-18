@@ -191,9 +191,19 @@ the repo tracks pkgdown output or the user asked to update the site.
 
 ## Formatting and Lint
 
-- Air owns R/Rmd formatting: `air format . --check`
+- Air CLI owns formatting for supported R source files:
+  `air format . --check`.
+- Do not treat a clean directory check as proof that embedded R code in `.Rmd`
+  or Quarto documents was checked. Confirm mixed-document capabilities against
+  the installed Air version and integration.
 - Lintr should not fight Air:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
+
+For embedded R code, use an explicitly supported editor integration such as
+Quarto-cell or injected-language formatting, or a repository-local helper that
+extracts fenced R blocks, formats only the R input, reinserts only block bodies,
+and has an exercised check mode. Do not pass an entire Markdown document to
+`air format` and interpret a parse failure as a formatting result.
 
 When Air CI fails, inspect the workflow and `air.toml` before editing, confirm
 the local `air --version` matches CI when the workflow pins Air, then run

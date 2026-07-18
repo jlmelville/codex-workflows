@@ -63,6 +63,30 @@ navigation choices. Restore curated `articles:` or reference structure before
 validating so user-facing site organization is not silently replaced by helper
 defaults.
 
+## Static Figures
+
+When committed README or article figures depend on package plotting behavior,
+do more than validate that image paths resolve:
+
+1. Inventory each image reference and map it to its producing call, script, or
+   documented regeneration procedure.
+2. Record behavior dependencies that can make the image semantically stale,
+   including plotting defaults, palettes, ordering, selection rules, reversal,
+   aspect ratio, and device dimensions.
+3. After related behavior changes, regenerate affected figures from current
+   package code while preserving intentional dimensions and output format.
+4. Visually inspect the regenerated figures. Checksums can identify exact
+   duplicates but cannot establish semantic correctness.
+5. Revalidate every documentation image reference, then search for exact
+   duplicates, unreferenced assets, and legacy image trees. Confirm references,
+   build-ignore rules, and relevant history before deleting an asset tree.
+6. Run the focused article or site build that exercises the refreshed figures.
+
+An unchanged filename or successful broken-link check does not prove that a
+static figure still represents current behavior. Semantic dependency review is
+not a generic validator problem; keep repository-specific rendering and cleanup
+mechanics local.
+
 ## GitHub Pages
 
 `usethis::use_pkgdown_github_pages()` has both local scaffolding and remote
