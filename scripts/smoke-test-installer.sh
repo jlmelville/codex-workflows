@@ -22,18 +22,49 @@ assert_file_contains() {
   fi
 }
 
+path_mode() {
+  local path="$1"
+
+  if stat -c '%a' "${path}" >/dev/null 2>&1; then
+    stat -c '%a' "${path}"
+  else
+    stat -f '%Lp' "${path}"
+  fi
+}
+
 assert_mode() {
   local path="$1"
   local expected="$2"
   local actual
 
-  if stat -c '%a' "${path}" >/dev/null 2>&1; then
-    actual="$(stat -c '%a' "${path}")"
-  else
-    actual="$(stat -f '%Lp' "${path}")"
-  fi
+  actual="$(path_mode "${path}")"
 
   [[ "${actual}" == "${expected}" ]] || fail "${path}: expected mode ${expected}, got ${actual}"
+}
+
+snapshot_tree() {
+  local root="$1"
+  local path relative type detail
+
+  while IFS= read -r path; do
+    relative="${path#"${root}"}"
+    detail="-"
+
+    if [[ -L "${path}" ]]; then
+      type="symlink"
+      detail="$(readlink "${path}")"
+    elif [[ -d "${path}" ]]; then
+      type="directory"
+    elif [[ -f "${path}" ]]; then
+      type="file"
+      detail="$(cksum <"${path}")"
+    else
+      type="other"
+    fi
+
+    printf '%s\t%s\t%s\t%s\n' \
+      "${relative}" "${type}" "$(path_mode "${path}")" "${detail}"
+  done < <(find "${root}" -print | LC_ALL=C sort)
 }
 
 create_skill() {
@@ -106,10 +137,10 @@ assert_mode "${codex_home}/skills/alpha/scripts/run.sh" 755
 assert_mode "${codex_home}/skills/alpha/notes.txt" 640
 
 CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
-before_idempotence="$(find "${codex_home}" -print0 | xargs -0 ls -ld)"
+before_idempotence="$(snapshot_tree "${codex_home}")"
 CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
-after_idempotence="$(find "${codex_home}" -print0 | xargs -0 ls -ld)"
-[[ "${before_idempotence}" == "${after_idempotence}" ]] || fail "second install changed filesystem listing or modes"
+after_idempotence="$(snapshot_tree "${codex_home}")"
+[[ "${before_idempotence}" == "${after_idempotence}" ]] || fail "second install changed paths, types, modes, or content"
 
 echo "drift" >>"${codex_home}/skills/alpha/SKILL.md"
 if CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null 2>&1; then
