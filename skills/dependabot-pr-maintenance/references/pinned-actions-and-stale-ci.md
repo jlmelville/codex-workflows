@@ -88,3 +88,11 @@ repeat the verified merge loop for each PR:
 7. After each merge, fetch the remote base branch without disturbing local
    changes, then re-read the remaining PRs because mergeability and checks may
    have changed.
+8. If logically compatible dependency-only edits conflict textually, resolve
+   the intended combined versions only in the disposable validation checkout
+   and run the combined checks there. Do not push that temporary resolution to
+   a bot branch.
+9. Merge one verified PR, ask the bot to rebase each conflicting remainder,
+   and treat every regenerated head as new work: re-read the exact patch and
+   PR state, repeat relevant local validation, wait for fresh required checks,
+   and use the new expected head SHA when merging.
