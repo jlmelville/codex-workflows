@@ -8,14 +8,22 @@ description: Maintain a Codex skill repository as source of truth. Use when Code
 Use this for repositories that version Codex skills separately from the active
 Codex runtime directory.
 
+## Authority
+
+- For review or audit requests, inspect and report without editing, installing,
+  committing, or pushing.
+- For change requests, make in-scope source edits and run non-destructive
+  validation.
+- Install outside the worktree, commit, or push only when the user request or
+  explicit repository instructions authorize that action.
+
 ## Source Of Truth
 
 - Treat the version-controlled source repository, not the installed runtime
   copy, as source of truth.
 - Treat `${CODEX_HOME:-$HOME/.codex}/skills` as installed output.
-- Edit, validate, commit, and push in the source repo before or alongside
-  installation.
-- Install by running the repo's installer, usually `./install.sh`.
+- Make authorized skill changes in the source repository. Install them with the
+  repository's installer, usually `./install.sh`, when installation is in scope.
 - Confirm managed installed skills with `./install.sh --check`; installer
   checks should ignore unrelated installed skills outside the repo's ownership
   manifest.
@@ -79,7 +87,15 @@ Never copy or commit raw Codex runtime state:
 Review `.gitignore` before staging whenever the repo was created from a
 runtime directory.
 
-## Adding Skills
+## Authoring Skills
+
+Write skills around the intended outcome, relevant domain context, hard
+constraints, action authority, required evidence, and completion criteria.
+Prescribe an exact sequence only when ordering prevents a known correctness,
+safety, state, or tooling failure. Move conditional recipes and examples into
+references, and deterministic behavior into scripts or validators.
+
+When adding a skill:
 
 1. Read the system `skill-creator` guidance.
 2. Initialize new skills with `init_skill.py` when available.
@@ -89,9 +105,8 @@ runtime directory.
    default prompt. When passing `$skill-name` through shell arguments, use
    single quotes or escape `$`, then inspect the generated file to confirm the
    default prompt contains the literal skill invocation.
-5. Add bundled scripts only when deterministic reuse is worth the extra file.
-6. Validate the repository and any new skill folders.
-7. Install the updated skills and confirm the installed copies match the source
+5. Validate the repository and any new skill folders.
+6. Install the updated skills and confirm the installed copies match the source
    repo when that matters.
 
 ## Promoting Local Guidance

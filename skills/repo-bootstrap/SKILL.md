@@ -8,14 +8,23 @@ description: Bootstrap a local project into a clean Git and GitHub repo, includi
 Use this when turning local work into a repository that can be safely pushed to
 GitHub.
 
+## Authority
+
+- For `prepare`, edit local project files and validate them. Do not initialize
+  Git or create a commit unless the user asks.
+- For `initialize` or `create a repository`, include local Git initialization,
+  branch setup, and an initial local commit. Do not configure a remote or push.
+- For `publish`, or an explicit request to create or configure a GitHub remote,
+  include remote setup and the first push.
+
 ## First Pass
 
 1. Inspect the directory tree and current git state.
 2. Identify source files, generated files, runtime state, secrets, caches, and
    local-only configuration.
 3. Create or update `.gitignore` before staging anything.
-4. Confirm whether the user wants the whole directory published or only a clean
-   subset.
+4. Before publishing, confirm whether the user wants the whole directory
+   published or only a clean subset.
 
 ## Minimum Repository Shape
 
@@ -34,14 +43,18 @@ or clearly required by the project.
 
 ## Git Procedure
 
-1. Initialize git only if the directory is not already a repository.
-2. Use `main` as the initial branch unless the user requests otherwise.
+1. Initialize Git only when initialization is authorized and the directory is
+   not already a repository.
+2. When initializing, use `main` as the initial branch unless the user requests
+   otherwise.
 3. Stage explicit paths when there is any chance of unrelated or sensitive
    files.
 4. Run relevant validation before the initial commit.
-5. Commit with a short message that describes the project state.
-6. Add `origin` after the user provides or creates the GitHub repository.
-7. Push with upstream tracking.
+5. When initialization, creation, or publication is in scope, commit with a
+   short message that describes the project state.
+6. When publication is authorized, add `origin` after the user provides or
+   creates the GitHub repository.
+7. Push with upstream tracking as part of the authorized publication.
 
 ## GitHub Setup
 
@@ -72,8 +85,7 @@ For GitHub Actions, also apply `$github-actions-hardening`.
 Before finishing, report:
 
 - repository path,
-- remote URL,
 - branch and commit,
 - validation commands run,
-- pushed state,
+- remote URL and pushed state when publication was in scope,
 - anything intentionally left uncommitted or unpushed.

@@ -7,6 +7,15 @@ description: Review, validate, update, and merge Dependabot or Renovate dependen
 
 Use this for automated dependency update pull requests.
 
+## Authority
+
+- For review requests, inspect, validate, and report without changing the PR
+  branch or merging.
+- Update a bot branch or merge only when the user explicitly requests it or an
+  explicit repository instruction authorizes autonomous dependency-PR updates
+  or merges. Do not infer authority from CI configuration, auto-merge settings,
+  branch settings, or prior behavior.
+
 ## Triage
 
 1. Confirm the PR author is the dependency bot and the target repository is
@@ -77,16 +86,16 @@ manual fix is clearly safer.
 2. Confirm the head SHA matches the commit that was validated. If it changed,
    restart validation.
 3. Merge only when required checks pass, or when failed checks have been
-   classified and accepted according to repository policy.
+   classified and explicitly accepted by the user or repository instructions.
 4. Use an expected head SHA so the merge fails if the branch moves, for example:
 
    ```sh
    gh pr merge <number> --repo owner/repo --squash --match-head-commit <sha>
    ```
 
-   Add `--delete-branch` when the user or repository policy requests branch
-   deletion. Use `--merge` or `--rebase` only when that matches repository
-   convention.
+   Add `--delete-branch` when the user or an explicit repository instruction
+   requests branch deletion. Use `--merge` or `--rebase` only when that matches
+   repository convention.
 5. If `gh pr merge` fails with a sandboxed network or API connection error,
    re-read PR state first. If it did not merge, rerun the same merge command
    with network approval.

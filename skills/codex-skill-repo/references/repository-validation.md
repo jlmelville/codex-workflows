@@ -71,4 +71,5 @@ git diff --cached --stat
 git diff --cached --name-only
 ```
 
-Commit and push only when publishing is in scope.
+After publication is authorized under the main skill's `Authority` section,
+commit the inspected paths and push using the target repository's convention.

@@ -29,6 +29,12 @@ Focus on:
 
 - duplicated guidance across skills;
 - trigger overlap or unclear skill boundaries;
+- top-level sequences that lack a non-obvious constraint, ordering hazard, or
+  observed failure that earns their always-read context cost;
+- conflicting action authority across trigger descriptions, default prompts,
+  skill bodies, references, and repository instructions;
+- vague brevity or style directives that do not say which evidence, caveats,
+  decisions, or next actions must survive shortening;
 - skill bloat, including one-off bullets without concrete failure signals;
 - local conventions leaking into general-purpose skills;
 - guidance that should move from `SKILL.md` into references;
