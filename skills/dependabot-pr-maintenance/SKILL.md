@@ -27,6 +27,10 @@ Use this for automated dependency update pull requests.
    metadata.
 5. Check whether the branch is behind `main` and whether the displayed diff is a
    direct branch comparison rather than the true merge result.
+6. Across multiple repositories, serialize GitHub PR search and list requests or
+   use explicitly bounded concurrency. Treat a connector secondary-rate-limit
+   response as a retryable API condition, not evidence that the repository is
+   inaccessible; continue discovery with serialized `gh pr list` requests.
 
 ## Conditional Workflows
 

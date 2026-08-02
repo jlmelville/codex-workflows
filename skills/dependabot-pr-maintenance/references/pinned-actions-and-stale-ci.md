@@ -96,3 +96,18 @@ repeat the verified merge loop for each PR:
    and treat every regenerated head as new work: re-read the exact patch and
    PR state, repeat relevant local validation, wait for fresh required checks,
    and use the new expected head SHA when merging.
+
+If inherited global Git URL rewriting sends the post-merge fetch through an
+unusable transport, bypass global configuration for that fetch and use an
+explicit HTTPS URL and refspec:
+
+```sh
+GIT_CONFIG_GLOBAL=/dev/null git -C <repo> fetch \
+  https://github.com/<owner>/<repo>.git \
+  <branch>:refs/remotes/origin/<branch>
+```
+
+This updates the remote-tracking ref without changing the checkout or the
+configured remote. Bypassing global configuration also bypasses global
+credential helpers, so use this form directly only for public repositories or
+with separately configured authentication.
