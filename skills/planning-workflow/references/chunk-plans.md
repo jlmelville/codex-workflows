@@ -41,6 +41,15 @@ the likely commit boundaries before editing. Keep fixes and tests independently
 stageable by bug whenever practical, instead of making one shared regression
 file or broad hunk that later requires delicate partial staging.
 
+## Staged Handoff Review
+
+When a handoff presents a staged patch, treat the Git index as the deliverable.
+Inspect `git diff --cached --name-status`, review `git diff --cached`, and run
+`git diff --cached --check`. Before using working-tree tests as evidence for
+the proposed commit, compare staged and unstaged path lists and confirm that no
+unstaged edits overlap staged paths. Tests exercise working-tree files, so they
+support the cached patch only when those paths have no unstaged drift.
+
 ## Warning Ownership
 
 When a chunk accepts a remaining warning, note, or validation anomaly, assign

@@ -12,20 +12,30 @@ When converting an external audit or model review into a chunk plan:
 
 1. Preserve the source audit.
 2. Statically confirm findings before making them tasks.
-3. Mark unverified claims.
-4. Resolve open questions into explicit decisions where possible.
-5. Include the source audit pointer, confirmed findings, guardrails, a decision
+3. Separate the factual observation, defect classification, and proposed
+   remedy. Reproduce the observation, then name the violated contract or
+   intended semantics before treating it as a defect. A true observation can
+   still receive a no-change disposition when it violates no contract or the
+   remedy would create an unjustified compatibility change.
+4. When a recommendation would remove or normalize public behavior in
+   multi-author code, inspect its introduction and evolution plus current
+   consumers. Record contributor ownership when known, and put unresolved
+   compatibility intent behind a separate user decision gate rather than
+   bundling it into unrelated correctness work.
+5. Mark unverified claims.
+6. Resolve open questions into explicit decisions where possible.
+7. Include the source audit pointer, confirmed findings, guardrails, a decision
    log, open questions, and which claims still need test evidence.
-6. Surface recommendations that consume paid services or quotas before
+8. Surface recommendations that consume paid services or quotas before
    accepting them into scope, especially model or API evals, paid CI, and
    hosted runners. Separate free static or local validation from cost-bearing
    execution, state whether the cost is one-time or recurring, and obtain
    explicit user acceptance before adding model-backed evals or recurring paid
    infrastructure.
-7. Give every substantive recommendation one disposition in an itemized
+9. Give every substantive recommendation one disposition in an itemized
    crosswalk: resolved with evidence, accepted into a named chunk, deferred
    with a review trigger, or declined with rationale.
-8. Before closing the plan, re-read the source audit and reconcile the crosswalk
+10. Before closing the plan, re-read the source audit and reconcile the crosswalk
    against it. Do not infer audit completeness only from finishing the tasks
    that were transcribed into the execution queue.
 

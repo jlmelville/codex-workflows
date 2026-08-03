@@ -19,6 +19,14 @@ metadata, test those contracts through the public object:
 Prefer these user-visible contracts over hand-maintained local fixtures when
 the fixture can drift away from the package's own metadata.
 
+When a variable-dimension contract specifies minimum, default, and next
+structurally valid sizes, encode that matrix as a table-driven test. Include the
+first size that activates guarded, neighbor-dependent, or otherwise skipped
+loops, and exercise every returned callback at every size. Check objective
+shape, gradient length, finite Hessian dimensions, and `fg` agreement when
+those components exist; minimum-size coverage alone does not exercise a loop
+that starts at the next size.
+
 ## Variant Equivalence Invariants
 
 When a numerical algorithm exposes multiple update recipes or formula variants
@@ -45,6 +53,10 @@ Large absolute error alone is weak evidence for ill-scaled objectives. Look for
 patterns that stay bad across reasonable step sizes, relative-error outliers,
 shape or symmetry violations, or failures that are localized to a specific
 dimension branch. Record the evidence before changing analytic derivative code.
+When a committed test uses a non-default finite-difference scale, keep a short
+comment beside the override explaining the relevant scaling or cancellation
+issue and why that direction or magnitude was selected. Keep detailed probe
+results in the active plan or review record.
 
 ## External AD Oracles
 

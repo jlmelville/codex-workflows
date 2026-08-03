@@ -22,6 +22,12 @@ For GitHub Actions PRs that update SHA-pinned `uses:` entries:
 8. Report a merge-safety summary that separates patch safety, stale CI state,
    missing network/tool validation, and local dirty-worktree constraints.
 
+If `git worktree add` fails because the repository cannot write administrative
+metadata beneath `.git/worktrees`, switch immediately to a standalone temporary
+clone under `/tmp`. Fetch or apply the already-reviewed PR changes there, test
+each patch and the combined merge result, and leave the original checkout
+untouched.
+
 If a clean checkout cannot fetch PR refs because inherited Git URL rewriting or
 local SSH configuration routes the remote through an unusable transport,
 materialize each already-reviewed patch with `gh pr diff <number> --patch` and

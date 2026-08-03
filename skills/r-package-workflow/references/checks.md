@@ -20,6 +20,21 @@ behavior, when no package code was loaded.
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
 
+## Reference Metadata Applicability
+
+When a scientific factory returns stored reference metadata or its accepted
+dimension/configuration domain changes:
+
+1. Search executable consumers before adding, removing, or normalizing fields.
+2. Inventory value and location fields such as `fmin` and `xmin` separately.
+   Distinguish the factory's accepted domain, a formula's mathematical scope,
+   and the configuration represented by each stored literal.
+3. Test the smallest valid and exceptional boundary classes plus the stored
+   reference configuration through the relevant callbacks. A passing stored
+   example does not establish an all-dimensions or all-configurations claim.
+4. Check that metadata and documentation state field applicability accurately,
+   including empty-index or degenerate branches admitted by a widened contract.
+
 For baseline or no-change validation, treat `devtools::run_examples()` as a
 potentially mutating command. Check `git status` immediately afterward and
 record or revert unrelated metadata churn, especially roxygen maintenance in

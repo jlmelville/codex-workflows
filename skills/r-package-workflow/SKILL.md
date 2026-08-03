@@ -26,6 +26,10 @@ Use this as the default operating procedure for R package work.
   change fixes an objective bug, resource-safety issue, packaging integration,
   tests, or safe typo. Use wrapper docs/articles for navigation and defer
   structural rewrites to separate tested plans.
+- When widening accepted dimensions or configurations, revalidate formulas,
+  stored metadata, and documentation that claim broader applicability at every
+  newly admitted boundary class. Use the reference-applicability checklist in
+  [checks.md](references/checks.md#reference-metadata-applicability).
 - Before finalizing new exported functions or metrics, check that public names
   are literal, discoverable, and defensible without private project backstory.
   Reserve niche terminology for documentation when a clearer API name exists.

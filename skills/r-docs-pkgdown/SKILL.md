@@ -20,6 +20,11 @@ Use this for documentation and pkgdown work in R packages.
   merely because they once regressed. Preserve regression mechanics in tests or
   internal history, and include historical detail in NEWS or migration guides
   only when it conveys user-visible behavior, compatibility impact, or action.
+- For paired reference values and locations, state their correspondence first,
+  then document the configuration where the pair applies, whether values are
+  recalculated, and whether either field applies more broadly. Do not compare a
+  reference value with an initialization default unless initialization is part
+  of the reference contract.
 - Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen
