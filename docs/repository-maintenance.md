@@ -59,6 +59,31 @@ file modes:
 Do not hand-edit installed copies. Port useful diagnostic changes back to the
 source repository and reinstall them.
 
+### User-global instruction setup
+
+The skill installer manages only `${CODEX_HOME:-$HOME/.codex}/skills` and its
+ownership manifest. It never edits `AGENTS.md`, `AGENTS.override.md`,
+`config.toml`, shell startup files, or external retrospective state.
+
+Standing papercut capture therefore has a separate one-time setup step. Its
+canonical instruction block is
+[`skills/papercut-capture/assets/global-agents-papercuts.md`](../skills/papercut-capture/assets/global-agents-papercuts.md).
+After installing the skills:
+
+- copy that asset to `${CODEX_HOME:-$HOME/.codex}/AGENTS.md` only when neither
+  `AGENTS.md` nor `AGENTS.override.md` exists in that Codex home;
+- otherwise merge or replace only its `## Workflow papercuts` section;
+- when `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` exists, update the
+  override instead because it takes precedence over the base global file;
+- restart Codex or open a new thread after changing the active global file;
+- after later source updates, reinstall skills and compare the canonical asset
+  with the previously copied section because global instructions are not
+  updated automatically.
+
+Removing the section disables the policy globally. A closer repository
+instruction or explicit task instruction may opt out without changing the
+canonical template.
+
 ## Validation
 
 Run the repository validator before committing:

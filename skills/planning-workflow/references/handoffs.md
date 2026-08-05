@@ -7,6 +7,12 @@ Put handoffs in the chat response by default. Write persistent handoff files
 only when the user asks or the repo already uses them for active work. The
 active plan should hold durable state; the handoff should point to it.
 
+Do not repeat user-global or repository-wide working agreements in a normal
+Codex-to-Codex handoff when the next session will inherit the same instruction
+chain. When a handoff targets another user, agent product, isolated environment,
+or Codex profile, name the missing environment assumption briefly instead of
+copying the full policy.
+
 Use a fenced `text` block:
 
 ```text

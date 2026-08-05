@@ -113,11 +113,15 @@ knows whether it is reusable or who owns the remedy. Required fields are
 vocabularies documented by `template papercut`; `owner_hint` defaults to
 `unknown` in that template.
 
-Papercut capture requires explicit per-item or per-session authorization. A
-session opt-in permits qualifying records to be written without interrupting
-the user each time, but the final response must disclose the count. Capture
-authority permits only new inbox records. It does not authorize closure,
-candidate creation or promotion, project edits, commits, pushes, or messages.
+Papercut capture requires explicit authority. Authority may come from standing
+user or repository instructions that enable `$papercut-capture`, a task or
+session request, or a per-item request. Implicit skill activation alone does
+not authorize a write. Standing or session authority permits qualifying records
+to be written without interrupting the user each time. Capture authority
+permits only new inbox records. It does not authorize closure, candidate
+creation or promotion, project edits, commits, pushes, or messages. The
+qualification, privacy, fallback, and disclosure workflow lives in
+[`$papercut-capture`](../../papercut-capture/SKILL.md).
 
 `papercuts` lists only the open inbox by default. Use `papercuts --archive` only
 when reviewed history is relevant. Close each reviewed observation with one of:

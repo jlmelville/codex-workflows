@@ -54,7 +54,35 @@ Run these commands from the repository root.
    may not reach desktop- or IDE-launched sessions; the Codex configuration is
    the reliable cross-surface setting.
 
-4. Restart Codex or open a new thread so the writable roots take effect. Use
+4. Enable standing papercut capture once. The canonical global instruction
+   block is versioned at
+   [`skills/papercut-capture/assets/global-agents-papercuts.md`](skills/papercut-capture/assets/global-agents-papercuts.md)
+   and is also present in the installed skill. `./install.sh` deliberately does
+   not edit personal instruction files.
+
+   If the active Codex home has neither `AGENTS.md` nor `AGENTS.override.md`,
+   install the block as `AGENTS.md`:
+
+   ```sh
+   codex_profile="${CODEX_HOME:-$HOME/.codex}"
+   mkdir -p "${codex_profile}"
+   cp "${codex_profile}/skills/papercut-capture/assets/global-agents-papercuts.md" \
+     "${codex_profile}/AGENTS.md"
+   ```
+
+   If `AGENTS.md` already contains personal guidance, manually merge the exact
+   `## Workflow papercuts` section instead of overwriting the file. If
+   `AGENTS.override.md` exists in the Codex home, Codex reads that file instead
+   of `AGENTS.md`; merge the section into the override or remove the override
+   deliberately. After future skill updates, re-read the canonical asset and
+   replace the previously copied section when it changes.
+
+   Remove the section to disable capture globally. A repository can opt out
+   with a closer `AGENTS.md` instruction, and a task can explicitly disable
+   capture for that task.
+
+5. Restart Codex or open a new thread so the writable roots and global
+   instructions take effect. Use
    `/status` to confirm the state directory is writable, then validate the
    initialized state from a shell where the variable is available:
 
@@ -62,7 +90,11 @@ Run these commands from the repository root.
    ./skills/skill-retro/scripts/retro-state.rb validate
    ```
 
-5. Confirm that the installed skills match the source tree:
+   During the initial pilot, confirm substantive-task responses end with
+   `Papercuts recorded: N`, including zero. This is a compliance signal rather
+   than proof that the agent noticed every qualifying event.
+
+6. Confirm that the installed skills match the source tree:
 
    ```sh
    ./install.sh --check
@@ -139,10 +171,12 @@ validation conventions are in
 
 There are four related loops:
 
-1. **Papercut capture loop:** Before or during work, explicitly enable
-   `$skill-retro` papercut mode for the session, or request a single record.
-   Qualifying sanitized observations go only to external state, and the final
-   response discloses the count recorded.
+1. **Papercut capture loop:** A one-time user-global instruction normally
+   activates `$papercut-capture` for substantive repository work. The focused
+   skill decides which friction qualifies and writes only sanitized new inbox
+   records. A repository or task may opt out, and a user may still request one
+   record directly. During the initial pilot, every substantive-task response
+   discloses the count, including zero.
 2. **Project/session loop:** After meaningful coding, investigation, CI
    debugging, or cleanup, ask for a Skill Candidate Report. Default output
    stays in chat. Explicit `route` or `auto` mode may write a sanitized
@@ -159,14 +193,18 @@ There are four related loops:
    applied.
 
 Use [the stable retrospective prompt](prompts/skill-retrospective.md) to request
-session candidates. Prompt templates are skill-adjacent entry points and are
-not installed into `CODEX_HOME`.
+session candidates. The canonical standing papercut policy is the
+[`global-agents-papercuts.md`](skills/papercut-capture/assets/global-agents-papercuts.md)
+asset, not a handoff prompt. Prompt templates are skill-adjacent entry points
+and are not installed into `CODEX_HOME`.
 
 The artifact-focused repository retrospective deliberately does not inspect
 personal state. Use the separate
 [Learning Process Retrospective Prompt](prompts/learning-process-retrospective.md)
 to review papercut drains, external report quality, verdict patterns,
-deferrals, drafts, and verification evidence.
+deferrals, drafts, and verification evidence. During the initial pilot, run its
+first review after 10 recorded papercuts or 14 days of substantive use,
+whichever comes first; no per-task telemetry is required.
 
 ## Routine Maintenance
 

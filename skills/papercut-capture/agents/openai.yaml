@@ -1,0 +1,4 @@
+interface:
+  display_name: "Papercut Capture"
+  short_description: "Capture small workflow friction safely"
+  default_prompt: "Use $papercut-capture to record qualifying workflow friction during this task."

@@ -45,14 +45,19 @@ Report:
 ### Proposed Next Review Trigger
 ```
 
-Recommend a `$skill-retro` or template change only when the same producer error
-recurs across batches or one occurrence is especially decisive. Recommend
-deleting external history that no longer improves future judgment. Keep public
-source changes behind the ordinary `$skill-retro-triage` implementation gate.
+Recommend a `$papercut-capture`, `$skill-retro`, or template change only when
+the same producer error recurs across batches or one occurrence is especially
+decisive. Recommend deleting external history that no longer improves future
+judgment. Keep public source changes behind the ordinary
+`$skill-retro-triage` implementation gate.
 
 During the initial papercut pilot, report actionable yield, duplicate rate,
 noise rate, and capture gap: whether the mature end-of-session candidate process
-would probably have retained the observation anyway. Do not impose a success
-quota. When closure is explicitly authorized, create any formal candidate
-first, then close the papercut with its typed reference. Otherwise propose the
-drain decisions in chat and leave state unchanged.
+would probably have retained the observation anyway. Run the first pilot review
+after 10 recorded papercuts or 14 days of substantive use, whichever comes
+first. Zero-count final disclosures are compliance signals, not proof that no
+event was missed; do not add per-task telemetry merely to count substantive
+tasks. Do not impose a success quota. When closure is explicitly authorized,
+create any formal candidate first, then close the papercut with its typed
+reference. Otherwise propose the drain decisions in chat and leave state
+unchanged.

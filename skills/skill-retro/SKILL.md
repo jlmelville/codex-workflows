@@ -1,15 +1,15 @@
 ---
 name: skill-retro
-description: Capture authorized, sanitized workflow papercuts during work, or produce and optionally route Skill Candidate Reports at session end. Use when the user requests papercut capture, a skill retrospective, a candidate report, or external retrospective routing.
+description: Produce and optionally route mature Skill Candidate Reports from completed work. Use when the user requests a skill retrospective, candidate report, reusable workflow conclusion, or external retrospective routing. Do not use for low-cost during-work papercut capture.
 ---
 
 # Skill Retro
 
-Use this to preserve workflow evidence and identify reusable knowledge that
-might belong in `codex-workflows`. A papercut records friction before its wider
-meaning is known; a Skill Candidate Report is a deliberate conclusion ready for
-triage. Operational records never belong in a project repository or the public
-skill source repository.
+Use this to identify reusable knowledge that might belong in
+`codex-workflows`. A Skill Candidate Report is a deliberate conclusion ready
+for triage. Use `$papercut-capture` instead when preserving low-cost friction
+before its wider meaning is known. Operational records never belong in a
+project repository or the public skill source repository.
 
 Read [state-protocol.md](references/state-protocol.md) before writing external
 state.
@@ -27,59 +27,25 @@ state.
 Neither routing mode authorizes project edits, source-repository edits,
 commits, pushes, messages, or changes to other external state.
 
-## Papercut Mode
-
-Papercut capture always requires explicit authority:
-
-- Without opt-in, do not write papercuts.
-- A per-item request such as "record that as a papercut" authorizes one record.
-- A session request for papercut mode authorizes silent capture of qualifying
-  observations during that session. Disclose the number recorded in the final
-  response.
-
-Capture authority permits only new files beneath `papercuts/inbox`. It does not
-authorize closing observations, creating candidates, editing repositories,
-committing, pushing, or sending messages. Closing papercuts is a later review
-action that requires separate authority.
-
-Record a papercut when most of these are true:
-
-- available instructions or repository context did not make the behavior
-  reasonably predictable;
-- it caused an avoidable retry, dead end, block, noisy detour, or ambiguity;
-- clearer guidance, commands, links, validation order, version policy, or a
-  deterministic mechanism could plausibly prevent it;
-- the observation and any workaround can be stated briefly and safely.
-
-Do not record expected failing tests, ordinary code defects being repaired,
-syntax mistakes caught normally by tooling, or exploratory hypotheses that
-simply proved false. A documented focused-test command that fails from a clean
-session may qualify; the regression test for the feature currently being built
-does not.
-
 Use the installed helper from an arbitrary project repository:
 
 ```sh
 "${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" template candidate
 "${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" route --file CANDIDATE_FILE
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" template papercut
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" record-papercut --file PAPERCUT_FILE
 ```
 
-Create input in a temporary file, route or record it, and remove the temporary
-file when practical. `record-papercut --file -` also reads a complete papercut
-document from standard input. Do not discover or depend on the location of the
+Create input in a temporary file, route it, and remove the temporary file when
+practical. Do not discover or depend on the location of the
 `codex-workflows` source checkout. If `CODEX_WORKFLOWS_STATE_DIR` is unset or
-unwritable, the helper prints a validated paste-ready record and writes no
-state. Preserve an authorized papercut for the final response when recording
-cannot succeed.
+unwritable, the helper prints a validated paste-ready candidate and writes no
+state.
 
-When an explicitly authorized record or route falls back because the configured
-state root is blocked only by the sandbox, distinguish that denial from unset
-or invalid state. Retry the same operation through the platform's narrowly
-scoped approval path when available, or explain the durable writable-root
-configuration; neither action broadens authority. Keep the paste-ready record
-as the terminal fallback when approval is unavailable or denied.
+When an explicitly authorized route falls back because the configured state
+root is blocked only by the sandbox, distinguish that denial from unset or
+invalid state. Retry the same operation through the platform's narrowly scoped
+approval path when available, or explain the durable writable-root
+configuration; neither action broadens authority. Keep the paste-ready
+candidate as the terminal fallback when approval is unavailable or denied.
 
 ## Candidate Rules
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Retro"
-  short_description: "Capture papercuts and workflow lessons"
-  default_prompt: "Use $skill-retro to review this session, or capture papercuts during work when I explicitly request papercut mode."
+  short_description: "Synthesize reusable workflow lessons"
+  default_prompt: "Use $skill-retro to review this session and produce a concise Skill Candidate Report."
