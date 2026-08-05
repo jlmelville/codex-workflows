@@ -24,6 +24,7 @@ Git owns:
 
 The configured state root owns:
 
+- open and reviewed papercut observations;
 - candidate inbox and processed archive;
 - curated accepted records and later verification evidence;
 - deferred candidates and uninstalled drafts;
@@ -39,6 +40,9 @@ refuses to initialize or write there.
 ```text
 $CODEX_WORKFLOWS_STATE_DIR/
   state-version
+  papercuts/
+    inbox/
+    archive/
   retrospectives/
     inbox/
     archive/
@@ -49,10 +53,10 @@ $CODEX_WORKFLOWS_STATE_DIR/
     learning-process/
 ```
 
-Records are Markdown files with YAML frontmatter. Use one candidate per file so
-records can be judged, deferred, merged, split, or deleted independently.
-Opaque `RC-*` IDs are assigned during routing; they contain no repository or
-session name. Accepted `SCR-*` records use an array of
+Records are Markdown files with YAML frontmatter. Use one papercut or candidate
+per file so records can be reviewed, promoted, judged, or deleted
+independently. Opaque `PC-*` and `RC-*` IDs contain no repository or session
+name. Accepted `SCR-*` records use an array of
 `originating_candidate_ids` so merges and splits remain representable.
 
 ## Installed Helper
@@ -75,6 +79,11 @@ Key operations are:
 template candidate
 route --file PATH
 pending
+template papercut
+record-papercut --file PATH
+papercuts
+papercuts --archive
+close-papercut --id ID --outcome OUTCOME --rationale TEXT
 template decision
 process --id ID --decision PATH
 template accepted
@@ -91,9 +100,47 @@ The helper performs deterministic mechanics only. The agent remains
 responsible for evidence selection, sanitization, verdict judgment, destination
 choice, implementation, and verification interpretation.
 
-When `CODEX_WORKFLOWS_STATE_DIR` is unset, `template candidate` still works and
-`route` prints the validated candidate as a paste-ready fallback without
-writing anything. Do not silently invent a default state location.
+When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work, while `route`
+and `record-papercut` print the validated input as a paste-ready fallback
+without writing anything. Do not silently invent a default state location.
+
+## Papercut Intake And Closure
+
+A papercut preserves unexpected, avoidable workflow friction before anyone
+knows whether it is reusable or who owns the remedy. Required fields are
+`source_scope`, `kind`, `observation`, `impact`, `resolution`, `owner_hint`, and
+`redaction_review`. `workaround` is optional. The helper validates bounded
+vocabularies documented by `template papercut`; `owner_hint` defaults to
+`unknown` in that template.
+
+Papercut capture requires explicit per-item or per-session authorization. A
+session opt-in permits qualifying records to be written without interrupting
+the user each time, but the final response must disclose the count. Capture
+authority permits only new inbox records. It does not authorize closure,
+candidate creation or promotion, project edits, commits, pushes, or messages.
+
+`papercuts` lists only the open inbox by default. Use `papercuts --archive` only
+when reviewed history is relevant. Close each reviewed observation with one of:
+
+```text
+no-action
+local-fix
+candidate
+external-owner
+duplicate
+```
+
+Closure appends `outcome`, `rationale`, and `closed_at` without changing the
+digested intake fields, then moves the record to the archive. `duplicate`
+requires `--related-papercut-id PC-*`; `candidate` requires
+`--related-candidate-id RC-*`, and the formal candidate must exist first. Other
+outcomes reject related IDs. Closing requires explicit state-mutation authority
+from the review user.
+
+Do not promote mechanically. Reviewers synthesize a new candidate only when
+the observation is reusable, materially missing from current coverage, and has
+a justified destination. Repository-local fixes and external-owner actions do
+not need to pass through the candidate inbox.
 
 ## Candidate Intake
 
@@ -164,9 +211,10 @@ Create drafts and ledger entries from the helper templates so validation can
 enforce their owner/status and executable-drain fields. Close, activate,
 deprecate, or delete them instead of accumulating generic notes.
 
-This state is deliberately disposable. Delete rejected history, stale audit
-material, discharged ledger entries, and superseded drafts whenever they no
-longer help future judgment. The public repository must not rely on retention.
+This state is deliberately disposable. Delete closed papercuts, rejected
+history, stale audit material, discharged ledger entries, and superseded drafts
+whenever they no longer help future judgment. The public repository must not
+rely on retention.
 
 ## Validation Boundary
 

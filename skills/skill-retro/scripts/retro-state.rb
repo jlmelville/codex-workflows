@@ -20,12 +20,26 @@ module RetroState
   RECOMMENDATIONS = %w[
     update-existing no-change new-skill new-script new-prompt uncertain
   ].freeze
+  PAPERCUT_KINDS = %w[
+    command tool-call documentation-or-link environment repository-convention
+    validation-order tooling-version other
+  ].freeze
+  PAPERCUT_IMPACTS = %w[retry dead-end blocked noise ambiguity].freeze
+  PAPERCUT_RESOLUTIONS = %w[worked-around resolved unresolved].freeze
+  PAPERCUT_OWNERS = %w[
+    unknown repo-local skill-system environment external-tool external-docs
+  ].freeze
+  PAPERCUT_OUTCOMES = %w[
+    no-action local-fix candidate external-owner duplicate
+  ].freeze
   DRAFT_STATUSES = %w[open revised activated deprecated].freeze
   LEDGER_STATUSES = %w[open closed].freeze
   STATE_DIRS = %w[
     retrospectives/inbox
     retrospectives/archive
     retrospectives/accepted
+    papercuts/inbox
+    papercuts/archive
     drafts
     ledgers
     audits/learning-process
@@ -47,7 +61,8 @@ module RetroState
   module_function
 
   def read_document(path)
-    parse_document(File.read(path, encoding: "UTF-8"), label: path)
+    text = path == "-" ? $stdin.read : File.read(path, encoding: "UTF-8")
+    parse_document(text, label: path == "-" ? "standard input" : path)
   end
 
   def parse_document(text, label: "document")
@@ -161,6 +176,101 @@ module RetroState
     elsif triage
       raise Error, "#{label}: inbox candidate must not contain triage data"
     end
+  end
+
+  def validate_papercut(data, body, label:, routed:, archived: false)
+    text = render_document(data, body)
+    validate_common(data, text, label)
+    unless data["record_type"] == "papercut"
+      raise Error, "#{label}: record_type must be papercut"
+    end
+
+    require_fields(
+      data,
+      %w[
+        source_scope kind observation impact resolution owner_hint
+        redaction_review
+      ],
+      label
+    )
+    validate_enum(data, "kind", PAPERCUT_KINDS, label)
+    validate_enum(data, "impact", PAPERCUT_IMPACTS, label)
+    validate_enum(data, "resolution", PAPERCUT_RESOLUTIONS, label)
+    validate_enum(data, "owner_hint", PAPERCUT_OWNERS, label)
+    if data.key?("workaround") && (!data["workaround"].is_a?(String) || data["workaround"].empty?)
+      raise Error, "#{label}: workaround must be a non-empty string when present"
+    end
+
+    if routed
+      require_fields(data, %w[papercut_id created_at intake_digest], label)
+      unless data["papercut_id"].match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid papercut_id"
+      end
+      unless data["created_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+        raise Error, "#{label}: created_at must be a UTC timestamp"
+      end
+      unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
+        raise Error, "#{label}: intake_digest must be a SHA-256 digest"
+      end
+      intake = data.reject { |key, _| %w[intake_digest closure].include?(key) }
+      expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
+      unless data["intake_digest"] == expected_digest
+        raise Error, "#{label}: papercut intake fields changed after recording"
+      end
+    elsif data.key?("papercut_id") || data.key?("created_at") || data.key?("intake_digest")
+      raise Error, "#{label}: unrecorded papercut must not assign identity fields"
+    end
+
+    closure = data["closure"]
+    if archived
+      validate_papercut_closure(closure, data["papercut_id"], label)
+    elsif closure
+      raise Error, "#{label}: open papercut must not contain closure data"
+    end
+  end
+
+  def validate_papercut_closure(closure, papercut_id, label)
+    raise Error, "#{label}: missing closure mapping" unless closure.is_a?(Hash)
+
+    require_fields(closure, %w[outcome rationale closed_at], "#{label} closure")
+    validate_enum(closure, "outcome", PAPERCUT_OUTCOMES, "#{label} closure")
+    unless closure["closed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+      raise Error, "#{label}: closure closed_at must be a UTC timestamp"
+    end
+
+    related_papercut_id = closure["related_papercut_id"]
+    related_candidate_id = closure["related_candidate_id"]
+    case closure["outcome"]
+    when "duplicate"
+      require_fields(closure, %w[related_papercut_id], "#{label} duplicate closure")
+      unless related_papercut_id.match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid related_papercut_id"
+      end
+      if related_papercut_id == papercut_id
+        raise Error, "#{label}: duplicate papercut cannot reference itself"
+      end
+      if related_candidate_id
+        raise Error, "#{label}: duplicate closure must not contain related_candidate_id"
+      end
+    when "candidate"
+      require_fields(closure, %w[related_candidate_id], "#{label} candidate closure")
+      unless related_candidate_id.match?(/\ARC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid related_candidate_id"
+      end
+      if related_papercut_id
+        raise Error, "#{label}: candidate closure must not contain related_papercut_id"
+      end
+    else
+      if related_papercut_id || related_candidate_id
+        raise Error, "#{label}: #{closure['outcome']} closure must not contain a related ID"
+      end
+    end
+  end
+
+  def validate_enum(data, field, allowed, label)
+    return if allowed.include?(data[field])
+
+    raise Error, "#{label}: #{field} must be one of #{allowed.join(', ')}"
   end
 
   def validate_triage(triage, candidate_id, label)
@@ -341,6 +451,27 @@ module RetroState
     MARKDOWN
   end
 
+  def papercut_template
+    <<~MARKDOWN
+      ---
+      schema_version: 1
+      record_type: papercut
+      source_scope: "Sanitized repository or task category; omit private names."
+      kind: command
+      observation: "Unexpected, avoidable friction and why it interrupted the task."
+      impact: retry
+      resolution: worked-around
+      workaround: "Optional concise workaround; remove this field when unresolved."
+      owner_hint: unknown
+      redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
+      ---
+
+      # Papercut observation
+
+      Optional bounded evidence or context. Do not synthesize a skill candidate here.
+    MARKDOWN
+  end
+
   def decision_template
     <<~MARKDOWN
       ---
@@ -493,6 +624,57 @@ module RetroState
       end
     end
 
+    def record_papercut(data, body, label:)
+      RetroState.validate_papercut(data, body, label: label, routed: false)
+      init
+
+      now = Time.now.utc
+      id = unique_papercut_id("PC-#{now.strftime('%Y%m%dT%H%M%SZ')}")
+      record = data.dup
+      record["papercut_id"] = id
+      record["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+      intake = record.reject { |key, _| key == "intake_digest" }
+      record["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
+      destination = papercut_path("inbox", id)
+      exclusive_write(destination, RetroState.render_document(record, body))
+      destination
+    end
+
+    def papercuts(archive: false)
+      ensure_initialized
+      area = archive ? "archive" : "inbox"
+      Dir.glob(File.join(root, "papercuts", area, "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_papercut(data, body, label: path, routed: true, archived: archive)
+        observation = data.fetch("observation").gsub(/\s+/, " ").strip
+        [data.fetch("papercut_id"), data.fetch("kind"), data.fetch("impact"), observation, path]
+      end
+    end
+
+    def close_papercut(papercut_id, outcome:, rationale:, related_papercut_id: nil, related_candidate_id: nil)
+      ensure_initialized
+      source = papercut_path("inbox", papercut_id)
+      raise Error, "papercut not found in inbox: #{papercut_id}" unless File.file?(source)
+
+      data, body = RetroState.read_document(source)
+      RetroState.validate_papercut(data, body, label: source, routed: true)
+      closure = {
+        "outcome" => outcome,
+        "rationale" => rationale,
+        "closed_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+      }
+      closure["related_papercut_id"] = related_papercut_id if related_papercut_id
+      closure["related_candidate_id"] = related_candidate_id if related_candidate_id
+      RetroState.validate_papercut_closure(closure, papercut_id, source)
+      validate_papercut_reference!(closure)
+
+      data["closure"] = closure
+      destination = papercut_path("archive", papercut_id)
+      exclusive_write(destination, RetroState.render_document(data, body))
+      File.unlink(source)
+      destination
+    end
+
     def process(candidate_id, decision_path)
       ensure_initialized
       source = candidate_path("inbox", candidate_id)
@@ -600,6 +782,38 @@ module RetroState
         end
       end
 
+      papercut_ids = {}
+      archived_papercuts = []
+      {
+        "inbox" => false,
+        "archive" => true
+      }.each do |area, archived|
+        Dir.glob(File.join(root, "papercuts", area, "*.md")).sort.each do |path|
+          data, body = RetroState.read_document(path)
+          RetroState.validate_papercut(data, body, label: path, routed: true, archived: archived)
+          id = data.fetch("papercut_id")
+          errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
+          if papercut_ids.key?(id)
+            errors << "#{path}: duplicate papercut_id also used by #{papercut_ids.fetch(id)}"
+          else
+            papercut_ids[id] = path
+          end
+          archived_papercuts << [path, data] if archived
+        rescue Error => e
+          errors << e.message
+        end
+      end
+
+      archived_papercuts.each do |path, data|
+        closure = data.fetch("closure")
+        if closure["outcome"] == "duplicate" && !papercut_ids.key?(closure["related_papercut_id"])
+          errors << "#{path}: related papercut does not exist: #{closure['related_papercut_id']}"
+        end
+        if closure["outcome"] == "candidate" && !ids.key?(closure["related_candidate_id"])
+          errors << "#{path}: related candidate does not exist: #{closure['related_candidate_id']}"
+        end
+      end
+
       accepted_ids = {}
       Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort.each do |path|
         data, body = RetroState.read_document(path)
@@ -632,6 +846,19 @@ module RetroState
     end
 
     private
+
+    def validate_papercut_reference!(closure)
+      case closure["outcome"]
+      when "duplicate"
+        related_id = closure.fetch("related_papercut_id")
+        exists = %w[inbox archive].any? { |area| File.file?(papercut_path(area, related_id)) }
+        raise Error, "related papercut does not exist: #{related_id}" unless exists
+      when "candidate"
+        related_id = closure.fetch("related_candidate_id")
+        exists = %w[inbox archive].any? { |area| File.file?(candidate_path(area, related_id)) }
+        raise Error, "related candidate does not exist: #{related_id}" unless exists
+      end
+    end
 
     def record_auxiliary(input_path, record_type, directory, id_field, prefix)
       ensure_initialized
@@ -710,6 +937,23 @@ module RetroState
       File.join(root, "retrospectives", area, "#{candidate_id}.md")
     end
 
+    def papercut_path(area, papercut_id)
+      unless papercut_id.match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+        raise Error, "invalid papercut_id: #{papercut_id}"
+      end
+
+      File.join(root, "papercuts", area, "#{papercut_id}.md")
+    end
+
+    def unique_papercut_id(prefix)
+      100.times do
+        id = "#{prefix}-#{SecureRandom.hex(3)}"
+        paths = Dir.glob(File.join(root, "papercuts", "**", "#{id}.md"))
+        return id if paths.empty?
+      end
+      raise Error, "could not allocate a unique papercut ID"
+    end
+
     def unique_id(prefix)
       100.times do
         id = "#{prefix}-#{SecureRandom.hex(3)}"
@@ -746,6 +990,7 @@ module RetroState
       accepted = File.join(tmp, "accepted.md")
       draft = File.join(tmp, "draft.md")
       ledger = File.join(tmp, "ledger.md")
+      papercut = File.join(tmp, "papercut.md")
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
 
       store = Store.new(root)
@@ -754,6 +999,78 @@ module RetroState
       id = File.basename(path, ".md")
       raise "pending candidate missing" unless store.pending.map(&:first) == [id]
       store.validate
+
+      File.write(papercut, papercut_template)
+      papercut_data, papercut_body = read_document(papercut)
+      papercut_path = store.record_papercut(papercut_data, papercut_body, label: papercut)
+      papercut_id = File.basename(papercut_path, ".md")
+      raise "open papercut missing" unless store.papercuts.map(&:first) == [papercut_id]
+      closed_papercut = store.close_papercut(
+        papercut_id,
+        outcome: "candidate",
+        rationale: "The observation was synthesized into a candidate.",
+        related_candidate_id: id
+      )
+      raise "papercut was not archived" unless File.file?(closed_papercut)
+      raise "closed papercut remained open" unless store.papercuts.empty?
+      raise "archived papercut missing" unless store.papercuts(archive: true).map(&:first) == [papercut_id]
+
+      duplicate_data, duplicate_body = read_document(papercut)
+      duplicate_path = store.record_papercut(duplicate_data, duplicate_body, label: papercut)
+      duplicate_id = File.basename(duplicate_path, ".md")
+      raise "papercut IDs were not unique" if duplicate_id == papercut_id
+      store.close_papercut(
+        duplicate_id,
+        outcome: "duplicate",
+        rationale: "The same observation was already recorded.",
+        related_papercut_id: papercut_id
+      )
+      store.validate
+
+      missing_reference_data, missing_reference_body = read_document(papercut)
+      missing_reference_path = store.record_papercut(
+        missing_reference_data,
+        missing_reference_body,
+        label: papercut
+      )
+      missing_reference_id = File.basename(missing_reference_path, ".md")
+      begin
+        store.close_papercut(
+          missing_reference_id,
+          outcome: "duplicate",
+          rationale: "Invalid missing-reference test.",
+          related_papercut_id: "PC-20260715T120000Z-000000"
+        )
+        raise "missing related papercut was accepted"
+      rescue Error => e
+        raise unless e.message.include?("related papercut does not exist")
+      end
+      store.close_papercut(
+        missing_reference_id,
+        outcome: "no-action",
+        rationale: "Closed after the missing-reference test."
+      )
+
+      malformed_papercut = File.join(tmp, "malformed-papercut.md")
+      File.write(malformed_papercut, papercut_template.sub("impact: retry", "impact: surprise"))
+      malformed_data, malformed_body = read_document(malformed_papercut)
+      begin
+        store.record_papercut(malformed_data, malformed_body, label: malformed_papercut)
+        raise "malformed papercut was accepted"
+      rescue Error => e
+        raise unless e.message.include?("impact must be one of")
+      end
+
+      archived_original = File.read(closed_papercut)
+      File.write(closed_papercut, archived_original.sub("Unexpected, avoidable friction", "Altered friction"))
+      begin
+        store.validate
+        raise "tampered papercut intake was accepted"
+      rescue Error => e
+        raise unless e.message.include?("papercut intake fields changed after recording")
+      ensure
+        File.write(closed_papercut, archived_original)
+      end
 
       original = File.read(path)
       File.write(path, original.sub("Atomic routing", "Tampered routing"))
@@ -810,6 +1127,19 @@ module RetroState
         raise unless e.message.include?("unredacted user-home path")
       end
 
+      forbidden_papercut = File.join(tmp, "forbidden-papercut.md")
+      File.write(
+        forbidden_papercut,
+        papercut_template.sub("Optional bounded evidence or context.", "Raw /home/person/private path.")
+      )
+      forbidden_data, forbidden_body = read_document(forbidden_papercut)
+      begin
+        store.record_papercut(forbidden_data, forbidden_body, label: forbidden_papercut)
+        raise "forbidden papercut was accepted"
+      rescue Error => e
+        raise unless e.message.include?("unredacted user-home path")
+      end
+
       git_root = File.join(tmp, "repo")
       FileUtils.mkdir_p(File.join(git_root, ".git"))
       File.write(File.join(git_root, ".git", "HEAD"), "ref: refs/heads/main\n")
@@ -832,7 +1162,11 @@ def usage
 
     Commands:
       init                              Initialize the configured state root
-      template TYPE                    Print candidate, decision, accepted, draft, or ledger template
+      template TYPE                    Print papercut, candidate, decision, accepted, draft, or ledger template
+      record-papercut --file PATH      Record a papercut from PATH, or - for standard input
+      papercuts [--archive]            List open papercuts, or archived papercuts explicitly
+      close-papercut --id ID --outcome OUTCOME --rationale TEXT
+                                        Archive a papercut with a reviewed outcome
       route --file PATH                Route a candidate into the inbox
       pending                           List validated inbox candidates
       process --id ID --decision PATH  Archive a candidate with a verdict
@@ -857,13 +1191,23 @@ command = ARGV.shift
 
 root_override = nil
 input_path = nil
-candidate_id = nil
+record_id = nil
 decision_path = nil
+archive = false
+outcome = nil
+rationale = nil
+related_papercut_id = nil
+related_candidate_id = nil
 parser = OptionParser.new do |opts|
   opts.on("--root DIR") { |value| root_override = value }
   opts.on("--file PATH") { |value| input_path = value }
-  opts.on("--id ID") { |value| candidate_id = value }
+  opts.on("--id ID") { |value| record_id = value }
   opts.on("--decision PATH") { |value| decision_path = value }
+  opts.on("--archive") { archive = true }
+  opts.on("--outcome OUTCOME") { |value| outcome = value }
+  opts.on("--rationale TEXT") { |value| rationale = value }
+  opts.on("--related-papercut-id ID") { |value| related_papercut_id = value }
+  opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
   opts.on("--help") do
     puts usage
     exit 0
@@ -876,6 +1220,7 @@ begin
     type = ARGV.shift
     parser.parse!(ARGV)
     template = case type
+               when "papercut" then RetroState.papercut_template
                when "candidate" then RetroState.candidate_template
                when "decision" then RetroState.decision_template
                when "accepted" then RetroState.accepted_template
@@ -891,12 +1236,18 @@ begin
   else
     parser.parse!(ARGV)
     root = root_override || ENV[RetroState::STATE_ENV]
-    if command == "route" && RetroState.blank?(root)
-      raise RetroState::Error, "route requires --file PATH" unless input_path
+    if %w[route record-papercut].include?(command) && RetroState.blank?(root)
+      command_label = command == "route" ? "route" : "record-papercut"
+      raise RetroState::Error, "#{command_label} requires --file PATH" unless input_path
 
       data, body = RetroState.read_document(input_path)
-      RetroState.validate_candidate(data, body, label: input_path, routed: false)
-      warn "#{RetroState::STATE_ENV} is not set; no state was written. Paste-ready candidate follows."
+      if command == "route"
+        RetroState.validate_candidate(data, body, label: input_path, routed: false)
+      else
+        RetroState.validate_papercut(data, body, label: input_path, routed: false)
+      end
+      record_name = command == "route" ? "candidate" : "papercut"
+      warn "#{RetroState::STATE_ENV} is not set; no state was written. Paste-ready #{record_name} follows."
       print RetroState.render_document(data, body)
       exit 2
     end
@@ -917,13 +1268,39 @@ begin
         print RetroState.render_document(data, body)
         exit 2
       end
+    when "record-papercut"
+      raise RetroState::Error, "record-papercut requires --file PATH" unless input_path
+
+      data, body = RetroState.read_document(input_path)
+      RetroState.validate_papercut(data, body, label: input_path, routed: false)
+      begin
+        puts store.record_papercut(data, body, label: input_path)
+      rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
+        warn "Could not record to external state (#{e.message}); no state was written. Paste-ready papercut follows."
+        print RetroState.render_document(data, body)
+        exit 2
+      end
+    when "papercuts"
+      store.papercuts(archive: archive).each { |row| puts row.join("\t") }
+    when "close-papercut"
+      raise RetroState::Error, "close-papercut requires --id ID" unless record_id
+      raise RetroState::Error, "close-papercut requires --outcome OUTCOME" unless outcome
+      raise RetroState::Error, "close-papercut requires --rationale TEXT" unless rationale
+
+      puts store.close_papercut(
+        record_id,
+        outcome: outcome,
+        rationale: rationale,
+        related_papercut_id: related_papercut_id,
+        related_candidate_id: related_candidate_id
+      )
     when "pending"
       store.pending.each { |id, title, path| puts [id, title, path].join("\t") }
     when "process"
-      raise RetroState::Error, "process requires --id ID" unless candidate_id
+      raise RetroState::Error, "process requires --id ID" unless record_id
       raise RetroState::Error, "process requires --decision PATH" unless decision_path
 
-      puts store.process(candidate_id, decision_path)
+      puts store.process(record_id, decision_path)
     when "record-accepted"
       raise RetroState::Error, "record-accepted requires --file PATH" unless input_path
 

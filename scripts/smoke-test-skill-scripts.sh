@@ -387,12 +387,17 @@ run_retro_state_smoke() {
   local state_root="${smoke_dir}/state"
   local candidate="${smoke_dir}/candidate.md"
   local fallback="${smoke_dir}/fallback.md"
+  local papercut="${smoke_dir}/papercut.md"
+  local papercut_fallback="${smoke_dir}/papercut-fallback.md"
   local candidate_path
+  local papercut_path
+  local papercut_id
 
   require_command ruby
   mkdir -p "${smoke_dir}"
   "${script}" --help >/dev/null
   "${script}" template candidate >"${candidate}"
+  "${script}" template papercut >"${papercut}"
 
   if (
     unset CODEX_WORKFLOWS_STATE_DIR
@@ -411,10 +416,36 @@ run_retro_state_smoke() {
   rg -q 'record_type: candidate' "${fallback}"
   rg -q 'Short candidate title' "${fallback}"
 
+  if (
+    unset CODEX_WORKFLOWS_STATE_DIR
+    "${script}" record-papercut --file - <"${papercut}" >"${papercut_fallback}" 2>/dev/null
+  ); then
+    echo "retro-state record-papercut should report fallback when the state root is unset" >&2
+    return 1
+  else
+    local papercut_fallback_status=$?
+    if [[ "${papercut_fallback_status}" -ne 2 ]]; then
+      echo "retro-state papercut fallback should exit 2, got ${papercut_fallback_status}" >&2
+      return 1
+    fi
+  fi
+  rg -q 'record_type: papercut' "${papercut_fallback}"
+
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" init >/dev/null
   candidate_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" route --file "${candidate}")"
   [[ -s "${candidate_path}" ]]
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" pending | rg -q 'Atomic routing|Short candidate title'
+  papercut_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" record-papercut --file "${papercut}")"
+  [[ -s "${papercut_path}" ]]
+  papercut_id="$(basename "${papercut_path}" .md)"
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts | rg -q "${papercut_id}"
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" close-papercut \
+    --id "${papercut_id}" --outcome no-action --rationale "Pilot smoke test." >/dev/null
+  if CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts | rg -q "${papercut_id}"; then
+    echo "closed papercut should not remain in the default listing" >&2
+    return 1
+  fi
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts --archive | rg -q "${papercut_id}"
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" validate >/dev/null
   "${script}" self-test >/dev/null
 

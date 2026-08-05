@@ -7,8 +7,8 @@ Personal Codex skills and supporting scripts for software work.
 
 This repository is the source of truth. The installed copy lives under
 `${CODEX_HOME:-$HOME/.codex}/skills`, where Codex discovers skills
-automatically. Personal retrospective reports and housekeeping state live
-outside Git beneath `CODEX_WORKFLOWS_STATE_DIR`.
+automatically. Personal papercuts, retrospective reports, and housekeeping
+state live outside Git beneath `CODEX_WORKFLOWS_STATE_DIR`.
 
 ## Quick Start
 
@@ -72,6 +72,7 @@ After installation, the helper is available from any project repository:
 
 ```sh
 "${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" init
+"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" papercuts
 "${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" pending
 "${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" validate
 ```
@@ -92,8 +93,8 @@ installed skills are preserved.
 
 Git stores reusable skills, prompts, deterministic tooling, schemas, fixtures,
 and the small documentation needed to run the loops. The configured external
-state directory stores disposable inbox reports, verdict history, accepted
-evidence, drafts, ledgers, learning-process audits, and cadence state.
+state directory stores disposable papercuts, inbox reports, verdict history,
+accepted evidence, drafts, ledgers, learning-process audits, and cadence state.
 
 The complete state boundary and record lifecycle are documented in
 [External Retrospective State Protocol](skills/skill-retro/references/state-protocol.md).
@@ -136,19 +137,22 @@ validation conventions are in
 
 ## Retrospective Workflow
 
-There are three related loops:
+There are four related loops:
 
-1. **Project/session loop:** In another repository, ask an agent to use
-   `$skill-retro` after meaningful coding, investigation, CI debugging, or
-   cleanup. Default output stays in chat. Explicit `route` or `auto` mode may
-   write a sanitized candidate only to the configured external inbox; the
-   producing repository never needs the location of this source checkout.
-2. **Triage loop:** In this repository, invoke `$skill-retro-triage` to judge
+1. **Papercut capture loop:** Before or during work, explicitly enable
+   `$skill-retro` papercut mode for the session, or request a single record.
+   Qualifying sanitized observations go only to external state, and the final
+   response discloses the count recorded.
+2. **Project/session loop:** After meaningful coding, investigation, CI
+   debugging, or cleanup, ask for a Skill Candidate Report. Default output
+   stays in chat. Explicit `route` or `auto` mode may write a sanitized
+   candidate only to the configured external inbox.
+3. **Triage loop:** In this repository, invoke `$skill-retro-triage` to judge
    pending external candidates independently. By default it presents verdicts
    and a proposed implementation batch before editing. After acceptance it
    updates external outcome records, makes scoped public source changes,
    validates, installs when needed, commits, and pushes.
-3. **Repository outer loop:** Periodically use the
+4. **Repository outer loop:** Periodically use the
    [Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
    to review the public skill system for consolidation, bloat, trigger overlap,
    script opportunities, and drift. It reports in chat before changes are
@@ -161,8 +165,8 @@ not installed into `CODEX_HOME`.
 The artifact-focused repository retrospective deliberately does not inspect
 personal state. Use the separate
 [Learning Process Retrospective Prompt](prompts/learning-process-retrospective.md)
-to review external report quality, verdict patterns, deferrals, drafts, and
-verification evidence.
+to review papercut drains, external report quality, verdict patterns,
+deferrals, drafts, and verification evidence.
 
 ## Routine Maintenance
 

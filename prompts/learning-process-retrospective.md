@@ -11,6 +11,10 @@ cannot run. Do not invent a fallback location.
 
 Inspect only the external records needed to evaluate:
 
+- open papercuts and only the archived papercuts needed to identify recurrence,
+  prior closure, or pilot metrics;
+- papercut clusters that warrant no action, a repository-local fix, a formal
+  candidate, an external-owner action, or duplicate closure;
 - distributions of accept, defer, reject, split, merge, and no-change verdicts;
 - repeated report-construction or routing mistakes;
 - reusable kernels lost inside repository-specific wrappers;
@@ -31,6 +35,7 @@ Report:
 ## Learning Process Retrospective
 
 ### Intake Quality
+### Papercut Clusters And Drains
 ### Verdict And Deferral Patterns
 ### Draft And Ledger Drains
 ### Verification Health
@@ -44,3 +49,10 @@ Recommend a `$skill-retro` or template change only when the same producer error
 recurs across batches or one occurrence is especially decisive. Recommend
 deleting external history that no longer improves future judgment. Keep public
 source changes behind the ordinary `$skill-retro-triage` implementation gate.
+
+During the initial papercut pilot, report actionable yield, duplicate rate,
+noise rate, and capture gap: whether the mature end-of-session candidate process
+would probably have retained the observation anyway. Do not impose a success
+quota. When closure is explicitly authorized, create any formal candidate
+first, then close the papercut with its typed reference. Otherwise propose the
+drain decisions in chat and leave state unchanged.

@@ -81,8 +81,9 @@ Never copy or commit raw Codex runtime state:
 - caches and installed plugin caches
 - temporary files from validation or experiments
 - machine-specific secrets or credentials
-- retrospective inbox, archive, accepted records, drafts, ledgers, learning
-  audits, or cadence state from `CODEX_WORKFLOWS_STATE_DIR`
+- papercut inbox or archive, retrospective inbox, accepted records, drafts,
+  ledgers, learning audits, or cadence state from
+  `CODEX_WORKFLOWS_STATE_DIR`
 
 Review `.gitignore` before staging whenever the repo was created from a
 runtime directory.
