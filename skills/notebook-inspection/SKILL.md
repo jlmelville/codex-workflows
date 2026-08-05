@@ -18,7 +18,7 @@ execution metadata, and other context noise.
 Prefer the bundled script:
 
 ```sh
-python3 <skill-dir>/scripts/notebook_inspect.py <command> ...
+python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" <command> ...
 ```
 
 If the repository uses `uv`, run it through `uv run python` and follow
@@ -35,19 +35,19 @@ If the repository uses `uv`, run it through `uv run python` and follow
 2. Inspect notebook size and output burden before opening large files:
 
    ```sh
-   python3 <skill-dir>/scripts/notebook_inspect.py stats notebooks
+   python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" stats notebooks
    ```
 
 3. Inspect code cells only:
 
    ```sh
-   python3 <skill-dir>/scripts/notebook_inspect.py cells --type code path/to/notebook.ipynb
+   python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" cells --type code path/to/notebook.ipynb
    ```
 
 4. Inspect markdown cells only when prose, headings, or explanations matter:
 
    ```sh
-   python3 <skill-dir>/scripts/notebook_inspect.py cells --type markdown path/to/notebook.ipynb
+   python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" cells --type markdown path/to/notebook.ipynb
    ```
 
 5. Read outputs only when the user asks about rendered figures, stored results,
@@ -65,7 +65,7 @@ rg -n -g '!*.ipynb' "symbol_or_text" path/to/search
 Search notebook source cells instead of raw JSON:
 
 ```sh
-python3 <skill-dir>/scripts/notebook_inspect.py search "symbol_or_text" notebooks
+python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" search "symbol_or_text" notebooks
 ```
 
 Use `--type markdown` when searching prose and `--type all` when both code and
@@ -77,7 +77,7 @@ Only inspect outputs when necessary. Start with text streams, tracebacks, and
 small text/plain or text/markdown payloads:
 
 ```sh
-python3 <skill-dir>/scripts/notebook_inspect.py outputs path/to/notebook.ipynb
+python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" outputs path/to/notebook.ipynb
 ```
 
 Do not copy large base64 strings, embedded JavaScript, Plotly blobs, widget
@@ -92,16 +92,12 @@ notebook itself must change:
 - edit the smallest relevant set of cells;
 - preserve intentional narrative text, figure captions, and parameter choices;
 - do not normalize formatting across the whole notebook unless formatting is
-  the task;
-- avoid committing large regenerated outputs unless the user specifically wants
-  them;
-- record command, data source, random seed, and important parameters for
-  generated artifacts.
+  the task.
 
 After editing, validate notebook JSON:
 
 ```sh
-python3 <skill-dir>/scripts/notebook_inspect.py validate path/to/notebook.ipynb
+python3 "${CODEX_HOME:-$HOME/.codex}/skills/notebook-inspection/scripts/notebook_inspect.py" validate path/to/notebook.ipynb
 ```
 
 If the repo has notebook execution tooling, use it when execution is required.
@@ -113,7 +109,6 @@ Treat notebooks, plots, generated markdown, and example outputs as artifacts,
 not as the primary implementation surface.
 
 - Inspect only artifacts relevant to the task.
-- Prefer code-level tests when they prove the behavior.
 - Avoid committing large regenerated outputs unless the user asks or repo
   convention requires it.
 - Prefer fixtures or small synthetic data for tests.

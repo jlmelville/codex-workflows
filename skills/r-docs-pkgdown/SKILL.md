@@ -41,9 +41,9 @@ Use this for documentation and pkgdown work in R packages.
   change. Once roxygen markdown is enabled, complete the markdown conversion in
   the same docs-modernization chunk or add an explicit required follow-up chunk
   before formatting, lint, pkgdown, CI, or structural refactors.
-- For roxygen markdown audits or package-wide conversions, use
-  the bundled `scripts/audit-roxygen-markdown.sh` helper when available, then
-  follow [roxygen-markdown.md](references/roxygen-markdown.md).
+- For roxygen markdown audits or package-wide conversions, run
+  `${CODEX_HOME:-$HOME/.codex}/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`,
+  then follow [roxygen-markdown.md](references/roxygen-markdown.md).
 - Avoid broad roxygen churn during narrow correctness phases.
 
 ## Exported API Renames

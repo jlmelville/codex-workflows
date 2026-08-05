@@ -1,4 +1,4 @@
 interface:
   display_name: "R Test Hygiene"
-  short_description: "Keep R package tests readable"
-  default_prompt: "Use $r-test-hygiene to revise these R package tests cleanly."
+  short_description: "Design and maintain robust R tests"
+  default_prompt: "Use $r-test-hygiene to design or revise robust R package tests and fixtures."

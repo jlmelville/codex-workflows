@@ -166,6 +166,15 @@ Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading
 the cited destinations. Personal candidate, ledger, draft, audit, and cadence
 state remains beneath `CODEX_WORKFLOWS_STATE_DIR` and must not be committed.
 
+## Deferred Maintenance
+
+Put skill-repository observations that should survive chat compaction but are
+not ready for a public edit in the external maintenance ledger defined by the
+[state protocol](../skills/skill-retro/references/state-protocol.md). Review
+those entries during periodic learning-process retrospectives or when related
+skill changes suggest consolidation. Public source validity must not depend on
+that disposable state.
+
 ## Local Tooling
 
 Some skills assume these tools may be available in project worktrees:

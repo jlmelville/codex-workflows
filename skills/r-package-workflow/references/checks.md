@@ -120,8 +120,10 @@ separately from local package failures.
 
 Inspect generated and temporary output before finalizing:
 
-1. Run `scripts/audit-generated-r-files.sh` when present.
-2. If absent, inspect
+1. Run
+   `${CODEX_HOME:-$HOME/.codex}/skills/r-package-workflow/scripts/audit-generated-r-files.sh`
+   when the installed skill is available.
+2. Otherwise inspect
    `git diff --name-status -- NAMESPACE man docs`, check whether `docs/`
    exists or is tracked, and review generated Rd, NAMESPACE, or pkgdown output.
 3. Run `git diff --check`.

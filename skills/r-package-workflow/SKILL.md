@@ -78,9 +78,10 @@ zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
 
 Scripts:
 
-- `scripts/check-r-package.sh`: run a local check bundle.
-- `scripts/audit-generated-r-files.sh`: list likely generated files touched in
-  the current diff.
+- `${CODEX_HOME:-$HOME/.codex}/skills/r-package-workflow/scripts/check-r-package.sh`:
+  run a local check bundle.
+- `${CODEX_HOME:-$HOME/.codex}/skills/r-package-workflow/scripts/audit-generated-r-files.sh`:
+  list likely generated files touched in the current diff.
 
 For sparse `Matrix` slot-level implementation work, use the idioms in
 [sparse-matrix.md](references/sparse-matrix.md).

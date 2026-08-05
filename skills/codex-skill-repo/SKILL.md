@@ -95,6 +95,9 @@ Prescribe an exact sequence only when ordering prevents a known correctness,
 safety, state, or tooling failure. Move conditional recipes and examples into
 references, and deterministic behavior into scripts or validators.
 
+Prefer a new skill only when a repeated workflow has clear triggers and
+repeatable decisions. Put maintainer-only knowledge in repository documentation.
+
 When adding a skill:
 
 1. Read the system `skill-creator` guidance.
@@ -153,31 +156,3 @@ system quick validator, temporary tool state, generated artifacts, workflow
 lanes, mirrored scripts, advisory drift modes, and pre-commit review.
 
 Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading cited destination files.
-
-## Deferred Maintenance Memory
-
-For observations about this skill repository that should survive chat
-compaction but are not yet ready for direct skill, script, or prompt changes,
-use the external maintenance ledger beneath `CODEX_WORKFLOWS_STATE_DIR` as
-defined by `$skill-retro` in
-`skills/skill-retro/references/state-protocol.md`. Never put personal ledger,
-inbox, archive, accepted-record, draft, audit, or cadence state in this source
-repository. Review external state during periodic learning-process
-retrospectives and when a cluster of skill-retro changes suggests consolidation
-or script opportunities. Source validity must not depend on that state being
-available.
-
-## Skill Family Growth
-
-Use short prefixes for related skills:
-
-- `r-*` for R package workflows.
-- `python-*` for Python package workflows.
-- `local-*` for durable James-local workflows tied to local files or data
-  surfaces that recur across sessions.
-- Generic names for cross-language operations such as repository bootstrap,
-  dependency PR maintenance, uv sandbox execution, shell quality, and planning.
-
-Prefer adding a new skill when a repeated workflow has clear triggers and
-repeatable decisions. Prefer a README note when the knowledge is only useful to
-the human maintainer.

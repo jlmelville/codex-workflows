@@ -61,3 +61,8 @@ handoff files after this skill exists:
    user explicitly asks; report their status instead.
 6. Note whether resulting files are tracked, untracked, or ignored, because
    future agents may not see them in ordinary status output.
+
+Do not require fixed emoji or marker taxonomies. If a repo or user explicitly
+requests progress markers for an active ExecPlan, define a small phase-local
+legend in chat and record it in `Artifacts and Notes`. Keep markers out of code,
+generated docs, commit messages, and copied terminal output.

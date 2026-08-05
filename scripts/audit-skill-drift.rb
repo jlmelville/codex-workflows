@@ -9,6 +9,7 @@ repo_dir = File.expand_path("..", __dir__)
 options = {
   max_description: 420,
   max_total_description: 6_000,
+  max_skill_lines: 160,
   overlap_threshold: 0.20,
   strict: false,
   strict_hard: false,
@@ -24,6 +25,9 @@ OptionParser.new do |opts|
   end
   opts.on("--max-total-description N", Integer, "Flag total description budget above N characters") do |value|
     options[:max_total_description] = value
+  end
+  opts.on("--max-skill-lines N", Integer, "Flag SKILL.md files longer than N lines") do |value|
+    options[:max_skill_lines] = value
   end
   opts.on("--overlap-threshold N", Float, "Flag description token overlap above N") do |value|
     options[:overlap_threshold] = value
@@ -81,6 +85,8 @@ IGNORED_DUPLICATE_HELPERS = Set.new(%w[
 ])
 
 SKILL_SCRIPT_PATH_PATTERN = %r{(?:[.]/)?skills/[A-Za-z0-9._-]+/scripts/[A-Za-z0-9._/-]+}.freeze
+SKILL_DIR_PLACEHOLDER_PATTERN = %r{<skill-dir>/scripts/[A-Za-z0-9._/-]+}.freeze
+BARE_SCRIPT_PATH_PATTERN = %r{\bscripts/([A-Za-z0-9._/-]+)}.freeze
 SOURCE_REPO_CONTEXT_PATTERN = /\b(?:source repo|source repository|source tree|repository root|from this repo)\b/i
 
 def read_text(path)
@@ -161,7 +167,8 @@ end
 
 def source_repo_context?(lines, index)
   start_index = [index - 4, 0].max
-  lines[start_index...index].join(" ").match?(SOURCE_REPO_CONTEXT_PATTERN)
+  context = lines[start_index...index].join(" ").gsub(/\s+/, " ")
+  context.match?(SOURCE_REPO_CONTEXT_PATTERN)
 end
 
 def installed_breaking_command_rows(repo_dir, files)
@@ -173,6 +180,35 @@ def installed_breaking_command_rows(repo_dir, files)
       next if source_repo_context?(lines, index)
 
       rows << "#{relative_path(repo_dir, path)}:#{index + 1}: #{line.strip}"
+    end
+  end
+  rows
+end
+
+def ambiguous_bundled_script_rows(repo_dir, files)
+  rows = []
+  files.each do |path|
+    relative = relative_path(repo_dir, path)
+    skill_match = relative.match(%r{\Askills/([^/]+)/})
+    next unless skill_match
+
+    skill_dir = File.join(repo_dir, "skills", skill_match[1])
+    lines = read_text(path).lines
+    lines.each_with_index do |line, index|
+      if line.match?(SKILL_DIR_PLACEHOLDER_PATTERN)
+        rows << "#{relative}:#{index + 1}: #{line.strip}"
+        next
+      end
+
+      next if line.include?("${CODEX_HOME")
+      next if source_repo_context?(lines, index)
+
+      bundled_reference = line.scan(BARE_SCRIPT_PATH_PATTERN).flatten.find { |script_path|
+        File.file?(File.join(skill_dir, "scripts", script_path))
+      }
+      next unless bundled_reference
+
+      rows << "#{relative}:#{index + 1}: #{line.strip}"
     end
   end
   rows
@@ -285,7 +321,7 @@ long_description_rows = skills.select { |skill|
 }
 record_findings(findings, triaged_findings, triage_entries, :info, "Long Descriptions", long_description_rows)
 
-long_skill_rows = skills.select { |skill| skill[:skill_lines] > 200 }.map { |skill|
+long_skill_rows = skills.select { |skill| skill[:skill_lines] > options[:max_skill_lines] }.map { |skill|
   "#{skill[:name]}: #{skill[:skill_lines]} SKILL.md lines"
 }
 record_findings(findings, triaged_findings, triage_entries, :info, "Large Always-Read Skill Files", long_skill_rows)
@@ -334,6 +370,16 @@ record_findings(
   :hard,
   "Installed-Breaking Skill Script Commands",
   installed_command_rows
+)
+
+ambiguous_script_rows = ambiguous_bundled_script_rows(repo_dir, skill_markdown_files)
+record_findings(
+  findings,
+  triaged_findings,
+  triage_entries,
+  :hard,
+  "Ambiguous Bundled Skill Script References",
+  ambiguous_script_rows
 )
 
 repo_relative_helper_rows = line_hits(

@@ -18,6 +18,13 @@ Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
 
+## Managed Sandbox Git Writes
+
+If staging or committing fails under managed sandboxing with a read-only
+`.git/index.lock` error, and `git -C <repo>` is an approved command form, retry
+the git operation with `git -C <repo>` before considering permission changes or
+lock-file cleanup.
+
 ## Behavior-Neutral File Splits
 
 For behavior-neutral file splits, add a mechanical verification step before

@@ -79,28 +79,10 @@ update rules, decision-entry template, and commit-hash caveat.
 ## Chunk Plans
 
 For repository cleanups or broad audits, prefer small packets over one
-monolithic instruction list.
-
-A chunk plan should include:
-
-- goal and guardrails;
-- source audit or review file, if any;
-- explicit operational chunking rules;
-- a chunk queue with scope, tasks, validation, and exit criteria;
-- a progress log recording completed chunks, files changed, tests run,
-  discoveries, decisions, and the recommended next chunk.
-
-Each agent should complete one coherent chunk, run focused validation, update
-the progress log, and stop with a handoff when more work remains. Do not
-combine unrelated chunks just because context remains.
-
-If staging or committing fails under managed sandboxing with a read-only
-`.git/index.lock` error, and `git -C <repo>` is an approved command form, retry
-the git operation with `git -C <repo>` before considering permission changes or
-lock-file cleanup.
-
-See [chunk-plans.md](references/chunk-plans.md) for behavior-neutral file split
-verification, bug-scoped staging, and warning ownership rules.
+monolithic instruction list. See [chunk-plans.md](references/chunk-plans.md) for
+the required shape, packet boundaries, sandboxed staging recovery,
+behavior-neutral file split verification, bug-scoped staging, and warning
+ownership rules.
 
 ## Audits And Review Packets
 
@@ -140,33 +122,12 @@ Put handoffs in chat by default and write files only when asked or when the repo
 already uses them. Keep durable state in the active plan and point to it from
 the handoff. See [handoffs.md](references/handoffs.md) for the full template.
 
-## Location And Visibility
+## Location, Visibility, And Cleanup
 
-Respect the repo's existing convention for plan locations. Search ignored paths
-because active plans may live under ignored `plans/`, `plans_pending/`, or
-`docs/plans/` directories.
-
-When creating a persistent plan, choose a location deliberately:
-
-- Use the established plan directory when it is intentionally local or ignored.
-- Use a visible tracked path, such as a root `EXECPLAN-*.md`, when the plan must
-  appear in normal `git status` or be reviewed in a PR.
-- Explain the location choice in the plan when ignored paths or visibility
-  could surprise a later agent.
-
-Avoid adding or expanding generic `PLANS.md` or `AGENTS.md` rules when this
-skill already covers them. Keep repo instructions short and repo-specific.
-
-See [plan-file-visibility.md](references/plan-file-visibility.md) for ignored
-or untracked plan edits, package-check visibility issues, and cleanup rules.
-
-## Cleaning Local Planning Files
-
-When asked to clean up `PLANS.md`, `AGENTS.md`, plan directories, or old
-handoff files after this skill exists, preserve durable current state and remove
-generic copied rules only after checking tracked, untracked, and ignored paths.
-Use [plan-file-visibility.md](references/plan-file-visibility.md) for the full
-cleanup checklist.
+Respect the repo's existing plan location and keep repo instructions short and
+repo-specific. Use
+[plan-file-visibility.md](references/plan-file-visibility.md) when plans may be
+ignored, untracked, noisy for package checks, or subject to cleanup.
 
 ## Resume And Recovery
 
@@ -178,13 +139,6 @@ When resuming after compaction, interruption, or a fresh-agent handoff:
 3. Verify the plan against the code. If they disagree, record the discrepancy
    as a discovery and update the current state before continuing.
 4. Continue with the next coherent step, not with stale chat memory.
-
-## Progress Markers
-
-Do not require fixed emoji or marker taxonomies. If a repo or user explicitly
-requests progress markers for an active ExecPlan, define a small phase-local
-legend in chat and record it in `Artifacts and Notes`. Do not put markers in
-code, generated docs, commit messages, or copied terminal output.
 
 ## Completion Bar
 

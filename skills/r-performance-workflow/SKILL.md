@@ -92,7 +92,7 @@ The bundled script can run a simple case file and emit CSV plus plan-ready
 Markdown:
 
 ```sh
-Rscript <skill-dir>/scripts/benchmark-evidence.R path/to/cases.R --reps 5 --seed 1 --out bench/results
+Rscript "${CODEX_HOME:-$HOME/.codex}/skills/r-performance-workflow/scripts/benchmark-evidence.R" path/to/cases.R --reps 5 --seed 1 --out bench/results
 ```
 
 The case file must define `benchmark_cases`, a named list of zero-argument
