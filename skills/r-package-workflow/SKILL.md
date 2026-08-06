@@ -30,9 +30,15 @@ Use this as the default operating procedure for R package work.
   stored metadata, and documentation that claim broader applicability at every
   newly admitted boundary class. Use the reference-applicability checklist in
   [checks.md](references/checks.md#reference-metadata-applicability).
-- Before finalizing new exported functions or metrics, check that public names
-  are literal, discoverable, and defensible without private project backstory.
-  Reserve niche terminology for documentation when a clearer API name exists.
+- Before finalizing new or renamed functions, helpers, metrics, or result
+  fields, review each name at its call site without opening the definition and
+  read public fields as a consumer would. Keep names literal and discoverable,
+  let verbs reveal side effects such as signaling, preserve contract-relevant
+  qualifiers, and retain package or subsystem prefixes only when they improve
+  disambiguation or searchability.
+- When an exported API forwards `...` to interchangeable backends, follow
+  [variadic-backend-controls.md](references/variadic-backend-controls.md) for
+  early validation, routing categories, fallback behavior, and public tests.
 - Emit runtime warnings only for exceptional conditions that callers can act on
   during the current call. Put durable resource costs for documented default
   behavior in parameter documentation, keep normal default calls silent, and

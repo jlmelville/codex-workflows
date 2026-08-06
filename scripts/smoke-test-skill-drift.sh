@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+audit_source="${repo_dir}/scripts/audit-skill-drift.rb"
+
+if ! command -v ruby >/dev/null 2>&1; then
+  echo "ruby is required for the skill drift smoke test" >&2
+  exit 1
+fi
+
+fixture_dir="$(mktemp -d "${TMPDIR:-/tmp}/skill-drift-smoke.XXXXXX")"
+trap 'rm -rf "${fixture_dir}"' EXIT
+
+mkdir -p "${fixture_dir}/scripts" "${fixture_dir}/skills/example/scripts"
+cp "${audit_source}" "${fixture_dir}/scripts/audit-skill-drift.rb"
+
+cat >"${fixture_dir}/scripts/audit-skill-drift-triage.tsv" <<'EOF'
+# section	pattern	rationale
+Repeated Helper Names	fixture_helper:	The duplicate helper is an intentional advisory fixture.
+EOF
+
+cat >"${fixture_dir}/scripts/one.sh" <<'EOF'
+fixture_helper() {
+  return 0
+}
+EOF
+
+cat >"${fixture_dir}/scripts/two.sh" <<'EOF'
+fixture_helper() {
+  return 0
+}
+EOF
+
+cat >"${fixture_dir}/skills/example/scripts/check.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+
+skill_file="${fixture_dir}/skills/example/SKILL.md"
+cat >"${skill_file}" <<'EOF'
+---
+name: example
+description: Exercise deterministic drift-audit classification fixtures.
+---
+
+# Example
+
+From this source
+repository root, run:
+
+```sh
+scripts/check.sh
+```
+EOF
+cp "${skill_file}" "${fixture_dir}/good-skill.md"
+
+output_file="${fixture_dir}/audit.out"
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "wrapped source-repository context or triaged advisory fixture failed" >&2
+  exit 1
+fi
+
+if ! grep -Fq "No untriaged drift findings." "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "clean fixture did not report zero untriaged findings" >&2
+  exit 1
+fi
+
+cat >>"${skill_file}" <<'EOF'
+
+Run <skill-dir>/scripts/check.sh.
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "placeholder fixture unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Ambiguous Bundled Skill Script References" "${output_file}" ||
+  ! grep -Fq "<skill-dir>/scripts/check.sh" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "placeholder fixture did not produce the expected hard finding" >&2
+  exit 1
+fi
+
+cp "${fixture_dir}/good-skill.md" "${skill_file}"
+cat >>"${skill_file}" <<'EOF'
+
+## Installed use
+
+This deliberately unqualified example exercises the hard finding.
+
+Run scripts/check.sh
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "ambiguous bundled-script fixture unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Run scripts/check.sh" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "ambiguous bundled-script fixture did not produce the expected row" >&2
+  exit 1
+fi
+
+echo "Skill drift smoke test passed."

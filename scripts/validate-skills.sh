@@ -332,6 +332,14 @@ elif ! "${installer_smoke_script}"; then
   status=1
 fi
 
+drift_smoke_script="${repo_dir}/scripts/smoke-test-skill-drift.sh"
+if [[ ! -x "${drift_smoke_script}" ]]; then
+  echo "${drift_smoke_script}: missing or not executable" >&2
+  status=1
+elif ! "${drift_smoke_script}"; then
+  status=1
+fi
+
 mirror_manifest="${repo_dir}/scripts/mirrored-files.tsv"
 if [[ -f "${mirror_manifest}" ]]; then
   while IFS=$'\t' read -r canonical mirror; do

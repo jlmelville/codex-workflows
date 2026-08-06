@@ -192,6 +192,18 @@ There are four related loops:
    script opportunities, and drift. It reports in chat before changes are
    applied.
 
+To enable capture for one task without installing the standing global policy,
+prepend this instruction to the task:
+
+> For this task, apply `$papercut-capture` during substantive repository work.
+> Silently record qualifying friction as sanitized new papercut inbox entries,
+> continue the task, and end with `Papercuts recorded: N`. Do not close,
+> promote, or edit existing papercut or retrospective records.
+
+Give that instruction before the work begins. An end-of-session retrospective
+can synthesize a mature candidate, but it cannot reliably reconstruct friction
+that was not preserved while the task was underway.
+
 Use [the stable retrospective prompt](prompts/skill-retrospective.md) to request
 session candidates. The canonical standing papercut policy is the
 [`global-agents-papercuts.md`](skills/papercut-capture/assets/global-agents-papercuts.md)

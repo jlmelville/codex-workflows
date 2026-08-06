@@ -33,3 +33,15 @@ Not every testthat expectation accepts `info` consistently across installed
 versions. For table-driven comparison diagnostics, prefer
 `expect_true(<comparison>, info = case$name)` when the case label matters, and
 smoke-run the focused test immediately after adding diagnostic arguments.
+
+## Detailed And Convenience Results
+
+When an exported API offers both a convenience value and a detailed diagnostic
+result, construct the status and result once and assign condition ownership at
+the public boundary. The convenience path may warn or error for actionable
+statuses; the detailed path should preserve status, messages, and diagnostics
+without duplicating them as conditions.
+
+Test the modes as a pair through the public API. Cover successful, warning, and
+invalid statuses on the convenience path, then assert that detailed mode stays
+silent and exposes the same diagnostic state for inspection.

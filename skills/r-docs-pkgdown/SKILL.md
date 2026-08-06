@@ -25,6 +25,13 @@ Use this for documentation and pkgdown work in R packages.
   recalculated, and whether either field applies more broadly. Do not compare a
   reference value with an initialization default unless initialization is part
   of the reference contract.
+- When an exported function accepts nontrivial backend controls through `...`,
+  keep the parameter entry short and add a user-oriented section grouping
+  supported controls by backend. State meanings, package-level defaults,
+  constraints, useful backend links, and exact routing or fallback effects;
+  distinguish route-forcing controls, value-based thresholds, and non-routing
+  diagnostics. Verify routing claims through the exported function and avoid
+  validator jargon such as allowlists or ownership.
 - Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen

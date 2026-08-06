@@ -55,8 +55,10 @@ candidate as the terminal fallback when approval is unavailable or denied.
   producing conversation.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
-- Deduplicate related observations. Route one candidate per external Markdown
-  file so each can be judged independently.
+- Consolidate same-task evidence when it supports one missing delta,
+  destination, and decision. Split only materially distinct deltas, and keep
+  one candidate per external Markdown file so separate candidates remain
+  independently judgeable.
 - For an existing destination, identify the missing delta: what current
   guidance did not cover and whether the smallest fix belongs in `SKILL.md`, a
   reference, script, prompt, or no action.

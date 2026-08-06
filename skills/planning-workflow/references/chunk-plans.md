@@ -18,6 +18,14 @@ Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
 
+## Progress Log Edits
+
+When a plan repeats marker text such as next-chunk recommendations, anchor a
+patch on a unique heading and nearby dated entry or on an explicit end-of-log
+context. After updating the log, inspect the dated-entry order and final
+recommended chunk so an earlier matching marker cannot silently receive the
+new entry.
+
 ## Managed Sandbox Git Writes
 
 If staging or committing fails under managed sandboxing with a read-only
