@@ -86,7 +86,7 @@ IGNORED_DUPLICATE_HELPERS = Set.new(%w[
 
 SKILL_SCRIPT_PATH_PATTERN = %r{(?:[.]/)?skills/[A-Za-z0-9._-]+/scripts/[A-Za-z0-9._/-]+}.freeze
 SKILL_DIR_PLACEHOLDER_PATTERN = %r{<skill-dir>/scripts/[A-Za-z0-9._/-]+}.freeze
-BARE_SCRIPT_PATH_PATTERN = %r{\bscripts/([A-Za-z0-9._/-]+)}.freeze
+BARE_SCRIPT_PATH_PATTERN = %r{\bscripts/([A-Za-z0-9._/-]*[A-Za-z0-9_/-])}.freeze
 SOURCE_REPO_CONTEXT_PATTERN = /\b(?:source repo|source repository|source tree|repository root|from this repo)\b/i
 
 def read_text(path)

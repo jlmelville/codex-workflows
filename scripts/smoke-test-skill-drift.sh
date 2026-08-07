@@ -104,4 +104,24 @@ if ! grep -Fq "Run scripts/check.sh" "${output_file}"; then
   exit 1
 fi
 
+cp "${fixture_dir}/good-skill.md" "${skill_file}"
+cat >>"${skill_file}" <<'EOF'
+
+## Installed use
+
+This punctuated sentence exercises the path boundary.
+
+Run scripts/check.sh.
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "punctuated bundled-script fixture unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Run scripts/check.sh." "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "punctuated bundled-script fixture did not produce the expected row" >&2
+  exit 1
+fi
+
 echo "Skill drift smoke test passed."

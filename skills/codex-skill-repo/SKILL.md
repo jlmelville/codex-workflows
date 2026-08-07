@@ -96,8 +96,9 @@ Prescribe an exact sequence only when ordering prevents a known correctness,
 safety, state, or tooling failure. Move conditional recipes and examples into
 references, and deterministic behavior into scripts or validators.
 
-Prefer a new skill only when a repeated workflow has clear triggers and
-repeatable decisions. Put maintainer-only knowledge in repository documentation.
+Create a new skill only for repeated work with clear triggers and decisions;
+keep maintainer-only knowledge in repository docs. For recurring non-installed
+prompts, document the exact path, a copy-ready invocation, and useful cadence.
 
 When adding a skill:
 

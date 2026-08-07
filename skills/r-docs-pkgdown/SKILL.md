@@ -16,10 +16,15 @@ Use this for documentation and pkgdown work in R packages.
   pkgdown articles.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
 - State the current supported contract in help pages, READMEs, and articles;
-  do not narrate removed options or reassure users about ordinary invariants
-  merely because they once regressed. Preserve regression mechanics in tests or
-  internal history, and include historical detail in NEWS or migration guides
-  only when it conveys user-visible behavior, compatibility impact, or action.
+  do not narrate removed options, conventional validator guarantees, or prose
+  that merely paraphrases an adjacent formula, and do not reassure users about
+  ordinary invariants merely because they once regressed. Preserve regression
+  mechanics in tests or internal history, and include historical detail in NEWS
+  or migration guides only when it conveys user-visible behavior,
+  compatibility impact, or action. When expressing a basic user choice requires
+  a multi-control recipe or several caveats, document only the non-obvious
+  current contract and record a separate API-design follow-up instead of
+  expanding the help indefinitely.
 - For paired reference values and locations, state their correspondence first,
   then document the configuration where the pair applies, whether values are
   recalculated, and whether either field applies more broadly. Do not compare a

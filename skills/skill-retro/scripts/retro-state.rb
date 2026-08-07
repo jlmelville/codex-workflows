@@ -408,7 +408,23 @@ module RetroState
       raise Error, "#{label}: status must be one of #{LEDGER_STATUSES.join(', ')}"
     end
 
+    closure = data["closure"]
+    if data["status"] == "open" && closure
+      raise Error, "#{label}: open ledger must not contain closure data"
+    elsif closure
+      validate_ledger_closure(closure, label)
+    end
+
     validate_assigned_id(data, label, assigned, "ledger_id", /\ALE-\d{8}-[a-f0-9]{6}\z/)
+  end
+
+  def validate_ledger_closure(closure, label)
+    raise Error, "#{label}: ledger closure must be a mapping" unless closure.is_a?(Hash)
+
+    require_fields(closure, %w[rationale closed_at], "#{label} closure")
+    unless closure["closed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+      raise Error, "#{label}: closure closed_at must be a UTC timestamp"
+    end
   end
 
   def validate_assigned_id(data, label, assigned, field, pattern)
@@ -726,6 +742,27 @@ module RetroState
       end
     end
 
+    def close_ledger(ledger_id, rationale:)
+      ensure_initialized
+      path = ledger_path(ledger_id)
+      raise Error, "ledger not found: #{ledger_id}" unless File.file?(path)
+
+      data, body = RetroState.read_document(path)
+      RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
+      raise Error, "ledger is already closed: #{ledger_id}" unless data["status"] == "open"
+
+      closed_at = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+      data["status"] = "closed"
+      data["last_reviewed"] = closed_at
+      data["closure"] = {
+        "rationale" => rationale,
+        "closed_at" => closed_at
+      }
+      RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
+      replace_write(path, RetroState.render_document(data, body))
+      path
+    end
+
     def review_queue
       ensure_initialized
       rows = []
@@ -945,6 +982,14 @@ module RetroState
       File.join(root, "papercuts", area, "#{papercut_id}.md")
     end
 
+    def ledger_path(ledger_id)
+      unless ledger_id.match?(/\ALE-\d{8}-[a-f0-9]{6}\z/)
+        raise Error, "invalid ledger_id: #{ledger_id}"
+      end
+
+      File.join(root, "ledgers", "#{ledger_id}.md")
+    end
+
     def unique_papercut_id(prefix)
       100.times do
         id = "#{prefix}-#{SecureRandom.hex(3)}"
@@ -979,6 +1024,14 @@ module RetroState
       end
     rescue Errno::EEXIST
       raise Error, "refusing to overwrite existing state file: #{path}"
+    end
+
+    def replace_write(path, content)
+      temporary = "#{path}.tmp-#{Process.pid}-#{SecureRandom.hex(3)}"
+      exclusive_write(temporary, content)
+      File.rename(temporary, path)
+    ensure
+      File.unlink(temporary) if temporary && File.exist?(temporary)
     end
   end
 
@@ -1103,7 +1156,9 @@ module RetroState
       File.write(draft, draft_template)
       raise "draft record missing" unless File.file?(store.record_draft(draft))
       File.write(ledger, ledger_template)
-      raise "ledger record missing" unless File.file?(store.record_ledger(ledger))
+      ledger_path = store.record_ledger(ledger)
+      raise "ledger record missing" unless File.file?(ledger_path)
+      ledger_id = File.basename(ledger_path, ".md")
 
       deferred_path = store.route(input)
       deferred_id = File.basename(deferred_path, ".md")
@@ -1116,6 +1171,29 @@ module RetroState
       raise "deferral missing from review queue" unless review_types.include?("deferred")
       raise "draft missing from review queue" unless review_types.include?("draft")
       raise "ledger missing from review queue" unless review_types.include?("ledger")
+
+      closed_ledger = store.close_ledger(ledger_id, rationale: "The maintenance action was completed.")
+      closed_data, = read_document(closed_ledger)
+      raise "ledger was not closed" unless closed_data["status"] == "closed"
+      raise "ledger review timestamp was not updated" unless closed_data["last_reviewed"].end_with?("Z")
+      unless closed_data.dig("closure", "rationale") == "The maintenance action was completed."
+        raise "ledger closure rationale missing"
+      end
+      if store.review_queue.map(&:first).count("ledger").positive?
+        raise "closed ledger remained in review queue"
+      end
+      begin
+        store.close_ledger(ledger_id, rationale: "Invalid repeated closure.")
+        raise "already closed ledger was accepted"
+      rescue Error => e
+        raise unless e.message.include?("ledger is already closed")
+      end
+      begin
+        store.close_ledger("LE-20260715-000000", rationale: "Invalid missing-ledger test.")
+        raise "missing ledger was accepted"
+      rescue Error => e
+        raise unless e.message.include?("ledger not found")
+      end
       store.validate
 
       forbidden = File.join(tmp, "forbidden.md")
@@ -1173,6 +1251,8 @@ def usage
       record-accepted --file PATH       Store a curated accepted record
       record-draft --file PATH          Store an uninstalled draft
       record-ledger --file PATH         Store a maintenance ledger entry
+      close-ledger --id ID --rationale TEXT
+                                        Close a maintenance ledger entry
       review-queue                      List open deferrals, drafts, and ledger entries
       validate                          Validate the configured live state
       self-test                         Exercise the protocol in a temporary directory
@@ -1313,6 +1393,11 @@ begin
       raise RetroState::Error, "record-ledger requires --file PATH" unless input_path
 
       puts store.record_ledger(input_path)
+    when "close-ledger"
+      raise RetroState::Error, "close-ledger requires --id ID" unless record_id
+      raise RetroState::Error, "close-ledger requires --rationale TEXT" unless rationale
+
+      puts store.close_ledger(record_id, rationale: rationale)
     when "review-queue"
       store.review_queue.each { |type, id, trigger, path| puts [type, id, trigger, path].join("\t") }
     when "validate"

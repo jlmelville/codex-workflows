@@ -42,6 +42,23 @@ update coefficients, or finite-termination counts where relevant. Golden output
 on a difficult nonlinear benchmark can cover recipe wiring, but it does not
 prove exact-condition equivalence or N-step termination.
 
+## Bounded Candidate And Tie Contracts
+
+For top-k or neighbor-search interfaces, distinguish deterministic ordering
+within the candidate pool returned by a backend from deterministic membership
+across the backend cutoff. A stable distance-and-index sort can canonicalize the
+returned pool, but it cannot recover equally ranked candidates that the backend
+did not return. Asking for a small number of spare candidates expands that pool;
+it does not establish global tie membership unless the backend documents a
+complete tie-selection guarantee.
+
+Test exact ordering and de-duplication with a controlled candidate-matrix
+fixture where the returned set is specified. When an end-to-end tie can cross
+the cutoff, assert membership-independent public invariants such as width,
+range, uniqueness, distances, and self handling. Reserve exact-ID golden tests
+for fixtures where the complete boundary tie is known to be represented or the
+backend explicitly guarantees its selection policy.
+
 ## Derivative Evidence Before Fixes
 
 For gradients, Hessians, and related analytic derivatives, do not treat one

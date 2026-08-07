@@ -92,6 +92,7 @@ template draft
 record-draft --file PATH
 template ledger
 record-ledger --file PATH
+close-ledger --id ID --rationale TEXT
 review-queue
 validate
 ```
@@ -214,6 +215,11 @@ specific decision; it is not automatically a draft or ledger entry.
 Create drafts and ledger entries from the helper templates so validation can
 enforce their owner/status and executable-drain fields. Close, activate,
 deprecate, or delete them instead of accumulating generic notes.
+
+Close an open maintenance ledger through `close-ledger`. The helper preserves
+the record, marks it closed, updates `last_reviewed`, and adds a UTC closure
+timestamp and rationale. It rejects missing and already closed ledger IDs.
+Legacy closed records without structured closure metadata remain valid.
 
 This state is deliberately disposable. Delete closed papercuts, rejected
 history, stale audit material, discharged ledger entries, and superseded drafts
