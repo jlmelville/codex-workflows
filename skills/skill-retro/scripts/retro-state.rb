@@ -1173,12 +1173,15 @@ module RetroState
       raise "ledger missing from review queue" unless review_types.include?("ledger")
 
       closed_ledger = store.close_ledger(ledger_id, rationale: "The maintenance action was completed.")
-      closed_data, = read_document(closed_ledger)
+      closed_data, closed_body = read_document(closed_ledger)
       raise "ledger was not closed" unless closed_data["status"] == "closed"
       raise "ledger review timestamp was not updated" unless closed_data["last_reviewed"].end_with?("Z")
       unless closed_data.dig("closure", "rationale") == "The maintenance action was completed."
         raise "ledger closure rationale missing"
       end
+      legacy_closed_data = closed_data.reject { |key, _| key == "closure" }
+      File.write(closed_ledger, render_document(legacy_closed_data, closed_body))
+      store.validate
       if store.review_queue.map(&:first).count("ledger").positive?
         raise "closed ledger remained in review queue"
       end

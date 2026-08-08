@@ -43,6 +43,11 @@ Use this as the default operating procedure for R package work.
   during the current call. Put durable resource costs for documented default
   behavior in parameter documentation, keep normal default calls silent, and
   ensure warnings shown beside errors are causally relevant to those failures.
+- When progress messages are controlled by a `verbose` flag, pass the validated
+  value explicitly to the helpers that emit them; do not recover it from caller
+  frames or ambient state. Keep exported defaults silent, and capture public
+  messages for each interchangeable backend or input route whose diagnostic
+  contract should match, including suppression of ignored-default chatter.
 - Prefer exported API tests over private-helper tests. If an internal test
   remains, document the safety or user-visible behavior it protects.
 - Treat these as generated unless intentionally refreshed:

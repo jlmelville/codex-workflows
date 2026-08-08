@@ -42,6 +42,33 @@ update coefficients, or finite-termination counts where relevant. Golden output
 on a difficult nonlinear benchmark can cover recipe wiring, but it does not
 prove exact-condition equivalence or N-step termination.
 
+## Transformed Eigensolver Coordinates
+
+When an eigensolver operates on a symmetric transformation and maps vectors
+back to public coordinates, name the solver and mapped coordinate systems
+before implementing diagnostics. Preserve both representations only when the
+public result needs that observability. Derive the residual transformation and
+scale explicitly, and keep native solver residuals distinct from generalized
+residuals rather than silently replacing one with the other.
+
+Test the generalized eigen-equation, weighted orthogonality and centering, and
+the map-back identity through the public result. Express structural-subspace
+comparisons in the coordinate system—or weighted inner product—where the
+compared vectors are mathematically equivalent.
+
+## Diagnostics After Input Transformation
+
+When a pipeline canonicalizes, filters, deduplicates, drops structural columns,
+or otherwise transforms input before computation, derive diagnostics from the
+exact effective object consumed downstream. Do not reconstruct downstream
+semantics from the raw input merely because it is easier to access.
+
+Use a deterministic adversarial fixture where the raw and effective
+interpretations intentionally disagree, then assert the observable diagnostic
+and condition behavior. For APIs with detailed and convenience modes, follow
+[diagnostic-regressions.md](diagnostic-regressions.md#detailed-and-convenience-results)
+without inferring causes the diagnostic does not establish.
+
 ## Bounded Candidate And Tie Contracts
 
 For top-k or neighbor-search interfaces, distinguish deterministic ordering

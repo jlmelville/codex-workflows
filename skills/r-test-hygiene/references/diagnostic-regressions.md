@@ -27,6 +27,18 @@ attributes as well as values, so normalize with `unname()` or a similarly
 explicit value-only comparison when raw attributes are not part of the
 contract, while preserving canonical attributes in result expectations.
 
+When adding names or dimnames to a public matrix, inventory downstream
+operations that can propagate those attributes into derived summaries. Decide
+the attribute contract field by field, and pair positive matrix-attribute
+expectations with explicit no-name checks for diagnostics that must remain
+unnamed.
+
+For result lists whose field order is not public behavior, assert the exact
+field-name set without enforcing insertion order. For example,
+`expect_named(..., ignore.order = TRUE)` still rejects missing or extra fields
+while accepting permutations; use order-sensitive checks only when ordering is
+part of the documented contract.
+
 ## Looped Diagnostics
 
 Not every testthat expectation accepts `info` consistently across installed
