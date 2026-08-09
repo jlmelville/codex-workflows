@@ -17,69 +17,17 @@ elif ! "${parity_script}"; then
 fi
 
 shopt -s nullglob
+
+metadata_validator="${repo_dir}/scripts/validate-skill-metadata.rb"
+if [[ ! -x "${metadata_validator}" ]]; then
+  echo "${metadata_validator}: missing or not executable" >&2
+  status=1
+elif ! "${metadata_validator}" "${repo_dir}"; then
+  status=1
+fi
+
 for skill_dir in "${repo_dir}"/skills/*; do
   [[ -d "${skill_dir}" ]] || continue
-  skill_name="$(basename "${skill_dir}")"
-  skill_file="${skill_dir}/SKILL.md"
-
-  if [[ ! -f "${skill_file}" ]]; then
-    echo "${skill_name}: missing SKILL.md" >&2
-    status=1
-    continue
-  fi
-
-  if ! ruby -e '
-    require "yaml"
-    path = ARGV.fetch(0)
-    text = File.read(path)
-    frontmatter = text.split(/^---\s*$/, 3)[1]
-    raise "missing YAML frontmatter" unless frontmatter
-    data = YAML.safe_load(frontmatter)
-    raise "missing name" unless data["name"].is_a?(String) && !data["name"].empty?
-    raise "missing description" unless data["description"].is_a?(String) && !data["description"].empty?
-    raise "skill name must match folder" unless data["name"] == ARGV.fetch(1)
-  ' "${skill_file}" "${skill_name}"; then
-    status=1
-  fi
-
-  if [[ -f "${skill_dir}/agents/openai.yaml" ]]; then
-    if ! ruby -e '
-      require "yaml"
-
-      path = ARGV.fetch(0)
-      skill_name = ARGV.fetch(1)
-      data = YAML.safe_load(File.read(path))
-      raise "top-level YAML must be a mapping" unless data.is_a?(Hash)
-
-      interface = data["interface"]
-      raise "missing interface" unless interface.is_a?(Hash)
-
-      display_name = interface["display_name"]
-      short_description = interface["short_description"]
-      default_prompt = interface["default_prompt"]
-
-      unless display_name.is_a?(String) && !display_name.empty?
-        raise "missing interface.display_name"
-      end
-      unless short_description.is_a?(String) && !short_description.empty?
-        raise "missing interface.short_description"
-      end
-      unless default_prompt.is_a?(String) && !default_prompt.empty?
-        raise "missing interface.default_prompt"
-      end
-      if display_name.length > 40
-        raise "interface.display_name is longer than 40 characters"
-      end
-      if short_description.length > 80
-        raise "interface.short_description is longer than 80 characters"
-      end
-      unless default_prompt.include?("$#{skill_name}")
-        raise "interface.default_prompt should mention $#{skill_name}"
-      end
-    ' "${skill_dir}/agents/openai.yaml" "${skill_name}"; then
-      status=1
-    fi
-  fi
 
   for script in "${skill_dir}"/scripts/*.sh; do
     [[ -f "${script}" ]] || continue
@@ -89,38 +37,6 @@ for skill_dir in "${repo_dir}"/skills/*; do
     fi
   done
 done
-
-if ! ruby -e '
-  require "yaml"
-
-  repo = ARGV.fetch(0)
-  max_description = 420
-  max_total_description = 6_000
-  status = 0
-  total = 0
-
-  Dir.glob(File.join(repo, "skills", "*", "SKILL.md")).sort.each do |path|
-    text = File.read(path, encoding: "UTF-8")
-    frontmatter = text.split(/^---\s*$/, 3)[1]
-    data = YAML.safe_load(frontmatter)
-    description = data.fetch("description")
-    total += description.length
-
-    next unless description.length > max_description
-
-    warn "#{path.delete_prefix("#{repo}/")}: description is #{description.length} characters; max is #{max_description}"
-    status = 1
-  end
-
-  if total > max_total_description
-    warn "skill descriptions total #{total} characters; max is #{max_total_description}"
-    status = 1
-  end
-
-  exit(status)
-' "${repo_dir}"; then
-  status=1
-fi
 
 while IFS= read -r -d '' file; do
   shell_files+=("${file}")

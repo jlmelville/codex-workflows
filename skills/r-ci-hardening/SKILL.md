@@ -5,7 +5,10 @@ description: Harden and maintain R package GitHub Actions, pkgdown deploys, cove
 
 # R CI Hardening
 
-Use this when working on GitHub Actions or CI-related package infrastructure.
+Use this with `$github-actions-hardening` when working on GitHub Actions or
+CI-related infrastructure in an R package. The generic skill owns shared action
+pinning, permissions, checkout credentials, concurrency, Dependabot, and audit
+tool behavior. This skill owns R-specific workflow semantics.
 
 ## Use A More Specific Skill When
 
@@ -14,22 +17,15 @@ Use this when working on GitHub Actions or CI-related package infrastructure.
 - Use `$repo-bootstrap` when creating first-pass CI for a new repository before
   R-specific hardening starts.
 
-## Workflow Rules
+## R Workflow Rules
 
 1. Treat `usethis` workflow output as scaffolding, not final hardening.
-2. Pin every third-party action to a full-length commit SHA.
-3. Keep top-level permissions read-only unless a workflow truly needs more:
-
-```yaml
-permissions:
-  contents: read
-```
-
-4. Set `persist-credentials: false` on `actions/checkout`.
-5. Grant write permissions only on the narrow job that deploys or publishes.
-6. Use concurrency groups for workflows that deploy or consume significant CI.
-7. Preserve pull request safety: PR jobs should build and check, not deploy.
-8. Keep Dependabot configured for GitHub Actions updates.
+2. Keep `r-lib/actions` setup and check inputs aligned with the package's
+   dependency, vignette, and release policy.
+3. Separate optional-dependency lanes so an intentionally unavailable
+   suggestion does not hide coverage of every other optional path.
+4. Treat external-source health checks as scheduled or manually strict service
+   probes, not as package-regression evidence in ordinary pull requests.
 
 See [github-actions.md](references/github-actions.md) for patterns.
 
@@ -49,17 +45,13 @@ steps.
 Run after workflow changes:
 
 ```sh
-actionlint
-zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
-${CODEX_HOME:-$HOME/.codex}/skills/r-ci-hardening/scripts/audit-actions.sh .github/workflows
+${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
-Use the bundled `audit-actions.sh` from this skill when available. It prefers an
-installed `zizmor`, falls back to `uvx zizmor`, and treats uvx network/download
-failures as environment issues rather than workflow findings. It also runs an
-offline nearby-comment check for full-SHA action pins. From this source
-repository, the same helper is available at
-`skills/r-ci-hardening/scripts/audit-actions.sh`.
+The generic audit owns actionlint, zizmor fallback behavior, SHA pinning,
+checkout credentials, and nearby pin comments. From the `codex-workflows`
+source repository, run
+`./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows`.
 
 For rare reviews that need to confirm nearby version tags against full-SHA pins,
 use

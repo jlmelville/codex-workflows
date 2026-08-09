@@ -130,17 +130,21 @@ def load_triage_entries(path)
     entries << {
       section: section,
       pattern: pattern,
-      rationale: rationale
+      rationale: rationale,
+      line_no: line_no,
+      used: false
     }
   end
   entries
 end
 
 def triage_entry(entries, section, row)
-  entries.find { |entry|
-    (entry[:section] == "*" || entry[:section] == section) &&
-      row.include?(entry[:pattern])
+  entry = entries.find { |candidate|
+    (candidate[:section] == "*" || candidate[:section] == section) &&
+      row.include?(candidate[:pattern])
   }
+  entry[:used] = true if entry
+  entry
 end
 
 def record_findings(findings, triaged_findings, triage_entries, severity, section, rows)
@@ -399,6 +403,11 @@ record_findings(
   "Repo-Relative Skill Script References",
   repo_relative_helper_rows
 )
+
+unused_triage_rows = triage_entries.reject { |entry| entry[:used] }.map { |entry|
+  "#{relative_path(repo_dir, options[:triage_path])}:#{entry[:line_no]}: #{entry[:section]} / #{entry[:pattern]}"
+}
+findings.fetch(:hard)["Unused Triage Entries"].concat(unused_triage_rows)
 
 hard_count = findings.fetch(:hard).values.sum(&:length)
 review_count = findings.fetch(:review).values.sum(&:length)

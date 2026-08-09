@@ -1,24 +1,11 @@
 # Hardened GitHub Actions Patterns for R Packages
 
-## General
+## Shared Hardening
 
-- Use full-length SHA pins for all `uses:` entries.
-- Add a comment near pinned actions: `Pinned to a full-length commit SHA for
-  immutability; Dependabot updates this reference.`
-- `${CODEX_HOME:-$HOME/.codex}/skills/r-ci-hardening/scripts/audit-actions.sh`
-  checks for nearby comments in offline mode. When the human-readable action
-  version comment is in doubt, run the tag comment checker in `--require-tag`
-  mode first, then use `--verify-remote` only when remote tag verification is
-  worth the network request.
-- Run `actionlint` before pinning existing workflows when practical. If it
-  rejects an action major as obsolete, such as `actions/checkout@v3`, upgrade
-  to a supported major before resolving and pinning the tag commit. Record why
-  the major changed so the pin does not preserve an already-broken action.
-- Set `persist-credentials: false` for checkout.
-- Prefer `permissions: contents: read` at workflow top level.
-- Put write permissions only on deploy or publish jobs.
-- Run `actionlint` and `zizmor .github/workflows`; use `uvx zizmor` when
-  `zizmor` is not installed.
+Apply `$github-actions-hardening` for action pins, nearby version comments,
+permissions, checkout credentials, concurrency, pull-request safety,
+Dependabot, and the shared workflow audit. This reference covers only the R
+package semantics that generic workflow tooling cannot validate.
 
 ## R Setup
 

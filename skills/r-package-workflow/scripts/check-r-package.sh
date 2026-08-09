@@ -1,52 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
-export UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}"
-export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python}"
 
-run_zizmor() {
-  local target_dir="$1"
-  local output
-
-  if command -v zizmor >/dev/null 2>&1; then
-    if ! zizmor "${target_dir}"; then
-      echo "zizmor reported issues for ${target_dir}." >&2
-      return 1
-    fi
-    return 0
-  fi
-
-  if ! command -v uvx >/dev/null 2>&1; then
-    echo "zizmor and uvx not found; skipped zizmor." >&2
-    if [[ "${CI:-false}" == "true" ]]; then
-      echo "zizmor or uvx is required in CI." >&2
-      return 1
-    fi
-    return 0
-  fi
-
-  output="$(mktemp)"
-  if uvx zizmor "${target_dir}" >"${output}" 2>&1; then
-    cat "${output}"
-    rm -f "${output}"
-    return 0
-  fi
-
-  cat "${output}" >&2
-  if grep -Eiq 'temporary failure|name or service not known|could not resolve|failed to resolve|dns|pypi|no such host|network is unreachable|connection (refused|reset|timed out|error)|failed to fetch|failed to download|error downloading|request failed|error sending request' "${output}"; then
-    echo "uvx could not run zizmor because of network/tool download failure; rerun with network approval or use installed zizmor." >&2
-    rm -f "${output}"
-    if [[ "${CI:-false}" == "true" ]]; then
-      echo "zizmor download/tool acquisition is required to succeed in CI." >&2
-      return 1
-    fi
-    return 0
-  fi
-
-  rm -f "${output}"
-  echo "zizmor reported issues for ${target_dir}." >&2
-  return 1
-}
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+actions_audit="${script_dir}/../../github-actions-hardening/scripts/audit-actions.sh"
 
 usage() {
   cat <<'USAGE'
@@ -57,7 +13,7 @@ Run from an R package root.
 Modes:
   fast  Rcpp attributes when relevant, then testthat::test_local()
   full  fast checks plus Air, lintr, and devtools::check(--no-manual)
-  ci    full checks plus actionlint and zizmor when workflows exist
+  ci    full checks plus the shared GitHub Actions audit when workflows exist
 
 Rcpp attributes may update R/RcppExports.R or src/RcppExports.cpp.
 USAGE
@@ -109,8 +65,9 @@ if [[ "${mode}" == "full" ]]; then
 fi
 
 if [[ -d .github/workflows ]]; then
-  if command -v actionlint >/dev/null 2>&1; then
-    actionlint
+  if [[ ! -x "${actions_audit}" ]]; then
+    echo "check-r-package.sh: shared workflow audit not found: ${actions_audit}" >&2
+    exit 2
   fi
-  run_zizmor .github/workflows
+  "${actions_audit}" .github/workflows
 fi

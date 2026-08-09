@@ -10,7 +10,8 @@ specific language or package skill.
 
 ## Use A More Specific Skill When
 
-- Use `$r-ci-hardening` for workflows in R package repositories.
+- For workflows in R package repositories, also apply `$r-ci-hardening` as the
+  R-specific overlay on the shared rules and audit tooling here.
 - Use `$dependabot-pr-maintenance` for automated dependency PR review or merge
   decisions.
 - Use `$repo-bootstrap` when creating first-pass CI for a new repository.

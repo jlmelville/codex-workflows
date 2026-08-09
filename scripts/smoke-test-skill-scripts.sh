@@ -228,6 +228,72 @@ run_shell_script_smoke() {
   "${repo_dir}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh" --help >/dev/null
 }
 
+run_r_package_check_smoke() {
+  local script="${repo_dir}/skills/r-package-workflow/scripts/check-r-package.sh"
+  local pkg_dir="${tmp_root}/r-package-check"
+  local empty_dir="${tmp_root}/r-package-check-empty"
+  local fake_bin="${tmp_root}/r-package-check-bin"
+  local log="${tmp_root}/r-package-check.log"
+
+  mkdir -p "${pkg_dir}/R" "${pkg_dir}/.github/workflows" "${empty_dir}" "${fake_bin}"
+  printf '%s\n' 'Package: tiny' 'Version: 0.0.0' >"${pkg_dir}/DESCRIPTION"
+  printf '%s\n' '# generated fixture' >"${pkg_dir}/R/RcppExports.R"
+  cat >"${pkg_dir}/.github/workflows/check.yml" <<'EOF_WORKFLOW'
+name: check
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
+EOF_WORKFLOW
+
+  for command_name in Rscript air actionlint zizmor; do
+    cat >"${fake_bin}/${command_name}" <<'EOF_COMMAND'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$(basename "$0") $*" >>"${SMOKE_LOG}"
+EOF_COMMAND
+    chmod +x "${fake_bin}/${command_name}"
+  done
+
+  : >"${log}"
+  (
+    cd "${pkg_dir}"
+    PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" fast >/dev/null
+  )
+  [[ "$(wc -l <"${log}")" -eq 2 ]]
+  grep -Fq 'Rscript -e Rcpp::compileAttributes()' "${log}"
+  grep -Fq 'Rscript -e testthat::test_local()' "${log}"
+
+  : >"${log}"
+  (
+    cd "${pkg_dir}"
+    PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" full >/dev/null
+  )
+  [[ "$(wc -l <"${log}")" -eq 5 ]]
+  grep -Fq 'air format . --check' "${log}"
+  grep -Fq 'lintr::lint_package()' "${log}"
+  grep -Fq 'devtools::check(document = FALSE' "${log}"
+
+  : >"${log}"
+  (
+    cd "${pkg_dir}"
+    PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" ci >/dev/null
+  )
+  grep -Fq 'actionlint ' "${log}"
+  grep -Fq 'zizmor .github/workflows' "${log}"
+
+  if (cd "${pkg_dir}" && "${script}" unknown >/dev/null 2>&1); then
+    echo "check-r-package.sh should reject an unknown mode" >&2
+    return 1
+  fi
+  if (cd "${empty_dir}" && "${script}" fast >/dev/null 2>&1); then
+    echo "check-r-package.sh should require DESCRIPTION" >&2
+    return 1
+  fi
+}
+
 run_audit_actions_smoke() {
   local script="${repo_dir}/skills/github-actions-hardening/scripts/audit-actions.sh"
   local workflow_dir="${tmp_root}/audit-actions-commented-only"
@@ -381,6 +447,35 @@ run_skill_index_smoke() {
   ruby "${repo_dir}/scripts/list-skills.rb" --markdown >/dev/null
 }
 
+run_skill_metadata_smoke() {
+  local script="${repo_dir}/scripts/validate-skill-metadata.rb"
+  local fixture="${tmp_root}/skill-metadata"
+  local agents="${fixture}/skills/example/agents/openai.yaml"
+
+  mkdir -p "${fixture}/skills/example/agents"
+  cat >"${fixture}/skills/example/SKILL.md" <<'EOF_SKILL'
+---
+name: example
+description: Validate metadata fixture behavior.
+---
+
+# Example
+EOF_SKILL
+  cat >"${agents}" <<'EOF_AGENTS'
+interface:
+  display_name: "Example"
+  short_description: "Validate a metadata fixture"
+  default_prompt: "Use $example to exercise metadata validation."
+EOF_AGENTS
+
+  ruby "${script}" "${fixture}" >/dev/null
+  mv "${agents}" "${agents}.missing"
+  if ruby "${script}" "${fixture}" >/dev/null 2>&1; then
+    echo "skill metadata validator should require agents/openai.yaml" >&2
+    return 1
+  fi
+}
+
 run_retro_state_smoke() {
   local script="${repo_dir}/skills/skill-retro/scripts/retro-state.rb"
   local smoke_dir="${tmp_root}/retro-state"
@@ -462,9 +557,11 @@ run_benchmark_smoke
 run_manifest_smoke
 run_roxygen_smoke
 run_shell_script_smoke
+run_r_package_check_smoke
 run_audit_actions_smoke
 run_action_tag_comment_smoke
 run_skill_index_smoke
+run_skill_metadata_smoke
 run_retro_state_smoke
 
 echo "Skill script smoke tests passed."

@@ -61,37 +61,16 @@ user explicitly requests autonomous batch triage.
 
 ## Accepted Implementation Batch
 
-After user acceptance:
+After user acceptance, follow
+[report-to-patch.md](../skill-retro/references/report-to-patch.md). It owns the
+detailed sequence for decision archival, cross-candidate review, public source
+changes, validation and installation, publication, accepted records, fired
+external actions, and final state validation.
 
-1. Record each decision with the external helper and move the candidate from
-   inbox to archive. Preserve intake fields and the intake digest.
-2. Classify the smallest public outcome: direct guidance edit,
-   validation/script, prompt, no change, or no public edit.
-3. Compare the accepted candidates across the batch for repeated producer
-   mistakes, command recipes, drift findings, or shared consistency surfaces.
-   Recommend producer feedback immediately, but edit `$skill-retro` only after
-   recurrence across batches or especially decisive evidence accepted by the
-   user.
-4. Implement source changes so each public commit stands on its own without the
-   external archive. Do not put private candidate identifiers or source-repo
-   context in Git merely for traceability.
-5. Create curated accepted records externally, then use the helper's
-   `update-accepted` transition for later evidence or disposition changes.
-   Track disposition, verification, and verification basis independently;
-   preserve accepted identity and originating candidate lineage.
-6. Static validation of prose can justify `implemented`; it cannot justify
-   `verification: supported`. Use later-session evidence only for a concrete
-   ordinary task and deterministic evidence only for executable behavior
-   actually exercised.
-7. Execute fired non-skill ledger actions rather than refreshing them
-   indefinitely. Activate, revise, or deprecate fired drafts.
-8. Validate source with `./scripts/validate-skills.sh`. Install and run
-   `./install.sh --check` when files under `skills/` change.
-9. Commit and push the intended public source changes when repository
-   instructions require it. Then record resulting commit hashes externally
-   when useful; this avoids self-referential commit metadata.
-10. Run the external helper's `validate` command after state changes. Live state
-    validation is separate from repository CI.
+Preserve its two ordering gates: archive the decision before editing source,
+and create commit-linked accepted metadata only after the public commit exists.
+Source commits must stand on their own without private evidence or opaque state
+identifiers.
 
 Do not add maintained prompt corpora, synthetic model fixtures, repeated model
 runs, raw trace archives, or model-backed CI merely to verify skill prose.

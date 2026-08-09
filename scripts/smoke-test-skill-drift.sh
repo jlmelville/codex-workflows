@@ -68,6 +68,21 @@ if ! grep -Fq "No untriaged drift findings." "${output_file}"; then
   exit 1
 fi
 
+cp "${fixture_dir}/scripts/audit-skill-drift-triage.tsv" "${fixture_dir}/scripts/triage.clean"
+printf '%s\n' $'Description Overlap\tmissing-skill-a <-> missing-skill-b\tStale fixture entry.' \
+  >>"${fixture_dir}/scripts/audit-skill-drift-triage.tsv"
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "unused triage fixture unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Unused Triage Entries" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "unused triage fixture did not produce the expected hard finding" >&2
+  exit 1
+fi
+cp "${fixture_dir}/scripts/triage.clean" "${fixture_dir}/scripts/audit-skill-drift-triage.tsv"
+
 cat >>"${skill_file}" <<'EOF'
 
 Run <skill-dir>/scripts/check.sh.

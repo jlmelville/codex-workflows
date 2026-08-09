@@ -15,40 +15,9 @@ Use this for documentation and pkgdown work in R packages.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
-- Before editing NEWS, establish the last user-available baseline: a release,
-  pushed development state, or operator-specified boundary. Check every named
-  item in a mixed bullet separately; omit add/remove cycles that occurred
-  entirely after that boundary, retain removal of previously available
-  behavior, and scan adjacent entries after correcting chronology.
-- State the current supported contract in help pages, READMEs, and articles;
-  do not narrate removed options, conventional validator guarantees, or prose
-  that merely paraphrases an adjacent formula, and do not reassure users about
-  ordinary invariants merely because they once regressed. Preserve regression
-  mechanics in tests or internal history, and include historical detail in NEWS
-  or migration guides only when it conveys user-visible behavior,
-  compatibility impact, or action. When expressing a basic user choice requires
-  a multi-control recipe or several caveats, document only the non-obvious
-  current contract and record a separate API-design follow-up instead of
-  expanding the help indefinitely.
-- For paired reference values and locations, state their correspondence first,
-  then document the configuration where the pair applies, whether values are
-  recalculated, and whether either field applies more broadly. Do not compare a
-  reference value with an initialization default unless initialization is part
-  of the reference contract.
-- When an exported function accepts nontrivial backend controls through `...`,
-  keep the parameter entry short and add a user-oriented section grouping
-  supported controls by backend. State meanings, package-level defaults,
-  constraints, useful backend links, and exact routing or fallback effects;
-  distinguish route-forcing controls, value-based thresholds, and non-routing
-  diagnostics. Verify routing claims through the exported function and avoid
-  validator jargon such as allowlists or ownership.
-- Before documenting an inspectable result object, trace each public value
-  through validation, canonicalization, backend selection, and result
-  construction. Distinguish literal input, canonical selector, and effective
-  backend; name meaningful nested fields and define their scales or identities.
-  For non-unique numerical representations, document the identifiable value or
-  subspace instead of promising unique vectors, and do not dismiss supported
-  public diagnostics as maintainer-only data.
+- For NEWS chronology, current-contract writing, backend-control documentation,
+  reference values, or inspectable result objects, read
+  [documentation-contracts.md](references/documentation-contracts.md).
 - Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen

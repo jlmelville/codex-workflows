@@ -179,10 +179,10 @@ required. Use `review-queue` to list open archived deferrals, drafts, and ledger
 actions; triage decides which event-based triggers have fired rather than merely
 refreshing their dates.
 
-After user acceptance, implement the smallest reusable public change. The
-source commit must stand on its own without access to external state and need
-not expose the candidate ID. After the commit exists, create or update an
-external accepted record with its implementation commit when useful.
+After user acceptance, follow
+[report-to-patch.md](report-to-patch.md) for public implementation, validation,
+publication, and accepted-record ordering. The source commit must stand on its
+own without access to external state and need not expose the candidate ID.
 
 ## Accepted Records And Verification
 

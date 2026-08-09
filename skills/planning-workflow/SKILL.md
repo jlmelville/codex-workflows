@@ -1,6 +1,6 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off plans for complex coding work. Use for features, audits, cleanups, migrations, debugging phases, cross-module changes, PLANS.md, plan directories, EXECPLAN files, review packets, planning state referenced by AGENTS.md, or fresh-agent handoffs. Also use to skip planning for small tasks.
+description: Create, execute, resume, and hand off plans for complex coding work. Use for features, audits, cleanups, migrations, debugging phases, cross-module changes, PLANS.md, plan directories, EXECPLAN files, review packets, planning state referenced by AGENTS.md, or fresh-agent handoffs.
 ---
 
 # Planning Workflow
@@ -102,14 +102,13 @@ details, see
 
 ## Workflow Retrospective Notes
 
-During multi-agent work, record reusable process findings as they arise, not
-only at the final retrospective. Put them under `Artifacts and Notes`,
-`Outcomes & Retrospective`, or a local equivalent.
-
-Keep notes concise, evidence-based, and focused on lessons reusable beyond the
-current feature. See
+During multi-agent work, keep process observations in the plan only when they
+are needed for execution continuity or a later phase decision. Use
+`$papercut-capture` for authorized friction intake and `$skill-retro` for mature
+reusable conclusions; do not duplicate those external records into tracked
+plans. See
 [workflow-retrospective-notes.md](references/workflow-retrospective-notes.md)
-for examples.
+for the boundary and examples.
 
 ## Handoffs
 

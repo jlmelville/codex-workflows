@@ -14,6 +14,14 @@ Do not copy inbox, archive, accepted, draft, ledger, audit, or cadence documents
 into the source repository. They are disposable operational state beneath
 `CODEX_WORKFLOWS_STATE_DIR`.
 
+## Batch Review
+
+Before editing source, compare accepted candidates across the batch for repeated
+producer mistakes, command recipes, drift findings, or shared consistency
+surfaces. Recommend producer feedback immediately, but edit `$skill-retro` only
+after recurrence across batches or especially decisive evidence accepted by the
+user.
+
 ## Public Change
 
 For each accepted candidate:
@@ -39,6 +47,9 @@ For each accepted candidate:
    `./install.sh --check`.
 9. Inspect staged paths, commit only intended public source, and push when
    repository instructions require it.
+
+Execute fired non-skill ledger actions rather than refreshing them indefinitely.
+Activate, revise, or deprecate fired drafts.
 
 ## External Accepted Record
 
