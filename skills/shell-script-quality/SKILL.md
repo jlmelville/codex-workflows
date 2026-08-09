@@ -45,6 +45,8 @@ ordinary arrays instead.
 - Quote expansions unless word splitting is required.
 - Use arrays for argument lists in Bash.
 - Use `mktemp` for temporary files and clean them up with `trap` when needed.
+- Treat `--dry-run` as a non-mutating contract: do not write to, lock, or stage
+  beneath the destination, or require destination write access.
 - Check required commands with `command -v` and fail clearly if they are
   mandatory.
 - Validate arguments before doing work.
@@ -78,7 +80,8 @@ path/to/script.sh invalid-mode
 ```
 
 For install or sync scripts, test against a temporary target when possible
-before touching live directories.
+before touching live directories. Exercise dry-run against an absent or
+read-only target, and assert the destination remains absent or unchanged.
 
 ## Review Focus
 

@@ -22,6 +22,9 @@ Before editing, identify:
 
 Keep executable scripts on `#!/usr/bin/env ruby`, preserve executable mode, and
 add `# frozen_string_literal: true` when it matches the repository convention.
+When a directly executable helper requires a Ruby newer than a plausible
+platform default, check `RUBY_VERSION` before argument parsing or command
+dispatch. Report the required and detected versions, then exit before mutation.
 
 ## CLI Behavior
 
@@ -78,6 +81,9 @@ Assert exit status, standard output, standard error, and the absence of partial
 writes. Cover malformed structured data, missing inputs, invalid options,
 unexpected arguments, permission failures when practical, and idempotence for
 state-changing commands.
+
+When an older interpreter is available, exercise the minimum-version guard and
+assert its status, diagnostic, and absence of partial writes.
 
 For a substantial change, run focused tests first and then the repository's
 complete validation. Never claim formatter, CI, or cross-version success from
