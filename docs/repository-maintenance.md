@@ -89,8 +89,15 @@ canonical template.
 Run the repository validator before committing:
 
 ```sh
+bundle install
 ./scripts/validate-skills.sh
 ```
+
+Bundler installs the formatter/linter pinned in `Gemfile.lock`; the validator
+never installs dependencies implicitly. On distributions that expose only a
+versioned Bundler executable, use the matching command such as `bundle3.3`.
+System Ruby packages may also require their matching development-header package
+before Bundler can compile native dependencies.
 
 The validator reports local `actionlint`, `uv`, and `zizmor` versions that do
 not match the versions pinned for CI. Treat the report as advisory locally and
@@ -103,11 +110,11 @@ run the parity check explicitly before claiming CI-equivalent results:
 Under `CI=true`, the parity check is strict automatically.
 
 It checks skill frontmatter, UI metadata YAML, shell syntax, ShellCheck results,
-Ruby/Python/R script syntax, local links, skill references, mirrored files,
-executable modes for bundled shell scripts, hard drift findings, installer
-behavior, and substantial bundled-script interfaces. The retro-state smoke test
-uses temporary fixtures; repository validation never reads the live
-`CODEX_WORKFLOWS_STATE_DIR`.
+Ruby syntax and Standard Ruby conformance, Python/R script syntax, local links,
+skill references, mirrored files, executable modes for bundled shell scripts,
+hard drift findings, installer behavior, and substantial bundled-script
+interfaces. The retro-state smoke test uses temporary fixtures; repository
+validation never reads the live `CODEX_WORKFLOWS_STATE_DIR`.
 
 Review skill trigger and metadata shape with:
 
@@ -206,7 +213,8 @@ Some skills assume these tools may be available in project worktrees:
 
 - `python3` for bundled Python script validation
 - Bash 3.2-compatible Bash for bundled shell scripts
-- `ruby` for repository validation
+- Ruby 3.0 or newer and Bundler for repository validation; `.ruby-version`
+  selects the CI development version and `Gemfile.lock` pins Standard Ruby
 - `rg` / `ripgrep` for repository and roxygen source searches
 - `shellcheck` for shell script validation
 - `perl` for roxygen odd-backtick audits

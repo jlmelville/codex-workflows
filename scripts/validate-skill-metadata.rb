@@ -23,10 +23,10 @@ rescue Psych::SyntaxError => e
 end
 
 skill_dirs = if Dir.exist?(skills_dir)
-               Dir.glob(File.join(skills_dir, "*")).select { |path| File.directory?(path) }.sort
-             else
-               []
-             end
+  Dir.glob(File.join(skills_dir, "*")).select { |path| File.directory?(path) }.sort
+else
+  []
+end
 
 errors << "#{skills_dir}: no skill directories found" if skill_dirs.empty?
 
@@ -61,13 +61,13 @@ skill_dirs.each do |skill_dir|
       description = data["description"]
       errors << "#{skill_name}: missing frontmatter name" unless name.is_a?(String) && !name.empty?
       errors << "#{skill_name}: skill name must match folder" unless name == skill_name
-      unless description.is_a?(String) && !description.empty?
-        errors << "#{skill_name}: missing frontmatter description"
-      else
+      if description.is_a?(String) && !description.empty?
         total_description += description.length
         if description.length > max_description
           errors << "#{skill_name}: description is #{description.length} characters; max is #{max_description}"
         end
+      else
+        errors << "#{skill_name}: missing frontmatter description"
       end
     end
   end

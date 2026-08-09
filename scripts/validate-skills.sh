@@ -147,6 +147,24 @@ if ((${#ruby_files[@]} > 0)); then
         status=1
       fi
     done
+
+    bundler=()
+    ruby_series="$(ruby -e 'print RUBY_VERSION[/\A\d+\.\d+/]')"
+    if command -v bundle >/dev/null 2>&1; then
+      bundler=(bundle)
+    elif command -v "bundle${ruby_series}" >/dev/null 2>&1; then
+      bundler=("bundle${ruby_series}")
+    else
+      echo "bundler is required to validate Ruby style" >&2
+      status=1
+    fi
+
+    if ((${#bundler[@]} > 0)); then
+      standard_cache="${XDG_CACHE_HOME:-${TMPDIR:-/tmp}/codex-standard-cache}"
+      if ! XDG_CACHE_HOME="${standard_cache}" "${bundler[@]}" exec standardrb "${ruby_files[@]}"; then
+        status=1
+      fi
+    fi
   fi
 fi
 

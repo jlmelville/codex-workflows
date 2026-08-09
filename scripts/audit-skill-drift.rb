@@ -15,10 +15,11 @@ options = {
   strict_hard: false,
   hard_only: false,
   show_triaged: false,
+  triage_explicit: false,
   triage_path: File.join(repo_dir, "scripts", "audit-skill-drift-triage.tsv")
 }
 
-OptionParser.new do |opts|
+parser = OptionParser.new do |opts|
   opts.banner = "Usage: audit-skill-drift.rb [options]"
   opts.on("--max-description N", Integer, "Flag descriptions longer than N characters") do |value|
     options[:max_description] = value
@@ -42,12 +43,32 @@ OptionParser.new do |opts|
     options[:hard_only] = true
   end
   opts.on("--triage PATH", "Use a TSV triage manifest") do |value|
+    options[:triage_explicit] = true
     options[:triage_path] = value
   end
   opts.on("--show-triaged", "Show findings accepted by the triage manifest") do
     options[:show_triaged] = true
   end
-end.parse!
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  warn "audit-skill-drift.rb: #{e.message}"
+  warn parser
+  exit 2
+end
+
+unless ARGV.empty?
+  warn "audit-skill-drift.rb: unexpected argument: #{ARGV.first}"
+  warn parser
+  exit 2
+end
+
+if options[:triage_explicit] && !File.file?(options[:triage_path])
+  warn "audit-skill-drift.rb: triage manifest not found: #{options[:triage_path]}"
+  exit 1
+end
 
 STOP_WORDS = Set.new(%w[
   about across after against already also and any are ask asks automated
@@ -84,9 +105,9 @@ IGNORED_DUPLICATE_HELPERS = Set.new(%w[
   usage
 ])
 
-SKILL_SCRIPT_PATH_PATTERN = %r{(?:[.]/)?skills/[A-Za-z0-9._-]+/scripts/[A-Za-z0-9._/-]+}.freeze
-SKILL_DIR_PLACEHOLDER_PATTERN = %r{<skill-dir>/scripts/[A-Za-z0-9._/-]+}.freeze
-BARE_SCRIPT_PATH_PATTERN = %r{\bscripts/([A-Za-z0-9._/-]*[A-Za-z0-9_/-])}.freeze
+SKILL_SCRIPT_PATH_PATTERN = %r{(?:[.]/)?skills/[A-Za-z0-9._-]+/scripts/[A-Za-z0-9._/-]+}
+SKILL_DIR_PLACEHOLDER_PATTERN = %r{<skill-dir>/scripts/[A-Za-z0-9._/-]+}
+BARE_SCRIPT_PATH_PATTERN = %r{\bscripts/([A-Za-z0-9._/-]*[A-Za-z0-9_/-])}
 SOURCE_REPO_CONTEXT_PATTERN = /\b(?:source repo|source repository|source tree|repository root|from this repo)\b/i
 
 def read_text(path)
@@ -294,7 +315,12 @@ all_review_files = (markdown_files + script_files).uniq
 skill_markdown_files = markdown_files.select { |path|
   path.start_with?(File.join(repo_dir, "skills", ""))
 }
-triage_entries = load_triage_entries(options[:triage_path])
+begin
+  triage_entries = load_triage_entries(options[:triage_path])
+rescue ArgumentError, Errno::EACCES => e
+  warn "audit-skill-drift.rb: #{e.message}"
+  exit 1
+end
 findings = {
   hard: Hash.new { |hash, key| hash[key] = [] },
   review: Hash.new { |hash, key| hash[key] = [] },
@@ -431,14 +457,12 @@ elsif triaged_findings.any? && !options[:hard_only]
   puts "Triaged findings: #{triaged_findings.length} accepted by #{relative_path(repo_dir, options[:triage_path])}"
 end
 
+puts
 if options[:hard_only] && hard_count.zero?
-  puts
   puts "No hard drift findings."
 elsif active_count.zero?
-  puts
   puts "No untriaged drift findings."
 else
-  puts
   puts "Hard findings: #{hard_count}"
   puts "Review findings: #{review_count}"
   puts "Informational findings: #{info_count}"

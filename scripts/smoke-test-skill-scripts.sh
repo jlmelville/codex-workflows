@@ -14,6 +14,39 @@ require_command() {
   fi
 }
 
+assert_usage_error() {
+  local label="$1"
+  local expected="$2"
+  local stdout_file="${tmp_root}/${label}.stdout"
+  local stderr_file="${tmp_root}/${label}.stderr"
+  local command_status
+  shift 2
+
+  if "$@" >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "${label} invalid invocation unexpectedly succeeded" >&2
+    return 1
+  else
+    command_status=$?
+  fi
+
+  if [[ "${command_status}" -ne 2 ]]; then
+    echo "${label} invalid invocation should exit 2, got ${command_status}" >&2
+    return 1
+  fi
+  if [[ -s "${stdout_file}" ]]; then
+    echo "${label} invalid invocation should not write standard output" >&2
+    return 1
+  fi
+  if ! grep -Fq "${expected}" "${stderr_file}" || ! grep -Fq "Usage:" "${stderr_file}"; then
+    echo "${label} invalid invocation did not print its diagnostic and usage" >&2
+    return 1
+  fi
+  if grep -Fq "OptionParser::" "${stderr_file}"; then
+    echo "${label} invalid invocation exposed an OptionParser exception" >&2
+    return 1
+  fi
+}
+
 run_notebook_smoke() {
   local script="${repo_dir}/skills/notebook-inspection/scripts/notebook_inspect.py"
   local notebook="${tmp_root}/tiny.ipynb"
@@ -443,8 +476,44 @@ EOF_COMMENTED
 }
 
 run_skill_index_smoke() {
+  local fixture="${tmp_root}/list-skills"
+  local fixture_script="${fixture}/scripts/list-skills.rb"
+  local fixture_error="${fixture}/error"
+
   ruby "${repo_dir}/scripts/list-skills.rb" >/dev/null
   ruby "${repo_dir}/scripts/list-skills.rb" --markdown >/dev/null
+  assert_usage_error \
+    "list-skills-invalid-option" \
+    "list-skills.rb: invalid option: --bogus" \
+    ruby "${repo_dir}/scripts/list-skills.rb" --bogus
+  assert_usage_error \
+    "list-skills-extra-argument" \
+    "list-skills.rb: unexpected argument: extra" \
+    ruby "${repo_dir}/scripts/list-skills.rb" extra
+
+  mkdir -p "${fixture}/scripts" "${fixture}/skills/example/agents"
+  cp "${repo_dir}/scripts/list-skills.rb" "${fixture_script}"
+  cat >"${fixture}/skills/example/SKILL.md" <<'EOF_SKILL_INDEX'
+---
+name: example
+description: Exercise skill index metadata errors.
+---
+
+# Example
+EOF_SKILL_INDEX
+  cat >"${fixture}/skills/example/agents/openai.yaml" <<'EOF_SKILL_INDEX_AGENTS'
+interface: []
+EOF_SKILL_INDEX_AGENTS
+  if ruby "${fixture_script}" >/dev/null 2>"${fixture_error}"; then
+    echo "skill index accepted a non-mapping interface" >&2
+    return 1
+  fi
+  if ! grep -Fq "interface must be a YAML mapping" "${fixture_error}" ||
+    grep -Eq "NoMethodError|TypeError|Psych::" "${fixture_error}"; then
+    cat "${fixture_error}" >&2
+    echo "skill index did not normalize a metadata shape error" >&2
+    return 1
+  fi
 }
 
 run_skill_metadata_smoke() {
@@ -491,6 +560,22 @@ run_retro_state_smoke() {
   require_command ruby
   mkdir -p "${smoke_dir}"
   "${script}" --help >/dev/null
+  assert_usage_error \
+    "retro-state-invalid-option" \
+    "retro-state.rb: invalid option: --bogus" \
+    "${script}" init --bogus
+  assert_usage_error \
+    "retro-state-extra-argument" \
+    "retro-state.rb: invalid argument: unexpected argument: extra" \
+    "${script}" init extra
+  assert_usage_error \
+    "retro-state-unknown-command" \
+    "retro-state.rb: unknown command: unknown" \
+    "${script}" unknown
+  assert_usage_error \
+    "retro-state-inapplicable-option" \
+    "retro-state.rb: invalid option: --file is not valid for validate" \
+    "${script}" validate --file ignored
   "${script}" template candidate >"${candidate}"
   "${script}" template papercut >"${papercut}"
 

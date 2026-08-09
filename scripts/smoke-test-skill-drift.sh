@@ -56,6 +56,59 @@ EOF
 cp "${skill_file}" "${fixture_dir}/good-skill.md"
 
 output_file="${fixture_dir}/audit.out"
+error_file="${fixture_dir}/audit.err"
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --bogus >"${output_file}" 2>"${error_file}"; then
+  echo "invalid audit option unexpectedly succeeded" >&2
+  exit 1
+else
+  invalid_status=$?
+fi
+if [[ "${invalid_status}" -ne 2 ]] || [[ -s "${output_file}" ]] ||
+  ! grep -Fq "audit-skill-drift.rb: invalid option: --bogus" "${error_file}" ||
+  ! grep -Fq "Usage:" "${error_file}" || grep -Fq "OptionParser::" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "invalid audit option did not follow the CLI usage-error contract" >&2
+  exit 1
+fi
+
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" extra >"${output_file}" 2>"${error_file}"; then
+  echo "unexpected audit argument succeeded" >&2
+  exit 1
+else
+  invalid_status=$?
+fi
+if [[ "${invalid_status}" -ne 2 ]] || [[ -s "${output_file}" ]] ||
+  ! grep -Fq "audit-skill-drift.rb: unexpected argument: extra" "${error_file}" ||
+  ! grep -Fq "Usage:" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "unexpected audit argument did not follow the CLI usage-error contract" >&2
+  exit 1
+fi
+
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --triage "${fixture_dir}/missing.tsv" >"${output_file}" 2>"${error_file}"; then
+  echo "missing explicit triage manifest unexpectedly succeeded" >&2
+  exit 1
+fi
+if ! grep -Fq "triage manifest not found" "${error_file}" || grep -Fq "from .*audit-skill-drift.rb" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "missing explicit triage manifest did not produce a stable error" >&2
+  exit 1
+fi
+
+printf '%s\n' 'malformed-row' >"${fixture_dir}/malformed.tsv"
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --triage "${fixture_dir}/malformed.tsv" >"${output_file}" 2>"${error_file}"; then
+  echo "malformed triage manifest unexpectedly succeeded" >&2
+  exit 1
+fi
+if ! grep -Fq "expected section<TAB>pattern<TAB>rationale" "${error_file}" ||
+  grep -Fq "ArgumentError" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "malformed triage manifest did not produce a stable error" >&2
+  exit 1
+fi
+
 if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
   echo "wrapped source-repository context or triaged advisory fixture failed" >&2

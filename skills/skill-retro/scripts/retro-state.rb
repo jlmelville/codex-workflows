@@ -61,8 +61,8 @@ module RetroState
   module_function
 
   def read_document(path)
-    text = path == "-" ? $stdin.read : File.read(path, encoding: "UTF-8")
-    parse_document(text, label: path == "-" ? "standard input" : path)
+    text = (path == "-") ? $stdin.read : File.read(path, encoding: "UTF-8")
+    parse_document(text, label: (path == "-") ? "standard input" : path)
   end
 
   def parse_document(text, label: "document")
@@ -108,11 +108,12 @@ module RetroState
 
   def require_string_array(data, field, label, allow_empty: false)
     value = data[field]
-    unless value.is_a?(Array) && (allow_empty || !value.empty?) &&
-           value.all? { |item| item.is_a?(String) && !item.empty? }
-      qualifier = allow_empty ? "an array of strings" : "a non-empty array of strings"
-      raise Error, "#{label}: #{field} must be #{qualifier}"
-    end
+    valid = value.is_a?(Array) && (allow_empty || !value.empty?) &&
+      value.all? { |item| item.is_a?(String) && !item.empty? }
+    return if valid
+
+    qualifier = allow_empty ? "an array of strings" : "a non-empty array of strings"
+    raise Error, "#{label}: #{field} must be #{qualifier}"
   end
 
   def validate_common(data, text, label)
@@ -144,10 +145,10 @@ module RetroState
     require_string_array(data, "decisive_evidence", label)
 
     unless CONFIDENCES.include?(data["confidence"])
-      raise Error, "#{label}: confidence must be one of #{CONFIDENCES.join(', ')}"
+      raise Error, "#{label}: confidence must be one of #{CONFIDENCES.join(", ")}"
     end
     unless RECOMMENDATIONS.include?(data["recommendation"])
-      raise Error, "#{label}: recommendation must be one of #{RECOMMENDATIONS.join(', ')}"
+      raise Error, "#{label}: recommendation must be one of #{RECOMMENDATIONS.join(", ")}"
     end
 
     if routed
@@ -161,7 +162,7 @@ module RetroState
       unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
         raise Error, "#{label}: intake_digest must be a SHA-256 digest"
       end
-      intake = data.reject { |key, _| %w[intake_digest triage].include?(key) }
+      intake = data.except("intake_digest", "triage")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
       unless data["intake_digest"] == expected_digest
         raise Error, "#{label}: intake fields changed after routing"
@@ -212,7 +213,7 @@ module RetroState
       unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
         raise Error, "#{label}: intake_digest must be a SHA-256 digest"
       end
-      intake = data.reject { |key, _| %w[intake_digest closure].include?(key) }
+      intake = data.except("intake_digest", "closure")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
       unless data["intake_digest"] == expected_digest
         raise Error, "#{label}: papercut intake fields changed after recording"
@@ -262,7 +263,7 @@ module RetroState
       end
     else
       if related_papercut_id || related_candidate_id
-        raise Error, "#{label}: #{closure['outcome']} closure must not contain a related ID"
+        raise Error, "#{label}: #{closure["outcome"]} closure must not contain a related ID"
       end
     end
   end
@@ -270,7 +271,7 @@ module RetroState
   def validate_enum(data, field, allowed, label)
     return if allowed.include?(data[field])
 
-    raise Error, "#{label}: #{field} must be one of #{allowed.join(', ')}"
+    raise Error, "#{label}: #{field} must be one of #{allowed.join(", ")}"
   end
 
   def validate_triage(triage, candidate_id, label)
@@ -281,7 +282,7 @@ module RetroState
       raise Error, "#{label}: triage candidate_id does not match intake"
     end
     unless VERDICTS.include?(triage["verdict"])
-      raise Error, "#{label}: verdict must be one of #{VERDICTS.join(', ')}"
+      raise Error, "#{label}: verdict must be one of #{VERDICTS.join(", ")}"
     end
 
     related = triage.fetch("related_candidate_ids", [])
@@ -307,7 +308,7 @@ module RetroState
       raise Error, "#{label}: candidate_id does not match #{expected_id}"
     end
     unless VERDICTS.include?(data["verdict"])
-      raise Error, "#{label}: verdict must be one of #{VERDICTS.join(', ')}"
+      raise Error, "#{label}: verdict must be one of #{VERDICTS.join(", ")}"
     end
     require_string_array(data, "related_candidate_ids", label, allow_empty: true)
     if data["verdict"] == "defer"
@@ -382,7 +383,7 @@ module RetroState
       require_string_array(data, field, label)
     end
     unless DRAFT_STATUSES.include?(data["status"])
-      raise Error, "#{label}: status must be one of #{DRAFT_STATUSES.join(', ')}"
+      raise Error, "#{label}: status must be one of #{DRAFT_STATUSES.join(", ")}"
     end
 
     validate_assigned_id(data, label, assigned, "draft_id", /\ASD-\d{8}-[a-f0-9]{6}\z/)
@@ -405,7 +406,7 @@ module RetroState
     )
     require_string_array(data, "evidence", label)
     unless LEDGER_STATUSES.include?(data["status"])
-      raise Error, "#{label}: status must be one of #{LEDGER_STATUSES.join(', ')}"
+      raise Error, "#{label}: status must be one of #{LEDGER_STATUSES.join(", ")}"
     end
 
     closure = data["closure"]
@@ -457,7 +458,7 @@ module RetroState
       smallest_change: "The minimum useful content or mechanism change."
       test_status: "What was exercised, or explicitly untested."
       confidence: medium
-      recommendation: uncertain # #{RECOMMENDATIONS.join(', ')}
+      recommendation: uncertain # #{RECOMMENDATIONS.join(", ")}
       redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
       ---
 
@@ -597,7 +598,9 @@ module RetroState
     def initialize(root)
       raise MissingStateRoot, "#{STATE_ENV} is not set" if RetroState.blank?(root)
 
-      @root = File.expand_path(root)
+      @root = canonical_root(root)
+      dangerous_roots = [File::SEPARATOR, File.expand_path("~")]
+      raise Error, "state root is too broad: #{@root}" if dangerous_roots.include?(@root)
     end
 
     def init
@@ -621,10 +624,10 @@ module RetroState
       RetroState.validate_candidate(data, body, label: input_path, routed: false)
 
       now = Time.now.utc
-      id = unique_id("RC-#{now.strftime('%Y%m%dT%H%M%SZ')}")
+      id = unique_id("RC-#{now.strftime("%Y%m%dT%H%M%SZ")}")
       data["candidate_id"] = id
       data["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(data.reject { |key, _| key == "intake_digest" }, body))
+      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(data.except("intake_digest"), body))
       output = RetroState.render_document(data, body)
       destination = File.join(root, "retrospectives", "inbox", "#{id}.md")
       exclusive_write(destination, output)
@@ -645,11 +648,11 @@ module RetroState
       init
 
       now = Time.now.utc
-      id = unique_papercut_id("PC-#{now.strftime('%Y%m%dT%H%M%SZ')}")
+      id = unique_papercut_id("PC-#{now.strftime("%Y%m%dT%H%M%SZ")}")
       record = data.dup
       record["papercut_id"] = id
       record["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      intake = record.reject { |key, _| key == "intake_digest" }
+      intake = record.except("intake_digest")
       record["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
       destination = papercut_path("inbox", id)
       exclusive_write(destination, RetroState.render_document(record, body))
@@ -701,7 +704,7 @@ module RetroState
       decision, decision_body = RetroState.read_document(decision_path)
       RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
 
-      triage = decision.reject { |key, _| %w[schema_version record_type].include?(key) }
+      triage = decision.except("schema_version", "record_type")
       triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
       candidate["triage"] = triage
       output = RetroState.render_document(candidate, body)
@@ -718,10 +721,10 @@ module RetroState
       missing = data.fetch("originating_candidate_ids").reject do |id|
         File.file?(candidate_path("archive", id))
       end
-      raise Error, "accepted record references candidates not in archive: #{missing.join(', ')}" unless missing.empty?
+      raise Error, "accepted record references candidates not in archive: #{missing.join(", ")}" unless missing.empty?
 
       now = Time.now.utc
-      id = unique_id("SCR-#{now.strftime('%Y%m%d')}")
+      id = unique_id("SCR-#{now.strftime("%Y%m%d")}")
       data["accepted_id"] = id
       data["accepted_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
       output = RetroState.render_document(data, body)
@@ -864,10 +867,10 @@ module RetroState
       archived_papercuts.each do |path, data|
         closure = data.fetch("closure")
         if closure["outcome"] == "duplicate" && !papercut_ids.key?(closure["related_papercut_id"])
-          errors << "#{path}: related papercut does not exist: #{closure['related_papercut_id']}"
+          errors << "#{path}: related papercut does not exist: #{closure["related_papercut_id"]}"
         end
         if closure["outcome"] == "candidate" && !ids.key?(closure["related_candidate_id"])
-          errors << "#{path}: related candidate does not exist: #{closure['related_candidate_id']}"
+          errors << "#{path}: related candidate does not exist: #{closure["related_candidate_id"]}"
         end
       end
 
@@ -903,6 +906,23 @@ module RetroState
     end
 
     private
+
+    def canonical_root(path)
+      cursor = File.expand_path(path)
+      suffix = []
+      until File.exist?(cursor)
+        raise Error, "state root contains a dangling symlink: #{path}" if File.symlink?(cursor)
+
+        parent = File.dirname(cursor)
+        break if parent == cursor
+
+        suffix << File.basename(cursor)
+        cursor = parent
+      end
+      File.join(File.realpath(cursor), *suffix.reverse)
+    rescue Errno::ENOENT, Errno::EACCES => e
+      raise Error, "could not resolve state root #{path}: #{e.message}"
+    end
 
     def validate_papercut_reference!(closure)
       case closure["outcome"]
@@ -1038,7 +1058,7 @@ module RetroState
 
     def unique_auxiliary_id(prefix, directory)
       100.times do
-        id = "#{prefix}-#{Time.now.utc.strftime('%Y%m%d')}-#{SecureRandom.hex(3)}"
+        id = "#{prefix}-#{Time.now.utc.strftime("%Y%m%d")}-#{SecureRandom.hex(3)}"
         return id unless File.exist?(File.join(root, directory, "#{id}.md"))
       end
       raise Error, "could not allocate a unique #{prefix} ID"
@@ -1169,12 +1189,12 @@ module RetroState
       end
 
       decision_text = decision_template
-                      .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
-                      .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
-                      .sub("verdict: defer", "verdict: accept")
-                      .sub(/^review_trigger:.*\n/, "")
-                      .sub(/^next_action:.*\n/, "")
-                      .sub(/^close_condition:.*\n/, "")
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
+        .sub("verdict: defer", "verdict: accept")
+        .sub(/^review_trigger:.*\n/, "")
+        .sub(/^next_action:.*\n/, "")
+        .sub(/^close_condition:.*\n/, "")
       File.write(decision, decision_text)
       archive_path = store.process(id, decision)
       raise "candidate was not archived" unless File.file?(archive_path)
@@ -1188,11 +1208,11 @@ module RetroState
       accepted_data, = read_document(accepted_path)
       original_accepted_at = accepted_data.fetch("accepted_at")
       updated_accepted_text = accepted_template
-                              .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
-                              .sub("disposition: accepted", "disposition: implemented")
-                              .sub("verification: unverified", "verification: supported")
-                              .sub("verification_basis: none", "verification_basis: deterministic-test")
-                              .sub("implementation_commits: []", "implementation_commits:\n  - abc1234")
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
+        .sub("disposition: accepted", "disposition: implemented")
+        .sub("verification: unverified", "verification: supported")
+        .sub("verification_basis: none", "verification_basis: deterministic-test")
+        .sub("implementation_commits: []", "implementation_commits:\n  - abc1234")
       File.write(accepted, updated_accepted_text)
       updated_accepted_path = store.update_accepted(accepted_id, accepted)
       raise "accepted update changed path" unless updated_accepted_path == accepted_path
@@ -1230,8 +1250,8 @@ module RetroState
       deferred_path = store.route(input)
       deferred_id = File.basename(deferred_path, ".md")
       deferred_decision = decision_template
-                          .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
-                          .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:00Z")
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:00Z")
       File.write(decision, deferred_decision)
       store.process(deferred_id, decision)
       review_types = store.review_queue.map(&:first)
@@ -1246,7 +1266,7 @@ module RetroState
       unless closed_data.dig("closure", "rationale") == "The maintenance action was completed."
         raise "ledger closure rationale missing"
       end
-      legacy_closed_data = closed_data.reject { |key, _| key == "closure" }
+      legacy_closed_data = closed_data.except("closure")
       File.write(closed_ledger, render_document(legacy_closed_data, closed_body))
       store.validate
       if store.review_queue.map(&:first).count("ledger").positive?
@@ -1297,6 +1317,24 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("must not be inside a Git worktree")
       end
+
+      linked_target = File.join(git_root, "linked-state")
+      linked_root = File.join(tmp, "state-link")
+      FileUtils.mkdir_p(linked_target)
+      File.symlink(linked_target, linked_root)
+      begin
+        Store.new(linked_root).init
+        raise "symlinked Git-contained state root was accepted"
+      rescue Error => e
+        raise unless e.message.include?("must not be inside a Git worktree")
+      end
+
+      begin
+        Store.new(File::SEPARATOR)
+        raise "filesystem root was accepted as a state root"
+      rescue Error => e
+        raise unless e.message.include?("state root is too broad")
+      end
     end
     true
   end
@@ -1334,12 +1372,57 @@ def usage
   TEXT
 end
 
+def parse_options!(parser, arguments)
+  parser.parse!(arguments)
+  return if arguments.empty?
+
+  raise OptionParser::InvalidArgument, "unexpected argument: #{arguments.first}"
+end
+
+def reject_inapplicable_options!(command, provided)
+  allowed = {
+    "init" => %w[--root],
+    "template" => [],
+    "record-papercut" => %w[--root --file],
+    "papercuts" => %w[--root --archive],
+    "close-papercut" => %w[
+      --root --id --outcome --rationale --related-papercut-id
+      --related-candidate-id
+    ],
+    "route" => %w[--root --file],
+    "pending" => %w[--root],
+    "process" => %w[--root --id --decision],
+    "record-accepted" => %w[--root --file],
+    "update-accepted" => %w[--root --id --file],
+    "record-draft" => %w[--root --file],
+    "record-ledger" => %w[--root --file],
+    "close-ledger" => %w[--root --id --rationale],
+    "review-queue" => %w[--root],
+    "validate" => %w[--root],
+    "self-test" => []
+  }.fetch(command)
+  unexpected = provided.select { |_option, present| present }.keys - allowed
+  return if unexpected.empty?
+
+  raise OptionParser::InvalidOption, "#{unexpected.first} is not valid for #{command}"
+end
+
 if ARGV.empty? || %w[-h --help].include?(ARGV.first)
   puts usage
   exit 0
 end
 
 command = ARGV.shift
+commands = %w[
+  init template record-papercut papercuts close-papercut route pending process
+  record-accepted update-accepted record-draft record-ledger close-ledger
+  review-queue validate self-test
+]
+unless commands.include?(command)
+  warn "retro-state.rb: unknown command: #{command}"
+  warn usage
+  exit 2
+end
 
 root_override = nil
 input_path = nil
@@ -1367,29 +1450,42 @@ parser = OptionParser.new do |opts|
 end
 
 begin
+  type = ARGV.shift if command == "template"
+  parse_options!(parser, ARGV)
+  reject_inapplicable_options!(
+    command,
+    {
+      "--root" => !root_override.nil?,
+      "--file" => !input_path.nil?,
+      "--id" => !record_id.nil?,
+      "--decision" => !decision_path.nil?,
+      "--archive" => archive,
+      "--outcome" => !outcome.nil?,
+      "--rationale" => !rationale.nil?,
+      "--related-papercut-id" => !related_papercut_id.nil?,
+      "--related-candidate-id" => !related_candidate_id.nil?
+    }
+  )
+
   case command
   when "template"
-    type = ARGV.shift
-    parser.parse!(ARGV)
     template = case type
-               when "papercut" then RetroState.papercut_template
-               when "candidate" then RetroState.candidate_template
-               when "decision" then RetroState.decision_template
-               when "accepted" then RetroState.accepted_template
-               when "draft" then RetroState.draft_template
-               when "ledger" then RetroState.ledger_template
-               else raise RetroState::Error, "unknown template type: #{type}"
-               end
+    when "papercut" then RetroState.papercut_template
+    when "candidate" then RetroState.candidate_template
+    when "decision" then RetroState.decision_template
+    when "accepted" then RetroState.accepted_template
+    when "draft" then RetroState.draft_template
+    when "ledger" then RetroState.ledger_template
+    else raise RetroState::Error, "unknown template type: #{type}"
+    end
     print template
   when "self-test"
-    parser.parse!(ARGV)
     RetroState.self_test
     puts "Retro state self-test passed."
   else
-    parser.parse!(ARGV)
     root = root_override || ENV[RetroState::STATE_ENV]
     if %w[route record-papercut].include?(command) && RetroState.blank?(root)
-      command_label = command == "route" ? "route" : "record-papercut"
+      command_label = (command == "route") ? "route" : "record-papercut"
       raise RetroState::Error, "#{command_label} requires --file PATH" unless input_path
 
       data, body = RetroState.read_document(input_path)
@@ -1398,7 +1494,7 @@ begin
       else
         RetroState.validate_papercut(data, body, label: input_path, routed: false)
       end
-      record_name = command == "route" ? "candidate" : "papercut"
+      record_name = (command == "route") ? "candidate" : "papercut"
       warn "#{RetroState::STATE_ENV} is not set; no state was written. Paste-ready #{record_name} follows."
       print RetroState.render_document(data, body)
       exit 2
@@ -1480,10 +1576,12 @@ begin
     when "validate"
       store.validate
       puts "Retro state validation passed."
-    else
-      raise RetroState::Error, "unknown command: #{command}"
     end
   end
+rescue OptionParser::ParseError => e
+  warn "retro-state.rb: #{e.message}"
+  warn usage
+  exit 2
 rescue RetroState::Error, Errno::ENOENT, Errno::EACCES => e
   warn "retro-state.rb: #{e.message}"
   exit 1

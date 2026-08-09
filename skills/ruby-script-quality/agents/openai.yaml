@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ruby Script Quality"
+  short_description: "Write and harden dependable Ruby scripts"
+  default_prompt: "Use $ruby-script-quality to write or review a robust Ruby script and validate its CLI behavior."
