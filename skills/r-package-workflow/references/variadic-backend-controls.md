@@ -37,13 +37,22 @@ Preserve the no-control small-problem fallback when it is part of the public
 contract. Report requested method and actual backend separately so fallback is
 observable rather than mistaken for ignored input.
 
+When selector redesign is explicitly authorized, prefer a dedicated automatic
+policy for thresholds and fallback, and make every explicit backend name
+literal. Controls should configure the already selected mode rather than select
+it implicitly; reject controls owned by another explicit mode. Continue to
+report requested policy separately from the effective backend chosen by the
+automatic policy.
+
 ## Public Tests
 
 Exercise accepted controls for every backend and reject unnamed, duplicate,
 unknown, wrong-backend, and required-output-disabling inputs. Test each routing
 category independently, including no controls, small-problem fallback, and
-requested-versus-actual backend metadata. Add a public pass-through probe that
-shows backend-owned values reach the selected provider unchanged, without
+requested-versus-actual backend metadata. For an explicit automatic policy,
+exercise every automatic route plus literal explicit backends on inputs that
+would otherwise cross the automatic threshold. Add a public pass-through probe
+that shows backend-owned values reach the selected provider unchanged, without
 freezing dependency-specific error text. Keep the semantic classification in
 package code and its public tests; it is package-specific and does not warrant
 a generic validator.

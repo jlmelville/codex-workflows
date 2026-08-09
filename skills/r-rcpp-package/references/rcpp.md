@@ -18,6 +18,23 @@ appear after rerunning `compileAttributes()`.
 Do not hand-edit `R/RcppExports.R` or `src/RcppExports.cpp` to make the diff
 look right. Fix the exported C++ signature or attributes and regenerate.
 
+## cpp11 Return Conversions
+
+For memory-sensitive cpp11 results, inspect the supported cpp11 headers rather
+than assuming list construction is zero-copy. In affected versions,
+`named_arg` assignment takes a container by value before converting it to an R
+object, while the container `as_sexp()` conversion itself can accept a const
+reference. Model the overlap among original C++ storage, any by-value
+temporary, the new R payload, and auxiliary vectors.
+
+When that temporary materially affects the bound, convert large containers
+first into protected cpp11 SEXP wrappers, then add the lightweight wrappers to
+the result. Verify protection semantics in the supported headers, recheck them
+when the cpp11 version changes, and test allocation-component or phase-sum
+formulas without claiming measured peak RSS. When exported cpp11 signatures
+change, regenerate registration twice with the package's established command
+and inspect the second pass for idempotence.
+
 ## Formatting
 
 - Format hand-maintained C++ files with the repo's `.clang-format`.
@@ -38,6 +55,27 @@ clang-format --dry-run --Werror src/distance.h src/random-dist.cpp
 - Avoid using chunk end offsets as thread IDs.
 - Keep RNG contracts explicit in docs/tests: same seed plus same thread count
   should be reproducible unless a different contract is documented.
+- Before adding `-pthread` or another thread option, confirm that code constructs
+  and joins real threads, inspect both Makevars variants, and distinguish
+  compiler from linker placement. Require build evidence that contains the
+  threaded implementation across the package's supported platforms; local
+  Linux success or a configured but unrun service is not cross-platform proof.
+  When the supported matrix already exercises the code successfully, record an
+  explicit no-change decision instead of adding speculative flags.
+
+## Removing Resource Estimators
+
+Before removing a memory estimator, cap, preflight, or accounting report, trace
+its call graph and classify each helper as policy-only or as protection for an
+allocation the implementation can still attempt. Map checked addition,
+multiplication, index-width, sparse-slot, dimension, and vector-size operations
+to the allocation or reduction boundary they protect.
+
+Delete modeled formulas and unused reporting, but relocate surviving overflow
+and representability guards to those real boundaries rather than retaining a
+dead estimator. Validate public result shape, routing, numerics, and worker
+exception behavior through ordinary package paths; do not add test-only exports
+merely to preserve removed accounting machinery.
 
 ## Tests
 

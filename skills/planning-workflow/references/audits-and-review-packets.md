@@ -39,6 +39,21 @@ When converting an external audit or model review into a chunk plan:
    against it. Do not infer audit completeness only from finishing the tasks
    that were transcribed into the execution queue.
 
+## Public API Value Gate
+
+When an audit recommends new public diagnostics, result fields, metadata, or
+resource controls, separate technical acceptance from product acceptance.
+Retention should identify a recognizable user problem, a concrete action or
+decision, a credible interpretation rule, evidence or peer precedent, and the
+API, compute, memory, compatibility, and documentation costs. Correctness and
+comprehensive tests do not by themselves justify public exposure.
+
+If value remains hypothetical, prefer internalization or removal; do not expand
+documentation to manufacture a use case for an already implemented surface.
+For existing implementations, perform the disposition review read-only, put
+unresolved retention behind an explicit user decision, and separate accepted
+cleanup from final documentation into bounded follow-up packets.
+
 ## Stabilization Chunks
 
 When a post-cleanup audit mixes small completion defects with broader future

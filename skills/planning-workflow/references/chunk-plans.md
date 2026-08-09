@@ -76,6 +76,20 @@ the proposed commit, compare staged and unstaged path lists and confirm that no
 unstaged edits overlap staged paths. Tests exercise working-tree files, so they
 support the cached patch only when those paths have no unstaged drift.
 
+## Accepted Patch Identity
+
+When independent review accepts an unstaged patch and validation commands may
+mutate it, record the exact baseline and hash the complete `git diff --binary`
+using explicit, repeatable options. Apply that exact patch to an isolated
+checkout for generators and other mutation-capable checks; treat any generated
+difference as review evidence instead of changing the submitter's checkout.
+
+After an operator-directed disjoint commit split, hash the baseline-to-final-HEAD
+binary diff with the same baseline and options and compare it with the accepted
+patch identity. Also confirm a clean index and worktree. Equality proves that
+the combined content was preserved, but it does not replace isolated index
+validation for intermediate commits whose paths or hunks overlap.
+
 ## Overlapping Split Validation
 
 When an operator-directed or post-hoc commit split leaves staged and unstaged

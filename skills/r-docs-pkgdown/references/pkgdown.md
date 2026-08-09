@@ -162,8 +162,20 @@ When validating pkgdown without committing generated site output, combine a
 writable cache with a temporary destination:
 
 ```sh
-XDG_CACHE_HOME=/tmp/r-cache Rscript -e 'dest <- tempfile("pkgdown-"); dir.create(dest); pkgdown::build_site(new_process = FALSE, override = list(destination = dest))'
+XDG_CACHE_HOME=/tmp/r-cache Rscript -e 'local({
+  dest <- tempfile("pkgdown-project-")
+  build <- function() {
+    dir.create(dest)
+    on.exit(unlink(dest, recursive = TRUE, force = TRUE), add = TRUE)
+    pkgdown::build_site(new_process = FALSE, override = list(destination = dest))
+  }
+  build()
+  stopifnot(!dir.exists(dest))
+})'
 ```
 
 Use a project-specific `tempfile()` prefix when it helps identify cleanup
-artifacts. Rerun with approval only when a final pkgdown result is required.
+artifacts. Scope `on.exit()` inside a function invoked from the local expression
+rather than at top level, and check for prefix-matching leftovers after
+interrupted runs. Rerun with approval only when a final pkgdown result is
+required.

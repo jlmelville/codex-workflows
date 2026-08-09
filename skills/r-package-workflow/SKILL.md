@@ -36,6 +36,12 @@ Use this as the default operating procedure for R package work.
   let verbs reveal side effects such as signaling, preserve contract-relevant
   qualifiers, and retain package or subsystem prefixes only when they improve
   disambiguation or searchability.
+- Before retaining a public diagnostic or detailed result field, require a
+  recognizable user problem, a concrete action or decision, and a credible
+  interpretation rule such as a threshold, comparison, example, or precedent.
+  Default uncertain unreleased diagnostics to removal or internalization, and
+  move route-only or maintainer-only algebra checks into focused invariants
+  rather than expanding the supported result schema.
 - When an exported API forwards `...` to interchangeable backends, follow
   [variadic-backend-controls.md](references/variadic-backend-controls.md) for
   early validation, routing categories, fallback behavior, and public tests.

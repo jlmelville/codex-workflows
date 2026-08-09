@@ -15,6 +15,11 @@ Use this for documentation and pkgdown work in R packages.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
+- Before editing NEWS, establish the last user-available baseline: a release,
+  pushed development state, or operator-specified boundary. Check every named
+  item in a mixed bullet separately; omit add/remove cycles that occurred
+  entirely after that boundary, retain removal of previously available
+  behavior, and scan adjacent entries after correcting chronology.
 - State the current supported contract in help pages, READMEs, and articles;
   do not narrate removed options, conventional validator guarantees, or prose
   that merely paraphrases an adjacent formula, and do not reassure users about
@@ -37,6 +42,13 @@ Use this for documentation and pkgdown work in R packages.
   distinguish route-forcing controls, value-based thresholds, and non-routing
   diagnostics. Verify routing claims through the exported function and avoid
   validator jargon such as allowlists or ownership.
+- Before documenting an inspectable result object, trace each public value
+  through validation, canonicalization, backend selection, and result
+  construction. Distinguish literal input, canonical selector, and effective
+  backend; name meaningful nested fields and define their scales or identities.
+  For non-unique numerical representations, document the identifiable value or
+  subspace instead of promising unique vectors, and do not dismiss supported
+  public diagnostics as maintainer-only data.
 - Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen

@@ -20,6 +20,23 @@ behavior, when no package code was loaded.
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
 
+## Dependency Attachment Changes
+
+When moving a runtime dependency from `Depends` to `Imports`, validate the
+installed search-path contract in a fresh library and a separate
+`Rscript --vanilla` process. Check attachment, namespace loading,
+package-internal calls, qualified method dispatch, and representative
+unqualified user calls as distinct surfaces. Do not use `load_all()` or a
+development session where the dependency may already be attached as evidence.
+
+For returned `Matrix` S4 objects, obtain an object from the installed package,
+assert that `package:Matrix` is absent from `search()` while its namespace is
+loaded, and exercise display, group operations, multiplication, subsetting,
+conversion, and Matrix-qualified generics such as `Matrix::t()` or
+`Matrix::rowSums()`. An unqualified base generic can select a default method
+when Matrix is not attached even though registered Matrix behavior remains
+healthy; decide explicitly whether that user-visible change is intended.
+
 ## Reference Metadata Applicability
 
 When a scientific factory returns stored reference metadata or its accepted
