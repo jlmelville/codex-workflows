@@ -96,6 +96,12 @@ Prescribe an exact sequence only when ordering prevents a known correctness,
 safety, state, or tooling failure. Move conditional recipes and examples into
 references, and deterministic behavior into scripts or validators.
 
+When a skill relies on external tools, distinguish required dependencies from
+optional enhancements, check required availability before dependent work, and
+name only supported fallbacks. If a required tool cannot run and no fallback
+preserves the check, make the validation gap prominent and do not claim
+complete validation.
+
 Create a new skill only for repeated work with clear triggers and decisions;
 keep maintainer-only knowledge in repository docs. For recurring non-installed
 prompts, document the exact path, a copy-ready invocation, and useful cadence.
