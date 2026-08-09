@@ -75,8 +75,10 @@ After user acceptance:
 4. Implement source changes so each public commit stands on its own without the
    external archive. Do not put private candidate identifiers or source-repo
    context in Git merely for traceability.
-5. Create or update curated accepted records externally. Track disposition,
-   verification, and verification basis independently.
+5. Create curated accepted records externally, then use the helper's
+   `update-accepted` transition for later evidence or disposition changes.
+   Track disposition, verification, and verification basis independently;
+   preserve accepted identity and originating candidate lineage.
 6. Static validation of prose can justify `implemented`; it cannot justify
    `verification: supported`. Use later-session evidence only for a concrete
    ordinary task and deterministic evidence only for executable behavior

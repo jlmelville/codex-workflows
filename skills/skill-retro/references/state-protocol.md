@@ -88,6 +88,7 @@ template decision
 process --id ID --decision PATH
 template accepted
 record-accepted --file PATH
+update-accepted --id ID --file PATH
 template draft
 record-draft --file PATH
 template ledger
@@ -199,6 +200,13 @@ not prove the guidance improved a later session. Use `deterministic-test` only
 for executable contracts actually exercised. Use `later-session` only for an
 ordinary task that records the decisive behavior or failure, affected guidance,
 and why the observation supports or contradicts it.
+
+Use `update-accepted --id ID --file PATH` for later disposition, verification,
+evidence, or commit updates. Supply a complete unassigned accepted document,
+like `template accepted`; the helper preserves `accepted_id` and `accepted_at`
+and requires the originating candidate lineage to remain identical. Do not
+direct-edit the stored record or create a second accepted identity for the same
+outcome merely to record later evidence.
 
 Do not create maintained prompt corpora, synthetic model fixtures, repeated
 model runs, raw trace archives, paid model-backed CI, or public evidence records

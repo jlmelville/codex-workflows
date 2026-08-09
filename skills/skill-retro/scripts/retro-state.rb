@@ -457,7 +457,7 @@ module RetroState
       smallest_change: "The minimum useful content or mechanism change."
       test_status: "What was exercised, or explicitly untested."
       confidence: medium
-      recommendation: uncertain
+      recommendation: uncertain # #{RECOMMENDATIONS.join(', ')}
       redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
       ---
 
@@ -725,9 +725,29 @@ module RetroState
       data["accepted_id"] = id
       data["accepted_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
       output = RetroState.render_document(data, body)
-      destination = File.join(root, "retrospectives", "accepted", "#{id}.md")
+      destination = accepted_path(id)
       exclusive_write(destination, output)
       destination
+    end
+
+    def update_accepted(accepted_id, input_path)
+      ensure_initialized
+      path = accepted_path(accepted_id)
+      raise Error, "accepted record not found: #{accepted_id}" unless File.file?(path)
+
+      current, current_body = RetroState.read_document(path)
+      RetroState.validate_accepted(current, current_body, label: path, assigned: true)
+      replacement, body = RetroState.read_document(input_path)
+      RetroState.validate_accepted(replacement, body, label: input_path, assigned: false)
+      unless replacement["originating_candidate_ids"] == current["originating_candidate_ids"]
+        raise Error, "accepted record originating_candidate_ids must not change: #{accepted_id}"
+      end
+
+      replacement["accepted_id"] = current.fetch("accepted_id")
+      replacement["accepted_at"] = current.fetch("accepted_at")
+      RetroState.validate_accepted(replacement, body, label: input_path, assigned: true)
+      replace_write(path, RetroState.render_document(replacement, body))
+      path
     end
 
     def record_draft(input_path)
@@ -974,6 +994,14 @@ module RetroState
       File.join(root, "retrospectives", area, "#{candidate_id}.md")
     end
 
+    def accepted_path(accepted_id)
+      unless accepted_id.match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/)
+        raise Error, "invalid accepted_id: #{accepted_id}"
+      end
+
+      File.join(root, "retrospectives", "accepted", "#{accepted_id}.md")
+    end
+
     def papercut_path(area, papercut_id)
       unless papercut_id.match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
         raise Error, "invalid papercut_id: #{papercut_id}"
@@ -1044,6 +1072,10 @@ module RetroState
       draft = File.join(tmp, "draft.md")
       ledger = File.join(tmp, "ledger.md")
       papercut = File.join(tmp, "papercut.md")
+      recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
+      unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
+        raise "candidate template recommendation vocabulary is incomplete"
+      end
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
 
       store = Store.new(root)
@@ -1152,6 +1184,41 @@ module RetroState
       File.write(accepted, accepted_text)
       accepted_path = store.record_accepted(accepted)
       raise "accepted record missing" unless File.file?(accepted_path)
+      accepted_id = File.basename(accepted_path, ".md")
+      accepted_data, = read_document(accepted_path)
+      original_accepted_at = accepted_data.fetch("accepted_at")
+      updated_accepted_text = accepted_template
+                              .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
+                              .sub("disposition: accepted", "disposition: implemented")
+                              .sub("verification: unverified", "verification: supported")
+                              .sub("verification_basis: none", "verification_basis: deterministic-test")
+                              .sub("implementation_commits: []", "implementation_commits:\n  - abc1234")
+      File.write(accepted, updated_accepted_text)
+      updated_accepted_path = store.update_accepted(accepted_id, accepted)
+      raise "accepted update changed path" unless updated_accepted_path == accepted_path
+      updated_accepted, = read_document(updated_accepted_path)
+      raise "accepted update changed identity" unless updated_accepted["accepted_id"] == accepted_id
+      unless updated_accepted["accepted_at"] == original_accepted_at
+        raise "accepted update changed acceptance timestamp"
+      end
+      raise "accepted update missed disposition" unless updated_accepted["disposition"] == "implemented"
+      raise "accepted update missed verification" unless updated_accepted["verification"] == "supported"
+
+      changed_lineage = updated_accepted_text.sub(id, "RC-20260715T120000Z-000000")
+      File.write(accepted, changed_lineage)
+      begin
+        store.update_accepted(accepted_id, accepted)
+        raise "changed accepted lineage was accepted"
+      rescue Error => e
+        raise unless e.message.include?("originating_candidate_ids must not change")
+      end
+      begin
+        store.update_accepted("SCR-20260715-000000", accepted)
+        raise "missing accepted record was updated"
+      rescue Error => e
+        raise unless e.message.include?("accepted record not found")
+      end
+      store.validate
 
       File.write(draft, draft_template)
       raise "draft record missing" unless File.file?(store.record_draft(draft))
@@ -1252,6 +1319,8 @@ def usage
       pending                           List validated inbox candidates
       process --id ID --decision PATH  Archive a candidate with a verdict
       record-accepted --file PATH       Store a curated accepted record
+      update-accepted --id ID --file PATH
+                                        Replace a curated record while preserving identity
       record-draft --file PATH          Store an uninstalled draft
       record-ledger --file PATH         Store a maintenance ledger entry
       close-ledger --id ID --rationale TEXT
@@ -1388,6 +1457,11 @@ begin
       raise RetroState::Error, "record-accepted requires --file PATH" unless input_path
 
       puts store.record_accepted(input_path)
+    when "update-accepted"
+      raise RetroState::Error, "update-accepted requires --id ID" unless record_id
+      raise RetroState::Error, "update-accepted requires --file PATH" unless input_path
+
+      puts store.update_accepted(record_id, input_path)
     when "record-draft"
       raise RetroState::Error, "record-draft requires --file PATH" unless input_path
 

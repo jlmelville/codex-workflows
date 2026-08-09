@@ -24,6 +24,12 @@ state.
   destination or well-justified new home. Its only authorized mutation is an
   external inbox record.
 
+Before either routing mode writes anything, assemble the complete current-task
+candidate set in memory or temporary scratch. Compare every proposed report's
+missing delta, destination, and decision, consolidate overlaps, and only then
+write one file per surviving distinct delta. Do not route reports incrementally
+as conclusions surface.
+
 Neither routing mode authorizes project edits, source-repository edits,
 commits, pushes, messages, or changes to other external state.
 
@@ -55,7 +61,8 @@ candidate as the terminal fallback when approval is unavailable or denied.
   producing conversation.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
-- Consolidate same-task evidence when it supports one missing delta,
+- In the pre-routing batch pass, consolidate same-task evidence when it supports
+  one missing delta,
   destination, and decision. Split only materially distinct deltas, and keep
   one candidate per external Markdown file so separate candidates remain
   independently judgeable.
