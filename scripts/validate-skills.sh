@@ -160,7 +160,8 @@ if ((${#ruby_files[@]} > 0)); then
     fi
 
     if ((${#bundler[@]} > 0)); then
-      standard_cache="${XDG_CACHE_HOME:-${TMPDIR:-/tmp}/codex-standard-cache}"
+      tmp_cache_root="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+      standard_cache="${XDG_CACHE_HOME:-${tmp_cache_root}/codex-standard-cache}"
       if ! XDG_CACHE_HOME="${standard_cache}" "${bundler[@]}" exec standardrb "${ruby_files[@]}"; then
         status=1
       fi

@@ -45,7 +45,7 @@ steps.
 Run after workflow changes:
 
 ```sh
-${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
 The generic audit owns actionlint, zizmor fallback behavior, SHA pinning,
@@ -55,5 +55,5 @@ source repository, run
 
 For rare reviews that need to confirm nearby version tags against full-SHA pins,
 use
-`${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh`;
+`${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh`;
 its `--verify-remote` mode uses `git ls-remote` and may need network approval.

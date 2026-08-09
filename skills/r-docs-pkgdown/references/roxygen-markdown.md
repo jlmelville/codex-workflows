@@ -15,7 +15,7 @@ formatting, lint, pkgdown, CI, or structural refactors.
 Prefer the bundled helper over hand-typed searches when it is available:
 
 ```sh
-${CODEX_HOME:-$HOME/.codex}/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh \
+${HOME}/.agents/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh \
   --check-description \
   --md-overrides \
   --raw-rd \

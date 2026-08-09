@@ -20,7 +20,7 @@ Before proposing edits:
 2. List and read pending candidates with the installed helper:
 
    ```sh
-   "${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" pending
+   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
    ```
 
 3. Read every cited destination skill, reference, prompt, or script.

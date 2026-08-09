@@ -24,24 +24,33 @@ individual skill folders.
 
 ## Installation Details
 
-Install the source tree into the default Codex home:
+Install the source tree into the user-wide skill directory:
 
 ```sh
 ./install.sh
 ```
 
-To install to a different Codex home:
+The installer syncs `skills/*` into `$HOME/.agents/skills`, the current Codex
+`USER` skill location. It writes a managed-skill manifest at
+`$HOME/.agents/codex-workflows-managed-skills.tsv`. On the first run without a
+manifest, the current source skill names become the ownership set; later runs
+remove only stale skills named in the previous manifest. Unrelated installed
+skills are preserved.
 
-```sh
-CODEX_HOME=/path/to/.codex ./install.sh
-```
+Earlier versions installed into `${CODEX_HOME:-$HOME/.codex}/skills`. When the
+old Codex home contains this repository's managed-skill manifest, a normal
+install first writes the current runtime and then removes only legacy skills
+named by that old manifest. It removes the old manifest after a successful
+migration. `--dry-run` previews that migration without writing to either
+location, and `--check` reports an incomplete legacy migration.
 
-The installer syncs `skills/*` into `${CODEX_HOME:-$HOME/.codex}/skills`. It
-writes a managed-skill manifest at
-`${CODEX_HOME:-$HOME/.codex}/codex-workflows-managed-skills.tsv`. On the first
-run without a manifest, the current source skill names become the ownership
-set; later runs remove only stale skills named in the previous manifest.
-Unrelated installed skills are preserved.
+`CODEX_HOME` still controls Codex configuration and global instruction files;
+it no longer selects this repository's user-skill destination. For isolated
+installer testing, set both `HOME` and `CODEX_HOME` to temporary directories.
+Some bundled Codex system-skill guidance may still mention
+`${CODEX_HOME:-$HOME/.codex}/skills` during the location transition; this
+repository follows the current official `USER` location table linked from the
+README.
 
 Preview changes without replacing installed skills:
 
@@ -61,16 +70,18 @@ source repository and reinstall them.
 
 ### User-global instruction setup
 
-The skill installer manages only `${CODEX_HOME:-$HOME/.codex}/skills` and its
-ownership manifest. It never edits `AGENTS.md`, `AGENTS.override.md`,
-`config.toml`, shell startup files, or external retrospective state.
+The skill installer manages only `$HOME/.agents/skills`, its ownership
+manifest, and repository-managed legacy copies during migration. It never edits
+`AGENTS.md`, `AGENTS.override.md`, `config.toml`, shell startup files, or
+external retrospective state.
 
 Standing papercut capture therefore has a separate one-time setup step. Its
 canonical instruction block is
 [`skills/papercut-capture/assets/global-agents-papercuts.md`](../skills/papercut-capture/assets/global-agents-papercuts.md).
 After installing the skills:
 
-- copy that asset to `${CODEX_HOME:-$HOME/.codex}/AGENTS.md` only when neither
+- copy the installed asset from `$HOME/.agents/skills/papercut-capture/assets`
+  to `${CODEX_HOME:-$HOME/.codex}/AGENTS.md` only when neither
   `AGENTS.md` nor `AGENTS.override.md` exists in that Codex home;
 - otherwise merge or replace only its `## Workflow papercuts` section;
 - when `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` exists, update the
@@ -166,7 +177,7 @@ Maintain the repository across four surfaces:
 - **Source validity:** frontmatter, metadata, links, scripts, smoke tests,
   mirrored files, and workflow hardening.
 - **Installed validity:** executable commands in installed skills should use
-  `${CODEX_HOME:-$HOME/.codex}/skills/...` unless explicitly marked as
+  `${HOME}/.agents/skills/...` unless explicitly marked as
   source-repository commands.
 - **Cross-platform validity:** shell, Ruby, Python, and R checks should keep
   Linux and macOS behavior in view when scripts become substantial.
@@ -208,6 +219,31 @@ skill changes suggest consolidation. Public source validity must not depend on
 that disposable state.
 
 ## Local Tooling
+
+For the first macOS checkout, follow the Homebrew and rbenv bootstrap in the
+README. Then create an ignored repository-local environment for the Python CLI
+versions pinned by CI:
+
+```sh
+UV_CACHE_DIR=.tmp/uv-cache uv venv .venv
+UV_CACHE_DIR=.tmp/uv-cache uv pip install \
+  --python .venv/bin/python \
+  -r .github/requirements.txt
+```
+
+Put the pinned environment and rbenv shims first while validating from an
+already-running Codex shell that predates setup:
+
+```sh
+PATH="$PWD/.venv/bin:$HOME/.rbenv/shims:$PATH" \
+  ./scripts/check-ci-tool-parity.sh --strict
+PATH="$PWD/.venv/bin:$HOME/.rbenv/shims:$PATH" \
+  ./scripts/validate-skills.sh
+```
+
+The repository-local `UV_CACHE_DIR` avoids requiring sandbox write access to a
+user-wide uv cache. New terminal sessions should pick up rbenv from the startup
+file configured by `rbenv init zsh`.
 
 Some skills assume these tools may be available in project worktrees:
 

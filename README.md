@@ -18,9 +18,11 @@ The system has three parts:
 - **Source:** this Git repository contains the durable skills, prompts, and
   tooling shared between laptops.
 - **Runtime:** `./install.sh` copies repository-owned skills into
-  `${CODEX_HOME:-$HOME/.codex}/skills`, where Codex discovers them. The
-  installer tracks its skills in a manifest and leaves other installed skills
-  alone.
+  `$HOME/.agents/skills`, the current user-wide skill location documented by
+  [OpenAI](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
+  The installer tracks its skills in a manifest and leaves other installed
+  skills alone. On upgrade, it migrates only repository-managed legacy copies
+  from `${CODEX_HOME:-$HOME/.codex}/skills`.
 - **Learning state:** `CODEX_WORKFLOWS_STATE_DIR` holds papercuts, candidate
   reports, triage outcomes, and other working state outside the source
   repository and Codex home. It can be synchronized separately between
@@ -39,6 +41,24 @@ project work -> papercuts and retros -> triage -> skill changes -> Git
 
 Run these commands from the repository root.
 
+On macOS, install the local validation toolchain first. The repository's
+`.ruby-version` is not honored by Apple's system Ruby unless a Ruby version
+manager is active:
+
+```sh
+brew install rbenv ruby-build shellcheck actionlint r ripgrep uv
+rbenv init zsh
+rbenv install -s "$(cat .ruby-version)"
+eval "$(rbenv init - --no-rehash zsh)"
+bundle install
+```
+
+`rbenv init zsh` updates the appropriate zsh startup file so later shells select
+the pinned Ruby automatically; the evaluation activates it in the current
+shell. The first three setup steps below require only Bash and Ruby; the
+complete validation toolchain is described in
+[Repository Maintenance](docs/repository-maintenance.md#local-tooling).
+
 1. Install the managed skills:
 
    ```sh
@@ -52,8 +72,10 @@ Run these commands from the repository root.
    ./skills/skill-retro/scripts/retro-state.rb init
    ```
 
-   Keep the directory outside Git worktrees and outside
-   `${CODEX_HOME:-$HOME/.codex}`.
+   Keep the directory outside Git worktrees, `$HOME/.agents`, and
+   `${CODEX_HOME:-$HOME/.codex}`. A reasonable local-only default is
+   `$HOME/.local/share/codex-workflows`; use a separately synchronized folder
+   only when the same observation queues should follow you across machines.
 
 3. Make that location available and writable in every Codex session. Merge the
    following into `~/.codex/config.toml`, using the same absolute path:
@@ -84,7 +106,7 @@ Run these commands from the repository root.
    ```sh
    codex_profile="${CODEX_HOME:-$HOME/.codex}"
    mkdir -p "${codex_profile}"
-   cp "${codex_profile}/skills/papercut-capture/assets/global-agents-papercuts.md" \
+   cp "${HOME}/.agents/skills/papercut-capture/assets/global-agents-papercuts.md" \
      "${codex_profile}/AGENTS.md"
    ```
 
@@ -104,8 +126,8 @@ Run these commands from the repository root.
    `Papercuts recorded: N`, including zero.
 
 After pulling skill changes on either laptop, run `./install.sh` again. See
-[Repository Maintenance](docs/repository-maintenance.md) for custom
-`CODEX_HOME` installation, dry runs, validation details, CI, and local tooling.
+[Repository Maintenance](docs/repository-maintenance.md) for legacy migration,
+dry runs, validation details, CI, and local tooling.
 
 ## Working Rhythm
 
@@ -168,9 +190,9 @@ Paste this into Codex from the repository root:
 The installed helper is available from any project repository:
 
 ```sh
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" papercuts
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" pending
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" validate
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
 ```
 
 If `CODEX_WORKFLOWS_STATE_DIR` is unavailable, retrospective routing prints a

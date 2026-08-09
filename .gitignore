@@ -5,6 +5,7 @@
 # Local/editor state
 .idea/
 .vscode/
+.venv/
 
 # Temporary validation artifacts
 tmp/

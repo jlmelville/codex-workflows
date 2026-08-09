@@ -9,6 +9,11 @@ require "securerandom"
 require "tmpdir"
 require "yaml"
 
+if RUBY_VERSION.split(".").first.to_i < 3
+  warn "retro-state.rb: Ruby 3.0 or newer is required; found #{RUBY_VERSION}"
+  exit 1
+end
+
 module RetroState
   SCHEMA_VERSION = 1
   STATE_ENV = "CODEX_WORKFLOWS_STATE_DIR"

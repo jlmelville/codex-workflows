@@ -21,7 +21,7 @@ Codex runtime directory.
 
 - Treat the version-controlled source repository, not the installed runtime
   copy, as source of truth.
-- Treat `${CODEX_HOME:-$HOME/.codex}/skills` as installed output.
+- Treat `${HOME}/.agents/skills` as installed output.
 - Make authorized skill changes in the source repository. Install them with the
   repository's installer, usually `./install.sh`, when installation is in scope.
 - Confirm managed installed skills with `./install.sh --check`; installer
@@ -37,7 +37,7 @@ Check this repo across four surfaces:
 1. Source validity: frontmatter, metadata, links, scripts, smoke tests, mirrored
    files, and workflow hardening.
 2. Installed validity: executable commands in installed skills should use
-   `${CODEX_HOME:-$HOME/.codex}/skills/...` unless explicitly marked as
+   `${HOME}/.agents/skills/...` unless explicitly marked as
    source-repository commands.
 3. Cross-platform validity: shell, Ruby, Python, and R behavior should account
    for Linux and macOS when scripts become substantial.

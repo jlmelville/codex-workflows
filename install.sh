@@ -2,12 +2,15 @@
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+agents_home="${HOME}/.agents"
 codex_home="${CODEX_HOME:-${HOME}/.codex}"
 source_dir="${repo_dir}/skills"
-target_dir="${codex_home}/skills"
-manifest_path="${codex_home}/codex-workflows-managed-skills.tsv"
+target_dir="${agents_home}/skills"
+manifest_path="${agents_home}/codex-workflows-managed-skills.tsv"
+legacy_target_dir="${codex_home}/skills"
+legacy_manifest_path="${codex_home}/codex-workflows-managed-skills.tsv"
 manifest_version="# codex-workflows-managed-skills v1"
-lock_dir="${codex_home}/.codex-workflows-install.lock"
+lock_dir="${agents_home}/.codex-workflows-install.lock"
 mode="install"
 lock_acquired=0
 lock_token=""
@@ -18,7 +21,11 @@ usage() {
   cat <<'EOF'
 Usage: ./install.sh [--check | --dry-run]
 
-Sync repository-owned skills into ${CODEX_HOME:-$HOME/.codex}/skills.
+Sync repository-owned skills into $HOME/.agents/skills.
+
+When a managed manifest exists in the legacy Codex-home location, a normal
+install migrates only the skills named by that manifest and preserves all
+unrelated installed skills.
 
 Options:
   --check    Validate managed installed skills, manifest membership, and modes.
@@ -140,6 +147,15 @@ read_old_manifest_names() {
   done < <(manifest_names "${manifest_path}")
 }
 
+read_legacy_manifest_names() {
+  legacy_manifest_names=()
+  [[ "${legacy_manifest_path}" != "${manifest_path}" ]] || return 0
+
+  while IFS= read -r name; do
+    [[ -n "${name}" ]] && legacy_manifest_names+=("${name}")
+  done < <(manifest_names "${legacy_manifest_path}")
+}
+
 validate_manifest_file() {
   local path="$1"
   local line
@@ -251,8 +267,7 @@ write_manifest() {
 }
 
 stage_source() {
-  mkdir -p "${codex_home}"
-  stage_root="$(mktemp -d "${codex_home}/.codex-workflows-install-stage.XXXXXX")"
+  stage_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-workflows-install-stage.XXXXXX")"
   mkdir -p "${stage_root}/skills"
 
   local name
@@ -278,7 +293,7 @@ report_lock_owner() {
 }
 
 acquire_lock() {
-  mkdir -p "${codex_home}"
+  mkdir -p "${agents_home}"
   lock_token="pid=$$ host=$(host_name) created_at=$(now_utc)"
   if ! mkdir "${lock_dir}" 2>/dev/null; then
     report_lock_owner
@@ -296,6 +311,12 @@ check_install() {
 
   validate_source_tree
   validate_manifest_file "${manifest_path}"
+  if [[ "${legacy_manifest_path}" != "${manifest_path}" && -f "${legacy_manifest_path}" ]]; then
+    validate_manifest_file "${legacy_manifest_path}"
+    echo "install.sh: legacy managed-skill manifest remains: ${legacy_manifest_path}" >&2
+    echo "install.sh: run ./install.sh to migrate managed skills into ${target_dir}" >&2
+    status=1
+  fi
 
   if [[ ! -f "${manifest_path}" ]]; then
     echo "install.sh: missing managed-skill manifest: ${manifest_path}" >&2
@@ -329,8 +350,11 @@ dry_run_install() {
 
   validate_source_tree
   validate_manifest_file "${manifest_path}"
+  if [[ "${legacy_manifest_path}" != "${manifest_path}" ]]; then
+    validate_manifest_file "${legacy_manifest_path}"
+  fi
   read_old_manifest_names
-  stage_source
+  read_legacy_manifest_names
 
   if [[ ! -f "${manifest_path}" ]]; then
     echo "Would create first managed-skill manifest at ${manifest_path}"
@@ -354,6 +378,16 @@ dry_run_install() {
       fi
     done
   fi
+
+  if [[ -f "${legacy_manifest_path}" ]]; then
+    echo "Would migrate legacy managed skills from ${legacy_target_dir}"
+    for name in "${legacy_manifest_names[@]}"; do
+      if [[ -e "${legacy_target_dir}/${name}" ]]; then
+        echo "Would remove legacy managed skill after migration: ${name}"
+      fi
+    done
+    echo "Would remove legacy managed-skill manifest: ${legacy_manifest_path}"
+  fi
 }
 
 install_skills() {
@@ -361,7 +395,11 @@ install_skills() {
 
   validate_source_tree
   validate_manifest_file "${manifest_path}"
+  if [[ "${legacy_manifest_path}" != "${manifest_path}" ]]; then
+    validate_manifest_file "${legacy_manifest_path}"
+  fi
   read_old_manifest_names
+  read_legacy_manifest_names
   stage_source
   acquire_lock
   mkdir -p "${target_dir}"
@@ -386,6 +424,15 @@ install_skills() {
   done
 
   cp "${stage_root}/manifest" "${manifest_path}"
+
+  if [[ -f "${legacy_manifest_path}" ]]; then
+    for name in "${legacy_manifest_names[@]}"; do
+      rm -rf "${legacy_target_dir:?}/${name}"
+    done
+    rm -f "${legacy_manifest_path}"
+    echo "Migrated legacy managed skills out of ${legacy_target_dir}"
+  fi
+
   echo "Installed managed skills from ${source_dir} to ${target_dir}"
   echo "Managed-skill manifest updated at ${manifest_path}"
 }

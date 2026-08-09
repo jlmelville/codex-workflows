@@ -181,7 +181,7 @@ end
 
 def executable_skill_script_command?(line)
   stripped = line.strip.sub(/\A[$>]\s*/, "")
-  return false if stripped.include?("${CODEX_HOME")
+  return false if stripped.include?("${CODEX_HOME") || stripped.include?("${HOME}/.agents/skills")
   return false unless stripped.match?(SKILL_SCRIPT_PATH_PATTERN)
   return true if stripped.start_with?("./skills/", "skills/")
 
@@ -225,7 +225,7 @@ def ambiguous_bundled_script_rows(repo_dir, files)
         next
       end
 
-      next if line.include?("${CODEX_HOME")
+      next if line.include?("${CODEX_HOME") || line.include?("${HOME}/.agents/skills")
       next if source_repo_context?(lines, index)
 
       bundled_reference = line.scan(BARE_SCRIPT_PATH_PATTERN).flatten.find { |script_path|
@@ -417,7 +417,7 @@ repo_relative_helper_rows = line_hits(
   markdown_files,
   %r{\bskills/[A-Za-z0-9._-]+/scripts/[A-Za-z0-9._/-]+}
 ).reject { |_path, _line_no, line|
-  line.include?("${CODEX_HOME")
+  line.include?("${CODEX_HOME") || line.include?("${HOME}/.agents/skills")
 }.map { |path, line_no, line|
   "#{path}:#{line_no}: #{line}"
 }

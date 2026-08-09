@@ -61,7 +61,7 @@ shellcheck path/to/scripts/*.sh
 Use this skill's bundled audit script when available:
 
 ```sh
-${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
 From this source repository root, the same script is under:
@@ -77,8 +77,8 @@ full-SHA pins, use `--require-tag`; `--verify-remote` uses `git ls-remote` and
 may need network approval:
 
 ```sh
-${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag .github/workflows
-${CODEX_HOME:-$HOME/.codex}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag --verify-remote .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag --verify-remote .github/workflows
 ```
 
 Treat tool failures from network or missing dependencies separately from

@@ -138,7 +138,7 @@ separately from local package failures.
 Inspect generated and temporary output before finalizing:
 
 1. Run
-   `${CODEX_HOME:-$HOME/.codex}/skills/r-package-workflow/scripts/audit-generated-r-files.sh`
+   `${HOME}/.agents/skills/r-package-workflow/scripts/audit-generated-r-files.sh`
    when the installed skill is available.
 2. Otherwise inspect
    `git diff --name-status -- NAMESPACE man docs`, check whether `docs/`

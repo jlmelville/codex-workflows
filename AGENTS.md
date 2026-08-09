@@ -1,7 +1,7 @@
 # Repository Instructions
 
 This repository is the source of truth for personal Codex skills. The installed
-runtime copy lives under `${CODEX_HOME:-$HOME/.codex}/skills`.
+runtime copy lives under `$HOME/.agents/skills`.
 
 For accepted changes in this repo:
 

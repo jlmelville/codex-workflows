@@ -64,7 +64,7 @@ name. Accepted `SCR-*` records use an array of
 Use the installed command from arbitrary project repositories:
 
 ```sh
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" --help
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" --help
 ```
 
 From this source repository root, the equivalent command is:

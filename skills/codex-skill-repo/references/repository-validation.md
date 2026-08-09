@@ -27,7 +27,7 @@ exists.
 
 ## Workflow Validation
 
-Use `${CODEX_HOME:-$HOME/.codex}/skills/...` command paths inside installed
+Use `${HOME}/.agents/skills/...` command paths inside installed
 skill workflows unless the text explicitly says it is source-repository only.
 
 If the repository's generic workflow audit is unavailable, run `actionlint`,

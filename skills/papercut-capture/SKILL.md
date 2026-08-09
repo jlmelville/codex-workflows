@@ -56,8 +56,8 @@ asking the user to classify, close, or promote it. Generate the current schema
 and submit the completed document with the installed helper:
 
 ```sh
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" template papercut
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" record-papercut --file PAPERCUT_FILE
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template papercut
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" record-papercut --file PAPERCUT_FILE
 ```
 
 Create input in a temporary file and remove it when practical.

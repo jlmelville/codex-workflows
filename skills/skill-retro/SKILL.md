@@ -36,8 +36,8 @@ commits, pushes, messages, or changes to other external state.
 Use the installed helper from an arbitrary project repository:
 
 ```sh
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" template candidate
-"${CODEX_HOME:-$HOME/.codex}/skills/skill-retro/scripts/retro-state.rb" route --file CANDIDATE_FILE
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template candidate
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" route --file CANDIDATE_FILE
 ```
 
 Create input in a temporary file, route it, and remove the temporary file when
