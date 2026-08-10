@@ -2,10 +2,18 @@
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+local_tool_bin="${repo_dir}/.venv/bin"
 workflow_file="${repo_dir}/.github/workflows/validate.yml"
 requirements_file="${repo_dir}/.github/requirements.txt"
 strict=false
 status=0
+
+if [[ -d "${local_tool_bin}" ]]; then
+  case ":${PATH}:" in
+    *":${local_tool_bin}:"*) ;;
+    *) export PATH="${local_tool_bin}:${PATH}" ;;
+  esac
+fi
 
 if [[ "${CI:-false}" == "true" ]]; then
   strict=true

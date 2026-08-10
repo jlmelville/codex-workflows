@@ -231,19 +231,20 @@ UV_CACHE_DIR=.tmp/uv-cache uv pip install \
   -r .github/requirements.txt
 ```
 
-Put the pinned environment and rbenv shims first while validating from an
-already-running Codex shell that predates setup:
+Put the rbenv shims first while validating from an already-running Codex shell
+that predates setup:
 
 ```sh
-PATH="$PWD/.venv/bin:$HOME/.rbenv/shims:$PATH" \
+PATH="$HOME/.rbenv/shims:$PATH" \
   ./scripts/check-ci-tool-parity.sh --strict
-PATH="$PWD/.venv/bin:$HOME/.rbenv/shims:$PATH" \
+PATH="$HOME/.rbenv/shims:$PATH" \
   ./scripts/validate-skills.sh
 ```
 
-The repository-local `UV_CACHE_DIR` avoids requiring sandbox write access to a
-user-wide uv cache. New terminal sessions should pick up rbenv from the startup
-file configured by `rbenv init zsh`.
+The parity script automatically uses `.venv/bin` when that repository-local
+environment exists. The repository-local `UV_CACHE_DIR` avoids requiring
+sandbox write access to a user-wide uv cache. New terminal sessions should pick
+up rbenv from the startup file configured by `rbenv init zsh`.
 
 Some skills assume these tools may be available in project worktrees:
 

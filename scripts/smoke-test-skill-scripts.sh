@@ -545,6 +545,47 @@ EOF_AGENTS
   fi
 }
 
+run_ci_tool_parity_smoke() {
+  local fixture="${tmp_root}/ci-tool-parity"
+  local script="${fixture}/scripts/check-ci-tool-parity.sh"
+  local system_bin="${fixture}/system-bin"
+  local local_bin="${fixture}/.venv/bin"
+  local output="${fixture}/output"
+
+  mkdir -p "${fixture}/scripts" "${fixture}/.github/workflows" "${system_bin}" "${local_bin}"
+  cp "${repo_dir}/scripts/check-ci-tool-parity.sh" "${script}"
+  cat >"${fixture}/.github/workflows/validate.yml" <<'EOF_PARITY_WORKFLOW'
+env:
+  ACTIONLINT_VERSION: v1.7.12
+EOF_PARITY_WORKFLOW
+  cat >"${fixture}/.github/requirements.txt" <<'EOF_PARITY_REQUIREMENTS'
+uv==0.12.2
+zizmor==1.29.0
+EOF_PARITY_REQUIREMENTS
+  cat >"${system_bin}/actionlint" <<'EOF_PARITY_ACTIONLINT'
+#!/usr/bin/env bash
+echo "1.7.12"
+EOF_PARITY_ACTIONLINT
+  cat >"${system_bin}/uv" <<'EOF_PARITY_SYSTEM_UV'
+#!/usr/bin/env bash
+echo "uv 0.0.0"
+EOF_PARITY_SYSTEM_UV
+  cat >"${local_bin}/uv" <<'EOF_PARITY_LOCAL_UV'
+#!/usr/bin/env bash
+echo "uv 0.12.2"
+EOF_PARITY_LOCAL_UV
+  cat >"${local_bin}/zizmor" <<'EOF_PARITY_ZIZMOR'
+#!/usr/bin/env bash
+echo "zizmor 1.29.0"
+EOF_PARITY_ZIZMOR
+  chmod +x "${script}" "${system_bin}/actionlint" "${system_bin}/uv" \
+    "${local_bin}/uv" "${local_bin}/zizmor"
+
+  PATH="${system_bin}:/usr/bin:/bin" "${script}" --strict >"${output}"
+  grep -Fq "uv 0.12.2 matches CI" "${output}"
+  grep -Fq "zizmor 1.29.0 matches CI" "${output}"
+}
+
 run_retro_state_smoke() {
   local script="${repo_dir}/skills/skill-retro/scripts/retro-state.rb"
   local smoke_dir="${tmp_root}/retro-state"
@@ -628,6 +669,9 @@ run_retro_state_smoke() {
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts --archive | rg -q "${papercut_id}"
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" validate >/dev/null
   "${script}" self-test >/dev/null
+  if [[ -x /usr/bin/ruby ]]; then
+    /usr/bin/ruby "${script}" self-test >/dev/null
+  fi
 
   mkdir -p "${smoke_dir}/git-root/.git"
   printf '%s\n' 'ref: refs/heads/main' >"${smoke_dir}/git-root/.git/HEAD"
@@ -647,6 +691,7 @@ run_audit_actions_smoke
 run_action_tag_comment_smoke
 run_skill_index_smoke
 run_skill_metadata_smoke
+run_ci_tool_parity_smoke
 run_retro_state_smoke
 
 echo "Skill script smoke tests passed."

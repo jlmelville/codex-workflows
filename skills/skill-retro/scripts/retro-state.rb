@@ -9,11 +9,6 @@ require "securerandom"
 require "tmpdir"
 require "yaml"
 
-if RUBY_VERSION.split(".").first.to_i < 3
-  warn "retro-state.rb: Ruby 3.0 or newer is required; found #{RUBY_VERSION}"
-  exit 1
-end
-
 module RetroState
   SCHEMA_VERSION = 1
   STATE_ENV = "CODEX_WORKFLOWS_STATE_DIR"
@@ -102,6 +97,12 @@ module RetroState
     value.nil? || (value.respond_to?(:empty?) && value.empty?)
   end
 
+  def without_keys(data, *keys)
+    data.dup.tap do |copy|
+      keys.each { |key| copy.delete(key) }
+    end
+  end
+
   def require_fields(data, fields, label)
     fields.each do |field|
       value = data[field]
@@ -167,7 +168,7 @@ module RetroState
       unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
         raise Error, "#{label}: intake_digest must be a SHA-256 digest"
       end
-      intake = data.except("intake_digest", "triage")
+      intake = without_keys(data, "intake_digest", "triage")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
       unless data["intake_digest"] == expected_digest
         raise Error, "#{label}: intake fields changed after routing"
@@ -218,7 +219,7 @@ module RetroState
       unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
         raise Error, "#{label}: intake_digest must be a SHA-256 digest"
       end
-      intake = data.except("intake_digest", "closure")
+      intake = without_keys(data, "intake_digest", "closure")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
       unless data["intake_digest"] == expected_digest
         raise Error, "#{label}: papercut intake fields changed after recording"
@@ -632,7 +633,8 @@ module RetroState
       id = unique_id("RC-#{now.strftime("%Y%m%dT%H%M%SZ")}")
       data["candidate_id"] = id
       data["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(data.except("intake_digest"), body))
+      intake = RetroState.without_keys(data, "intake_digest")
+      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
       output = RetroState.render_document(data, body)
       destination = File.join(root, "retrospectives", "inbox", "#{id}.md")
       exclusive_write(destination, output)
@@ -657,7 +659,7 @@ module RetroState
       record = data.dup
       record["papercut_id"] = id
       record["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      intake = record.except("intake_digest")
+      intake = RetroState.without_keys(record, "intake_digest")
       record["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
       destination = papercut_path("inbox", id)
       exclusive_write(destination, RetroState.render_document(record, body))
@@ -709,7 +711,7 @@ module RetroState
       decision, decision_body = RetroState.read_document(decision_path)
       RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
 
-      triage = decision.except("schema_version", "record_type")
+      triage = RetroState.without_keys(decision, "schema_version", "record_type")
       triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
       candidate["triage"] = triage
       output = RetroState.render_document(candidate, body)
@@ -1271,7 +1273,7 @@ module RetroState
       unless closed_data.dig("closure", "rationale") == "The maintenance action was completed."
         raise "ledger closure rationale missing"
       end
-      legacy_closed_data = closed_data.except("closure")
+      legacy_closed_data = without_keys(closed_data, "closure")
       File.write(closed_ledger, render_document(legacy_closed_data, closed_body))
       store.validate
       if store.review_queue.map(&:first).count("ledger").positive?
