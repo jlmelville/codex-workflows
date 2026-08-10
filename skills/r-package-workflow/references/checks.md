@@ -20,6 +20,23 @@ behavior, when no package code was loaded.
 Run full tests after changes to exported behavior, validation, data conversion,
 cross-module helpers, or test fixtures used by multiple files.
 
+## Stochastic And Threaded Reproducibility
+
+When reviewing or documenting an exported stochastic or approximate operation,
+identify which layer owns the seed and exercise a bounded matrix:
+
+- repeat the same seed with the same thread count;
+- change the seed while holding other inputs fixed;
+- repeat at one thread and at a supported multi-thread count; and
+- exercise a precomputed or saved-intermediate route when one exists.
+
+Compare the user-relevant result with the exactness or tolerance appropriate to
+its contract. Document the backend and the precise seed and thread conditions
+under which reproducibility was observed; do not generalize one environment's
+result into an unconditional cross-platform guarantee. When threaded execution
+is nondeterministic, give users a deterministic execution mode or a persisted
+intermediate strategy when durable reproduction matters.
+
 ## Dependency Attachment Changes
 
 When moving a runtime dependency from `Depends` to `Imports`, validate the
@@ -243,6 +260,15 @@ When Air CI fails, inspect the workflow and `air.toml` before editing, confirm
 the local `air --version` matches CI when the workflow pins Air, then run
 `air format .` followed by `air format . --check`. Report the changed files and
 diff scope; even roxygen trailing whitespace can be the whole failure.
+
+Treat a local/CI version mismatch as an upgrade decision, not an automatic
+local downgrade. When workflow maintenance is authorized and CI pins an older
+Air release, first exercise the newer version in check mode or on a temporary
+copy and review any formatting diff. If the result is clean or the diff is
+accepted, update the explicit CI pin and local tool together in the same
+reviewed change. Otherwise install the CI-pinned version and report the
+incompatibility. Keep CI versions explicit rather than introducing an
+unreviewed latest-version pin.
 
 For scoped formatting work, format the intended scope first and confirm it with
 a scoped check, such as `air format tests/testthat --check` for test cleanup.

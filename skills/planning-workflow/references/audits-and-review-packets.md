@@ -39,6 +39,19 @@ When converting an external audit or model review into a chunk plan:
    against it. Do not infer audit completeness only from finishing the tasks
    that were transcribed into the execution queue.
 
+At plan creation and resume, verify that every source artifact required by the
+exit criteria exists at its recorded path and has the promised visibility and
+retention, such as a tracked file or an explicitly external artifact. If a
+mandated final reread becomes impossible, restore the original evidence or get
+an explicit operator waiver; do not reconstruct missing content and present it
+as the source.
+
+When later implementation or product decisions supersede an earlier
+recommendation, update that recommendation's original crosswalk entry at the
+time of the decision. Record the current disposition, rationale, and evidence
+pointer so final closure does not have to infer which intermediate decisions
+still apply.
+
 ## Public API Value Gate
 
 When an audit recommends new public diagnostics, result fields, metadata, or

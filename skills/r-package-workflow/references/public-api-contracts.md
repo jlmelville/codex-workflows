@@ -12,6 +12,21 @@ side effects such as signaling, preserve contract-relevant qualifiers, and
 retain package or subsystem prefixes only when they improve disambiguation or
 searchability.
 
+## End-To-End Explainability Audit
+
+Before declaring an exported surface coherent, reconstruct the shortest
+credible beginner task from input to useful output. Before opening the
+implementations, use names and formals to predict the major return shapes,
+classes, side effects, and conditions, then compare those predictions with the
+actual contract.
+
+For a function whose mode selector changes behavior, make a compact matrix of
+each mode's active and inactive arguments, return class, signaling, and runtime
+conditions. Classify every caveat needed to keep the task narrative coherent as
+a documentation gap, an API design seam, or explicitly accepted compatibility
+debt. Consult recorded compatibility decisions before treating an awkward
+surface as accidental or prescribing a rename.
+
 ## Public Diagnostic Value
 
 Before retaining a public diagnostic or detailed result field, require a
