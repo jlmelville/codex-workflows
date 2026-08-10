@@ -89,6 +89,7 @@ compliance signal, not proof that no event was missed. Outside the pilot,
 disclose nonzero records and any paste-ready fallback; follow stricter
 applicable instructions when present.
 
-Do not turn a papercut into a mature conclusion during project work. Later
-review belongs to the learning-process retrospective and, when warranted,
-`$skill-retro` or `$skill-retro-triage`.
+Do not turn a papercut into a mature conclusion during project work. Review
+open observations later with `$learning-process-review`; use `$skill-retro`
+and `$skill-retro-triage` only when the review identifies a mature reusable
+candidate.

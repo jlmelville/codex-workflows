@@ -158,15 +158,17 @@ and follows the repository's commit and push workflow.
 
 ### About weekly: inspect the learning system
 
-Use the
-[Learning Process Retrospective Prompt](prompts/learning-process-retrospective.md)
-to examine intake quality, papercut yield, triage decisions, deferrals,
-verification, and whether the feedback loop is improving. Paste this into Codex
-from the repository root:
+Invoke `$learning-process-review` to examine intake quality, papercut yield,
+triage decisions, deferrals, verification, and whether the feedback loop is
+improving:
 
-> Use `prompts/learning-process-retrospective.md` to review whether the
-> codex-workflows learning process is working. Follow the prompt as written and
-> report findings in chat before making any changes.
+> Use `$learning-process-review` to review whether the codex-workflows learning
+> process is working. Report findings and the complete proposed drain batch
+> before changing public source or external state.
+
+The former
+[Learning Process Retrospective Prompt](prompts/learning-process-retrospective.md)
+remains as a compatibility pointer.
 
 During the initial papercut pilot, run the first review after 10 recorded
 papercuts or 14 days of substantive use, whichever comes first.
