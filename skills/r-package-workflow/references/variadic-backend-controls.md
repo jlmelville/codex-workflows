@@ -25,6 +25,13 @@ controls were supplied. Named formals with defaults can be removed from a
 provider's residual `...`, so `length(list(...))` at that layer is not a safe
 proxy for the public controls the caller provided.
 
+Resolve and validate the top-level backend selector before entering any
+condition wrapper that relabels failures as forwarded-control errors. Limit
+that wrapper to provider argument matching so selector diagnostics retain
+their ownership. Describe unrecognized controls according to the selected
+provider's actual matching semantics; do not require exact formal names when
+the provider intentionally accepts unambiguous partial matches.
+
 ## Routing Contract
 
 Classify controls explicitly:
@@ -53,6 +60,8 @@ requested-versus-actual backend metadata. For an explicit automatic policy,
 exercise every automatic route plus literal explicit backends on inputs that
 would otherwise cross the automatic threshold. Add a public pass-through probe
 that shows backend-owned values reach the selected provider unchanged, without
-freezing dependency-specific error text. Keep the semantic classification in
-package code and its public tests; it is package-specific and does not warrant
-a generic validator.
+freezing dependency-specific error text. When multiple selectors enter the
+same preflight path, add an invalid-selector regression for each and assert
+that its diagnostic is not mislabeled as a nested-control failure. Keep the
+semantic classification in package code and its public tests; it is
+package-specific and does not warrant a generic validator.

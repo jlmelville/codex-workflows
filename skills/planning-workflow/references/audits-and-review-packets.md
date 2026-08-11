@@ -11,7 +11,13 @@ critique and evidence; execution plans convert that evidence into ordered work.
 When converting an external audit or model review into a chunk plan:
 
 1. Preserve the source audit.
-2. Statically confirm findings before making them tasks.
+2. Re-check the available toolchain before inheriting limitations from the
+   audit environment. Confirm consequential findings with the smallest
+   deterministic public probe, focused test, dependency-source inspection, or
+   equivalent executable evidence available; fall back to static confirmation
+   only when execution remains unavailable. Treat a green general suite as
+   baseline evidence, not as disproof of a claim about an input it never
+   exercises.
 3. Separate the factual observation, defect classification, and proposed
    remedy. Reproduce the observation, then name the violated contract or
    intended semantics before treating it as a defect. A true observation can
@@ -22,7 +28,8 @@ When converting an external audit or model review into a chunk plan:
    consumers. Record contributor ownership when known, and put unresolved
    compatibility intent behind a separate user decision gate rather than
    bundling it into unrelated correctness work.
-5. Mark unverified claims.
+5. Label claims as confirmed, disproved, or still unverified and retain the
+   decisive evidence for each disposition.
 6. Resolve open questions into explicit decisions where possible.
 7. Include the source audit pointer, confirmed findings, guardrails, a decision
    log, open questions, and which claims still need test evidence.

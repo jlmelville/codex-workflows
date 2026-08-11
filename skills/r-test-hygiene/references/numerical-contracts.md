@@ -86,6 +86,23 @@ range, uniqueness, distances, and self handling. Reserve exact-ID golden tests
 for fixtures where the complete boundary tie is known to be represented or the
 backend explicitly guarantees its selection policy.
 
+## Undefined Rows And Aggregation
+
+For row-wise numerical metrics, define row validity before invoking a provider
+when the mathematical precondition is known. Represent undefined rows
+explicitly, then accept returned values only through a scalar numeric finite
+predicate; checks such as `!is.nan(value)` can admit `NA` and corrupt an
+otherwise defined summary.
+
+Test the row policy and every aggregation denominator together:
+
+- preserve documented result shape and group identities when all rows are
+  undefined;
+- combine defined and undefined rows and assert that the same valid-row set
+  supplies overall and grouped denominators;
+- use unequal group sizes and unequal group means so an observation-weighted
+  result cannot accidentally pass as an unweighted mean of group summaries.
+
 ## Derivative Evidence Before Fixes
 
 For gradients, Hessians, and related analytic derivatives, do not treat one

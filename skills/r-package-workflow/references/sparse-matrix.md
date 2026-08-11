@@ -3,6 +3,19 @@
 Use this when touching sparse-safe R code that works directly with
 `Matrix::dgCMatrix` slots.
 
+## Conversion Boundaries
+
+Detect supported sparse S4 objects before generic coercion with
+`methods::is(x, "sparseMatrix")`; `is.numeric()` alone is not a reliable sparse
+class test. For each downstream route, explicitly preserve the sparse object or
+reject it with a clear contract. Do not allow a shared `as.matrix()` fallback
+to densify it silently.
+
+Pair public route tests with one narrow private class-preservation or object
+identity assertion when numerically correct results cannot prove that an
+allocation-unsafe conversion was avoided. Document the safety invariant that
+justifies the internal test.
+
 ## Slot Aggregation
 
 For unweighted structural counts, `tabulate()` is appropriate:

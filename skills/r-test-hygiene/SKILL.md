@@ -12,6 +12,11 @@ Use this for R package tests and fixtures.
 - Test user-visible behavior through exported APIs where practical.
 - Keep internal-helper tests only when they protect a meaningful safety
   invariant that cannot be observed through public paths; document why.
+- Before intentionally tightening a validation contract, find tests that
+  positively characterize the soon-to-be-invalid behavior and invert them to
+  rejection expectations before changing production code. Retain the focused
+  pre-fix failure set as evidence that the suite distinguishes the old and new
+  contracts.
 - For numerical or statistical robustness work, inventory existing tests by
   algorithm family before changing behavior. Separate golden trace/output
   regressions from mathematical invariant or property tests, then list missing

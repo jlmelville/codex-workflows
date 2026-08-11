@@ -15,6 +15,12 @@ Use this for documentation and pkgdown work in R packages.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
 - Record behavior changes and notable infrastructure changes in `NEWS.md`.
+- For user-visible behavior changes, search roxygen and generated help,
+  `README*`, `NEWS*`, vignettes or articles, and relevant pkgdown navigation
+  for affected names and contract wording. Classify matches as current public
+  behavior, history, or internal detail; do not infer that removing an
+  internal field removes a similarly named public control. Regenerate help and
+  render each changed article.
 - For NEWS chronology, current-contract writing, backend-control documentation,
   reference values, or inspectable result objects, read
   [documentation-contracts.md](references/documentation-contracts.md).
