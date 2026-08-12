@@ -77,6 +77,31 @@ dead estimator. Validate public result shape, routing, numerics, and worker
 exception behavior through ordinary package paths; do not add test-only exports
 merely to preserve removed accounting machinery.
 
+## Registered Native Boundaries
+
+Treat every entry in generated Rcpp registration and every exported
+implementation as independently reachable, even when the public R wrapper
+already validates its arguments. Inventory the generated signatures alongside
+the hand-maintained implementations before deciding that a public check is
+sufficient.
+
+For R-supplied counts, avoid unsigned types such as `std::size_t` in exported
+signatures. Receive the value in an R-aware or signed numeric representation
+that preserves invalid cases long enough to reject them. Before converting to
+an unsigned or narrower internal type, require a scalar, non-missing, finite,
+whole, nonnegative value within both the package's supported range and the
+destination type's range.
+
+Validate native shape assumptions before indexing: required nonempty
+dimensions, compatible row or column counts, exact ranks, and any minimum
+extent used by unchecked element access. Keep ordinary tests on the public R
+API, but add narrow direct-wrapper coverage when the registered boundary is the
+behavior under test and document why it is necessary.
+
+When a malformed native call may trigger undefined behavior or terminate R,
+probe the pre-fix case in a separate R process. Move the regression into the
+ordinary in-process suite only after the native guard makes the call safe.
+
 ## Tests
 
 - Prefer public R API tests for compiled behavior.

@@ -480,12 +480,12 @@ module RetroState
       schema_version: 1
       record_type: papercut
       source_scope: "Sanitized repository or task category; omit private names."
-      kind: command
+      kind: command # #{PAPERCUT_KINDS.join(", ")}
       observation: "Unexpected, avoidable friction and why it interrupted the task."
-      impact: retry
-      resolution: worked-around
+      impact: retry # #{PAPERCUT_IMPACTS.join(", ")}
+      resolution: worked-around # #{PAPERCUT_RESOLUTIONS.join(", ")}
       workaround: "Optional concise workaround; remove this field when unresolved."
-      owner_hint: unknown
+      owner_hint: unknown # #{PAPERCUT_OWNERS.join(", ")}
       redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
       ---
 
@@ -1102,6 +1102,17 @@ module RetroState
       recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
       unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
         raise "candidate template recommendation vocabulary is incomplete"
+      end
+      {
+        "kind" => PAPERCUT_KINDS,
+        "impact" => PAPERCUT_IMPACTS,
+        "resolution" => PAPERCUT_RESOLUTIONS,
+        "owner_hint" => PAPERCUT_OWNERS
+      }.each do |field, values|
+        line = papercut_template.lines.find { |candidate| candidate.start_with?("#{field}:") }
+        unless line && values.all? { |value| line.include?(value) }
+          raise "papercut template #{field} vocabulary is incomplete"
+        end
       end
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
 

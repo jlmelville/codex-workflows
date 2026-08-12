@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-workflow_dir=".github/workflows"
+workflow_target=".github/workflows"
+target_explicit=false
 require_mode="tag"
 verify_remote=false
 uses_pattern="^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*['\"]?([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*)@([0-9a-fA-F]{40})['\"]?([[:space:]#]|$)"
 
 usage() {
   cat <<'USAGE'
-Usage: check-action-tag-comments.sh [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_DIR]
+Usage: check-action-tag-comments.sh [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_TARGET]
 
 Check SHA-pinned GitHub Actions uses: entries for nearby version/tag comments.
 
 By default this requires a nearby tag-like comment such as v4 or v4.1.2. Use
 --require-comment to accept any nearby non-empty comment. With --verify-remote,
 each detected tag is resolved with git ls-remote over public HTTPS and compared
-to the pinned SHA.
+to the pinned SHA. WORKFLOW_TARGET may be a .yml/.yaml file or a directory.
 USAGE
 }
 
@@ -43,14 +44,38 @@ while (($# > 0)); do
       exit 2
       ;;
     *)
-      workflow_dir="$1"
+      if [[ "${target_explicit}" == true ]]; then
+        echo "Unexpected argument: $1" >&2
+        usage >&2
+        exit 2
+      fi
+      workflow_target="$1"
+      target_explicit=true
       shift
       ;;
   esac
 done
 
-if [[ ! -d "${workflow_dir}" ]]; then
-  echo "check-action-tag-comments.sh: no workflow directory at ${workflow_dir}" >&2
+workflow_files=()
+if [[ -f "${workflow_target}" ]]; then
+  case "${workflow_target}" in
+    *.yml | *.yaml)
+      workflow_files+=("${workflow_target}")
+      ;;
+    *)
+      echo "check-action-tag-comments.sh: workflow file must end in .yml or .yaml: ${workflow_target}" >&2
+      exit 2
+      ;;
+  esac
+elif [[ -d "${workflow_target}" ]]; then
+  while IFS= read -r -d '' file; do
+    workflow_files+=("${file}")
+  done < <(find "${workflow_target}" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+elif [[ "${target_explicit}" == true ]]; then
+  echo "check-action-tag-comments.sh: no workflow file or directory at ${workflow_target}" >&2
+  exit 2
+else
+  echo "check-action-tag-comments.sh: no workflow directory at ${workflow_target}" >&2
   exit 0
 fi
 
@@ -152,7 +177,7 @@ nearby_comment() {
 status=0
 found=false
 
-while IFS= read -r -d '' file; do
+for file in "${workflow_files[@]}"; do
   lines=()
   while IFS= read -r line || [[ -n "${line}" ]]; do
     lines+=("${line}")
@@ -201,7 +226,7 @@ while IFS= read -r -d '' file; do
       status=1
     fi
   done
-done < <(find "${workflow_dir}" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+done
 
 if [[ "${found}" == false ]]; then
   echo "No full-SHA GitHub Actions uses: entries found."

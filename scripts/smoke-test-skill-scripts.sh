@@ -376,6 +376,16 @@ jobs:
       - uses: actions/checkout@${sha} # v4
 EOF_INLINE
   "${script}" --require-tag "${workflow_dir}" >/dev/null
+  "${script}" --require-tag "${workflow_dir}/inline.yml" >/dev/null
+
+  if "${script}" --require-tag "${workflow_dir}/missing.yml" >/dev/null 2>&1; then
+    echo "an invalid explicit workflow target should fail" >&2
+    return 1
+  fi
+
+  local no_workflow_dir="${tmp_root}/action-tags-no-default"
+  mkdir -p "${no_workflow_dir}"
+  (cd "${no_workflow_dir}" && "${script}" --require-tag >/dev/null 2>&1)
 
   cat >"${workflow_dir}/preceding.yml" <<EOF_PRECEDING
 name: preceding

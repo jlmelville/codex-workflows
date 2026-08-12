@@ -81,15 +81,29 @@ ${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comment
 ${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag --verify-remote .github/workflows
 ```
 
+The tag-comment checker also accepts one `.yml` or `.yaml` workflow file. Use a
+file target when a new workflow must remain isolated and untracked. Ordinary
+`git diff --check` ignores untracked files; inspect
+`git diff --no-index --check /dev/null <workflow-file>` as a focused whitespace
+check. A silent exit status of 1 is expected when the file differs from
+`/dev/null`; reported whitespace errors are the failure signal.
+
 Treat tool failures from network or missing dependencies separately from
 workflow findings, and rerun after installing or approving the needed tool.
 Prefer an installed `zizmor` when present; use `uvx zizmor` as the fallback.
 
 ## CI Triage Fallback
 
-When `gh auth status` is invalid in the Codex environment but the repository is
-public, use public Actions run/job metadata and public job-page annotations as a
-fallback. Be explicit that authenticated raw logs may remain unavailable; do
+When `gh auth status` reports invalid credentials in a network-restricted Codex
+environment, first confirm that the expected CLI configuration is present and
+that no environment-token override is intentionally active. Rerun the same
+read-only status check through the narrow network-approval path before
+concluding that GitHub rejected the credential. Request reauthentication only
+after that networked check fails.
+
+When authenticated access is genuinely unavailable but the repository is
+public, use public Actions run/job metadata and public job-page annotations as
+a fallback. Be explicit that authenticated raw logs may remain unavailable; do
 not claim certainty beyond the visible annotations and status metadata.
 
 ## Dependabot

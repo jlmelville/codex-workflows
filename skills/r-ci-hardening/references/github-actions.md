@@ -91,6 +91,31 @@ Treat `--no-build-vignettes` in `args` without matching `build_args` as
 suspicious: it can leave `R CMD build` free to rebuild vignettes while
 `actionlint`, `zizmor`, and action-pin audits still pass.
 
+## Manual R-hub Diagnostics
+
+Static workflow validation does not establish that sanitizer, Valgrind, or
+recent-compiler diagnostics actually ran. Before dispatching a manual R-hub
+matrix, verify authenticated access without exposing credential values and,
+when the workflow requires them, confirm the expected environment and secret
+names are configured. Confirm that the dispatch branch contains both the
+intended commit and the intended workflow definition.
+
+Dispatch explicit platform inputs and capture the exact resulting run identity;
+do not infer it later from whichever run happens to be newest. Wait for every
+dynamically resolved platform job, including post-job steps, to reach a terminal
+state. Setup success or the first green job is not matrix completion.
+
+For each resolved job, retain the platform or job name, URL, conclusion,
+timestamps or runtime, and package-check summary. Inspect both annotations and
+logs even when the run is green: annotations may omit package notes, diagnostic
+summaries, or nonfatal infrastructure messages.
+
+Classify findings as package behavior, dependency behavior, or R-hub/CI
+infrastructure. Preserve package warnings and notes in the acceptance summary;
+do not turn a cache race or other post-job service message into a package
+failure. After a package fix, rerun the affected diagnostics and re-establish
+terminal evidence instead of relying on the earlier matrix.
+
 ## Pkgdown
 
 When `usethis::use_pkgdown_github_pages()` rewrites a pkgdown workflow, keep

@@ -43,6 +43,8 @@ more edits.
 ## C++ Safety
 
 - Validate inputs at the R boundary when possible.
+- Treat every registered Rcpp routine as independently callable; validate
+  native inputs before narrowing conversions, unsigned casts, or indexing.
 - C++ helpers should still fail loudly for invalid internal states.
 - Avoid test-only exported C++ hooks in release code unless explicitly
   documented.
