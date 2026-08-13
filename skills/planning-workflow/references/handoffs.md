@@ -13,6 +13,12 @@ chain. When a handoff targets another user, agent product, isolated environment,
 or Codex profile, name the missing environment assumption briefly instead of
 copying the full policy.
 
+Before naming a file under `Read first`, verify that the path exists in the
+recipient's context. If supplied inline instructions intentionally replace an
+absent file, say that explicitly and treat the inline block as authoritative.
+Keep independent required reads separate enough that one missing optional or
+substituted path does not prevent the remaining context from loading.
+
 Use a fenced `text` block:
 
 ```text

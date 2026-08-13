@@ -50,6 +50,9 @@ ordinary arrays instead.
 - Check required commands with `command -v` and fail clearly if they are
   mandatory.
 - Validate arguments before doing work.
+- Avoid shell special or tied parameter names for locals and loop variables. In
+  zsh, lowercase `path` is tied to `PATH`, so assigning it rewrites command
+  lookup; use task-specific names such as `header_file` or `candidate_file`.
 - Prefer explicit paths and scoped deletes over broad globs.
 - Avoid `eval` and command construction from untrusted input.
 - Keep parsing simple; use a language with structured libraries when shell would
