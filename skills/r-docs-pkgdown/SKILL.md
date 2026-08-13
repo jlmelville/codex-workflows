@@ -14,7 +14,9 @@ Use this for documentation and pkgdown work in R packages.
   `pak::pak("owner/repo")` over deprecated `devtools::install_github()`.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
-- Record behavior changes and notable infrastructure changes in `NEWS.md`.
+- Use `NEWS.md` for user-visible behavior, compatibility impact, or required
+  action. Keep internal CI, implementation, diagnostic, and maintenance activity
+  out unless it crosses that user-visible threshold.
 - For user-visible behavior changes, search roxygen and generated help,
   `README*`, `NEWS*`, vignettes or articles, and relevant pkgdown navigation
   for affected names and contract wording. Classify matches as current public
@@ -33,9 +35,11 @@ Use this for documentation and pkgdown work in R packages.
   `% Please edit documentation in ...` source comments as expected source-path
   churn. Run `roxygen2::roxygenise()` a second time to confirm idempotence.
 - After `roxygen2::roxygenise()`, inspect `git diff -- DESCRIPTION`
-  separately. Restore roxygen metadata churn, such as `RoxygenNote` being
-  replaced by `Config/roxygen2/version`, unless metadata modernization is
-  explicitly in scope.
+  separately. During an intentional documentation rebuild, retain expected
+  generator-version metadata from the installed roxygen release unless the
+  repository explicitly pins another generator, and revert unrelated
+  `DESCRIPTION` changes. Do not accept incidental documentation churn from a
+  command when no rebuild was requested merely because roxygen produced it.
 - Do not enable `Roxygen: list(markdown = TRUE)` as an opportunistic partial
   change. Once roxygen markdown is enabled, complete the markdown conversion in
   the same docs-modernization chunk or add an explicit required follow-up chunk

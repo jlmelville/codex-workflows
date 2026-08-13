@@ -24,6 +24,18 @@ When a basic user choice requires a multi-control recipe or several caveats,
 document only the non-obvious current contract and record a separate API-design
 follow-up instead of expanding the help indefinitely.
 
+After a package-wide documentation search, assign each fact one primary
+surface. Function help owns exact non-obvious argument and return contracts,
+articles own comparisons and cross-family consequences, and README owns the
+shortest useful task path. Link across surfaces instead of copying full
+explanations, then make a final conciseness pass that removes repeated validator
+prose and catalogs of obvious invalid inputs.
+
+When prose recommends fair comparisons for a stochastic API, make adjacent
+executable comparison examples enact the complete reproducibility recipe:
+reset the seed immediately before every sampled call and keep thread or worker
+settings identical. Review the prose and examples as one contract.
+
 ## Reference Values And Locations
 
 For paired reference values and locations, state their correspondence first.

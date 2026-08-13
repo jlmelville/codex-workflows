@@ -62,6 +62,13 @@ configured Air check and lintr in addition to behavior-driven checks. If either
 configured check is unavailable, name the command not run and report validation
 as incomplete.
 
+Treat every repository-attributable package-check error, warning, or note as
+unfinished work and resolve it when first found. A completed local package check
+should report 0 errors, 0 warnings, and 0 notes attributable to the repository.
+If an environmental or external-service diagnostic cannot be cleared after
+appropriate reruns, lead the validation summary with the incomplete or blocked
+state rather than normalizing it as baseline noise.
+
 For compiled packages, do not run `covr::package_coverage()` and
 `testthat::test_local()` concurrently from the same worktree. Sequence them to
 avoid transient package DLL copy/load races, and rerun a `dyn.load()` failure

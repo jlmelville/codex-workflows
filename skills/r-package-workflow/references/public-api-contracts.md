@@ -12,6 +12,24 @@ side effects such as signaling, preserve contract-relevant qualifiers, and
 retain package or subsystem prefixes only when they improve disambiguation or
 searchability.
 
+## Behavior-Neutral Private Renames
+
+Before renaming a private identifier, classify every matching occurrence by
+contract. Rename private definitions, locals, and mechanical call sites;
+preserve exported signatures and formals, public result or list fields,
+generated wrappers and help, and filenames unless the public change is
+intentional. An internal identifier can share a token with a public field, so
+do not treat a global substitution as proof that the boundary stayed stable.
+
+Work in bounded identifier families and do not add compatibility aliases for
+genuinely private names. After each family, search for the exact stale token,
+separate intentional preserved matches from missed private occurrences, and run
+focused tests. For compiled packages, require a zero diff in generated wrappers
+unless an exported signature intentionally changed; follow the generated-file
+workflow in `$r-rcpp-package` when it did. Close the combined phase with full
+tests, language formatters, lint, diff hygiene, and a complete status and diff
+review.
+
 ## End-To-End Explainability Audit
 
 Before declaring an exported surface coherent, reconstruct the shortest
@@ -50,3 +68,9 @@ value explicitly to the helpers that emit them; do not recover it from caller
 frames or ambient state. Keep exported defaults silent. Capture public messages
 for each interchangeable backend or input route whose diagnostic contract should
 match, including suppression of ignored-default chatter.
+
+For a wrapper-owned timestamped message contract, use a public precomputed or
+cached input route when available so a chatty interchangeable backend does not
+pollute the captured sequence. Remove only the known volatile prefix, then
+compare the complete stable message text and ordering exactly. Keep separate
+route-level tests when backend diagnostics are also part of the public contract.

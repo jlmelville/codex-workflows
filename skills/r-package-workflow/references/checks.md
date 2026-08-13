@@ -125,8 +125,10 @@ line or expression that emits the warning.
 ## Final Validation Bundles
 
 For final cleanup chunks, release-like checks, or package-wide infrastructure
-and documentation work, run the broadest feasible bundle and classify notes
-against the known baseline:
+and documentation work, run the broadest feasible bundle. Require 0 errors,
+0 warnings, and 0 repository-attributable notes before treating the local check
+as complete; a known baseline helps establish attribution but does not excuse a
+repository diagnostic:
 
 - full tests: `Rscript -e 'testthat::test_local()'`
 - package check:
@@ -177,8 +179,11 @@ creating new files, run an explicit whitespace check over those paths, such as
   docs: `Rscript -e 'pkgdown::build_site(new_process = FALSE)'`
 
 After roxygen refreshes, inspect `git diff -- DESCRIPTION` separately and
-restore unrelated roxygen metadata churn, such as `RoxygenNote` being replaced
-by `Config/roxygen2/version`, unless that modernization is explicitly in scope.
+revert unrelated changes. During an intentional documentation rebuild, retain
+expected generator-version metadata from the installed roxygen release unless
+the repository explicitly pins another generator. When a command mutates
+documentation incidentally and no rebuild was requested, keep treating that
+metadata as unrelated churn.
 
 Network-restricted environments may need escalation for pkgdown external
 assets or CRAN metadata.
@@ -194,8 +199,12 @@ assets or CRAN metadata.
 ## Check Notes and Restricted Environments
 
 Codex sandboxes, CI-like containers, and local planning artifacts can produce
-notes that are not regressions. Classify and report them once instead of
-rediscovering them every run.
+notes that are not repository regressions. Classify them, but do not let a
+recurring repository-attributable note become accepted baseline debt. Resolve
+repository diagnostics when first found or before continuing the next planned
+phase. For an unavoidable environmental or external-service diagnostic, rerun
+when practical and lead the final validation summary with the non-clean or
+incomplete state.
 
 When R tooling needs caches in a restricted filesystem, redirect them to a
 writable temporary path, for example `XDG_CACHE_HOME=/tmp/r-cache`. If

@@ -42,6 +42,18 @@ and inspect the second pass for idempotence.
   explicitly decided to do so.
 - Keep generated-file refresh separate from broad formatting commits so review
   can distinguish interface changes from style churn.
+- Before synchronizing shared C++ across repositories, resolve the effective
+  policy in each one, including explicit configs, inherited parent configs, and
+  fallback behavior. Run each repository's ordinary unqualified formatter on
+  the shared file, trial candidate common policies, and inspect the wider
+  migration surface before selecting one explicit shared policy. Do not use
+  formatter-disable markers merely to hide policy drift.
+- Synchronize formatter policy and copied source as separate reviewable changes,
+  then rerun the ordinary local checks and confirm the policy and shared-source
+  checksums agree. When `.clang-format` is a new top-level hidden file in an R
+  package, apply the
+  [R package hidden-config rule](../../r-package-workflow/SKILL.md#change-discipline)
+  and verify that the config is excluded from the source package.
 - Use explicit target lists for clang-format when needed:
 
 ```sh
