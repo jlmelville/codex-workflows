@@ -37,13 +37,19 @@ Prefer one scoped optimization per phase. For each phase:
    seeds, thread counts, and repetitions.
 5. Audit generated-file churn when roxygen, Rcpp attributes, or package metadata
    changed.
-6. Update the active plan with files changed, validation, benchmark table,
-   decision, residual risk, and next phase.
+6. Update the active plan using the output contract in **Plan And Handoff
+   Updates**.
 7. Stop at a coherent boundary when the next optimization is separable.
 
 Do not claim a performance win from smoke tests, tiny toy data, or noisy single
 runs. Use smoke benchmarks to prove the harness works; use evidence benchmarks
 to justify source decisions.
+
+Choose how to materialize the baseline before editing. Use same-process old and
+new wrappers when both implementations can coexist. Otherwise compare against
+a clean worktree or separately installed baseline under the same host and
+toolchain. Use separate before/after runs only when neither is practical, and
+report environment drift as a limitation of the evidence.
 
 When adding a permanent developer benchmark harness under `scripts/` or a
 similar repo-local path, document it adjacent to the script. State whether it is

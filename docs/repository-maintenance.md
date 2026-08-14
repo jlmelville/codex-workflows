@@ -22,6 +22,13 @@ needs them. Prefer concise skills with narrow trigger descriptions. Put
 human-facing repository documentation in the README or `docs/`, not inside
 individual skill folders.
 
+Before adding or restructuring learned guidance, follow the semantic admission
+and casebook policy in
+[`semantic-authoring.md`](../skills/codex-skill-repo/references/semantic-authoring.md).
+It distinguishes default judgment, routed exact mechanics, optional cases, and
+external verification. Moving text into a reference changes loading, but does
+not by itself reduce the number of decisions in the corpus.
+
 ## Installation Details
 
 Install the source tree into the user-wide skill directory:

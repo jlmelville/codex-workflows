@@ -99,17 +99,6 @@ migration, record the complete failure set before editing expectations, and do
 not assume tolerance semantics are unchanged. See
 [testthat-edition-migrations.md](references/testthat-edition-migrations.md).
 
-## Review Checklist
-
-1. Search for direct private calls: `:::`, `getFromNamespace`,
-   generated Rcpp wrappers, and internal helper names.
-2. Replace with public API tests when behavior is observable.
-3. Keep focused internal tests only with a comment or plan note explaining the
-   external behavior or safety property protected.
-4. Run focused tests first, then full `testthat::test_local()`.
-5. Run `air format . --check` after adding formatter guards.
-6. Run lintr when manual alignment is introduced.
-
 ## Focused Package Tests
 
 Prefer `testthat::test_local(filter = "pattern")` for focused package runs. A
@@ -119,6 +108,10 @@ internals, or helpers because package loading did not happen. Use
 need direct file execution.
 
 ## Common Commands
+
+Use the public-versus-internal test rule above when the private-call search
+finds a candidate. Run focused tests before the full suite; include Air or
+lintr when the change affects formatting or lint configuration.
 
 ```sh
 rg -n ":::|getFromNamespace|\\.Call|RcppExports|sourceCpp" tests

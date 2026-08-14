@@ -23,17 +23,12 @@ sandbox cache directories, network approval, and `uv run --with` mechanics.
 
 ## Change Discipline
 
-- Prefer existing abstractions and module boundaries before adding new ones.
 - Keep behavior fixes, broad formatting, dependency changes, and generated
-  artifacts in separate phases unless the user asks for a combined sweep.
-- Fail loudly with actionable error messages close to the failure source.
-- Use type hints where they clarify behavior or match local style.
-- Add comments only for durable context: invariants, non-obvious tradeoffs, or
-  why code must exist.
-- Do not add comments, docstrings, or docs that reference a prompt,
-  conversation, agent, temporary plan, or implementation history.
-- Be careful with large arrays, sparse data, notebooks, and generated outputs:
-  avoid avoidable O(N^2) allocations and dense copies on hot paths.
+  artifacts in separate phases unless the user requests a combined sweep.
+- Keep comments and documentation about durable contracts or tradeoffs, not
+  prompts, conversations, agents, temporary plans, or implementation history.
+- When large arrays or sparse data are involved, inspect allocation and storage
+  behavior before accepting transformations on hot paths.
 
 ## uv Workflow
 
@@ -41,15 +36,17 @@ Prefer project-managed commands:
 
 ```sh
 uv sync --locked
-uv run pytest
-uv run pytest tests/<area>
-uv run ruff format <paths>
-uv run ruff check <paths>
+uv run --locked pytest
+uv run --locked pytest tests/<area>
+uv run --locked ruff format <paths>
+uv run --locked ruff check <paths>
 ```
 
 Before changing dependencies, inspect dependency groups and lock policy in
-`pyproject.toml`. Use `uv lock` or `uv sync` only when dependency or lockfile
-updates are intended. Do not edit `uv.lock` manually.
+`pyproject.toml`. Use `--locked` for behavior-only setup and validation so a
+command fails instead of rewriting `uv.lock`. Reserve unlocked `uv sync`,
+`uv lock`, and `uv add` for intended dependency changes. Do not edit `uv.lock`
+manually.
 
 For nested workspaces, resolver policy, lock metadata, or invalid dependency
 metadata warnings, read
@@ -64,13 +61,15 @@ when needed.
 Choose validation based on blast radius:
 
 - Focused unit test for one module or bug:
-  `uv run pytest tests/test_<area>.py -q`.
+  `uv run --locked pytest tests/test_<area>.py -q`.
 - Public behavior or integration change:
   run the focused test plus the nearest integration test.
 - Formatting-only Python change:
-  `uv run ruff format <paths>` and `uv run ruff check <paths>`.
+  `uv run --locked ruff format <paths>` and
+  `uv run --locked ruff check <paths>`.
 - API, dependency, or broad package change:
-  run focused tests first, then `uv run pytest` when feasible.
+  run focused tests first, then `uv run --locked pytest` when feasible; omit
+  `--locked` only when an intended dependency change requires lock resolution.
 
 When auditing Ruff config, check whether `select` is replacing Ruff's default
 rules. Use `extend-select` for additive choices such as import sorting, or make
@@ -85,21 +84,6 @@ unavailable, report that honestly and name the command that should be run.
 For Python CLIs that accept arbitrary numeric vectors, or for cross-language
 objective, gradient, Hessian, or autograd comparisons, read
 [numerical-validation.md](references/numerical-validation.md).
-
-## Project Layout
-
-Infer layout from the repo, but common paths are:
-
-- `src/<package>/`: package code.
-- `<package>/`: package code in flat layouts.
-- `tests/`: pytest tests and fixtures.
-- `notebooks/` or `examples/`: examples, demonstrations, generated outputs.
-- `scripts/`: project automation.
-
-When adding tests, prefer public APIs and realistic fixtures over private helper
-tests. Private-helper tests are acceptable when they protect a subtle invariant
-that is hard to reach through the public surface; document the behavior they
-protect in the test name or nearby assertion.
 
 ## Notebooks And Artifacts
 

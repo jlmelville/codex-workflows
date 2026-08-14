@@ -1,15 +1,9 @@
 # Codex Workflows
 
-These are the last human words you are going to read on this repo. I am
-experimenting with Codex skills and this is the repo for them. Apart from that,
-I am just going to let Codex do its thing.
-
-Personal Codex skills shared across machines, and an experiment in agents
-improving those skills from their own experience.
-
-The aim is to keep the human loop small: agents preserve useful observations
-while they work, turn mature lessons into skill candidates, and periodically
-apply the worthwhile candidates back to this repository.
+Personal Codex skills shared across machines, with an external learning loop
+that lets agents improve those skills from experience. The aim is to keep the
+human loop small without turning the public repository into an archive of
+incidents.
 
 ## System Model
 
@@ -20,13 +14,11 @@ The system has three parts:
 - **Runtime:** `./install.sh` copies repository-owned skills into
   `$HOME/.agents/skills`, the current user-wide skill location documented by
   [OpenAI](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
-  The installer tracks its skills in a manifest and leaves other installed
-  skills alone. On upgrade, it migrates only repository-managed legacy copies
-  from `${CODEX_HOME:-$HOME/.codex}/skills`.
+  The installer tracks its own skills and leaves unrelated installed skills
+  alone.
 - **Learning state:** `CODEX_WORKFLOWS_STATE_DIR` holds papercuts, candidate
   reports, triage outcomes, and other working state outside the source
-  repository and Codex home. It can be synchronized separately between
-  machines when the same queues should be available on both.
+  repository and Codex home.
 
 The runtime and learning state are replaceable. Git remains the source of truth
 for reusable behavior.
@@ -39,45 +31,25 @@ project work -> papercuts and retros -> triage -> skill changes -> Git
 
 ## Set Up A Laptop
 
-Run these commands from the repository root.
-
-On macOS, install the local validation toolchain first. The repository's
-`.ruby-version` is not honored by Apple's system Ruby unless a Ruby version
-manager is active:
+Clone the repository and install its managed skills:
 
 ```sh
-brew install rbenv ruby-build shellcheck actionlint r ripgrep uv
-rbenv init zsh
-rbenv install -s "$(cat .ruby-version)"
-eval "$(rbenv init - --no-rehash zsh)"
-bundle install
+git clone git@github.com:jlmelville/codex-workflows.git
+cd codex-workflows
+./install.sh
 ```
 
-`rbenv init zsh` updates the appropriate zsh startup file so later shells select
-the pinned Ruby automatically; the evaluation activates it in the current
-shell. The first three setup steps below require only Bash and Ruby; the
-complete validation toolchain is described in
-[Repository Maintenance](docs/repository-maintenance.md#local-tooling).
-
-1. Install the managed skills:
-
-   ```sh
-   ./install.sh
-   ```
-
-2. Choose an external state directory and initialize it:
+1. Choose an external state directory and initialize it:
 
    ```sh
    export CODEX_WORKFLOWS_STATE_DIR=/absolute/path/to/codex-workflows-state
    ./skills/skill-retro/scripts/retro-state.rb init
    ```
 
-   Keep the directory outside Git worktrees, `$HOME/.agents`, and
-   `${CODEX_HOME:-$HOME/.codex}`. A reasonable local-only default is
-   `$HOME/.local/share/codex-workflows`; use a separately synchronized folder
-   only when the same observation queues should follow you across machines.
+   Keep it outside Git worktrees and Codex runtime directories. A reasonable
+   local-only default is `$HOME/.local/share/codex-workflows`.
 
-3. Make that location available and writable in every Codex session. Merge the
+2. Make that location available and writable in every Codex session. Merge the
    following into `~/.codex/config.toml`, using the same absolute path:
 
    ```toml
@@ -91,12 +63,10 @@ complete validation toolchain is described in
    set = { CODEX_WORKFLOWS_STATE_DIR = "/absolute/path/to/codex-workflows-state" }
    ```
 
-   Do not define the same TOML table twice. The top-level sandbox and approval
-   settings are unnecessary when an active permissions profile already supplies
-   them. Setting the environment variable only in a shell startup file may not
-   reach Codex sessions launched from a desktop or IDE.
+   Merge these keys into existing tables rather than defining a TOML table
+   twice.
 
-4. Enable standing papercut capture. The canonical global instruction block is
+3. Enable standing papercut capture. The canonical global instruction block is
    [`skills/papercut-capture/assets/global-agents-papercuts.md`](skills/papercut-capture/assets/global-agents-papercuts.md)
    and is included in the installed skill.
 
@@ -111,77 +81,40 @@ complete validation toolchain is described in
    ```
 
    Otherwise, merge its `## Workflow papercuts` section into the active global
-   instruction file. `AGENTS.override.md` takes precedence over `AGENTS.md` when
-   both exist. Reconcile the copied section after later updates to the canonical
-   asset.
+   instruction file. See
+   [Repository Maintenance](docs/repository-maintenance.md#user-global-instruction-setup)
+   for precedence and update details.
 
-5. Restart Codex or open a new thread, then verify the setup:
+4. Restart Codex or open a new thread, then verify the setup:
 
    ```sh
    ./skills/skill-retro/scripts/retro-state.rb validate
    ./install.sh --check
    ```
 
-   During the initial papercut pilot, substantive-task responses should end with
-   `Papercuts recorded: N`, including zero.
+After pulling skill changes, run `./install.sh` again. See
+[Repository Maintenance](docs/repository-maintenance.md) for installation
+details, validation, CI, and local tooling.
 
-After pulling skill changes on either laptop, run `./install.sh` again. See
-[Repository Maintenance](docs/repository-maintenance.md) for legacy migration,
-dry runs, validation details, CI, and local tooling.
+## Learning And Introspection
 
-## Working Rhythm
+| Moment | Entry point | Scope |
+| --- | --- | --- |
+| During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
+| After a meaningful session | `$skill-retro` | Distill session evidence into a candidate; write externally only when routing is authorized. |
+| When candidates accumulate | `$skill-retro-triage` | Decide whether and how each candidate changes public source, then implement an accepted batch. |
+| At the process-review cadence below | `$learning-process-review` | Audit external intake, decisions, verification, open follow-up work, and feedback-loop health. |
+| When the artifact audit is due | [repository retrospective prompt](prompts/skill-repository-retrospective.md) | Audit public skills and references for overlap, drift, and semantic compression. |
 
-The learning cycle has four cadences.
+The final two reviews are deliberately separate: `learning-process-review`
+supervises the external learning mechanism, while the repository retrospective
+examines the public corpus itself. The artifact audit is report-only unless the
+invoking task separately authorizes source changes.
 
-### During project work: capture papercuts
-
-The standing global instruction activates `$papercut-capture` during
-substantive repository work. It records small, sanitized observations while
-their evidence is fresh. Project or task instructions can opt out.
-
-### After substantive work: run a skill retro
-
-Invoke `$skill-retro` after a meaningful coding session, investigation, CI
-debug, or cleanup. It turns the session into a mature Skill Candidate Report.
-The default result stays in chat; `route` or explicitly enabled `auto` mode can
-write it to the external inbox.
-
-The stable prompt at [prompts/skill-retrospective.md](prompts/skill-retrospective.md)
-is an alternative entry point.
-
-### About daily: triage accumulated retros
-
-In this repository, invoke `$skill-retro-triage`. It judges pending candidates
-and proposes an implementation batch before changing source or external state.
-Once accepted, it applies the reusable changes, validates and installs them,
-and follows the repository's commit and push workflow.
-
-### On the review trigger: inspect the learning system
-
-Invoke `$learning-process-review` to examine intake quality, papercut yield,
-triage decisions, deferrals, verification, and whether the feedback loop is
-improving:
-
-> Use `$learning-process-review` to review whether the codex-workflows learning
-> process is working. Report findings and the complete proposed drain batch
-> before changing public source or external state.
-
-The former
-[Learning Process Retrospective Prompt](prompts/learning-process-retrospective.md)
-remains as a compatibility pointer.
-
-During the initial papercut pilot, run the first review after 10 recorded
-papercuts or 14 days of substantive use, whichever comes first. Later reviews
-use the event triggers maintained by `$learning-process-review` rather than
-calendar memory alone.
-
-## Occasional Repository Audit
-
-The learning-process retrospective evaluates the external feedback loop. A
-separate
-[Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
-audits the public artifacts themselves for bloat, overlap, drift, missing
-mechanisms, and unclear skill boundaries.
+Run the first process review after 10 papercuts or 14 calendar days after
+enabling capture. Thereafter use the next trigger recorded by the previous
+review; absent one, the default is five new papercuts or 14 calendar days after
+the last review.
 
 The external helper marks this artifact audit due after ten candidate reports
 have been processed since the last successfully recorded artifact audit:
@@ -190,15 +123,13 @@ have been processed since the last successfully recorded artifact audit:
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
 ```
 
-The completed report resets the baseline only when `$learning-process-review`
-records it after the applicable external-state mutation gate. Due status does
-not authorize automatic source changes.
+Run the prompt from the repository root:
 
-Paste this into Codex from the repository root:
+> Use `prompts/skill-repository-retrospective.md` to audit this repository and
+> report findings before making changes.
 
-> Use `prompts/skill-repository-retrospective.md` to audit the current
-> codex-workflows skill system. Follow the prompt as written and report findings
-> in chat before making any changes.
+After the user approves the external-state update, `learning-process-review`
+records a successfully completed audit and resets the cadence.
 
 ## State And Maintenance
 
@@ -210,9 +141,8 @@ The installed helper is available from any project repository:
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
 ```
 
-If `CODEX_WORKFLOWS_STATE_DIR` is unavailable, retrospective routing prints a
-paste-ready candidate instead of writing it. Losing or pruning external state
-does not invalidate the repository or installed skills.
+If `CODEX_WORKFLOWS_STATE_DIR` is unavailable, `$skill-retro` routing prints a
+paste-ready candidate instead of writing it.
 
 The complete record lifecycle is documented in the
 [External Retrospective State Protocol](skills/skill-retro/references/state-protocol.md).
@@ -225,8 +155,9 @@ For accepted repository changes, run:
 ./install.sh --check
 ```
 
-Use `./scripts/audit-skill-drift.rb` for an advisory review of trigger overlap,
-bloat, duplicated guidance, and installed-path drift.
+Use `./scripts/audit-skill-drift.rb` for advisory drift checks. See
+[Repository Maintenance](docs/repository-maintenance.md) for the full
+validation and publication workflow.
 
 ## License
 

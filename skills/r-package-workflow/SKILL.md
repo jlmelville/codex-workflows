@@ -82,19 +82,6 @@ For compiled packages, do not run `covr::package_coverage()` and
 avoid transient package DLL copy/load races, and rerun a `dyn.load()` failure
 alone before treating it as a code regression.
 
-Common commands:
-
-```sh
-Rscript -e 'testthat::test_local()'
-Rscript -e 'Rcpp::compileAttributes()'
-Rscript -e 'roxygen2::roxygenise()'
-Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
-air format . --check
-Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
-actionlint
-zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
-```
-
 Scripts:
 
 - `${HOME}/.agents/skills/r-package-workflow/scripts/check-r-package.sh`:

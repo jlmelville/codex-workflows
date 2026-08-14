@@ -63,25 +63,23 @@ of the task.
 
 ## Preferred Patterns
 
-If a one-off tool is already installed and acceptable for the repository, prefer
-the installed binary before `uvx` to avoid avoidable network and tool-cache
-downloads. For example, run `zizmor` directly when present; use `uvx zizmor`
-only as the fallback.
+Set the writable directories in **First Command** once for the current shell.
+When shell state may not persist, use the single-invocation form shown there.
+The commands below assume those directories are already set.
+
+If a one-off tool is already installed and acceptable for the repository,
+prefer it before `uvx` to avoid avoidable downloads. For example, run `zizmor`
+directly when present and use `uvx zizmor` only as the fallback.
 
 For one-off tool execution:
 
 ```sh
-UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
-UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
 uvx tool-name ...
 ```
 
 For one-off Python dependencies:
 
 ```sh
-UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
-UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
-UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
 uv run --with package-name python -c '...'
 ```
 
@@ -89,9 +87,6 @@ For helper scripts with undeclared Python dependencies, use `uv run --with`
 instead of installing into the system Python:
 
 ```sh
-UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
-UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
-UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
 uv run --with pyyaml python path/to/helper.py args...
 ```
 
@@ -99,9 +94,6 @@ For project commands, keep the project as the working directory and still set
 the writable uv directories:
 
 ```sh
-UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
-UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
-UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
 uv sync
 ```
 
