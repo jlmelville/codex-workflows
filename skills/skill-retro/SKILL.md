@@ -66,6 +66,12 @@ candidate as the terminal fallback when approval is unavailable or denied.
   destination, and decision. Split only materially distinct deltas, and keep
   one candidate per external Markdown file so separate candidates remain
   independently judgeable.
+- Preserve evidence at intake rather than forcing the producer to perform
+  aggressive semantic compression. Triage and corpus review own distillation.
+- When a corrected decision supersedes an earlier accepted outcome, add
+  `supersedes_accepted_id` and state `now_false`. When later evidence merely
+  supports or contradicts the same outcome and witness, update that accepted
+  identity instead of routing another candidate.
 - For an existing destination, identify the missing delta: what current
   guidance did not cover and whether the smallest fix belongs in `SKILL.md`, a
   reference, script, prompt, or no action.

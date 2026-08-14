@@ -89,11 +89,16 @@ process --id ID --decision PATH
 template accepted
 record-accepted --file PATH
 update-accepted --id ID --file PATH
+verification-opportunities [--destination TEXT]
 template draft
 record-draft --file PATH
 template ledger
 record-ledger --file PATH
 close-ledger --id ID --rationale TEXT
+template audit
+record-audit --file PATH
+audits
+artifact-audit-status [--archive-threshold N]
 review-queue
 validate
 ```
@@ -164,6 +169,12 @@ acceptance to write the candidate. `auto` must be explicitly requested and may
 write only a high-confidence candidate to the configured inbox; it authorizes
 no project edits, source-repository edits, commits, pushes, or messages.
 
+When later evidence changes a previously accepted decision, a new candidate may
+add `supersedes_accepted_id` and `now_false`. Use those fields only when the
+corrected decision is itself a new candidate. Evidence that merely supports or
+contradicts the same decision and witness updates the existing accepted record
+instead; it does not create a second accepted identity.
+
 ## Triage And Archive
 
 Triage reads `pending`, re-reads the named destination, and judges every
@@ -175,9 +186,11 @@ Use `template decision`, fill the verdict and rationale, then use `process` to
 attach the decision and move the record from inbox to archive. The intake
 digest and original intake fields remain in the archived document. For a
 deferred verdict, `review_trigger`, `next_action`, and `close_condition` are
-required. Use `review-queue` to list open archived deferrals, drafts, and ledger
-actions; triage decides which event-based triggers have fired rather than merely
-refreshing their dates.
+required. Use `review-queue` to list open archived deferrals, contradicted
+accepted outcomes, drafts, ledger actions, and a due artifact audit. Triage
+decides which event-based triggers have fired rather than merely refreshing
+their dates. Every triage run must inspect that queue before proposing its
+batch.
 
 After user acceptance, follow
 [report-to-patch.md](report-to-patch.md) for public implementation, validation,
@@ -204,9 +217,42 @@ and why the observation supports or contradicts it.
 Use `update-accepted --id ID --file PATH` for later disposition, verification,
 evidence, or commit updates. Supply a complete unassigned accepted document,
 like `template accepted`; the helper preserves `accepted_id` and `accepted_at`
-and requires the originating candidate lineage to remain identical. Do not
-direct-edit the stored record or create a second accepted identity for the same
-outcome merely to record later evidence.
+and requires the originating candidate and supersession lineage to remain
+identical. Do not direct-edit the stored record or create a second accepted
+identity for the same outcome merely to record later evidence.
+
+A newly contradicted record includes:
+
+```yaml
+contradiction:
+  summary: "What the later evidence establishes."
+  what_is_false: "What the accepted outcome asserted that is now false."
+  recorded_at: "YYYY-MM-DDTHH:MM:SSZ"
+  decisive_evidence:
+    - "Sanitized later-session or deterministic evidence."
+  residual_ledger_id: LE-YYYYMMDD-abcdef # optional
+```
+
+The helper allows legacy schema-version-1 records without this mapping, but any
+new or updated contradicted record must supply it. Once present, verification
+cannot move away from `contradicted`; its summary, false assertion, timestamp,
+and prior decisive evidence cannot be removed. Later evidence may be appended.
+
+Drain a contradiction by correcting source guidance and marking the old record
+`superseded`, removing the guidance and marking it `reverted`, or assigning an
+open residual ledger with an owner, trigger, next action, and close condition.
+Until one of those actions occurs, the contradicted accepted record is itself
+visible in `review-queue`; after assignment, only the executable residual
+ledger remains live. A residual ledger cannot close while its accepted record
+remains unresolved. Preserve `verification: contradicted` on the old identity
+after either terminal disposition.
+
+When archived correction candidates name earlier outcomes, `record-accepted`
+derives and preserves `supersedes_accepted_ids`. Use
+`verification-opportunities --destination TEXT` only as a pull query for the
+skills or destinations involved in the completed session. The filter is a
+case-insensitive substring match against the recorded destination. A query hit
+creates no candidate, quota, or obligation.
 
 Do not create maintained prompt corpora, synthetic model fixtures, repeated
 model runs, raw trace archives, paid model-backed CI, or public evidence records
@@ -233,6 +279,40 @@ This state is deliberately disposable. Delete closed papercuts, rejected
 history, stale audit material, discharged ledger entries, and superseded drafts
 whenever they no longer help future judgment. The public repository must not
 rely on retention.
+
+## Completed Audits And Artifact Cadence
+
+`audits/learning-process` stores completed, sanitized system diagnoses. Generate
+`template audit`, create every unresolved consequence first as an existing
+candidate deferral, draft, or ledger action, list those IDs in
+`unresolved_action_ids`, and use `record-audit --file PATH` only after the user
+has authorized the external-state mutation. The helper requires each listed
+action to exist and be open when the audit is recorded. Completed audits stay
+cold; only their unresolved action records belong in `review-queue`.
+
+Use `audit_kind: learning-process` for feedback-loop diagnoses and
+`audit_kind: skill-repository` for completed report-only artifact audits. The
+helper maintains `audits/learning-process/artifact-cadence.yml` as a monotonic
+machine-owned count of processed candidate archives. On first use, it migrates
+from the retained archive and any prior audit baseline; later deletion of cold
+archive history does not rewind cadence. No per-task or model telemetry is
+needed:
+
+```sh
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
+```
+
+The default audit becomes due after ten newly archived candidate reports; use
+`--archive-threshold N` to calibrate a review without changing correctness.
+Only successfully recording a completed `skill-repository` audit resets the
+baseline. An interrupted or failed audit therefore remains due. Due state
+authorizes only the report described by
+`prompts/skill-repository-retrospective.md`; it never authorizes source edits or
+automatic corpus rewrites.
+
+`artifact-audit-status` prints five tab-separated fields in this order: status
+(`due` or `not-due`), archives since the baseline, configured threshold, latest
+artifact-audit ID (or `none`), and latest audit path (or `-`).
 
 ## Validation Boundary
 

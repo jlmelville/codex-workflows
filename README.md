@@ -156,7 +156,7 @@ and proposes an implementation batch before changing source or external state.
 Once accepted, it applies the reusable changes, validates and installs them,
 and follows the repository's commit and push workflow.
 
-### About weekly: inspect the learning system
+### On the review trigger: inspect the learning system
 
 Invoke `$learning-process-review` to examine intake quality, papercut yield,
 triage decisions, deferrals, verification, and whether the feedback loop is
@@ -171,7 +171,9 @@ The former
 remains as a compatibility pointer.
 
 During the initial papercut pilot, run the first review after 10 recorded
-papercuts or 14 days of substantive use, whichever comes first.
+papercuts or 14 days of substantive use, whichever comes first. Later reviews
+use the event triggers maintained by `$learning-process-review` rather than
+calendar memory alone.
 
 ## Occasional Repository Audit
 
@@ -180,6 +182,17 @@ separate
 [Skill Repository Retrospective Prompt](prompts/skill-repository-retrospective.md)
 audits the public artifacts themselves for bloat, overlap, drift, missing
 mechanisms, and unclear skill boundaries.
+
+The external helper marks this artifact audit due after ten candidate reports
+have been processed since the last successfully recorded artifact audit:
+
+```sh
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
+```
+
+The completed report resets the baseline only when `$learning-process-review`
+records it after the applicable external-state mutation gate. Due status does
+not authorize automatic source changes.
 
 Paste this into Codex from the repository root:
 

@@ -27,25 +27,37 @@ user.
 For each accepted candidate:
 
 1. Re-read the destination before editing.
-2. Identify one atomic missing delta.
-3. Choose the smallest destination:
-   - `SKILL.md` for triggers, routing, must-remember rules, or short checklists;
-   - `references/` for detailed edge cases, recipes, workflows, or examples;
-   - `scripts/` for deterministic checks or repeated fragile commands;
-   - `prompts/` for reusable instructions to ask another agent or model;
-   - no public edit when existing coverage is sufficient or evidence remains
-     local.
-4. Add or update deterministic validation for command behavior, schema, file
+2. Identify the decision, authority boundary, required observation, or success
+   condition changed by the missing delta.
+3. Implement the semantic role selected during triage:
+   - keep compact default judgment in `SKILL.md` when it must be available as
+     soon as the skill triggers;
+   - put exact commands, APIs, tool behavior, environment requirements, file
+     formats, and conditional recipes in a routed reference or deterministic
+     script;
+   - keep a sanitized case capsule in an optional skill-local casebook only
+     when its plausible wrong implementation or observation boundary is
+     distinct;
+   - update external verification without a public edit when the candidate is
+     another occurrence of an existing decision and witness.
+4. Treat `references/` as a loading mechanism, not a semantic category. A
+   reference may need restructuring when it mixes default judgment, mechanics,
+   and cases that should load under different conditions.
+5. Reject an incident-shaped default rule when an existing principle, routed
+   mechanic, optional case, or verification record is the truthful home. Add a
+   new clause only when the condition changes the action, constraint, required
+   witness, or success claim.
+6. Add or update deterministic validation for command behavior, schema, file
    shape, generated output, or fragile searches.
-5. Make the source change understandable without the external record. Do not
+7. Make the source change understandable without the external record. Do not
    leak private repository names, candidate evidence, or opaque state IDs into
    Git merely to preserve provenance.
-6. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
+8. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
    change, run `./scripts/list-skills.rb` and inspect the affected rows.
-7. Run `./scripts/validate-skills.sh`.
-8. If files under `skills/` changed, run `./install.sh` and
+9. Run `./scripts/validate-skills.sh`.
+10. If files under `skills/` changed, run `./install.sh` and
    `./install.sh --check`.
-9. Inspect staged paths, commit only intended public source, and push when
+11. Inspect staged paths, commit only intended public source, and push when
    repository instructions require it.
 
 Execute fired non-skill ledger actions rather than refreshing them indefinitely.
@@ -64,6 +76,13 @@ prose or routing edit does not prove the guidance worked later. Use
 failure and explains why it supports or contradicts the guidance. Model
 self-report alone is insufficient. Use `deterministic-test` only for executable
 behavior actually exercised.
+
+For a correction, keep recurrence and replacement separate. Update the existing
+accepted identity with preserved contradiction evidence. Create a new accepted
+identity only when the correction candidate changes the decision; let
+`record-accepted` derive its `supersedes_accepted_ids` from the archived
+candidate. Do not close a residual contradiction ledger until the old accepted
+record is marked `superseded` or `reverted`.
 
 Finish by running the external helper's `validate` command. Failure to update
 disposable state does not invalidate an otherwise correct public source commit;

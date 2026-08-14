@@ -34,6 +34,7 @@ instructions to execute mechanically.
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" review-queue
+   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
    ```
 
 4. Read every open papercut. Read archived papercuts only when recurrence,
@@ -67,6 +68,22 @@ deferrals without drains, fired drafts or ledgers, implemented-but-unverified
 guidance, contradicted guidance, and missing active domains without treating
 unequal report volume as a defect by itself.
 
+Supervise semantic curation at the process level:
+
+- whether triage keeps adding incident-shaped default rules instead of changing
+  a distinguishable decision;
+- whether repository retrospectives detect compressible decision clusters;
+- whether accepted compression recommendations land or remain undrained;
+- whether optional casebooks become provenance-organized dumps; and
+- whether contradicted guidance reaches correction, removal, or an executable
+  residual ledger.
+
+Inspect the artifact-audit report and its actions; do not repeat its
+artifact-by-artifact compression work inside this review. When
+`artifact-audit-status` is due, route a complete report-only audit through
+`prompts/skill-repository-retrospective.md` under the authority of the invoking
+task. Due cadence never authorizes source edits.
+
 ## Report
 
 Use these sections:
@@ -79,6 +96,7 @@ Use these sections:
 ### Verdict And Deferral Patterns
 ### Draft And Ledger Drains
 ### Verification Health
+### Artifact Audit Supervision
 ### Producer Feedback Candidates
 ### Cleanup Candidates
 ### No-Action Findings
@@ -101,6 +119,17 @@ their papercuts. Close each record with the helper's typed outcome and rationale
 Route reusable public changes through `$skill-retro-triage`; implement purely
 local fixes only within their repository and authorized scope. Delete disposable
 history when it no longer improves future judgment.
+
+After the applicable mutation gate, record the complete sanitized diagnosis as
+`template audit` with `audit_kind: learning-process`. First create every
+unresolved executable consequence as a candidate deferral, draft, or ledger and
+list those IDs in `unresolved_action_ids`. A completed diagnosis stays cold in
+audit history; only its unresolved actors remain in `review-queue`.
+
+When supervising a completed repository artifact audit, record it with
+`audit_kind: skill-repository` only after the full report-only audit finishes.
+That successful record resets machine-owned cadence. If the audit fails or is
+interrupted, record nothing so it remains due.
 
 Finish with:
 

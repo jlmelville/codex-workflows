@@ -196,58 +196,21 @@ assets or CRAN metadata.
   checks.
 - Run clang-format checks for hand-maintained C++ if configured.
 
-## Check Notes and Restricted Environments
+## Restricted Environment Mechanics
 
-Codex sandboxes, CI-like containers, and local planning artifacts can produce
-notes that are not repository regressions. Classify them, but do not let a
-recurring repository-attributable note become accepted baseline debt. Resolve
-repository diagnostics when first found or before continuing the next planned
-phase. For an unavoidable environmental or external-service diagnostic, rerun
-when practical and lead the final validation summary with the non-clean or
-incomplete state.
+Apply the diagnostic-ownership rule in `SKILL.md` before interpreting sandbox,
+CI-container, or external-service output. Preserve these exact recipes:
 
-When R tooling needs caches in a restricted filesystem, redirect them to a
-writable temporary path, for example `XDG_CACHE_HOME=/tmp/r-cache`. If
-pkgdown/check validation fails because DNS, CRAN metadata, or external assets
-are blocked and the validation matters, rerun with approved network escalation
-instead of treating the first sandbox failure as package evidence.
+- When R tooling needs caches in a restricted filesystem, redirect them to a
+  writable temporary path such as `XDG_CACHE_HOME=/tmp/r-cache`.
+- When material pkgdown or package-check validation fails because DNS, CRAN
+  metadata, or external assets are blocked, rerun through the applicable
+  network-approval path before assigning the failure to package behavior.
 
-Common examples:
-
-- unable to verify current time or internet-dependent metadata;
-- CRAN source index, package repository, or URL access blocked by network
-  policy;
-- system bus or desktop-service warnings from headless environments;
-- top-level planning directories such as `plans` during `R CMD check`, when
-  they are active local work artifacts;
-- `R CMD build` or `devtools::check()` messages such as
-  `Removed empty directory 'pkg/.agents'`, `pkg/.codex`, or `pkg/plans` when
-  they refer to temporary build-source cleanup rather than repository files;
-- compiler flag notes from local toolchains, such as
-  `-mno-omit-leaf-frame-pointer`, when already present before the change.
-
-Do not hide these notes. Record the exact note, explain whether it is believed
-to be environmental or known repo state, and say whether the same note was
-present before the change. If a note is new, code-specific, or changes package
-behavior, treat it as a real finding until proven otherwise.
-
-For `R CMD check` notes caused by local planning directories, record whether the
-path is tracked, untracked, or ignored. Do not move or delete active plans only
-to silence the note unless the user chooses a different plan location or
-`.Rbuildignore` policy.
-
-When a check NOTE reports a bare `as()` as having no visible global definition,
-do not assume its import suggestion requires a roxygen `@importFrom`. Follow the
-package's namespace style: normally qualify the call as `methods::as(...)` and
-declare `methods` in `DESCRIPTION`, unless the package intentionally imports
-`as` into its namespace.
-
-For "Removed empty directory" messages, check `git status` before reporting
-local deletions. Treat them as package-build temporary-source cleanup unless
-the working tree actually changed.
-
-Do not treat missing or untracked `docs/` output as a package source diff unless
-the repo tracks pkgdown output or the user asked to update the site.
+If ownership remains ambiguous after the relevant rerun and attribution
+checks, consult the optional
+[check diagnostic cases](check-diagnostic-cases.md). The casebook distinguishes
+observation boundaries; it is not an additional default checklist.
 
 ## Formatting and Lint
 

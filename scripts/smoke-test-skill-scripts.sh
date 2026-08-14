@@ -604,9 +604,11 @@ run_retro_state_smoke() {
   local fallback="${smoke_dir}/fallback.md"
   local papercut="${smoke_dir}/papercut.md"
   local papercut_fallback="${smoke_dir}/papercut-fallback.md"
+  local audit="${smoke_dir}/audit.md"
   local candidate_path
   local papercut_path
   local papercut_id
+  local audit_path
 
   require_command ruby
   mkdir -p "${smoke_dir}"
@@ -627,8 +629,13 @@ run_retro_state_smoke() {
     "retro-state-inapplicable-option" \
     "retro-state.rb: invalid option: --file is not valid for validate" \
     "${script}" validate --file ignored
+  assert_usage_error \
+    "retro-state-inapplicable-threshold" \
+    "retro-state.rb: invalid option: --archive-threshold is not valid for validate" \
+    "${script}" validate --archive-threshold 10
   "${script}" template candidate >"${candidate}"
   "${script}" template papercut >"${papercut}"
+  "${script}" template audit >"${audit}"
 
   if (
     unset CODEX_WORKFLOWS_STATE_DIR
@@ -677,6 +684,13 @@ run_retro_state_smoke() {
     return 1
   fi
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts --archive | rg -q "${papercut_id}"
+  audit_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" record-audit --file "${audit}")"
+  [[ -s "${audit_path}" ]]
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" audits | rg -q "$(basename "${audit_path}" .md)"
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" artifact-audit-status \
+    --archive-threshold 1 | rg -q '^not-due'
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" verification-opportunities \
+    --destination skill-retro >/dev/null
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" validate >/dev/null
   "${script}" self-test >/dev/null
   if [[ -x /usr/bin/ruby ]]; then

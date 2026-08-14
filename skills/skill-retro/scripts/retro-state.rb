@@ -16,6 +16,10 @@ module RetroState
   DISPOSITIONS = %w[accepted implemented no-change superseded reverted].freeze
   VERIFICATIONS = %w[unverified supported contradicted].freeze
   VERIFICATION_BASES = %w[none later-session deterministic-test].freeze
+  TERMINAL_CONTRADICTION_DISPOSITIONS = %w[superseded reverted].freeze
+  AUDIT_KINDS = %w[learning-process skill-repository].freeze
+  ARTIFACT_AUDIT_ARCHIVE_THRESHOLD = 10
+  ARTIFACT_CADENCE_RECORD_TYPE = "artifact-audit-cadence"
   CONFIDENCES = %w[high medium low].freeze
   RECOMMENDATIONS = %w[
     update-existing no-change new-skill new-script new-prompt uncertain
@@ -155,6 +159,15 @@ module RetroState
     end
     unless RECOMMENDATIONS.include?(data["recommendation"])
       raise Error, "#{label}: recommendation must be one of #{RECOMMENDATIONS.join(", ")}"
+    end
+
+    supersedes_id = data["supersedes_accepted_id"]
+    now_false = data["now_false"]
+    if supersedes_id || now_false
+      require_fields(data, %w[supersedes_accepted_id now_false], label)
+      unless supersedes_id.match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid supersedes_accepted_id"
+      end
     end
 
     if routed
@@ -322,7 +335,7 @@ module RetroState
     end
   end
 
-  def validate_accepted(data, body, label:, assigned:)
+  def validate_accepted(data, body, label:, assigned:, strict_contradiction: false)
     text = render_document(data, body)
     validate_common(data, text, label)
     raise Error, "#{label}: record_type must be accepted" unless data["record_type"] == "accepted"
@@ -339,6 +352,14 @@ module RetroState
     require_string_array(data, "originating_candidate_ids", label)
     require_string_array(data, "decisive_evidence", label)
     require_string_array(data, "implementation_commits", label, allow_empty: true)
+    if data.key?("supersedes_accepted_ids")
+      require_string_array(data, "supersedes_accepted_ids", label)
+      data["supersedes_accepted_ids"].each do |accepted_id|
+        unless accepted_id.match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/)
+          raise Error, "#{label}: invalid supersedes_accepted_ids entry"
+        end
+      end
+    end
 
     if assigned
       require_fields(data, %w[accepted_id accepted_at], label)
@@ -367,9 +388,67 @@ module RetroState
     if %w[supported contradicted].include?(data["verification"]) && data["verification_basis"] == "none"
       raise Error, "#{label}: supported or contradicted records need an evidence basis"
     end
+    contradiction = data["contradiction"]
+    if contradiction
+      unless data["verification"] == "contradicted"
+        raise Error, "#{label}: contradiction details require verification: contradicted"
+      end
+      validate_contradiction(contradiction, label)
+    elsif data["verification"] == "contradicted" && strict_contradiction
+      raise Error, "#{label}: newly contradicted records need contradiction details"
+    end
     unless data["implementation_commits"].all? { |item| item.match?(/\A[0-9a-f]{7,40}\z/) }
       raise Error, "#{label}: implementation_commits must contain Git commit hashes"
     end
+  end
+
+  def validate_contradiction(contradiction, label)
+    unless contradiction.is_a?(Hash)
+      raise Error, "#{label}: contradiction must be a mapping"
+    end
+
+    require_fields(
+      contradiction,
+      %w[summary what_is_false recorded_at],
+      "#{label} contradiction"
+    )
+    require_string_array(contradiction, "decisive_evidence", "#{label} contradiction")
+    unless contradiction["recorded_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+      raise Error, "#{label}: contradiction recorded_at must be a UTC timestamp"
+    end
+    residual_id = contradiction["residual_ledger_id"]
+    return unless residual_id
+    return if residual_id.match?(/\ALE-\d{8}-[a-f0-9]{6}\z/)
+
+    raise Error, "#{label}: invalid contradiction residual_ledger_id"
+  end
+
+  def validate_accepted_transition(current, replacement, label)
+    unless replacement["originating_candidate_ids"] == current["originating_candidate_ids"]
+      raise Error, "accepted record originating_candidate_ids must not change: #{label}"
+    end
+    unless replacement.fetch("supersedes_accepted_ids", []) == current.fetch("supersedes_accepted_ids", [])
+      raise Error, "accepted record supersedes_accepted_ids must not change: #{label}"
+    end
+    return unless current["verification"] == "contradicted"
+
+    unless replacement["verification"] == "contradicted"
+      raise Error, "contradicted verification must be preserved: #{label}"
+    end
+    current_contradiction = current["contradiction"]
+    return unless current_contradiction
+
+    replacement_contradiction = replacement.fetch("contradiction")
+    %w[summary what_is_false recorded_at].each do |field|
+      next if replacement_contradiction[field] == current_contradiction[field]
+
+      raise Error, "contradiction #{field} must be preserved: #{label}"
+    end
+    missing_evidence = current_contradiction.fetch("decisive_evidence") -
+      replacement_contradiction.fetch("decisive_evidence")
+    return if missing_evidence.empty?
+
+    raise Error, "contradiction decisive_evidence must be preserved: #{label}"
   end
 
   def validate_draft(data, body, label:, assigned:)
@@ -434,6 +513,60 @@ module RetroState
     end
   end
 
+  def validate_learning_audit(data, body, label:, assigned:)
+    text = render_document(data, body)
+    validate_common(data, text, label)
+    unless data["record_type"] == "learning-audit"
+      raise Error, "#{label}: record_type must be learning-audit"
+    end
+
+    require_fields(data, %w[audit_kind summary redaction_review], label)
+    require_string_array(data, "findings", label)
+    require_string_array(data, "unresolved_action_ids", label, allow_empty: true)
+    raise Error, "#{label}: audit diagnosis body must not be empty" if body.strip.empty?
+    validate_enum(data, "audit_kind", AUDIT_KINDS, label)
+    data["unresolved_action_ids"].each do |action_id|
+      next if action_id.match?(/\A(?:RC-\d{8}T\d{6}Z|SD-\d{8}|LE-\d{8})-[a-f0-9]{6}\z/)
+
+      raise Error, "#{label}: invalid unresolved_action_ids entry"
+    end
+
+    if assigned
+      require_fields(data, %w[audit_id completed_at], label)
+      unless data["candidate_archive_count"].is_a?(Integer) && data["candidate_archive_count"] >= 0
+        raise Error, "#{label}: candidate_archive_count must be a non-negative integer"
+      end
+      if data.key?("candidate_archives_total") &&
+          (!data["candidate_archives_total"].is_a?(Integer) || data["candidate_archives_total"].negative?)
+        raise Error, "#{label}: candidate_archives_total must be a non-negative integer"
+      end
+      unless data["audit_id"].match?(/\ALA-\d{8}-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid audit_id"
+      end
+      unless data["completed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+        raise Error, "#{label}: completed_at must be a UTC timestamp"
+      end
+    elsif %w[audit_id completed_at candidate_archive_count candidate_archives_total].any? { |field| data.key?(field) }
+      raise Error, "#{label}: unrecorded audit input must not assign identity fields"
+    end
+  end
+
+  def validate_artifact_cadence(data, label:)
+    unless data.is_a?(Hash) && data["schema_version"] == SCHEMA_VERSION &&
+        data["record_type"] == ARTIFACT_CADENCE_RECORD_TYPE
+      raise Error, "#{label}: invalid artifact-audit cadence record"
+    end
+
+    total = data["candidate_archives_total"]
+    baseline = data["last_completed_artifact_audit_total"]
+    unless total.is_a?(Integer) && total >= 0
+      raise Error, "#{label}: candidate_archives_total must be a non-negative integer"
+    end
+    unless baseline.is_a?(Integer) && baseline >= 0 && baseline <= total
+      raise Error, "#{label}: invalid last_completed_artifact_audit_total"
+    end
+  end
+
   def validate_assigned_id(data, label, assigned, field, pattern)
     timestamp_field = "created_at"
     if assigned
@@ -466,6 +599,9 @@ module RetroState
       confidence: medium
       recommendation: uncertain # #{RECOMMENDATIONS.join(", ")}
       redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
+      # For a decision-changing correction, also add:
+      # supersedes_accepted_id: SCR-YYYYMMDD-abcdef
+      # now_false: "What the earlier accepted outcome asserted that is now false."
       ---
 
       # Short candidate title
@@ -537,6 +673,8 @@ module RetroState
       verification: unverified
       verification_basis: none
       implementation_commits: []
+      # Correction outcomes may add supersedes_accepted_ids. Contradicted
+      # records must add a contradiction mapping; see state-protocol.md.
       ---
 
       # Accepted candidate
@@ -598,6 +736,27 @@ module RetroState
     MARKDOWN
   end
 
+  def learning_audit_template
+    <<~MARKDOWN
+      ---
+      schema_version: 1
+      record_type: learning-audit
+      audit_kind: learning-process # #{AUDIT_KINDS.join(", ")}
+      summary: "Complete sanitized diagnosis in one sentence."
+      findings:
+        - "Sanitized finding and its disposition."
+      unresolved_action_ids: []
+      redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
+      ---
+
+      # Completed system audit
+
+      Keep the complete sanitized diagnosis here. Create every unresolved
+      executable consequence as a deferral, draft, or ledger action before
+      recording the audit, then list its ID above.
+    MARKDOWN
+  end
+
   class Store
     attr_reader :root
 
@@ -628,6 +787,7 @@ module RetroState
       init
       data, body = RetroState.read_document(input_path)
       RetroState.validate_candidate(data, body, label: input_path, routed: false)
+      validate_candidate_supersession!(data)
 
       now = Time.now.utc
       id = unique_id("RC-#{now.strftime("%Y%m%dT%H%M%SZ")}")
@@ -710,6 +870,7 @@ module RetroState
       RetroState.validate_candidate(candidate, body, label: source, routed: true)
       decision, decision_body = RetroState.read_document(decision_path)
       RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
+      cadence = artifact_cadence_state
 
       triage = RetroState.without_keys(decision, "schema_version", "record_type")
       triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
@@ -717,6 +878,8 @@ module RetroState
       output = RetroState.render_document(candidate, body)
       destination = candidate_path("archive", candidate_id)
       exclusive_write(destination, output)
+      cadence["candidate_archives_total"] += 1
+      write_artifact_cadence(cadence)
       File.unlink(source)
       destination
     end
@@ -724,11 +887,43 @@ module RetroState
     def record_accepted(input_path)
       ensure_initialized
       data, body = RetroState.read_document(input_path)
-      RetroState.validate_accepted(data, body, label: input_path, assigned: false)
+      RetroState.validate_accepted(
+        data,
+        body,
+        label: input_path,
+        assigned: false,
+        strict_contradiction: true
+      )
       missing = data.fetch("originating_candidate_ids").reject do |id|
         File.file?(candidate_path("archive", id))
       end
       raise Error, "accepted record references candidates not in archive: #{missing.join(", ")}" unless missing.empty?
+
+      supersedes_ids = data.fetch("originating_candidate_ids").map do |candidate_id|
+        archive_path = candidate_path("archive", candidate_id)
+        candidate, candidate_body = RetroState.read_document(archive_path)
+        RetroState.validate_candidate(
+          candidate,
+          candidate_body,
+          label: archive_path,
+          routed: true,
+          archived: true
+        )
+        candidate["supersedes_accepted_id"]
+      end.compact.uniq.sort
+      supplied_supersedes_ids = data.fetch("supersedes_accepted_ids", []).sort
+      if data.key?("supersedes_accepted_ids") && supplied_supersedes_ids != supersedes_ids
+        raise Error, "accepted record supersedes_accepted_ids do not match originating candidates"
+      end
+      data["supersedes_accepted_ids"] = supersedes_ids unless supersedes_ids.empty?
+      RetroState.validate_accepted(
+        data,
+        body,
+        label: input_path,
+        assigned: false,
+        strict_contradiction: true
+      )
+      validate_accepted_external_references!(data)
 
       now = Time.now.utc
       id = unique_id("SCR-#{now.strftime("%Y%m%d")}")
@@ -748,10 +943,15 @@ module RetroState
       current, current_body = RetroState.read_document(path)
       RetroState.validate_accepted(current, current_body, label: path, assigned: true)
       replacement, body = RetroState.read_document(input_path)
-      RetroState.validate_accepted(replacement, body, label: input_path, assigned: false)
-      unless replacement["originating_candidate_ids"] == current["originating_candidate_ids"]
-        raise Error, "accepted record originating_candidate_ids must not change: #{accepted_id}"
-      end
+      RetroState.validate_accepted(
+        replacement,
+        body,
+        label: input_path,
+        assigned: false,
+        strict_contradiction: true
+      )
+      RetroState.validate_accepted_transition(current, replacement, accepted_id)
+      validate_accepted_external_references!(replacement)
 
       replacement["accepted_id"] = current.fetch("accepted_id")
       replacement["accepted_at"] = current.fetch("accepted_at")
@@ -776,6 +976,15 @@ module RetroState
       ensure_initialized
       path = ledger_path(ledger_id)
       raise Error, "ledger not found: #{ledger_id}" unless File.file?(path)
+
+      blocking_accepted_id = accepted_records.find do |_accepted_path, accepted|
+        accepted.dig("contradiction", "residual_ledger_id") == ledger_id &&
+          !TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"])
+      end&.last&.fetch("accepted_id")
+      if blocking_accepted_id
+        raise Error,
+          "ledger remains responsible for unresolved contradicted record: #{blocking_accepted_id}"
+      end
 
       data, body = RetroState.read_document(path)
       RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
@@ -806,6 +1015,16 @@ module RetroState
         rows << ["deferred", data.fetch("candidate_id"), triage.fetch("review_trigger"), path]
       end
 
+      accepted_records.each do |path, data|
+        next unless data["verification"] == "contradicted"
+        next if TERMINAL_CONTRADICTION_DISPOSITIONS.include?(data["disposition"])
+        residual_id = data.dig("contradiction", "residual_ledger_id")
+        next if residual_id && action_reference_open?(residual_id)
+
+        trigger = "Correct or remove contradicted guidance, or assign an executable residual ledger action."
+        rows << ["contradiction", data.fetch("accepted_id"), trigger, path]
+      end
+
       Dir.glob(File.join(root, "drafts", "*.md")).sort.each do |path|
         data, body = RetroState.read_document(path)
         RetroState.validate_draft(data, body, label: path, assigned: true)
@@ -822,13 +1041,96 @@ module RetroState
         rows << ["ledger", data.fetch("ledger_id"), data.fetch("review_trigger"), path]
       end
 
+      cadence = artifact_audit_status
+      if cadence.fetch(:due)
+        trigger = "#{cadence.fetch(:archives_since)} candidate archives since the last completed artifact audit"
+        rows << ["artifact-audit", "repository", trigger, cadence.fetch(:last_audit_path, "-")]
+      end
+
       rows
+    end
+
+    def verification_opportunities(destination: nil)
+      ensure_initialized
+      accepted_records.each_with_object([]) do |(path, data), rows|
+        next unless %w[accepted implemented].include?(data["disposition"])
+        next unless data["verification"] == "unverified"
+        if destination && !data.fetch("destination").downcase.include?(destination.downcase)
+          next
+        end
+
+        rows << [
+          data.fetch("accepted_id"),
+          data.fetch("destination"),
+          data.fetch("verification_opportunity"),
+          path
+        ]
+      end
+    end
+
+    def record_audit(input_path)
+      ensure_initialized
+      data, body = RetroState.read_document(input_path)
+      RetroState.validate_learning_audit(data, body, label: input_path, assigned: false)
+      data.fetch("unresolved_action_ids").each do |action_id|
+        next if action_reference_open?(action_id)
+
+        raise Error, "audit unresolved action is missing or not open: #{action_id}"
+      end
+
+      now = Time.now.utc
+      id = unique_auxiliary_id("LA", "audits/learning-process")
+      cadence = artifact_cadence_state
+      data["audit_id"] = id
+      data["completed_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+      data["candidate_archive_count"] = archived_candidates.length
+      data["candidate_archives_total"] = cadence.fetch("candidate_archives_total")
+      RetroState.validate_learning_audit(data, body, label: input_path, assigned: true)
+      destination = learning_audit_path(id)
+      exclusive_write(destination, RetroState.render_document(data, body))
+      if data["audit_kind"] == "skill-repository"
+        cadence["last_completed_artifact_audit_total"] = cadence.fetch("candidate_archives_total")
+        write_artifact_cadence(cadence)
+      end
+      destination
+    end
+
+    def audits
+      ensure_initialized
+      learning_audits.map do |path, data|
+        [data.fetch("audit_id"), data.fetch("audit_kind"), data.fetch("completed_at"), path]
+      end
+    end
+
+    def artifact_audit_status(archive_threshold: ARTIFACT_AUDIT_ARCHIVE_THRESHOLD)
+      ensure_initialized
+      unless archive_threshold.is_a?(Integer) && archive_threshold.positive?
+        raise Error, "artifact audit archive threshold must be a positive integer"
+      end
+
+      latest_path, latest = learning_audits
+        .select { |_path, data| data["audit_kind"] == "skill-repository" }
+        .max_by { |_path, data| data.fetch("completed_at") }
+      cadence = artifact_cadence_state
+      archives_since = cadence.fetch("candidate_archives_total") -
+        cadence.fetch("last_completed_artifact_audit_total")
+      status = {
+        due: archives_since >= archive_threshold,
+        archives_since: archives_since,
+        archive_threshold: archive_threshold
+      }
+      if latest
+        status[:last_audit_id] = latest.fetch("audit_id")
+        status[:last_audit_path] = latest_path
+      end
+      status
     end
 
     def validate
       ensure_initialized
       errors = []
       ids = {}
+      candidate_rows = []
 
       {
         "inbox" => false,
@@ -844,6 +1146,7 @@ module RetroState
           else
             ids[id] = path
           end
+          candidate_rows << [path, data]
         rescue Error => e
           errors << e.message
         end
@@ -882,6 +1185,7 @@ module RetroState
       end
 
       accepted_ids = {}
+      accepted_rows = []
       Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort.each do |path|
         data, body = RetroState.read_document(path)
         RetroState.validate_accepted(data, body, label: path, assigned: true)
@@ -896,8 +1200,21 @@ module RetroState
           archive_path = candidate_path("archive", candidate_id)
           errors << "#{path}: originating candidate is not archived: #{candidate_id}" unless File.file?(archive_path)
         end
+        accepted_rows << [path, data]
       rescue Error => e
         errors << e.message
+      end
+
+      candidate_rows.each do |path, data|
+        supersedes_id = data["supersedes_accepted_id"]
+        next unless supersedes_id
+
+        errors << "#{path}: superseded accepted record does not exist: #{supersedes_id}" unless accepted_ids.key?(supersedes_id)
+      end
+      accepted_rows.each do |path, data|
+        data.fetch("supersedes_accepted_ids", []).each do |superseded_id|
+          errors << "#{path}: superseded accepted record does not exist: #{superseded_id}" unless accepted_ids.key?(superseded_id)
+        end
       end
 
       validate_auxiliary_dir(errors, "drafts", "draft_id") do |data, body, path|
@@ -907,12 +1224,192 @@ module RetroState
         RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
       end
 
+      accepted_rows.each do |path, data|
+        residual_id = data.dig("contradiction", "residual_ledger_id")
+        next unless residual_id
+
+        residual_path = ledger_path(residual_id)
+        unless File.file?(residual_path)
+          errors << "#{path}: contradiction residual ledger does not exist: #{residual_id}"
+          next
+        end
+        ledger, ledger_body = RetroState.read_document(residual_path)
+        RetroState.validate_ledger_entry(ledger, ledger_body, label: residual_path, assigned: true)
+        if !TERMINAL_CONTRADICTION_DISPOSITIONS.include?(data["disposition"]) && ledger["status"] != "open"
+          errors << "#{path}: unresolved contradiction requires an open residual ledger: #{residual_id}"
+        end
+      rescue Error => e
+        errors << e.message
+      end
+
+      audit_rows = []
+      Dir.glob(File.join(root, "audits", "learning-process", "*.md")).sort.each do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_learning_audit(data, body, label: path, assigned: true)
+        id = data.fetch("audit_id")
+        errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
+        audit_rows << [path, data]
+      rescue Error => e
+        errors << e.message
+      end
+      audit_rows.each do |path, data|
+        data.fetch("unresolved_action_ids").each do |action_id|
+          errors << "#{path}: unresolved action does not exist: #{action_id}" unless action_reference_exists?(action_id)
+        end
+      end
+
+      begin
+        cadence = artifact_cadence_state
+        latest_total = audit_rows.map do |_path, data|
+          data["candidate_archives_total"] if data["audit_kind"] == "skill-repository"
+        end.compact.max
+        if latest_total && cadence["last_completed_artifact_audit_total"] < latest_total
+          errors << "#{artifact_cadence_path}: baseline predates the latest completed artifact audit"
+        end
+      rescue Error => e
+        errors << e.message
+      end
+
       raise Error, errors.join("\n") unless errors.empty?
 
       true
     end
 
     private
+
+    def validate_candidate_supersession!(candidate)
+      supersedes_id = candidate["supersedes_accepted_id"]
+      return unless supersedes_id
+      return if File.file?(accepted_path(supersedes_id))
+
+      raise Error, "candidate supersedes missing accepted record: #{supersedes_id}"
+    end
+
+    def validate_accepted_external_references!(accepted)
+      accepted.fetch("supersedes_accepted_ids", []).each do |accepted_id|
+        next if File.file?(accepted_path(accepted_id))
+
+        raise Error, "accepted record supersedes missing accepted record: #{accepted_id}"
+      end
+
+      residual_id = accepted.dig("contradiction", "residual_ledger_id")
+      return unless residual_id
+
+      residual_path = ledger_path(residual_id)
+      unless File.file?(residual_path)
+        raise Error, "contradiction residual ledger does not exist: #{residual_id}"
+      end
+      ledger, ledger_body = RetroState.read_document(residual_path)
+      RetroState.validate_ledger_entry(ledger, ledger_body, label: residual_path, assigned: true)
+      return if TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"])
+      return if ledger["status"] == "open"
+
+      raise Error, "unresolved contradiction requires an open residual ledger: #{residual_id}"
+    end
+
+    def archived_candidates
+      Dir.glob(File.join(root, "retrospectives", "archive", "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_candidate(data, body, label: path, routed: true, archived: true)
+        [path, data]
+      end
+    end
+
+    def accepted_records
+      Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_accepted(data, body, label: path, assigned: true)
+        [path, data]
+      end
+    end
+
+    def learning_audits
+      Dir.glob(File.join(root, "audits", "learning-process", "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_learning_audit(data, body, label: path, assigned: true)
+        [path, data]
+      end
+    end
+
+    def artifact_cadence_state
+      path = artifact_cadence_path
+      if File.file?(path)
+        data = YAML.safe_load(File.read(path, encoding: "UTF-8"), aliases: false)
+        data = RetroState.stringify_keys(data) if data.is_a?(Hash)
+        RetroState.validate_artifact_cadence(data, label: path)
+        return data
+      end
+
+      latest = learning_audits
+        .select { |_audit_path, data| data["audit_kind"] == "skill-repository" }
+        .max_by { |_audit_path, data| data.fetch("completed_at") }
+        &.last
+      total = archived_candidates.length
+      baseline = if latest
+        latest.fetch("candidate_archives_total", latest.fetch("candidate_archive_count", 0))
+      else
+        0
+      end
+      total = [total, baseline].max
+      {
+        "schema_version" => SCHEMA_VERSION,
+        "record_type" => ARTIFACT_CADENCE_RECORD_TYPE,
+        "candidate_archives_total" => total,
+        "last_completed_artifact_audit_total" => baseline
+      }
+    rescue Psych::Exception => e
+      raise Error, "#{path}: invalid YAML: #{e.message}"
+    end
+
+    def write_artifact_cadence(data)
+      RetroState.validate_artifact_cadence(data, label: artifact_cadence_path)
+      replace_write(artifact_cadence_path, YAML.dump(data))
+    end
+
+    def action_reference_open?(action_id)
+      case action_id
+      when /\ARC-/
+        path = candidate_path("archive", action_id)
+        return false unless File.file?(path)
+
+        data, body = RetroState.read_document(path)
+        RetroState.validate_candidate(data, body, label: path, routed: true, archived: true)
+        data.fetch("triage").fetch("verdict") == "defer"
+      when /\ASD-/
+        auxiliary_status_open?(File.join(root, "drafts", "#{action_id}.md"), :draft)
+      when /\ALE-/
+        auxiliary_status_open?(ledger_path(action_id), :ledger)
+      else
+        false
+      end
+    end
+
+    def action_reference_exists?(action_id)
+      case action_id
+      when /\ARC-/
+        File.file?(candidate_path("archive", action_id))
+      when /\ASD-/
+        File.file?(File.join(root, "drafts", "#{action_id}.md"))
+      when /\ALE-/
+        File.file?(ledger_path(action_id))
+      else
+        false
+      end
+    end
+
+    def auxiliary_status_open?(path, type)
+      return false unless File.file?(path)
+
+      data, body = RetroState.read_document(path)
+      case type
+      when :draft
+        RetroState.validate_draft(data, body, label: path, assigned: true)
+        %w[open revised].include?(data["status"])
+      when :ledger
+        RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
+        data["status"] == "open"
+      end
+    end
 
     def canonical_root(path)
       cursor = File.expand_path(path)
@@ -1029,6 +1526,18 @@ module RetroState
       File.join(root, "retrospectives", "accepted", "#{accepted_id}.md")
     end
 
+    def learning_audit_path(audit_id)
+      unless audit_id.match?(/\ALA-\d{8}-[a-f0-9]{6}\z/)
+        raise Error, "invalid audit_id: #{audit_id}"
+      end
+
+      File.join(root, "audits", "learning-process", "#{audit_id}.md")
+    end
+
+    def artifact_cadence_path
+      File.join(root, "audits", "learning-process", "artifact-cadence.yml")
+    end
+
     def papercut_path(area, papercut_id)
       unless papercut_id.match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
         raise Error, "invalid papercut_id: #{papercut_id}"
@@ -1098,6 +1607,7 @@ module RetroState
       accepted = File.join(tmp, "accepted.md")
       draft = File.join(tmp, "draft.md")
       ledger = File.join(tmp, "ledger.md")
+      audit = File.join(tmp, "audit.md")
       papercut = File.join(tmp, "papercut.md")
       recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
       unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
@@ -1259,12 +1769,109 @@ module RetroState
       store.validate
 
       File.write(draft, draft_template)
-      raise "draft record missing" unless File.file?(store.record_draft(draft))
+      draft_path = store.record_draft(draft)
+      raise "draft record missing" unless File.file?(draft_path)
+      draft_id = File.basename(draft_path, ".md")
       File.write(ledger, ledger_template)
       ledger_path = store.record_ledger(ledger)
       raise "ledger record missing" unless File.file?(ledger_path)
       ledger_id = File.basename(ledger_path, ".md")
 
+      contradiction_mapping = <<~YAML.rstrip
+        contradiction:
+          summary: "Later evidence contradicts the implemented outcome."
+          what_is_false: "The earlier action is not safe under the observed condition."
+          recorded_at: "2026-07-15T12:03:00Z"
+          decisive_evidence:
+            - "Later-session evidence reproduced the unsafe action."
+        implementation_commits:
+          - abc1234
+      YAML
+      contradicted_text = updated_accepted_text
+        .sub("verification: supported", "verification: contradicted")
+        .sub("verification_basis: deterministic-test", "verification_basis: later-session")
+        .sub("implementation_commits:\n  - abc1234", contradiction_mapping)
+      File.write(accepted, contradicted_text)
+      store.update_accepted(accepted_id, accepted)
+      unless store.review_queue.map(&:first).include?("contradiction")
+        raise "contradicted accepted record missing from review queue"
+      end
+      begin
+        File.write(
+          accepted,
+          contradicted_text.sub(
+            "Later-session evidence reproduced the unsafe action.",
+            "Replacement evidence that erases the original witness."
+          )
+        )
+        store.update_accepted(accepted_id, accepted)
+        raise "contradiction evidence was allowed to disappear"
+      rescue Error => e
+        raise unless e.message.include?("contradiction decisive_evidence must be preserved")
+      end
+      ledger_contradicted_text = contradicted_text.sub(
+        '    - "Later-session evidence reproduced the unsafe action."',
+        "    - \"Later-session evidence reproduced the unsafe action.\"\n  residual_ledger_id: #{ledger_id}"
+      )
+      File.write(accepted, ledger_contradicted_text)
+      store.update_accepted(accepted_id, accepted)
+      if store.review_queue.map(&:first).include?("contradiction")
+        raise "contradiction remained in the review queue after assignment to a residual ledger"
+      end
+      begin
+        store.close_ledger(ledger_id, rationale: "Invalid early closure.")
+        raise "residual contradiction ledger was closed early"
+      rescue Error => e
+        raise unless e.message.include?("unresolved contradicted record")
+      end
+      superseded_text = ledger_contradicted_text.sub("disposition: implemented", "disposition: superseded")
+      File.write(accepted, superseded_text)
+      store.update_accepted(accepted_id, accepted)
+
+      correction_text = candidate_template
+        .gsub("Short candidate title", "Correct an accepted outcome")
+        .sub(
+          "# supersedes_accepted_id: SCR-YYYYMMDD-abcdef",
+          "supersedes_accepted_id: #{accepted_id}"
+        )
+        .sub(
+          '# now_false: "What the earlier accepted outcome asserted that is now false."',
+          'now_false: "The earlier action is unsafe under the distinguishing condition."'
+        )
+      File.write(input, correction_text)
+      correction_path = store.route(input)
+      correction_id = File.basename(correction_path, ".md")
+      correction_decision = decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", correction_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:04:00Z")
+        .sub("verdict: defer", "verdict: accept")
+        .sub(/^review_trigger:.*\n/, "")
+        .sub(/^next_action:.*\n/, "")
+        .sub(/^close_condition:.*\n/, "")
+      File.write(decision, correction_decision)
+      store.process(correction_id, decision)
+      correction_accepted_text = accepted_template.sub("RC-YYYYMMDDTHHMMSSZ-abcdef", correction_id)
+      File.write(accepted, correction_accepted_text)
+      correction_accepted_path = store.record_accepted(accepted)
+      correction_accepted, = read_document(correction_accepted_path)
+      unless correction_accepted["supersedes_accepted_ids"] == [accepted_id]
+        raise "accepted correction did not preserve the superseded outcome link"
+      end
+      unless store.verification_opportunities(destination: "Public source").map(&:first)
+          .include?(correction_accepted.fetch("accepted_id"))
+        raise "relevant verification opportunity missing"
+      end
+
+      missing_supersession = correction_text.sub(accepted_id, "SCR-20260715-000000")
+      File.write(input, missing_supersession)
+      begin
+        store.route(input)
+        raise "candidate superseding a missing accepted outcome was routed"
+      rescue Error => e
+        raise unless e.message.include?("candidate supersedes missing accepted record")
+      end
+
+      File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
       deferred_path = store.route(input)
       deferred_id = File.basename(deferred_path, ".md")
       deferred_decision = decision_template
@@ -1276,6 +1883,23 @@ module RetroState
       raise "deferral missing from review queue" unless review_types.include?("deferred")
       raise "draft missing from review queue" unless review_types.include?("draft")
       raise "ledger missing from review queue" unless review_types.include?("ledger")
+
+      unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+        raise "artifact audit did not become due after candidate archives"
+      end
+      audit_text = learning_audit_template
+        .sub("audit_kind: learning-process", "audit_kind: skill-repository")
+        .sub(
+          "unresolved_action_ids: []",
+          "unresolved_action_ids:\n  - #{deferred_id}\n  - #{draft_id}\n  - #{ledger_id}"
+        )
+      File.write(audit, audit_text)
+      audit_path = store.record_audit(audit)
+      raise "system audit missing" unless File.file?(audit_path)
+      raise "system audit missing from history" unless store.audits.map(&:first).include?(File.basename(audit_path, ".md"))
+      if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+        raise "completed artifact audit did not reset cadence"
+      end
 
       closed_ledger = store.close_ledger(ledger_id, rationale: "The maintenance action was completed.")
       closed_data, closed_body = read_document(closed_ledger)
@@ -1303,6 +1927,31 @@ module RetroState
         raise unless e.message.include?("ledger not found")
       end
       store.validate
+
+      post_audit_path = store.route(input)
+      post_audit_id = File.basename(post_audit_path, ".md")
+      post_audit_decision = decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", post_audit_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:06:00Z")
+        .sub("verdict: defer", "verdict: reject")
+        .sub(/^review_trigger:.*\n/, "")
+        .sub(/^next_action:.*\n/, "")
+        .sub(/^close_condition:.*\n/, "")
+      File.write(decision, post_audit_decision)
+      store.process(post_audit_id, decision)
+      unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+        raise "artifact audit cadence did not advance after productive triage"
+      end
+      archived_post_audit_path = File.join(
+        store.root,
+        "retrospectives",
+        "archive",
+        "#{post_audit_id}.md"
+      )
+      File.unlink(archived_post_audit_path)
+      unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+        raise "deleting cold archive history rewound artifact audit cadence"
+      end
 
       forbidden = File.join(tmp, "forbidden.md")
       File.write(forbidden, candidate_template.sub("Optional concise context.", "Raw /home/person/private path."))
@@ -1366,7 +2015,7 @@ def usage
 
     Commands:
       init                              Initialize the configured state root
-      template TYPE                    Print papercut, candidate, decision, accepted, draft, or ledger template
+      template TYPE                    Print a papercut, candidate, decision, accepted, draft, ledger, or audit template
       record-papercut --file PATH      Record a papercut from PATH, or - for standard input
       papercuts [--archive]            List open papercuts, or archived papercuts explicitly
       close-papercut --id ID --outcome OUTCOME --rationale TEXT
@@ -1377,11 +2026,17 @@ def usage
       record-accepted --file PATH       Store a curated accepted record
       update-accepted --id ID --file PATH
                                         Replace a curated record while preserving identity
+      verification-opportunities [--destination TEXT]
+                                        List relevant unverified accepted outcomes
       record-draft --file PATH          Store an uninstalled draft
       record-ledger --file PATH         Store a maintenance ledger entry
       close-ledger --id ID --rationale TEXT
                                         Close a maintenance ledger entry
-      review-queue                      List open deferrals, drafts, and ledger entries
+      record-audit --file PATH          Store a completed sanitized system audit
+      audits                            List completed system audits
+      artifact-audit-status [--archive-threshold N]
+                                        Report machine-owned artifact-audit cadence
+      review-queue                      List unresolved executable learning work
       validate                          Validate the configured live state
       self-test                         Exercise the protocol in a temporary directory
 
@@ -1412,9 +2067,13 @@ def reject_inapplicable_options!(command, provided)
     "process" => %w[--root --id --decision],
     "record-accepted" => %w[--root --file],
     "update-accepted" => %w[--root --id --file],
+    "verification-opportunities" => %w[--root --destination],
     "record-draft" => %w[--root --file],
     "record-ledger" => %w[--root --file],
     "close-ledger" => %w[--root --id --rationale],
+    "record-audit" => %w[--root --file],
+    "audits" => %w[--root],
+    "artifact-audit-status" => %w[--root --archive-threshold],
     "review-queue" => %w[--root],
     "validate" => %w[--root],
     "self-test" => []
@@ -1434,6 +2093,7 @@ command = ARGV.shift
 commands = %w[
   init template record-papercut papercuts close-papercut route pending process
   record-accepted update-accepted record-draft record-ledger close-ledger
+  verification-opportunities record-audit audits artifact-audit-status
   review-queue validate self-test
 ]
 unless commands.include?(command)
@@ -1451,6 +2111,9 @@ outcome = nil
 rationale = nil
 related_papercut_id = nil
 related_candidate_id = nil
+destination_filter = nil
+archive_threshold = RetroState::ARTIFACT_AUDIT_ARCHIVE_THRESHOLD
+archive_threshold_explicit = false
 parser = OptionParser.new do |opts|
   opts.on("--root DIR") { |value| root_override = value }
   opts.on("--file PATH") { |value| input_path = value }
@@ -1461,6 +2124,11 @@ parser = OptionParser.new do |opts|
   opts.on("--rationale TEXT") { |value| rationale = value }
   opts.on("--related-papercut-id ID") { |value| related_papercut_id = value }
   opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
+  opts.on("--destination TEXT") { |value| destination_filter = value }
+  opts.on("--archive-threshold N", Integer) do |value|
+    archive_threshold = value
+    archive_threshold_explicit = true
+  end
   opts.on("--help") do
     puts usage
     exit 0
@@ -1481,7 +2149,9 @@ begin
       "--outcome" => !outcome.nil?,
       "--rationale" => !rationale.nil?,
       "--related-papercut-id" => !related_papercut_id.nil?,
-      "--related-candidate-id" => !related_candidate_id.nil?
+      "--related-candidate-id" => !related_candidate_id.nil?,
+      "--destination" => !destination_filter.nil?,
+      "--archive-threshold" => archive_threshold_explicit
     }
   )
 
@@ -1494,6 +2164,7 @@ begin
     when "accepted" then RetroState.accepted_template
     when "draft" then RetroState.draft_template
     when "ledger" then RetroState.ledger_template
+    when "audit" then RetroState.learning_audit_template
     else raise RetroState::Error, "unknown template type: #{type}"
     end
     print template
@@ -1576,6 +2247,10 @@ begin
       raise RetroState::Error, "update-accepted requires --file PATH" unless input_path
 
       puts store.update_accepted(record_id, input_path)
+    when "verification-opportunities"
+      store.verification_opportunities(destination: destination_filter).each do |row|
+        puts row.join("\t")
+      end
     when "record-draft"
       raise RetroState::Error, "record-draft requires --file PATH" unless input_path
 
@@ -1589,6 +2264,21 @@ begin
       raise RetroState::Error, "close-ledger requires --rationale TEXT" unless rationale
 
       puts store.close_ledger(record_id, rationale: rationale)
+    when "record-audit"
+      raise RetroState::Error, "record-audit requires --file PATH" unless input_path
+
+      puts store.record_audit(input_path)
+    when "audits"
+      store.audits.each { |row| puts row.join("\t") }
+    when "artifact-audit-status"
+      status = store.artifact_audit_status(archive_threshold: archive_threshold)
+      puts [
+        status.fetch(:due) ? "due" : "not-due",
+        status.fetch(:archives_since),
+        status.fetch(:archive_threshold),
+        status.fetch(:last_audit_id, "none"),
+        status.fetch(:last_audit_path, "-")
+      ].join("\t")
     when "review-queue"
       store.review_queue.each { |type, id, trigger, path| puts [type, id, trigger, path].join("\t") }
     when "validate"

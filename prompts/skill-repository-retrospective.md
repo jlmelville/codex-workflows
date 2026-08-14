@@ -44,6 +44,42 @@ Focus on:
 - missing cross-links between related skills;
 - no-action findings where existing guidance is already enough.
 
+Run a semantic-compression pass in addition to those checks:
+
+1. Inventory operative rules and clauses across `SKILL.md` and routed
+   references in temporary working material. Cluster them by the action,
+   authority boundary, required observation, or success condition they
+   produce; report only the useful clusters and findings.
+2. Flag several cases leading to the same action, headings that have become
+   incident lists, references that reduced default loading without reducing
+   decision duplication, exact mechanics repeated across cases, and casebooks
+   that repeat one witness shape under different narratives.
+3. Classify each flagged unit as default judgment, routed mechanics, optional
+   case, or external verification only. Treat a reference as a loading
+   mechanism rather than a semantic category.
+4. Recommend a rewrite only when the crosswalk can remove duplicated operative
+   clauses or incident-shaped branches without merging distinguishable actions,
+   constraints, witnesses, or completion claims. Do not use a numerical
+   semantic score or threshold.
+
+Keep two admission questions separate:
+
+- Evidence admission asks whether the lesson has a concrete failure signal or
+  other decisive grounding.
+- Semantic curation asks whether it adds a decision to the public corpus.
+
+The first occurrence can be well grounded without earning a new clause, and a
+recurrence can strengthen verification without adding public guidance. Keep
+the existing concrete-failure-signal checks.
+
+For casebooks, confirm that each capsule is sanitized, optional, skill-local,
+organized by reasoning problem or witness shape, and admitted for a distinct
+plausible wrong implementation or observation boundary rather than provenance.
+Flag uncurated collections of report narratives.
+
+Reference word and line totals may support the advisory drift report, but give
+them no hard threshold and do not treat size as proof of semantic bloat.
+
 Report using this shape:
 
 ```md
@@ -51,6 +87,7 @@ Report using this shape:
 
 ### High-Value Consolidations
 ### Bloat Or Drift Risks
+### Semantic Compression Findings
 ### Trigger Boundary Issues
 ### Script Opportunities
 ### Reference/Structure Improvements
@@ -62,3 +99,8 @@ For each recommended edit, include file and line evidence, current location,
 proposed destination, reason, risk if omitted, and whether it should be done now
 or deferred externally. Prefer pruning, consolidating, or clarifying existing
 skills over creating new skills.
+
+End with a complete sanitized diagnosis suitable for a cold external audit
+record and a list of unresolved executable consequences. Do not write external
+state from this report-only audit; `$learning-process-review` owns action
+creation and audit recording after its applicable mutation gate.

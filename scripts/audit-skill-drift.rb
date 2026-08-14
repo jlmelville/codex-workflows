@@ -315,6 +315,7 @@ all_review_files = (markdown_files + script_files).uniq
 skill_markdown_files = markdown_files.select { |path|
   path.start_with?(File.join(repo_dir, "skills", ""))
 }
+reference_files = skill_markdown_files.select { |path| path.include?("/references/") }
 begin
   triage_entries = load_triage_entries(options[:triage_path])
 rescue ArgumentError, Errno::EACCES => e
@@ -332,6 +333,9 @@ total_description_chars = skills.sum { |skill| skill[:description].length }
 puts "Skill Drift Audit"
 puts "Skills: #{skills.length}"
 puts "Always-loaded description budget: #{total_description_chars} characters (~#{(total_description_chars / 4.0).round} tokens)"
+reference_lines = reference_files.sum { |path| read_text(path).lines.length }
+reference_words = reference_files.sum { |path| read_text(path).scan(/\S+/).length }
+puts "Routed references: #{reference_files.length} files, #{reference_lines} lines, ~#{reference_words} words"
 
 if total_description_chars > options[:max_total_description]
   record_findings(

@@ -21,12 +21,9 @@ Codex runtime directory.
 
 - Treat the version-controlled source repository, not the installed runtime
   copy, as source of truth.
-- Treat `${HOME}/.agents/skills` as installed output.
-- Make authorized skill changes in the source repository. Install them with the
-  repository's installer, usually `./install.sh`, when installation is in scope.
-- Confirm managed installed skills with `./install.sh --check`; installer
-  checks should ignore unrelated installed skills outside the repo's ownership
-  manifest.
+- Treat `${HOME}/.agents/skills` as installed output. Make authorized changes in
+  source, install with the repository installer when in scope, and confirm
+  managed parity with `./install.sh --check`; ignore unrelated installed skills.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
 
@@ -47,7 +44,7 @@ Check this repo across four surfaces:
 
 ## Repository Shape
 
-Keep the top level small:
+Keep the top level and each skill limited to owned runtime or maintainer assets:
 
 ```text
 skills/
@@ -55,17 +52,8 @@ scripts/
 install.sh
 README.md
 .github/
-```
-
-Each skill folder should contain only files used by the agent:
-
-```text
 skills/<skill-name>/
-  SKILL.md
-  agents/openai.yaml
-  references/
-  scripts/
-  assets/
+  SKILL.md, agents/openai.yaml, optional references/, scripts/, assets/
 ```
 
 Only create `references/`, `scripts/`, or `assets/` when the skill needs them.
@@ -82,7 +70,7 @@ Never copy or commit raw Codex runtime state:
 - temporary files from validation or experiments
 - machine-specific secrets or credentials
 - papercut inbox or archive, retrospective inbox, accepted records, drafts,
-  ledgers, learning audits, or cadence state from
+  ledgers, system audit records, or cadence state from
   `CODEX_WORKFLOWS_STATE_DIR`
 
 Review `.gitignore` before staging whenever the repo was created from a
@@ -90,11 +78,27 @@ runtime directory.
 
 ## Authoring Skills
 
-Write skills around the intended outcome, relevant domain context, hard
-constraints, action authority, required evidence, and completion criteria.
-Prescribe an exact sequence only when ordering prevents a known correctness,
-safety, state, or tooling failure. Move conditional recipes and examples into
-references, and deterministic behavior into scripts or validators.
+Keep the smallest useful skill contract on the default path:
+
+- intended outcome;
+- context and evidence needed to decide and act;
+- hard constraints and action authority;
+- decision-changing procedure; and
+- success condition and output.
+
+This contract includes unconditional privacy, authority, evidence, and
+completion rules as well as conditional decisions. Add detailed branches only
+for real ambiguity or risk. Ordinary agent competence, source-incident
+narration, and duplicated tool documentation do not belong on the default
+path. Prescribe an exact sequence only when ordering prevents a known
+correctness, safety, state, or tooling failure.
+
+Classify learned additions before placing them: compact default judgment,
+routed exact mechanics, optional sanitized cases, or external verification
+only. A reference is a loading mechanism rather than a semantic category; it
+may mix roles and need restructuring. Read
+[semantic-authoring.md](references/semantic-authoring.md) when adding or
+restructuring guidance, mechanics, examples, or casebooks.
 
 When a skill relies on external tools, distinguish required dependencies from
 optional enhancements, check required availability before dependent work, and
@@ -106,19 +110,12 @@ Create a new skill only for repeated work with clear triggers and decisions;
 keep maintainer-only knowledge in repository docs. For recurring non-installed
 prompts, document the exact path, a copy-ready invocation, and useful cadence.
 
-When adding a skill:
-
-1. Read the system `skill-creator` guidance.
-2. Initialize new skills with `init_skill.py` when available.
-3. Keep `SKILL.md` concise and put trigger conditions in frontmatter
-   `description`.
-4. Add `agents/openai.yaml` with a short display name, short description, and
-   default prompt. When passing `$skill-name` through shell arguments, use
-   single quotes or escape `$`, then inspect the generated file to confirm the
-   default prompt contains the literal skill invocation.
-5. Validate the repository and any new skill folders.
-6. Install the updated skills and confirm the installed copies match the source
-   repo when that matters.
+When adding a skill, follow system `skill-creator` guidance and initialize with
+`init_skill.py` when available. Keep trigger conditions in the frontmatter
+description and add `agents/openai.yaml`. When passing `$skill-name` through
+shell arguments, quote or escape `$`, then inspect the generated default prompt
+for the literal invocation. Validate the skill and repository, install it, and
+confirm managed parity when applicable.
 
 ## Promoting Local Guidance
 
@@ -139,28 +136,22 @@ When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,
 
 ## Validation
 
-Run the repository validator before committing:
+Before committing, run:
 
 ```sh
 ./scripts/validate-skills.sh
+./install.sh --check  # after installation
 ```
 
-After installing, verify managed installed skills match source:
-
-```sh
-./install.sh --check
-```
-
-For workflow changes from this source repository root, run the workflow audit if present:
+For workflow changes from this source repository root, also run when present:
 
 ```sh
 ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
 ```
 
-Before validating new or substantially changed skills, scripts, CI, installer
-behavior, shared tool policy, or drift cleanup, read
-[repository-validation.md](references/repository-validation.md). It covers the
-system quick validator, temporary tool state, generated artifacts, workflow
-lanes, mirrored scripts, advisory drift modes, and pre-commit review.
+Before validating substantial skill, script, CI, installer, shared-policy, or
+drift changes, read
+[repository-validation.md](references/repository-validation.md) for the quick
+validator, temporary state, mirrors, advisory audits, and pre-commit review.
 
 Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading cited destination files.

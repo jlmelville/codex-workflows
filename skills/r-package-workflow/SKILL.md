@@ -67,7 +67,15 @@ unfinished work and resolve it when first found. A completed local package check
 should report 0 errors, 0 warnings, and 0 notes attributable to the repository.
 If an environmental or external-service diagnostic cannot be cleared after
 appropriate reruns, lead the validation summary with the incomplete or blocked
-state rather than normalizing it as baseline noise.
+state rather than normalizing it as baseline noise. Preserve the exact
+diagnostic, attribution evidence, and whether it was present before the change.
+Treat a new, code-specific, or behavior-changing diagnostic as attributable to
+the repository until evidence establishes another owner.
+
+For ambiguous check ownership, use the exact restricted-environment mechanics
+in [checks.md](references/checks.md#restricted-environment-mechanics). Consult
+[check-diagnostic-cases.md](references/check-diagnostic-cases.md) only when that
+default judgment and the relevant mechanics do not make the next action clear.
 
 For compiled packages, do not run `covr::package_coverage()` and
 `testthat::test_local()` concurrently from the same worktree. Sequence them to
