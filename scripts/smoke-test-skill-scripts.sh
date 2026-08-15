@@ -387,15 +387,29 @@ esac
 EOF_FAKE_UVX
   chmod +x "${uvx_fake_bin}/actionlint" "${uvx_fake_bin}/uvx"
 
-  output="$(
-    PATH="${uvx_fake_bin}:/usr/bin:/bin" FAKE_UVX_MODE=launcher \
+  if ! output="$(
+    PATH="${uvx_fake_bin}:/usr/bin:/bin" CI=false FAKE_UVX_MODE=launcher \
       "${script}" "${workflow_dir}" 2>&1
-  )"
+  )"; then
+    printf '%s\n' "${output}" >&2
+    echo "audit-actions.sh should tolerate an empty uvx launcher failure outside CI" >&2
+    return 1
+  fi
   grep -Fq 'uvx could not execute zizmor' <<<"${output}"
   if grep -Fq 'zizmor reported issues' <<<"${output}"; then
     echo "audit-actions.sh should not label an empty uvx launcher failure as a zizmor finding" >&2
     return 1
   fi
+
+  if output="$(
+    PATH="${uvx_fake_bin}:/usr/bin:/bin" CI=true FAKE_UVX_MODE=launcher \
+      "${script}" "${workflow_dir}" 2>&1
+  )"; then
+    echo "audit-actions.sh should reject an empty uvx launcher failure in CI" >&2
+    return 1
+  fi
+  grep -Fq 'uvx could not execute zizmor' <<<"${output}"
+  grep -Fq 'zizmor execution is required to succeed in CI' <<<"${output}"
 
   if output="$(
     PATH="${uvx_fake_bin}:/usr/bin:/bin" FAKE_UVX_MODE=findings \
