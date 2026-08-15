@@ -3,6 +3,11 @@
 This repository is the source of truth for personal Codex skills. The installed
 runtime copy lives under `$HOME/.agents/skills`.
 
+The visible user-authored preamble in `README.md`, between the
+`USER-AUTHORED PREAMBLE` HTML comments, is protected text. Preserve it verbatim
+and do not move, rewrite, or remove it unless James explicitly requests a change
+to that preamble.
+
 For accepted changes in this repo:
 
 - Validate skill changes with `./scripts/validate-skills.sh`.

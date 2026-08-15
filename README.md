@@ -1,5 +1,11 @@
 # Codex Workflows
 
+<!-- USER-AUTHORED PREAMBLE: Preserve verbatim unless James explicitly requests a change. -->
+These are the last human words you are going to read on this repo. I am
+experimenting with Codex skills and this is the repo for them. Apart from that,
+I am just going to let Codex do its thing.
+<!-- END USER-AUTHORED PREAMBLE -->
+
 Personal Codex skills shared across machines, with an external learning loop
 that lets agents improve those skills from experience. The aim is to keep the
 human loop small without turning the public repository into an archive of
