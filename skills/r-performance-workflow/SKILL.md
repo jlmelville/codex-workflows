@@ -94,33 +94,9 @@ Capture enough metadata for a future agent to interpret the result:
 - baseline/current labels and result table.
 
 Use base R `system.time()` when adding benchmark dependencies is undesirable.
-The bundled script can run a simple case file and emit CSV plus plan-ready
-Markdown:
-
-```sh
-Rscript "${HOME}/.agents/skills/r-performance-workflow/scripts/benchmark-evidence.R" path/to/cases.R --reps 5 --seed 1 --out bench/results
-```
-
-The case file must define `benchmark_cases`, a named list of zero-argument
-functions. It may optionally define `benchmark_setup()` and
-`benchmark_metadata`, a named list of scalar values.
-
-Example case file:
-
-```r
-set.seed(42)
-x <- matrix(rnorm(10000), ncol = 10)
-
-benchmark_metadata <- list(dataset = "synthetic", nrow = nrow(x), ncol = ncol(x))
-
-benchmark_cases <- list(
-  baseline = function() old_fn(x),
-  current = function() new_fn(x)
-)
-```
-
-Report median elapsed time and relative speed versus the baseline label. If
-results are noisy, say so and record what stronger workload is needed.
+When the bundled evidence script is appropriate, follow its
+[command, case-file, and output contract](references/benchmark-evidence.md).
+If results are noisy, say so and record what stronger workload is needed.
 
 For expensive exploratory benchmark grids, define the evidence threshold and
 stop rule before running the full grid. Start with rows likely to distinguish

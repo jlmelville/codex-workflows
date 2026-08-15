@@ -1,6 +1,6 @@
 ---
 name: r-package-workflow
-description: General R package development workflow, especially James's repos using testthat, roxygen2, pkgdown, Air, lintr, Rcpp, GitHub Actions, or local plans. Use whenever Codex edits, reviews, cleans up, tests, documents, release-checks, or otherwise works inside an R package repo.
+description: General R package development workflow using testthat, roxygen2, pkgdown, Air, lintr, Rcpp, GitHub Actions, or local plans. Use whenever Codex edits, reviews, cleans up, tests, documents, release-checks, or otherwise works inside an R package repo.
 ---
 
 # R Package Workflow
@@ -95,7 +95,10 @@ For sparse `Matrix` slot-level implementation work, use the idioms in
 If the task touches a narrower area, also apply the focused skill when
 available:
 
-- GitHub Actions, pkgdown deploy, coverage, Dependabot: `$r-ci-hardening`.
+- GitHub Actions, pkgdown deploy, coverage, or Dependabot configuration:
+  `$r-ci-hardening`.
+- Automated dependency PR review, stale-branch validation, or merge decisions:
+  `$dependabot-pr-maintenance`.
 - Tests and fixtures: `$r-test-hygiene`.
 - README, NEWS, roxygen, articles, pkgdown: `$r-docs-pkgdown`.
 - Rcpp, compiled code, `src/`, `Makevars`: `$r-rcpp-package`.

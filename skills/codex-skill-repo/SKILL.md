@@ -60,6 +60,12 @@ Only create `references/`, `scripts/`, or `assets/` when the skill needs them.
 Put human-facing repo documentation in the repository README, not inside skill
 folders.
 
+Before broadly rewriting documentation, identify explicitly protected or
+user-authored blocks and preserve them verbatim. When a visible passage must
+remain human-owned inside an otherwise agent-maintained file, make its boundary
+clear with source comments when appropriate and keep the durable veto in a
+concise repository-local instruction.
+
 ## Do Not Commit
 
 Never copy or commit raw Codex runtime state:
@@ -109,6 +115,10 @@ complete validation.
 Create a new skill only for repeated work with clear triggers and decisions;
 keep maintainer-only knowledge in repository docs. For recurring non-installed
 prompts, document the exact path, a copy-ready invocation, and useful cadence.
+When a supervising skill and a direct manual entry point use the same prompt,
+say that they are two routes to one mechanism, show the literal path relative
+to the repository root, and distinguish the skill's broader supervision or
+follow-up from the direct prompt's scope.
 
 When adding a skill, follow system `skill-creator` guidance and initialize with
 `init_skill.py` when available. Keep trigger conditions in the frontmatter

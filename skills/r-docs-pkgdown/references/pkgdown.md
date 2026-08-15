@@ -19,9 +19,10 @@ Common fields:
 - Convert old `\code{}` and `\emph{}` markup when touching a topic.
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
 - After regenerating, inspect `git diff -- DESCRIPTION` separately.
-  `roxygen2::roxygenise()` can replace `RoxygenNote` with
-  `Config/roxygen2/version`; restore that churn unless metadata modernization
-  is explicitly in scope.
+  During an intentional documentation rebuild, retain expected generator
+  metadata from the installed roxygen release unless the repository pins
+  another generator. When documentation mutation was incidental and no rebuild
+  was requested, restore generator metadata churn with other unrelated changes.
 - For inline algebra in markdown roxygen, prefer Rd-friendly plain forms such
   as `D^(-1/2)` over TeX-like text in backticks such as `D^{-1/2}`. After
   regenerating, inspect `man/*.Rd` for awkward formula rendering, not just the

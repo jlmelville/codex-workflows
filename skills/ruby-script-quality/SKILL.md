@@ -76,6 +76,11 @@ bundle exec standardrb path/to/script.rb
 path/to/script.rb --help
 ```
 
+If StandardRB or RuboCop fails before reporting source diagnostics because its
+cache is not writable, treat that as restricted-environment evidence. Use the
+[writable cache mechanics](references/standardrb.md) before classifying
+formatter findings.
+
 Exercise representative success and failure behavior in temporary directories.
 Assert exit status, standard output, standard error, and the absence of partial
 writes. Cover malformed structured data, missing inputs, invalid options,

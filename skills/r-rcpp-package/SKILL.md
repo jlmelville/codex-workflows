@@ -11,9 +11,6 @@ Use this for compiled-code changes in R packages.
 
 - Read `src/`, `R/RcppExports.R`, `src/RcppExports.cpp`, `src/Makevars`, and
   relevant R wrappers before editing.
-- Do not hand-edit generated Rcpp exports except for diagnosis.
-- Run `Rscript -e 'Rcpp::compileAttributes()'` after changing exported Rcpp
-  functions or attributes.
 - Keep generated C++ separate from clang-format decisions.
 - Prefer repository-local helper patterns over new concurrency or distance
   abstractions.
@@ -22,23 +19,13 @@ Use this for compiled-code changes in R packages.
 
 ## Generated Files
 
-Expected generated outputs:
-
-- `R/RcppExports.R`
-- `src/RcppExports.cpp`
-
-After changing `// [[Rcpp::export]]` functions or attributes:
-
-1. Run `Rscript -e 'Rcpp::compileAttributes()'`.
-2. Inspect only the generated export diff and confirm it matches the intended
-   signature or registration change.
-3. Run `Rscript -e 'Rcpp::compileAttributes()'` again; the second run should be
-   idempotent.
-4. Keep hand-maintained C++ formatting separate from generated
-   `src/RcppExports.cpp`.
-
-If generated files change unexpectedly, stop and inspect before layering on
-more edits.
+After changing `// [[Rcpp::export]]` functions or attributes, regenerate the
+exports, confirm the generated diff contains only the intended signature or
+registration change, and regenerate again; the second pass must be idempotent.
+Do not hand-edit generated exports to repair a diff. Follow the exact
+[Attribute Workflow](references/rcpp.md#attribute-workflow), including the
+owned generated files. If generated output changes unexpectedly, stop and
+inspect before layering on more edits.
 
 ## C++ Safety
 
