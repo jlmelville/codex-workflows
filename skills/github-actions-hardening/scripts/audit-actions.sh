@@ -10,6 +10,7 @@ export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python
 run_zizmor() {
   local target_dir="$1"
   local output
+  local version_output
 
   if command -v zizmor >/dev/null 2>&1; then
     if ! zizmor "${target_dir}"; then
@@ -46,9 +47,23 @@ run_zizmor() {
     return 0
   fi
 
-  rm -f "${output}"
-  echo "zizmor reported issues for ${target_dir}." >&2
-  return 1
+  version_output="$(mktemp)"
+  if [[ -s "${output}" ]] && uvx zizmor --version >"${version_output}" 2>&1; then
+    rm -f "${output}" "${version_output}"
+    echo "zizmor reported issues for ${target_dir}." >&2
+    return 1
+  fi
+
+  if [[ -s "${version_output}" ]]; then
+    cat "${version_output}" >&2
+  fi
+  rm -f "${output}" "${version_output}"
+  echo "uvx could not execute zizmor; use installed zizmor or retry with fresh writable UV_CACHE_DIR, UV_TOOL_DIR, and UV_PYTHON_INSTALL_DIR." >&2
+  if [[ "${CI:-false}" == "true" ]]; then
+    echo "zizmor execution is required to succeed in CI." >&2
+    return 1
+  fi
+  return 0
 }
 
 if [[ ! -d "${workflow_dir}" ]]; then

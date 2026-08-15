@@ -331,8 +331,10 @@ run_audit_actions_smoke() {
   local script="${repo_dir}/skills/github-actions-hardening/scripts/audit-actions.sh"
   local workflow_dir="${tmp_root}/audit-actions-commented-only"
   local fake_bin="${tmp_root}/audit-actions-fake-bin"
+  local uvx_fake_bin="${tmp_root}/audit-actions-uvx-fake-bin"
+  local output
 
-  mkdir -p "${workflow_dir}" "${fake_bin}"
+  mkdir -p "${workflow_dir}" "${fake_bin}" "${uvx_fake_bin}"
   cat >"${workflow_dir}/commented.yml" <<'EOF_COMMENTED_WORKFLOW'
 name: commented
 jobs:
@@ -355,6 +357,55 @@ EOF_FAKE_ZIZMOR
   chmod +x "${fake_bin}/actionlint" "${fake_bin}/zizmor"
 
   PATH="${fake_bin}:${PATH}" "${script}" "${workflow_dir}" >/dev/null
+
+  cat >"${uvx_fake_bin}/actionlint" <<'EOF_FAKE_ACTIONLINT'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF_FAKE_ACTIONLINT
+  cat >"${uvx_fake_bin}/uvx" <<'EOF_FAKE_UVX'
+#!/usr/bin/env bash
+set -euo pipefail
+
+case "${FAKE_UVX_MODE:-}" in
+  launcher)
+    exit 1
+    ;;
+  findings)
+    if [[ "${1:-}" == "zizmor" && "${2:-}" == "--version" ]]; then
+      echo "zizmor 1.0.0"
+      exit 0
+    fi
+    echo "warning[audit]: representative analyzer finding" >&2
+    exit 1
+    ;;
+  *)
+    echo "unexpected fake uvx mode" >&2
+    exit 2
+    ;;
+esac
+EOF_FAKE_UVX
+  chmod +x "${uvx_fake_bin}/actionlint" "${uvx_fake_bin}/uvx"
+
+  output="$(
+    PATH="${uvx_fake_bin}:/usr/bin:/bin" FAKE_UVX_MODE=launcher \
+      "${script}" "${workflow_dir}" 2>&1
+  )"
+  grep -Fq 'uvx could not execute zizmor' <<<"${output}"
+  if grep -Fq 'zizmor reported issues' <<<"${output}"; then
+    echo "audit-actions.sh should not label an empty uvx launcher failure as a zizmor finding" >&2
+    return 1
+  fi
+
+  if output="$(
+    PATH="${uvx_fake_bin}:/usr/bin:/bin" FAKE_UVX_MODE=findings \
+      "${script}" "${workflow_dir}" 2>&1
+  )"; then
+    echo "audit-actions.sh should fail when zizmor reports findings" >&2
+    return 1
+  fi
+  grep -Fq 'representative analyzer finding' <<<"${output}"
+  grep -Fq 'zizmor reported issues' <<<"${output}"
 }
 
 run_action_tag_comment_smoke() {

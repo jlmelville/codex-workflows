@@ -92,10 +92,12 @@ merely to preserve removed accounting machinery.
 ## Registered Native Boundaries
 
 Treat every entry in generated Rcpp registration and every exported
-implementation as independently reachable, even when the public R wrapper
-already validates its arguments. Inventory the generated signatures alongside
-the hand-maintained implementations before deciding that a public check is
-sufficient.
+implementation as independently reachable when inventorying the boundary, even
+when the public R wrapper already validates its arguments. For each routine,
+identify supported public callers, trusted internal producers, deliberately
+unsupported direct calls, and any explicit independent safety or threat-model
+requirement. Technical callability alone does not require duplicating the
+public R semantic contract.
 
 For R-supplied counts, avoid unsigned types such as `std::size_t` in exported
 signatures. Receive the value in an R-aware or signed numeric representation
@@ -104,15 +106,23 @@ an unsigned or narrower internal type, require a scalar, non-missing, finite,
 whole, nonnegative value within both the package's supported range and the
 destination type's range.
 
-Validate native shape assumptions before indexing: required nonempty
-dimensions, compatible row or column counts, exact ranks, and any minimum
-extent used by unchecked element access. Keep ordinary tests on the public R
-API, but add narrow direct-wrapper coverage when the registered boundary is the
-behavior under test and document why it is necessary.
+Retain constant-time shape and representability guards before narrowing,
+allocation, thread setup, or unchecked access. Before adding an element-wise
+native validation pass, ask whether a supported producer can violate the
+invariant, whether the package promises an independent memory-safety boundary,
+and whether the check adds a pass beyond conversion or traversal the algorithm
+must already perform. Fuse required range or indexing guards into that traversal
+when practical; do not add an `O(n)` semantic rescan solely for unsupported
+private callers.
+
+Keep public semantic tests on exported R APIs. Add narrow direct-wrapper tests
+only for retained conversion, allocation, indexing, thread, or
+algorithm-integrity guards, and document the safety invariant each test owns.
 
 When a malformed native call may trigger undefined behavior or terminate R,
-probe the pre-fix case in a separate R process. Move the regression into the
-ordinary in-process suite only after the native guard makes the call safe.
+probe an accepted native-boundary regression in a separate R process before the
+guard exists. Move it into the ordinary in-process suite only after the native
+guard makes the call safe.
 
 ## Tests
 

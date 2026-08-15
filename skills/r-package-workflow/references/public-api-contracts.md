@@ -17,16 +17,29 @@ searchability.
 Before renaming a private identifier, classify every matching occurrence by
 contract. Rename private definitions, locals, and mechanical call sites;
 preserve exported signatures and formals, public result or list fields,
-generated wrappers and help, and filenames unless the public change is
-intentional. An internal identifier can share a token with a public field, so
-do not treat a global substitution as proof that the boundary stayed stable.
+and generated help. Classify generated wrappers and filenames separately rather
+than assuming every change to either surface is public. An internal identifier
+can share a token with a public field, so do not treat a global substitution as
+proof that the boundary stayed stable.
+
+An intentional rename of a registered but unexported native entry point may
+change generated wrappers and registration symbols without a compatibility
+alias when package policy explicitly treats direct access as unsupported and a
+consumer search finds no contrary evidence. Regenerate twice, inspect the diff
+for the intended names with unchanged arities and signatures, and verify the
+loaded public exports, formals, result fields, and diagnostics.
+
+Classify source filenames by how they are addressed. Preserve generated and
+conventional package files and paths named by `Collate`, tooling, source calls,
+documentation workflows, or external consumers. An ordinary internal R source
+file may be renamed after those checks, but reload the package and run its tests
+because a content-identical rename can still change alphabetical collation.
 
 Work in bounded identifier families and do not add compatibility aliases for
 genuinely private names. After each family, search for the exact stale token,
 separate intentional preserved matches from missed private occurrences, and run
-focused tests. For compiled packages, require a zero diff in generated wrappers
-unless an exported signature intentionally changed; follow the generated-file
-workflow in `$r-rcpp-package` when it did. Close the combined phase with full
+focused tests. For compiled packages, follow the generated-file workflow in
+`$r-rcpp-package` whenever wrappers change. Close the combined phase with full
 tests, language formatters, lint, diff hygiene, and a complete status and diff
 review.
 
@@ -60,6 +73,16 @@ Emit warnings only for exceptional conditions that callers can act on during
 the current call. Put durable resource costs for documented default behavior in
 parameter documentation, keep normal default calls silent, and ensure warnings
 shown beside errors are causally relevant to those failures.
+
+## Integer-Valued Controls
+
+Before calling `as.integer()` on a public control, validate the original value
+as non-complex numeric, non-missing, finite, whole, within the supported sign
+contract, and no greater than `.Machine$integer.max`. Reject unsupported values
+with the direct range diagnostic rather than letting coercion produce `NA`, a
+warning, or an unrelated downstream failure. Exercise shared scalar, vector,
+and count paths through exported APIs, asserting both the intended condition
+and the absence of a coercion warning.
 
 ## Progress Messages
 

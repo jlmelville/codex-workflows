@@ -103,6 +103,21 @@ Test the row policy and every aggregation denominator together:
 - use unequal group sizes and unequal group means so an observation-weighted
   result cannot accidentally pass as an unweighted mean of group summaries.
 
+## Nonfinite Ordering Contracts
+
+When a numerical API accepts `NA`, `NaN`, or infinities, descriptions such as
+"unchecked" or "used as supplied" are incomplete if sorting, ranking, or
+aggregation imposes a deterministic policy. Trace the comparator and every
+consumer to establish missing-value classification and placement, infinity
+ordering, stable-order or tie behavior, and whether the policy can return an
+ordinary finite scalar rather than an error or missing result.
+
+Use a public fixture containing negative infinity, finite values, positive
+infinity, `NA`, `NaN`, and relevant ties. Compare every affected public metric
+family with an independent reference oracle that encodes the established policy
+without calling the implementation's comparator. Document the same precise
+ordering contract after the test evidence establishes it.
+
 ## Derivative Evidence Before Fixes
 
 For gradients, Hessians, and related analytic derivatives, do not treat one

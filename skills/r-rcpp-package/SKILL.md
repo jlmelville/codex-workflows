@@ -43,8 +43,14 @@ more edits.
 ## C++ Safety
 
 - Validate inputs at the R boundary when possible.
-- Treat every registered Rcpp routine as independently callable; validate
-  native inputs before narrowing conversions, unsigned casts, or indexing.
+- Treat registered routines as independently reachable when defining their
+  supported callers and native safety boundary; technical reachability alone
+  does not make direct calls supported.
+- Let R own public semantic validation. Keep native checks needed on supported
+  paths for representable conversion, bounded allocation, unchecked access,
+  thread setup, or algorithm integrity. Do not duplicate whole-input scans
+  solely to harden unsupported private calls unless an independent native
+  memory-safety boundary is an explicit requirement.
 - C++ helpers should still fail loudly for invalid internal states.
 - Avoid test-only exported C++ hooks in release code unless explicitly
   documented.

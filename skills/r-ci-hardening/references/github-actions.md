@@ -185,9 +185,48 @@ jobs:
 
 ## Coverage
 
-- Keep `GITHUB_PAT` only where needed.
-- Prefer Codecov tokenless public upload only when appropriate.
-- Add `.covrignore` only for intentional coverage exclusions.
+Treat coverage measurement, report generation, external upload, and badge
+display as separate outcomes. A green job proves publication only when the
+uploader itself succeeded; direct `covr::codecov()` calls may return a rejected
+HTTP response without failing the R step. When a badge disagrees with a recent
+job, inspect the job's computed package coverage and terminal upload diagnostic,
+then use a local `covr` line map for gap triage while allowing for platform and
+compiler instrumentation differences.
+
+When reliable Codecov publication matters, generate a portable report with
+`covr`, then upload it through a maintained SHA-pinned action that receives its
+token only at the upload step and fails on rejection. `covr::to_cobertura()`
+loads `xml2` directly, so install both namespaces explicitly rather than relying
+on ambient local packages:
+
+```yaml
+- uses: r-lib/actions/setup-r-dependencies@<full-sha>
+  with:
+    extra-packages: |
+      any::covr
+      any::xml2
+      local::.
+    needs: coverage
+- name: Generate coverage report
+  run: Rscript -e 'cov <- covr::package_coverage(type = "tests"); print(cov); covr::to_cobertura(cov, filename = "cobertura.xml")'
+- name: Upload coverage report
+  if: >-
+    github.actor != 'dependabot[bot]' &&
+    (github.event_name != 'pull_request' ||
+    github.event.pull_request.head.repo.full_name == github.repository)
+  uses: codecov/codecov-action@<full-sha> # v5
+  with:
+    token: ${{ secrets.CODECOV_TOKEN }}
+    files: ./cobertura.xml
+    fail_ci_if_error: true
+```
+
+State an explicit policy for actors that cannot receive repository secrets.
+Skipping uploads for Dependabot and fork pull requests is often appropriate;
+keep report generation active when it still supplies useful test evidence.
+Tokenless public upload may remain a deliberate policy when its observed
+reliability and failure signaling are acceptable. Add `.covrignore` only for
+intentional exclusions.
 
 ## Dependabot
 

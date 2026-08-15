@@ -31,6 +31,13 @@ shortest useful task path. Link across surfaces instead of copying full
 explanations, then make a final conciseness pass that removes repeated validator
 prose and catalogs of obvious invalid inputs.
 
+For that shortest useful task, inspect whether the package defaults to a
+stochastic or approximate route. Prefer a deterministic exact route when it is
+practical for the small example. If the approximate route is essential, show
+its seed, worker, or other reproducibility controls. Do not publish an exact
+numeric reference result until the configured example is deterministic or
+repeated executions establish that the documented path is stable.
+
 When prose recommends fair comparisons for a stochastic API, make adjacent
 executable comparison examples enact the complete reproducibility recipe:
 reset the seed immediately before every sampled call and keep thread or worker

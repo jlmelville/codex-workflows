@@ -14,6 +14,13 @@ Use this for documentation and pkgdown work in R packages.
   `pak::pak("owner/repo")` over deprecated `devtools::install_github()`.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
+- Treat audit suggestions for new tutorials, comparison tables, examples, or
+  plots as hypotheses rather than completion requirements. Require a named user
+  task and a confirmed coverage gap, account for dataset, dependency,
+  execution, plotting, and maintenance costs, and prefer a localized edit to an
+  existing surface. Public-contract corrections remain completion work; stop
+  when the quick start and specialist-document routing support the intended
+  task, and defer speculative enrichment as a separate content project.
 - Use `NEWS.md` for user-visible behavior, compatibility impact, or required
   action. Keep internal CI, implementation, diagnostic, and maintenance activity
   out unless it crosses that user-visible threshold.
