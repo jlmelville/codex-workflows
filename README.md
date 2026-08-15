@@ -103,13 +103,18 @@ details, validation, CI, and local tooling.
 | During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
 | After a meaningful session | `$skill-retro` | Distill session evidence into a candidate; write externally only when routing is authorized. |
 | When candidates accumulate | `$skill-retro-triage` | Decide whether and how each candidate changes public source, then implement an accepted batch. |
-| At the process-review cadence below | `$learning-process-review` | Audit external intake, decisions, verification, open follow-up work, and feedback-loop health. |
-| When the artifact audit is due | [repository retrospective prompt](prompts/skill-repository-retrospective.md) | Audit public skills and references for overlap, drift, and semantic compression. |
+| At the process-review cadence below | `$learning-process-review` | Audit external learning state; when the artifact audit is due, also run and supervise the repository prompt below. |
+| When the artifact audit is due (direct/manual entry) | `prompts/skill-repository-retrospective.md` | Run the same report-only public-skill audit directly, without the broader learning-process review. |
 
-The final two reviews are deliberately separate: `learning-process-review`
-supervises the external learning mechanism, while the repository retrospective
-examines the public corpus itself. The artifact audit is report-only unless the
-invoking task separately authorizes source changes.
+The final two rows describe different review scopes, not two artifact-audit
+prompts. `$learning-process-review` always reviews the external learning
+mechanism. When `artifact-audit-status` is due, that skill also runs the one
+repository prompt named in the final row and supervises its follow-up. Invoking
+the prompt directly is the manual entry point for that same artifact audit; it
+skips the broader learning-process review.
+
+The repository prompt examines the public skill corpus itself. Its audit is
+report-only unless the invoking task separately authorizes source changes.
 
 Run the first process review after 10 papercuts or 14 calendar days after
 enabling capture. Thereafter use the next trigger recorded by the previous
@@ -123,7 +128,8 @@ have been processed since the last successfully recorded artifact audit:
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
 ```
 
-Run the prompt from the repository root:
+To invoke that same artifact audit directly, run the prompt from the repository
+root:
 
 > Use `prompts/skill-repository-retrospective.md` to audit this repository and
 > report findings before making changes.
