@@ -117,9 +117,9 @@ versioned Bundler executable, use the matching command such as `bundle3.3`.
 System Ruby packages may also require their matching development-header package
 before Bundler can compile native dependencies.
 
-The validator reports local `actionlint`, `uv`, and `zizmor` versions that do
-not match the versions pinned for CI. Treat the report as advisory locally and
-run the parity check explicitly before claiming CI-equivalent results:
+The validator reports local `actionlint` and `zizmor` versions that do not
+match the versions pinned for CI. Treat the report as advisory locally and run
+the parity check explicitly before claiming CI-equivalent results:
 
 ```sh
 ./scripts/check-ci-tool-parity.sh --strict
@@ -225,48 +225,60 @@ those entries during periodic learning-process retrospectives or when related
 skill changes suggest consolidation. Public source validity must not depend on
 that disposable state.
 
-## Local Tooling
+## Repository Maintainer Tooling
 
-For the first macOS checkout, follow the Homebrew and rbenv bootstrap in the
-README. Then create an ignored repository-local environment for the Python CLI
-versions pinned by CI:
+This inventory covers tools used to maintain and validate this repository. It
+does not include tools such as Air, Perl, or clang-format that individual
+skills may use later inside other project repositories.
+
+| Tool | Required when | Version authority | Installation policy |
+| --- | --- | --- | --- |
+| Git and Bash | Cloning, installing, validating, and publishing | Host package manager; shell scripts remain compatible with macOS Bash 3.2 | Use the platform package manager or operating-system copy. |
+| Ruby and Bundler | All repository validation | `.ruby-version` selects the CI Ruby; `Gemfile.lock` pins Bundler and StandardRB | Use Homebrew, apt, or a Ruby version manager; run `bundle install` in the repository. |
+| ShellCheck | All repository validation | Host package manager and CI runner | Use Homebrew or the distribution package. |
+| Python 3 | Syntax-checking bundled Python scripts | Host package manager and CI runner | Use Homebrew, apt, or the operating-system package. No project virtual environment is required. |
+| R / `Rscript` | Syntax-checking bundled R scripts | Host package manager and CI runner | Use Homebrew or the distribution package. |
+| ripgrep | Maintainer searches and CI diagnostics | Host package manager and CI runner | Use Homebrew or the distribution package. |
+| actionlint | Workflow changes and CI | `ACTIONLINT_VERSION` in `.github/workflows/validate.yml` | Use Homebrew on macOS; on Linux use a distribution package, upstream release, or the pinned `go install` route used by CI. |
+| zizmor | Workflow changes and CI | `.github/requirements.txt` | Use Homebrew on macOS; on Linux use an upstream-supported package route such as pipx or Cargo. |
+| GitHub CLI (`gh`) | Inspecting PRs and workflow runs or triggering manual CI | Host package manager | Optional for ordinary validation; install through Homebrew or the supported platform package. |
+| uv / `uvx` | Optional temporary Python-tool execution | Host package manager; not a repository dependency | Install through Homebrew or upstream only when a temporary tool workflow needs it. Do not create a persistent repository `.venv` for maintainer CLIs. |
+
+For a typical macOS maintainer setup, install the host tools with Homebrew, make
+the chosen Ruby available on `PATH`, and then install the locked Ruby
+dependencies:
 
 ```sh
-UV_CACHE_DIR=.tmp/uv-cache uv venv .venv
-UV_CACHE_DIR=.tmp/uv-cache uv pip install \
-  --python .venv/bin/python \
-  -r .github/requirements.txt
+brew install git ruby python shellcheck ripgrep r actionlint zizmor gh
+bundle install
 ```
 
-Put the rbenv shims first while validating from an already-running Codex shell
-that predates setup:
+On Debian-like Linux, install the broadly available system dependencies with
+apt, then use the supported upstream package route for actionlint and zizmor
+when the distribution does not provide a suitable package:
 
 ```sh
-PATH="$HOME/.rbenv/shims:$PATH" \
-  ./scripts/check-ci-tool-parity.sh --strict
-PATH="$HOME/.rbenv/shims:$PATH" \
-  ./scripts/validate-skills.sh
+sudo apt-get update
+sudo apt-get install -y git bash ruby-full bundler shellcheck python3 r-base ripgrep
+bundle install
 ```
 
-The parity script automatically uses `.venv/bin` when that repository-local
-environment exists. The repository-local `UV_CACHE_DIR` avoids requiring
-sandbox write access to a user-wide uv cache. New terminal sessions should pick
-up rbenv from the startup file configured by `rbenv init zsh`.
+Local package-manager versions may be newer than CI. That is acceptable for
+ordinary validation; use `./scripts/check-ci-tool-parity.sh --strict` only when
+claiming exact actionlint and zizmor parity with CI. The check reports the
+resolved executable path and never prepends an ignored repository environment.
 
-Some skills assume these tools may be available in project worktrees:
+### Update ownership
 
-- `python3` for bundled Python script validation
-- Bash 3.2-compatible Bash for bundled shell scripts
-- Ruby 3.0 or newer and Bundler for repository validation; `.ruby-version`
-  selects the CI development version and `Gemfile.lock` pins Standard Ruby
-- `rg` / `ripgrep` for repository and roxygen source searches
-- `shellcheck` for shell script validation
-- `perl` for roxygen odd-backtick audits
-- `Rscript`
-- `air`
-- `actionlint`
-- `uvx`
-- `clang-format`
+| Surface | Update route |
+| --- | --- |
+| GitHub Actions SHAs | Weekly Dependabot PRs; keep nearby version comments synchronized. |
+| StandardRB and its Ruby dependencies | Weekly Bundler Dependabot PRs through `Gemfile.lock`. |
+| zizmor | Weekly pip Dependabot PRs through `.github/requirements.txt`. |
+| Ruby version | Manual update of `.ruby-version`, followed by Linux and manual macOS CI. |
+| actionlint | Manual update of `ACTIONLINT_VERSION`, followed by the workflow audit and CI. |
+| Host tools | `brew update && brew upgrade` or the operating system's normal package-update workflow. |
+| Optional uv | Update through the package manager that installed it; it is not tracked for CI parity. |
 
 Project-specific package dependencies still belong in the project repository,
 not in this workflow repository.

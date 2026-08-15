@@ -2,18 +2,10 @@
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-local_tool_bin="${repo_dir}/.venv/bin"
 workflow_file="${repo_dir}/.github/workflows/validate.yml"
 requirements_file="${repo_dir}/.github/requirements.txt"
 strict=false
 status=0
-
-if [[ -d "${local_tool_bin}" ]]; then
-  case ":${PATH}:" in
-    *":${local_tool_bin}:"*) ;;
-    *) export PATH="${local_tool_bin}:${PATH}" ;;
-  esac
-fi
 
 if [[ "${CI:-false}" == "true" ]]; then
   strict=true
@@ -45,10 +37,9 @@ requirement_version() {
     head -n 1
 }
 
-expected_uv="$(requirement_version uv)"
 expected_zizmor="$(requirement_version zizmor)"
 
-for expected in "${expected_actionlint}" "${expected_uv}" "${expected_zizmor}"; do
+for expected in "${expected_actionlint}" "${expected_zizmor}"; do
   if [[ -z "${expected}" ]]; then
     echo "CI tool parity: could not read every expected version from repository pins." >&2
     exit 1
@@ -67,9 +58,6 @@ tool_version() {
     actionlint)
       version="$(actionlint -version 2>/dev/null | sed -n '1{s/[[:space:]].*$//;p;}' || true)"
       ;;
-    uv)
-      version="$(uv --version 2>/dev/null | sed -n '1{s/^[^[:space:]]*[[:space:]]*//;s/[[:space:]].*$//;p;}' || true)"
-      ;;
     zizmor)
       version="$(zizmor --version 2>/dev/null | sed -n '1{s/^[^[:space:]]*[[:space:]]*//;s/[[:space:]].*$//;p;}' || true)"
       ;;
@@ -82,21 +70,22 @@ check_tool() {
   local tool="$1"
   local expected="$2"
   local actual
+  local resolved_tool
 
+  resolved_tool="$(command -v "${tool}" 2>/dev/null || true)"
   actual="$(tool_version "${tool}")"
   if [[ -z "${actual}" ]]; then
     echo "CI tool parity: ${tool} is unavailable; CI expects ${expected}." >&2
     status=1
   elif [[ "${actual}" != "${expected#v}" ]]; then
-    echo "CI tool parity: ${tool} ${actual} is installed; CI expects ${expected#v}." >&2
+    echo "CI tool parity: ${tool} ${actual} is installed at ${resolved_tool}; CI expects ${expected#v}." >&2
     status=1
   else
-    echo "CI tool parity: ${tool} ${actual} matches CI."
+    echo "CI tool parity: ${tool} ${actual} matches CI (${resolved_tool})."
   fi
 }
 
 check_tool actionlint "${expected_actionlint}"
-check_tool uv "${expected_uv}"
 check_tool zizmor "${expected_zizmor}"
 
 if [[ "${status}" -ne 0 && "${strict}" == false ]]; then

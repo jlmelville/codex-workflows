@@ -71,7 +71,6 @@ jobs:
           rg --version
           go version
           actionlint -version
-          uv --version
           zizmor --version
 
       - name: Validate skills
@@ -134,7 +133,6 @@ jobs:
           rg --version
           go version
           actionlint -version
-          uv --version
           zizmor --version
 
       - name: Validate skills

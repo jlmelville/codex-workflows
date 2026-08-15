@@ -624,41 +624,40 @@ run_ci_tool_parity_smoke() {
   local fixture="${tmp_root}/ci-tool-parity"
   local script="${fixture}/scripts/check-ci-tool-parity.sh"
   local system_bin="${fixture}/system-bin"
-  local local_bin="${fixture}/.venv/bin"
+  local stale_venv_bin="${fixture}/.venv/bin"
   local output="${fixture}/output"
 
-  mkdir -p "${fixture}/scripts" "${fixture}/.github/workflows" "${system_bin}" "${local_bin}"
+  mkdir -p "${fixture}/scripts" "${fixture}/.github/workflows" "${system_bin}" "${stale_venv_bin}"
   cp "${repo_dir}/scripts/check-ci-tool-parity.sh" "${script}"
   cat >"${fixture}/.github/workflows/validate.yml" <<'EOF_PARITY_WORKFLOW'
 env:
   ACTIONLINT_VERSION: v1.7.12
 EOF_PARITY_WORKFLOW
   cat >"${fixture}/.github/requirements.txt" <<'EOF_PARITY_REQUIREMENTS'
-uv==0.12.2
 zizmor==1.29.0
 EOF_PARITY_REQUIREMENTS
   cat >"${system_bin}/actionlint" <<'EOF_PARITY_ACTIONLINT'
 #!/usr/bin/env bash
 echo "1.7.12"
 EOF_PARITY_ACTIONLINT
-  cat >"${system_bin}/uv" <<'EOF_PARITY_SYSTEM_UV'
-#!/usr/bin/env bash
-echo "uv 0.0.0"
-EOF_PARITY_SYSTEM_UV
-  cat >"${local_bin}/uv" <<'EOF_PARITY_LOCAL_UV'
-#!/usr/bin/env bash
-echo "uv 0.12.2"
-EOF_PARITY_LOCAL_UV
-  cat >"${local_bin}/zizmor" <<'EOF_PARITY_ZIZMOR'
+  cat >"${system_bin}/zizmor" <<'EOF_PARITY_ZIZMOR'
 #!/usr/bin/env bash
 echo "zizmor 1.29.0"
 EOF_PARITY_ZIZMOR
-  chmod +x "${script}" "${system_bin}/actionlint" "${system_bin}/uv" \
-    "${local_bin}/uv" "${local_bin}/zizmor"
+  cat >"${stale_venv_bin}/actionlint" <<'EOF_PARITY_STALE_ACTIONLINT'
+#!/usr/bin/env bash
+echo "0.0.0"
+EOF_PARITY_STALE_ACTIONLINT
+  cat >"${stale_venv_bin}/zizmor" <<'EOF_PARITY_STALE_ZIZMOR'
+#!/usr/bin/env bash
+echo "zizmor 0.0.0"
+EOF_PARITY_STALE_ZIZMOR
+  chmod +x "${script}" "${system_bin}/actionlint" "${system_bin}/zizmor" \
+    "${stale_venv_bin}/actionlint" "${stale_venv_bin}/zizmor"
 
   PATH="${system_bin}:/usr/bin:/bin" "${script}" --strict >"${output}"
-  grep -Fq "uv 0.12.2 matches CI" "${output}"
-  grep -Fq "zizmor 1.29.0 matches CI" "${output}"
+  grep -Fq "actionlint 1.7.12 matches CI (${system_bin}/actionlint)" "${output}"
+  grep -Fq "zizmor 1.29.0 matches CI (${system_bin}/zizmor)" "${output}"
 }
 
 run_retro_state_smoke() {
