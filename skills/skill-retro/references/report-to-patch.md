@@ -47,17 +47,20 @@ For each accepted candidate:
    mechanic, optional case, or verification record is the truthful home. Add a
    new clause only when the condition changes the action, constraint, required
    witness, or success claim.
-6. Add or update deterministic validation for command behavior, schema, file
+6. For same-decision implementation drift, repair the missed or stale public
+   surface under the existing accepted outcome even though the candidate's
+   semantic verdict is `no-change`.
+7. Add or update deterministic validation for command behavior, schema, file
    shape, generated output, or fragile searches.
-7. Make the source change understandable without the external record. Do not
+8. Make the source change understandable without the external record. Do not
    leak private repository names, candidate evidence, or opaque state IDs into
    Git merely to preserve provenance.
-8. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
+9. When frontmatter descriptions, trigger boundaries, or `agents/openai.yaml`
    change, run `./scripts/list-skills.rb` and inspect the affected rows.
-9. Run `./scripts/validate-skills.sh`.
-10. If files under `skills/` changed, run `./install.sh` and
+10. Run `./scripts/validate-skills.sh`.
+11. If files under `skills/` changed, run `./install.sh` and
    `./install.sh --check`.
-11. Inspect staged paths, commit only intended public source, and push when
+12. Inspect staged paths, commit only intended public source, and push when
    repository instructions require it.
 
 Execute fired non-skill ledger actions rather than refreshing them indefinitely.
@@ -83,6 +86,11 @@ identity only when the correction candidate changes the decision; let
 `record-accepted` derive its `supersedes_accepted_ids` from the archived
 candidate. Do not close a residual contradiction ledger until the old accepted
 record is marked `superseded` or `reverted`.
+
+For implementation drift under a still-valid decision, update the existing
+accepted record after publication with the repaired destination and commit.
+Preserve its verification state and basis unless independent later-session or
+deterministic evidence changes them.
 
 Finish by running the external helper's `validate` command. Failure to update
 disposable state does not invalidate an otherwise correct public source commit;

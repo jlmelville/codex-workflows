@@ -72,6 +72,11 @@ candidate as the terminal fallback when approval is unavailable or denied.
   `supersedes_accepted_id` and state `now_false`. When later evidence merely
   supports or contradicts the same outcome and witness, update that accepted
   identity instead of routing another candidate.
+- Distinguish three same-topic outcomes before routing: later behavioral
+  evidence updates verification without source work; implementation drift may
+  require a public repair under the existing accepted identity; a changed
+  decision uses supersession. For implementation drift, name the missed public
+  surface and keep behavioral verification unchanged.
 - For an existing destination, identify the missing delta: what current
   guidance did not cover and whether the smallest fix belongs in `SKILL.md`, a
   reference, script, prompt, or no action.

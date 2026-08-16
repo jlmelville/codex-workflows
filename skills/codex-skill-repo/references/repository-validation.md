@@ -25,6 +25,20 @@ validation. Use real existing repository paths in examples, or avoid
 placeholder text shaped like a repository-relative path when no such file
 exists.
 
+## Maintainer Tool Ownership
+
+Inventory tools in three columns before changing bootstrap or parity policy:
+repository-maintainer checks, downstream installed-skill dependencies, and
+optional enhancements. Do not install or version-check a downstream-only tool
+merely because its command appears in skill prose.
+
+Prefer the host platform's package manager for a long-lived maintainer CLI when
+the repository expects one shared executable. Use exact temporary isolation for
+CI reproduction or an intentionally pinned validator. Parity diagnostics must
+print the resolved executable and version; do not silently prepend an ignored
+persistent environment to `PATH`. Remove pins and parity checks for tools the
+workflow does not execute.
+
 ## Workflow Validation
 
 Use `${HOME}/.agents/skills/...` command paths inside installed

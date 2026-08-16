@@ -106,11 +106,15 @@ may mix roles and need restructuring. Read
 [semantic-authoring.md](references/semantic-authoring.md) when adding or
 restructuring guidance, mechanics, examples, or casebooks.
 
-When a skill relies on external tools, distinguish required dependencies from
-optional enhancements, check required availability before dependent work, and
-name only supported fallbacks. If a required tool cannot run and no fallback
-preserves the check, make the validation gap prominent and do not claim
-complete validation.
+Classify external tools by owner before prescribing installation or parity:
+repository-maintainer tools run this source repository's checks; downstream
+skill dependencies run only when an installed skill handles another project;
+optional enhancements strengthen but do not define either workflow. Check
+required availability before dependent work and name only supported fallbacks.
+If a required tool cannot run and no fallback preserves the check, make the
+validation gap prominent and do not claim complete validation. Route maintainer
+acquisition and executable-resolution mechanics to
+[repository-validation.md](references/repository-validation.md).
 
 Create a new skill only for repeated work with clear triggers and decisions;
 keep maintainer-only knowledge in repository docs. For recurring non-installed

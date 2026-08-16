@@ -74,6 +74,12 @@ If verification-only evidence has already arrived as an inbox candidate, give
 it a `no-change` verdict, archive it, and update the cited accepted identity;
 do not create another accepted record.
 
+When the accepted decision remains true but source implementation is missing
+or has drifted on one public surface, use `no-change` for the semantic verdict
+while retaining the source repair in the implementation batch. After
+publication, update the original accepted identity's destinations and commits;
+do not change behavioral verification or create another accepted identity.
+
 Unconditional privacy, authority, evidence, and completion contracts may need
 to stay on the default path even though they are not conditional branches. The
 semantic gate supplements the evidence, durability, scope, cost, and

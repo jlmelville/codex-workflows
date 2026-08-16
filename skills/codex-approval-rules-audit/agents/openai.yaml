@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Approval Rules Audit"
+  short_description: "Audit and consolidate Codex command rules"
+  default_prompt: "Use $codex-approval-rules-audit to audit the active Codex command-approval rules and recommend a safer scoped policy."
