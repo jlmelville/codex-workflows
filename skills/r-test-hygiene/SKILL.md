@@ -66,6 +66,10 @@ rollback, eager parameter propagation, and restart hook replacement. Direct
 internal probes are justified when public golden traces cannot localize those
 lifecycle invariants; keep them named and narrow.
 
+For cache validity, reset lifetimes, oracle authority, state identity, and
+tested-constructor wiring, read
+[state-machine-contracts.md](references/state-machine-contracts.md).
+
 ## Fixture Formatting
 
 For shape-sensitive fixtures, preserve visual structure:
@@ -106,6 +110,14 @@ bare `testthat::test_file()` can fail with missing package functions,
 internals, or helpers because package loading did not happen. Use
 `pkgload::load_all()` before `test_file()` only for explicit ad hoc probes that
 need direct file execution.
+
+For exact file selection, reported-context checks, compact result totals, or a
+suspected incomplete full-suite run, read
+[test-selection-and-totals.md](references/test-selection-and-totals.md).
+
+For callback budgets and result validation, bounded numerical searches, or
+adapters that install backend results, read
+[numerical-callbacks-and-results.md](references/numerical-callbacks-and-results.md).
 
 ## Common Commands
 

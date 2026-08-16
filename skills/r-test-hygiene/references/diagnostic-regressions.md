@@ -39,6 +39,20 @@ field-name set without enforcing insertion order. For example,
 while accepting permutations; use order-sensitive checks only when ordering is
 part of the documented contract.
 
+For value-only numerical symmetry, use
+`isSymmetric(x, check.attributes = FALSE, ...)` explicitly: the base default
+also compares dimnames. Preserve and return the original object rather than
+stripping attributes. Pair a labelled symmetric positive control with a truly
+asymmetric numeric negative control.
+
+## Warning Suppression
+
+Treat an explicit warning-suppression option as condition handling, not as a
+second computation path. Run default and suppressed modes on the same valid
+input and require identical values. For a warning-producing input, require the
+default to warn, the suppressed mode to stay silent, and both modes to return
+the same value, including `NaN` or another documented result.
+
 ## Looped Diagnostics
 
 Not every testthat expectation accepts `info` consistently across installed

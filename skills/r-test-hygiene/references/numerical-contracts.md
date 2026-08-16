@@ -42,6 +42,34 @@ update coefficients, or finite-termination counts where relevant. Golden output
 on a difficult nonlinear benchmark can cover recipe wiring, but it does not
 prove exact-condition equivalence or N-step termination.
 
+## Research Prototype Defaults
+
+Test structural algebra and empirical target recovery as separate evidence
+layers. A method can satisfy every defining identity while remaining a weak
+finite-sample default. Before selecting a default, use a bounded repeated
+ground-truth matrix across relevant seeds and sample sizes with a predeclared
+recovery criterion; retain supported alternatives and limit claims to the
+exercised regime.
+
+Start with a fixture faithful to the reference challenge rather than a merely
+similar generator. Record material geometry, intrinsic scale, holes or
+boundaries, sampling regime, neighborhood construction, refinement, and
+pipeline stage. Check graph or operator preconditions before attributing poor
+recovery to the estimator. Related generators and out-of-domain stress tests
+may follow only after the claimed-regime benchmark is understood.
+
+## Factorization Repair Contracts
+
+For a fallback that repairs a matrix before factorization, reconstruct the
+matrix from the returned factor and compare it with an independently built
+repair oracle. Cover exact-boundary, near-boundary, and clearly invalid spectra,
+and use a deliberately non-default repair setting to prove the control is
+honored. Retain the documented unrecoverable-failure case when relevant.
+
+Pair repair cases with a successful fast-path control whose aggressive repair
+setting must not alter the ordinary factorization. Success, non-`NULL` output,
+or downstream convergence alone does not establish the repair identity.
+
 ## Transformed Eigensolver Coordinates
 
 When an eigensolver operates on a symmetric transformation and maps vectors

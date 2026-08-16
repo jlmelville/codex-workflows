@@ -1,0 +1,57 @@
+# Numerical Callback and Result Contracts
+
+Use this reference for hard callback budgets, runtime callback validation,
+bounded candidate searches, and adapters that install backend results.
+
+## Runtime Callback Results
+
+Inventory every direct invocation and alias, then validate an already-required
+result at its first point of consumption. Do not coerce, flatten, recycle,
+replay, or call a callback solely for validation. Separate type and shape from
+numerical usability: a correctly shaped `NA`, `NaN`, or `Inf` belongs to the
+algorithm's established non-finite policy.
+
+For combined callback outputs, require the exact components the caller
+consumes; allow extras unless the public contract forbids them. Test malformed
+shapes and names, integer and double storage, shaped non-finite values, and
+independent call counts.
+
+## Hard Budgets and Accounting
+
+Use independent external counters and cover zero, one, and exact allowance
+across initialization, iteration, summaries, diagnostics, logging, finalization,
+and stateful branches. Exercise individual and combined callback interfaces.
+
+A cache hit is free only when its parameter and validity markers are current.
+Make callback-free fallbacks explicit in the execution path or central wrapper;
+do not infer that they are free from their returned value. Audit callers for
+immediate value consumption after a blocked call. After a permitted callback,
+classify convergence, non-finiteness, and acceptance before declaring budget
+exhaustion. Remove branch-specific production behavior when no exported path
+can reach the remaining allowance.
+
+## Budgeted Candidate Searches
+
+Define the allowance as callbacks owned by the search, normally including
+candidate evaluation and excluding a valid cached baseline. Trace parameters
+and counts, and evaluate the acceptance predicate after every candidate,
+including the final permitted one.
+
+Use one validity predicate for direct and fallback candidates, covering the
+complete state the algorithm consumes: parameters, objective, derivatives, and
+other required metadata. Retain an observed candidate if optional metadata is
+absent only when the contract explicitly permits that omission.
+
+Separate the primary acceptance rule from any weaker exhaustion fallback. A
+fallback should be finite, actually evaluated, and strictly better when that is
+the contract. Reject equality, increase, non-finiteness, unevaluated values,
+and status-only success. On failure, return the exact inactive or starting
+state and do not cache rejected candidates.
+
+## Realized Adapter Results
+
+Reconstruct the complete public result before installing a backend result. A
+finite step, scalar summary, or success status is insufficient when the public
+object requires additional realized state. Reject incomplete results without
+replaying callbacks or discarding callback accounting. Pair a finite success
+control with table-driven incomplete and non-finite failures.
