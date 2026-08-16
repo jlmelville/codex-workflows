@@ -22,6 +22,16 @@ Use independent external counters and cover zero, one, and exact allowance
 across initialization, iteration, summaries, diagnostics, logging, finalization,
 and stateful branches. Exercise individual and combined callback interfaces.
 
+Select the numerical policy before deriving its evaluation allowance, and give
+each policy an explicit callback cost vector. For trial cost
+`(fn_cost, gr_cost)`, only nonzero components constrain individual budgets;
+when a combined budget counts both callback classes, its trial cost is
+`fn_cost + gr_cost`. Take the minimum applicable floored allowance. Thus an
+objective-only `(1, 0)` policy is not blocked by zero gradient allowance, while
+an objective-plus-gradient `(1, 1)` policy is constrained by objective,
+gradient, and half the corresponding combined allowance. Test local and global
+limits through the exact final permitted trial.
+
 A cache hit is free only when its parameter and validity markers are current.
 Make callback-free fallbacks explicit in the execution path or central wrapper;
 do not infer that they are free from their returned value. Audit callers for

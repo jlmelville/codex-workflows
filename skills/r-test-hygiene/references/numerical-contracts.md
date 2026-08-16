@@ -42,6 +42,20 @@ update coefficients, or finite-termination counts where relevant. Golden output
 on a difficult nonlinear benchmark can cover recipe wiring, but it does not
 prove exact-condition equivalence or N-step termination.
 
+## Legacy Numerical Oracle Firewalls
+
+Before replacing port-shaped or legacy numerical code, inventory which modes
+are reachable through supported package paths. Freeze only those modes as
+implementation-independent output, trial-trace, callback-count, and invariant
+oracles. Treat legacy expected values as migration evidence, not as a contract
+for the old private dispatcher, integer mode flags, or unreachable branches.
+
+When useful, load the prior implementation from version control into an
+isolated environment for a temporary differential probe. Do not commit that
+implementation as a test dependency. After the supported-mode oracles pass,
+delete unreachable-mode tests with the obsolete code they would otherwise keep
+alive.
+
 ## Research Prototype Defaults
 
 Test structural algebra and empirical target recovery as separate evidence
