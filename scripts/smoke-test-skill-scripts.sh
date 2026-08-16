@@ -769,6 +769,92 @@ run_retro_state_smoke() {
   fi
 }
 
+run_patch_identity_smoke() {
+  local script="${repo_dir}/skills/planning-workflow/scripts/patch-identity.rb"
+  local smoke_dir="${tmp_root}/patch-identity"
+  local stdout_file="${smoke_dir}/stdout"
+  local stderr_file="${smoke_dir}/stderr"
+  local first_digest
+  local second_digest
+  local changed_digest
+  local command_status
+  local newline_name=$'line\nbreak.txt'
+
+  require_command git
+  require_command ruby
+  mkdir -p "${smoke_dir}/repo"
+  git -C "${smoke_dir}/repo" init -q
+  git -C "${smoke_dir}/repo" config user.email smoke@example.invalid
+  git -C "${smoke_dir}/repo" config user.name "Smoke Test"
+  printf '%s\n' baseline >"${smoke_dir}/repo/tracked.txt"
+  git -C "${smoke_dir}/repo" add tracked.txt
+  git -C "${smoke_dir}/repo" commit -q -m baseline
+  printf '%s\n' modified >"${smoke_dir}/repo/tracked.txt"
+  printf '%s\n' new >"${smoke_dir}/repo/new-test.R"
+  printf '%s\n' newline >"${smoke_dir}/repo/${newline_name}"
+  printf '%s\n' unrelated >"${smoke_dir}/repo/unrelated.md"
+
+  assert_usage_error \
+    "patch-identity-extra-argument" \
+    "patch-identity.rb: invalid argument: unexpected argument: extra" \
+    "${script}" extra
+
+  if (cd "${smoke_dir}/repo" && "${script}" >"${stdout_file}" 2>"${stderr_file}"); then
+    echo "patch-identity.rb should reject uncategorized untracked files" >&2
+    return 1
+  else
+    command_status=$?
+  fi
+  [[ "${command_status}" -eq 1 ]]
+  [[ ! -s "${stdout_file}" ]]
+  grep -Fq "uncategorized untracked path" "${stderr_file}"
+
+  first_digest="$({
+    cd "${smoke_dir}/repo" && "${script}" \
+      --include-untracked new-test.R \
+      --include-untracked "${newline_name}" \
+      --exclude-untracked unrelated.md
+  } 2>"${stderr_file}")"
+  [[ "${first_digest}" =~ ^[0-9a-f]{64}$ ]]
+  grep -Fq "baseline:" "${stderr_file}"
+  grep -Fq 'included untracked: "new-test.R"' "${stderr_file}"
+  grep -Fq 'excluded untracked: "unrelated.md"' "${stderr_file}"
+  second_digest="$({
+    cd "${smoke_dir}/repo" && "${script}" \
+      --include-untracked new-test.R \
+      --include-untracked "${newline_name}" \
+      --exclude-untracked unrelated.md
+  } 2>/dev/null)"
+  [[ "${second_digest}" == "${first_digest}" ]]
+
+  printf '%s\n' changed >"${smoke_dir}/repo/new-test.R"
+  changed_digest="$({
+    cd "${smoke_dir}/repo" && "${script}" \
+      --include-untracked new-test.R \
+      --include-untracked "${newline_name}" \
+      --exclude-untracked unrelated.md
+  } 2>/dev/null)"
+  [[ "${changed_digest}" =~ ^[0-9a-f]{64}$ ]]
+  [[ "${changed_digest}" != "${first_digest}" ]]
+
+  git -C "${smoke_dir}/repo" add tracked.txt
+  if (
+    cd "${smoke_dir}/repo" && "${script}" \
+      --include-untracked new-test.R \
+      --include-untracked "${newline_name}" \
+      --exclude-untracked unrelated.md \
+      >"${stdout_file}" 2>"${stderr_file}"
+  ); then
+    echo "patch-identity.rb should reject a non-clean index" >&2
+    return 1
+  else
+    command_status=$?
+  fi
+  [[ "${command_status}" -eq 1 ]]
+  [[ ! -s "${stdout_file}" ]]
+  grep -Fq "the index is not clean" "${stderr_file}"
+}
+
 run_notebook_smoke
 run_benchmark_smoke
 run_manifest_smoke
@@ -781,5 +867,6 @@ run_skill_index_smoke
 run_skill_metadata_smoke
 run_ci_tool_parity_smoke
 run_retro_state_smoke
+run_patch_identity_smoke
 
 echo "Skill script smoke tests passed."

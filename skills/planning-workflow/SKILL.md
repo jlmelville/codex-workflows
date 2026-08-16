@@ -100,6 +100,10 @@ For stabilization chunks, review packet structure, and audit-to-plan conversion
 details, see
 [audits-and-review-packets.md](references/audits-and-review-packets.md).
 
+For layered numerical-method reproductions, use the evidence-gated oracle
+ladder, constrained-limit closure, and stop decisions in
+[numerical-reproduction-work-packets.md](references/numerical-reproduction-work-packets.md).
+
 ## Workflow Retrospective Notes
 
 During multi-agent work, keep process observations in the plan only when they

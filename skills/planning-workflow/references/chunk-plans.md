@@ -18,6 +18,12 @@ Each agent should complete one coherent chunk, run focused validation, update
 the progress log, and stop with a handoff when more work remains. Do not
 combine unrelated chunks just because context remains.
 
+If later sizing shows that an in-flight chunk is oversized but it is making
+coherent progress, do not interrupt solely to retrofit packet boundaries.
+Record independent review contracts, judge and accept each contract separately,
+and return only a failed slice for rework. Apply the smaller boundaries
+prospectively to later packets.
+
 ## Progress Log Edits
 
 When a plan repeats marker text such as next-chunk recommendations, anchor a
@@ -79,8 +85,22 @@ support the cached patch only when those paths have no unstaged drift.
 ## Accepted Patch Identity
 
 When independent review accepts an unstaged patch and validation commands may
-mutate it, record the exact baseline and hash the complete `git diff --binary`
-using explicit, repeatable options. Apply that exact patch to an isolated
+mutate it, require a clean index so `HEAD` is the exact baseline. Inventory
+every untracked file as included or excluded, then use the bundled helper to
+hash the tracked binary diff followed by deterministic binary diffs for every
+included untracked file:
+
+```sh
+${HOME}/.agents/skills/planning-workflow/scripts/patch-identity.rb \
+  --include-untracked path/to/new-test.R \
+  --exclude-untracked path/to/unrelated-note.md
+```
+
+Repeat either option as needed. The helper refuses uncategorized untracked
+files, staged changes, and empty patches; it reports the baseline and inventory
+on standard error and prints only the SHA-256 on standard output. An equivalent
+recipe must be NUL-safe and must not label a tracked-only `git diff --binary`
+digest as the complete working patch. Apply the accepted patch to an isolated
 checkout for generators and other mutation-capable checks; treat any generated
 difference as review evidence instead of changing the submitter's checkout.
 
