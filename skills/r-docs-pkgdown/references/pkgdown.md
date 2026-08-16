@@ -88,6 +88,21 @@ static figure still represents current behavior. Semantic dependency review is
 not a generic validator problem; keep repository-specific rendering and cleanup
 mechanics local.
 
+## Retiring Stale Site Artifacts
+
+When removing output from an old pkgdown layout, validate three boundaries
+separately:
+
+1. Resolve repository consumers of the exact candidate files.
+2. Identify the configured current destination, canonical article sources, and
+   URL or navigation ownership. Classify same-name redirect assets separately.
+3. Build the source archive and inspect expected presence and absence after the
+   deletion.
+
+Delete only established legacy output. Use explicit no-diff checks to protect
+current sources, redirects, `_pkgdown.yml`, and other guarded configuration;
+similar names do not prove that an asset is generated debris.
+
 ## GitHub Pages
 
 `usethis::use_pkgdown_github_pages()` has both local scaffolding and remote

@@ -30,3 +30,13 @@ case. The command writes `<prefix>.csv` with per-repetition timings and
 and relative speed versus the baseline. Treat the generated files as benchmark
 evidence, not package validation, and follow the active plan or repository
 policy when deciding whether to retain them.
+
+## Allocation Evidence
+
+Name the allocation profiler, warmup or JIT policy, and allocation class it can
+observe. A zero from warmed `Rprofmem()` means only that the measured run
+reported no vector-heap allocation events; it does not prove that R created no
+cons cells or performed no allocation work. When a zero is surprising, add a
+sanity control that the profiler should detect. If allocation is
+decision-critical, select a profiler that observes the relevant class or state
+the limitation explicitly.

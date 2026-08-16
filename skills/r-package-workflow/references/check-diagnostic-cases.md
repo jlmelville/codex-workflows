@@ -14,8 +14,17 @@ do not make the next action clear.
 - **Useful witness:** Reproduce the affected path, compare the pre-change
   baseline, and identify whether the emitting operation belongs to repository
   code, the toolchain, or an external service.
+- **Clock witness:** For a future-file or bad-clock diagnostic, compare the
+  worker clock with provider control-plane timestamps and a same-commit
+  independent runner. Inspect the external time source R accepted: a reachable
+  but stale HTTP `Date` header is different from an unreachable time service or
+  a genuinely future-dated repository file.
 - **Related mechanic:** Use the cache or network rerun in
   [checks.md](checks.md#restricted-environment-mechanics) when applicable.
+
+Disable only remote system-clock verification, and only after those witnesses
+assign ownership outside the repository. Do not suppress the future-file check
+or change package code to accommodate stale external time.
 
 ## Planning Artifact During Package Check
 

@@ -29,6 +29,16 @@ tool behavior. This skill owns R-specific workflow semantics.
 
 See [github-actions.md](references/github-actions.md) for patterns.
 
+## Legacy CI Retirement
+
+Retire a hosted CI provider from the outside in. Disable push and pull-request
+triggers, or delete the provider project, before pushing the cleanup commit.
+Then remove repository configuration, ignore entries, badges, and current
+release claims. Verify the active replacement checks and branch-protection
+expectations before removing a required legacy context. After the push, confirm
+that the retired provider emitted no fresh build or status when practical;
+historical contexts on old commits are not current activity.
+
 ## Pkgdown Deploy Pattern
 
 Prefer a two-job workflow:

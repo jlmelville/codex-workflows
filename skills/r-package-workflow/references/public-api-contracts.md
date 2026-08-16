@@ -84,6 +84,16 @@ warning, or an unrelated downstream failure. Exercise shared scalar, vector,
 and count paths through exported APIs, asserting both the intended condition
 and the absence of a coercion warning.
 
+## Shared Controls at Consumer Boundaries
+
+When one control appears at multiple exported boundaries, inventory each entry
+point, stored configuration, and actual consumer before centralizing its
+validator. Let shared storage represent the broadest intentional domain,
+including documented sentinels, and enforce narrower finite or range rules at
+the consumer that requires them. Treat established positive compatibility
+tests as contract evidence; do not rewrite them into sentinel workarounds merely
+to satisfy a newly shared validator without an explicit compatibility decision.
+
 ## Progress Messages
 
 When progress messages are controlled by a `verbose` flag, pass the validated

@@ -43,6 +43,13 @@ executable comparison examples enact the complete reproducibility recipe:
 reset the seed immediately before every sampled call and keep thread or worker
 settings identical. Review the prose and examples as one contract.
 
+When documentation promises callback execution, lazy calculation, caching, or
+convergence work under a hard resource cap, audit nearby unconditional claims
+such as "will calculate" or "always evaluates" against every applicable guard.
+Exercise the zero-budget boundary when the interaction is not obvious, and
+qualify the promise with the governing cap even when a separate budget section
+already states the limit correctly.
+
 ## Reference Values And Locations
 
 For paired reference values and locations, state their correspondence first.

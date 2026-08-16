@@ -206,6 +206,20 @@ CI-container, or external-service output. Preserve these exact recipes:
 - When material pkgdown or package-check validation fails because DNS, CRAN
   metadata, or external assets are blocked, rerun through the applicable
   network-approval path before assigning the failure to package behavior.
+- When an otherwise clean check reports that it cannot verify current time, or
+  a bad-clock NOTE has been attributed to a stale external time source using
+  the clock witnesses in the casebook, rerun only that check with remote clock
+  verification disabled:
+
+  ```r
+  withr::with_envvar(
+    c("_R_CHECK_SYSTEM_CLOCK_" = "FALSE"),
+    devtools::check(document = FALSE, args = c("--no-manual"))
+  )
+  ```
+
+  Retain every other check setting, disclose the initial diagnostic and clean
+  rerun, and continue to fail genuine future-timestamp findings.
 
 If ownership remains ambiguous after the relevant rerun and attribution
 checks, consult the optional

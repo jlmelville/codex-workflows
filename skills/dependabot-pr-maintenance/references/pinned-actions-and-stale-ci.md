@@ -72,6 +72,10 @@ Separate conclusions clearly:
 - `inconclusive`: validation could not inspect logs, fetch upstream refs, or
   run the relevant checks.
 
+For a retired CI provider, distinguish historical PR-head statuses from a fresh
+context emitted for the current commit. Only the latter shows that provider
+triggers remain active.
+
 ## Batch Merge
 
 When merging multiple bot PRs, especially overlapping Dependabot action PRs,
@@ -102,6 +106,11 @@ repeat the verified merge loop for each PR:
    and treat every regenerated head as new work: re-read the exact patch and
    PR state, repeat relevant local validation, wait for fresh required checks,
    and use the new expected head SHA when merging.
+10. After the last merge, treat the final base-branch commit as the terminal
+    batch witness. Wait for every supported workflow on that commit to reach a
+    terminal state and record the result. Concurrency-cancelled intermediate
+    pushes are acceptable when the final supported run succeeds; a fresh
+    legacy-provider context on the final commit is not.
 
 If inherited global Git URL rewriting sends the post-merge fetch through an
 unusable transport, bypass global configuration for that fetch and use an

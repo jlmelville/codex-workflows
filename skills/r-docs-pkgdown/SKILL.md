@@ -14,6 +14,10 @@ Use this for documentation and pkgdown work in R packages.
   `pak::pak("owner/repo")` over deprecated `devtools::install_github()`.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
+- When an article or vignette labels a chunk self-contained or copy-paste-ready,
+  run that bounded chunk in a fresh environment containing only its declared
+  setup. A successful full render does not prove independence when earlier
+  chunks can supply mutable objects or state.
 - Treat audit suggestions for new tutorials, comparison tables, examples, or
   plots as hypotheses rather than completion requirements. Require a named user
   task and a confirmed coverage gap, account for dataset, dependency,
