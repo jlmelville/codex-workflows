@@ -30,7 +30,8 @@ Use this as the default operating procedure for R package work.
   stored metadata, and documentation that claim broader applicability at every
   newly admitted boundary class. Use the reference-applicability checklist in
   [checks.md](references/checks.md#reference-metadata-applicability).
-- For API naming, public diagnostic value, warning ownership, or progress-message
+- For API naming, public validation domains, shared controls, documented
+  sentinels, public diagnostic value, warning ownership, or progress-message
   contracts, read
   [public-api-contracts.md](references/public-api-contracts.md).
 - When an exported API forwards `...` to interchangeable backends, follow

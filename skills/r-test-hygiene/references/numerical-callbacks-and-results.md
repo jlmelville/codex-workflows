@@ -58,6 +58,31 @@ the contract. Reject equality, increase, non-finiteness, unevaluated values,
 and status-only success. On failure, return the exact inactive or starting
 state and do not cache rejected candidates.
 
+## Proposal Generation And Search Liveness
+
+Treat interpolation, extrapolation, and other iterative proposal formulas as
+fallible before evaluation, even when every input is finite. Check required
+algebraic domains such as nonzero denominators or admissible discriminants,
+then require the proposed scalar to be finite, inside the permitted region,
+and representably different from the current state or relevant endpoint in the
+direction the algorithm needs. Never pass an invalid or nonprogressing proposal
+to a callback.
+
+Keep invalid public controls distinct from proposals derived from otherwise
+valid runtime state. Reject the former at the public boundary; route the latter
+through the algorithm's established numerical-failure or recovery policy. A
+recovery update must itself be finite, distinct, and strictly contract its
+bracket or otherwise advance the search state. If no representable progress is
+available, terminate through the safe fallback rather than looping, even when
+the evaluation allowance is unbounded.
+
+Regress the owning algorithm rather than only the algebraic helper. Cover the
+decisive algebraic degeneracies, overflow-derived proposals, endpoint rounding
+with no representable interior, and a supported unbounded allowance when one
+exists. Assert termination, absence of invalid callback parameters, exact
+callback counts, and the final safe result. Trace the effective allowance from
+the exported path instead of inferring it from private defaults.
+
 ## Realized Adapter Results
 
 Reconstruct the complete public result before installing a backend result. A
