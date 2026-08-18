@@ -17,6 +17,33 @@ callback counts. A confirmed bug overrides a legacy trace: update only the bad
 expectation and retain unaffected behavior. Test private helpers by invariant,
 not merely by replaying their current implementation.
 
+## Conditions And Method Decisions
+
+Name a Boolean for its exact truth set. When a primitive mathematical condition
+and method-specific acceptance can diverge, represent and name them separately
+rather than naming the composed decision after the primitive condition. Exercise
+equality, endpoints, exterior values, extra gates, and policy precedence wherever
+they can make the two decisions coincide or diverge.
+
+## Transition Topology And Sharing
+
+Before consolidating related methods behind one engine, inventory callback
+cardinality per transition, nested search or repair loops, conditional extra
+proposals, endpoint identity, and fallback timing. Share data, evaluators,
+policies, and safeguards whose contracts match. Keep a method-specific engine
+when strategy callbacks would hide resource ownership or make one logical
+update conceal a callback-producing loop.
+
+## Failure Results Carry State
+
+Treat transition status and transition progress separately. A helper that has
+consumed callbacks or completed valid updates must return its latest valid state
+on both success and failure, and its caller must adopt that state before
+termination. Keep public fallback selection authoritative across all observed
+candidates. Pair a narrow transition invariant with an owning-algorithm result,
+because central finalization can mask discarded helper state and a helper-only
+test can miss stale outer selection.
+
 ## Tagged Cache Entries
 
 Treat a cached value and its iteration, version, or parameter marker as one

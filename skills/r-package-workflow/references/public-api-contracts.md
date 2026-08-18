@@ -22,6 +22,14 @@ than assuming every change to either surface is public. An internal identifier
 can share a token with a public field, so do not treat a global substitution as
 proof that the boundary stayed stable.
 
+For a Boolean rename, compare the proposed name with the exact predicate rather
+than one recognizable term inside it. Use a truth table or a counterexample at
+equality, endpoint, and additional-gate boundaries when those cases can change
+the result. For a shared private prefix, mechanically inventory every anchored
+definition first, then classify each returned abstraction and side effect—for
+example factory, policy builder, state initializer, predicate, or mutator—before
+choosing common vocabulary.
+
 An intentional rename of a registered but unexported native entry point may
 change generated wrappers and registration symbols without a compatibility
 alias when package policy explicitly treats direct access as unsupported and a

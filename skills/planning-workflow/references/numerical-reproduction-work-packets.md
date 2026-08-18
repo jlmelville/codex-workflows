@@ -4,6 +4,17 @@ Use this reference when reproducing a layered numerical research method whose
 failure could arise from transcription, solver algebra, operators, geometry,
 regularization, estimated intermediate fields, or the published finite model.
 
+## Map The Implemented Method Boundary
+
+Before comparing code with a publication, trace the public method profile
+through default and alias resolution, first and later initialization,
+callback-budget ownership, transition engines, recovery, finalization, caches,
+and returned state. Mark every phase that owns a defining formula or callback,
+then apply equation and resource oracles to the implementation actually
+selected by the public path. Treat computed-but-unused mathematical terms and
+unexplained norm or scaling substitutions as transcription signals. Do not
+claim the method is audited while an owning lifecycle phase remains unmapped.
+
 ## Decompose Before Tuning
 
 Inventory the defining equations, solver, kernel scale, graph topology,
@@ -32,6 +43,20 @@ Record negative results in the active plan so later work cannot reopen a ruled-
 out cause without new evidence. An outcome-dependent gate should say whether to
 repair the current reproduction, stop because an upstream precondition failed,
 or start a separately identified method-development decision.
+
+## Favorable Hypothesis-Class Oracles
+
+When a proposed repair changes the selector but retains a fixed candidate
+representation, test that hypothesis class before building the deployable
+selector. Freeze the representation, give a bounded selector favorable access
+to truth or exact local invariants, predeclare the searched family and the local
+property that motivated the repair, and retain every declared result.
+
+Use the outcome as a boundary, not an impossibility claim. A positive oracle
+localizes the remaining problem to practical unsupervised selection. A negative
+oracle closes only the exercised representation-objective pair. If untested
+nonlinear objectives or representations remain plausible, state that scope
+explicitly before opening a separate method-development plan.
 
 ## Hard-to-Soft Constraint Closure
 

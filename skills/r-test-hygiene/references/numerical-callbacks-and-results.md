@@ -55,8 +55,12 @@ absent only when the contract explicitly permits that omission.
 Separate the primary acceptance rule from any weaker exhaustion fallback. A
 fallback should be finite, actually evaluated, and strictly better when that is
 the contract. Reject equality, increase, non-finiteness, unevaluated values,
-and status-only success. On failure, return the exact inactive or starting
-state and do not cache rejected candidates.
+and status-only success. When no valid transition occurred, return the exact
+inactive or starting state and do not cache rejected candidates. A nested helper
+that consumed callbacks and produced valid transition state must instead return
+that latest state even when its status is failure; callers adopt it before
+finalization. See
+[state-machine-contracts.md](state-machine-contracts.md#failure-results-carry-state).
 
 ## Proposal Generation And Search Liveness
 

@@ -799,6 +799,24 @@ run_patch_identity_smoke() {
     "patch-identity.rb: invalid argument: unexpected argument: extra" \
     "${script}" extra
 
+  for ruby_command in "$(command -v ruby)" /usr/bin/ruby; do
+    [[ -x "${ruby_command}" ]] || continue
+    if (
+      cd "${smoke_dir}/repo" && "${ruby_command}" "${script}" \
+        --include-untracked new-test.R \
+        --include-untracked new-test.R \
+        >"${stdout_file}" 2>"${stderr_file}"
+    ); then
+      echo "patch-identity.rb should reject duplicate included paths under ${ruby_command}" >&2
+      return 1
+    else
+      command_status=$?
+    fi
+    [[ "${command_status}" -eq 1 ]]
+    [[ ! -s "${stdout_file}" ]]
+    grep -Fq 'duplicate included path: "new-test.R"' "${stderr_file}"
+  done
+
   if (cd "${smoke_dir}/repo" && "${script}" >"${stdout_file}" 2>"${stderr_file}"); then
     echo "patch-identity.rb should reject uncategorized untracked files" >&2
     return 1

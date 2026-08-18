@@ -36,7 +36,9 @@ module PatchIdentity
 
   def classify_paths(values, label, root, available)
     normalized = values.map { |path| normalize_path(path, root) }
-    duplicate = normalized.tally.find { |_path, count| count > 1 }&.first
+    counts = Hash.new(0)
+    normalized.each { |path| counts[path] += 1 }
+    duplicate = counts.find { |_path, count| count > 1 }&.first
     raise Error, "duplicate #{label} path: #{duplicate.inspect}" if duplicate
 
     unknown = normalized.reject { |path| available.include?(path) }
