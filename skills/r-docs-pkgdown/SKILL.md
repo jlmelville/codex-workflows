@@ -18,6 +18,10 @@ Use this for documentation and pkgdown work in R packages.
   run that bounded chunk in a fresh environment containing only its declared
   setup. A successful full render does not prove independence when earlier
   chunks can supply mutable objects or state.
+- For bounded fresh-session checks, including the direct temporary-library
+  installation fallback used when higher-level helpers attempt unavailable
+  dependency planning, follow
+  [validation.md](references/validation.md).
 - Treat audit suggestions for new tutorials, comparison tables, examples, or
   plots as hypotheses rather than completion requirements. Require a named user
   task and a confirmed coverage gap, account for dataset, dependency,

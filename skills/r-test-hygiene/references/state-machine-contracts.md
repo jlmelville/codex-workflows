@@ -34,6 +34,21 @@ policies, and safeguards whose contracts match. Keep a method-specific engine
 when strategy callbacks would hide resource ownership or make one logical
 update conceal a callback-producing loop.
 
+## State Ownership And Transition Decomposition
+
+Before restructuring a transition, classify each field as canonical state,
+derived measure, local proposal metadata, or compatibility-only duplication.
+Keep complete records in one canonical mathematical domain and derive reversible
+transforms, bounds, and proposal-local measures where they are consumed.
+
+Separate pure case classification and proposal calculation from endpoint or
+state mutation and from numerical safeguarding. Join them with a concise
+orchestrator only when it makes those boundaries clearer, and keep callback
+ownership plus termination precedence visible in the resource-owning loop.
+Gate the refactor with transition invariants, exact traces, callback counts, and
+the complete owning-algorithm result; structural cleanup alone is not evidence
+of behavior neutrality.
+
 ## Failure Results Carry State
 
 Treat transition status and transition progress separately. A helper that has

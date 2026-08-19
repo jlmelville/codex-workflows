@@ -56,6 +56,13 @@ implementation as a test dependency. After the supported-mode oracles pass,
 delete unreachable-mode tests with the obsolete code they would otherwise keep
 alive.
 
+Pin the preserved lineage to the exact paper, routine, version, or port rather
+than relying on a shared algorithm name. When credible lineages differ, add a
+narrow transition-level discriminator at the predicate or update where they
+diverge, and record whether the refactor preserves one lineage or intentionally
+migrates to another. Treat source disagreement as a variant choice until a
+mathematical, safety, or supported-contract witness establishes a defect.
+
 ## Research Prototype Defaults
 
 Test structural algebra and empirical target recovery as separate evidence

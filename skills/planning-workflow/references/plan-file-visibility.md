@@ -29,6 +29,33 @@ ignored plan file is part of the work, pair diff hygiene with an explicit
 whitespace check over those paths, such as
 `rg -n '[ \t]+$' plans/new-plan.md`, before claiming whitespace is clean.
 
+## Synchronization Preflight And Recovery
+
+Ignored status describes the current worktree, not repository history. Before
+rebasing a long local stack that contains valuable ignored or untracked plans,
+record the current branch and commit, check whether those exact paths appeared
+in the commits that may be replayed, and optionally record content identities
+with `git hash-object --no-filters -- <path>`.
+
+If a pull or rebase stops because an untracked plan would be overwritten, do
+not solve the collision by staging, deleting, or committing the private plan.
+Preserve `git status`, the saved branch and commit, and any artifact hashes.
+When the recovery goal is to abandon the replay and return to the pre-rebase
+branch, inspect `HEAD` and `ORIG_HEAD`, run `git rebase --abort`, then verify the
+branch commit and plan hashes against the saved values. If repository topology
+or user intent instead requires completing the replay, stop and choose that
+path explicitly rather than mutating the local plans as an unblock tactic.
+
+## Ignored Executable Evidence
+
+Treat an ignored script, notebook, or benchmark harness as executable evidence,
+not as a passive planning note. Before citing its result, confirm its tracking
+and ignore status, resolve its entry points and record shapes against current
+source, and run the cheapest bounded smoke invocation. Repeat that freshness
+gate after private constructors, fields, or protocols it consumes are renamed.
+If it is stale, make a harness-only refresh an explicit prerequisite rather
+than running it as though it were current evidence.
+
 ## Location Choice
 
 When creating a persistent plan, choose a location deliberately:

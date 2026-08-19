@@ -15,6 +15,23 @@ selected by the public path. Treat computed-but-unused mathematical terms and
 unexplained norm or scaling substitutions as transcription signals. Do not
 claim the method is audited while an owning lifecycle phase remains unmapped.
 
+## Publication-First Source Comparison
+
+For an inherited numerical method, preserve supported behavior with independent
+oracles, then map the publication's states, equations, invariants, and
+independently derivable formulas before inspecting additional reference
+implementations. Fix a tentative target design at that boundary so a later
+source cannot silently become the structural template.
+
+Afterward, classify every retained difference as publication-specified,
+publication-derivable, standard numerical safeguard, implementation choice,
+compatibility behavior, extension, or unresolved. Source disagreement is not a
+defect without a mathematical, safety, or supported-contract witness. Separate
+characterization, behavior-neutral restructuring, and any correctness change
+into reviewable packets. Use the
+[legacy numerical oracle firewall](../../r-test-hygiene/references/numerical-contracts.md#legacy-numerical-oracle-firewalls)
+for migration evidence without preserving obsolete implementation expression.
+
 ## Decompose Before Tuning
 
 Inventory the defining equations, solver, kernel scale, graph topology,
@@ -43,6 +60,39 @@ Record negative results in the active plan so later work cannot reopen a ruled-
 out cause without new evidence. An outcome-dependent gate should say whether to
 repair the current reproduction, stop because an upstream precondition failed,
 or start a separately identified method-development decision.
+
+## Nested Baseline Closure
+
+When a proposed extension contains a trusted baseline at an equality, zero, or
+other limiting setting, make that reduction the first gate. Compare local
+objects, the assembled operator, and the selected output or subspace where
+those layers exist; handle sign, basis, and repeated-eigenspace invariance
+explicitly instead of relying on one final plot.
+
+After closure, retain the baseline at its original parameter, the baseline
+under the proposed parameter change without the new mechanism, the equality
+control, and the actual extension. Treat one favorable setting as diagnostic
+only. Require stable results across fixed replicates and adjacent predeclared
+settings before optimization, compiled implementation, or public API work.
+
+## Local Chart Validity Across Noise Scales
+
+When a method claims to recover manifold coordinates, align the output under
+the method's admissible affine or subspace symmetry and predeclare local
+injectivity and conditioning witnesses. Use neighborhood-fitted Jacobian
+determinant signs, lower-tail singular values, condition-number tails, and,
+when latent triangulation is available, signed simplex orientation. Global
+association, affine error, and a plausible scatterplot remain secondary.
+
+Compare observation noise with sample spacing before interpreting point-scale
+simplex reversals. When tangential noise can reorder neighbors, use simplex
+orientation as a point-order diagnostic rather than a pure injectivity gate;
+construct a favorable oracle that unfolds while retaining the relevant
+displacement, then compare fitted Jacobians over declared physical scales,
+including boundary, interior, and spatial-coherence summaries. If the favorable
+or exact upstream oracle fails the local gate, stop downstream tuning. If only
+the raw point-scale statistic fails, reopen evaluation rather than silently
+changing the algorithm or the prior stop decision.
 
 ## Favorable Hypothesis-Class Oracles
 

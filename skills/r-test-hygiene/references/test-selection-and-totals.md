@@ -20,6 +20,10 @@ while other matches keep the run green.
 
 ## Compact Totals
 
+Record the exact command and whether the reported count comes from structured
+testthat results, reporter output, or another validation lane. Do not label a
+number exact when its counting convention is unstated.
+
 When expectations live inside named `test_that()` blocks, derive totals from
 the structured result:
 
@@ -49,6 +53,11 @@ expectations. Those may appear in reporter output without a corresponding row
 in the structured result. Move them into named blocks when that cleanup is in
 scope; otherwise reconcile the reporter with the known baseline and state the
 limitation.
+
+Keep top-level reporter markers, package-check examples, snapshot checks, and
+other validation lanes separate from the structured result. If two reports
+claim different exact totals for the same patch, reproduce both conventions and
+reconcile the delta before choosing or repeating either number.
 
 ## Completeness Review
 

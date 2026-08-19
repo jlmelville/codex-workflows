@@ -52,6 +52,14 @@ complete state the algorithm consumes: parameters, objective, derivatives, and
 other required metadata. Retain an observed candidate if optional metadata is
 absent only when the contract explicitly permits that omission.
 
+Do not replace unavailable numerical metadata with zero, one, infinity, or
+another meaningful scalar merely to satisfy a shared interface. Propagate an
+explicit unavailable value to each consumer, then disable or reject only the
+stopping rule, scale transformation, or other decision that requires the
+missing measurement. Pair the missing-metadata path with a supplied-metadata
+control through the owning algorithm so safe finalization cannot conceal
+premature termination.
+
 Separate the primary acceptance rule from any weaker exhaustion fallback. A
 fallback should be finite, actually evaluated, and strictly better when that is
 the contract. Reject equality, increase, non-finiteness, unevaluated values,
@@ -86,6 +94,20 @@ with no representable interior, and a supported unbounded allowance when one
 exists. Assert termination, absence of invalid callback parameters, exact
 callback counts, and the final safe result. Trace the effective allowance from
 the exported path instead of inferring it from private defaults.
+
+## Default-Preserving Repair Experiments
+
+Treat an exact predicate mismatch or unsafe finite-arithmetic witness as an
+investigation gate, not an automatic default change. When comparison requires a
+seam, make it private and default-off, vary only the disputed decision, and
+first prove the local divergence.
+
+Then use a bounded predeclared matrix to compare owning-search trajectories,
+callback counts, termination and fallback behavior, and representative
+optimizer outcomes. Promote a new default only against an explicit safety or
+outcome criterion. If the evidence establishes only different trajectories or
+occasional callback savings, preserve the supported default and close the
+experiment at that narrower conclusion.
 
 ## Realized Adapter Results
 

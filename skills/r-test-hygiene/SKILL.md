@@ -114,6 +114,9 @@ need direct file execution.
 For exact file selection, reported-context checks, compact result totals, or a
 suspected incomplete full-suite run, read
 [test-selection-and-totals.md](references/test-selection-and-totals.md).
+When claiming an exact total, name the command and counting convention, reconcile
+legacy top-level expectations, and report additional validation lanes separately
+rather than folding them into the structured testthat count.
 
 For callback budgets and result validation, bounded numerical searches, or
 adapters that install backend results, read

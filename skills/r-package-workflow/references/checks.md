@@ -76,30 +76,17 @@ record or revert unrelated metadata churn, especially roxygen maintenance in
 be exercised without documentation upkeep, prefer
 `devtools::check(document = FALSE, ...)` when it gives enough coverage.
 
-## Vignette Skip Semantics
+## Focused Documentation And Compiled Checks
 
-When CI policy is "do not build vignettes", distinguish the two `rcmdcheck`
-layers:
+Use `$r-docs-pkgdown` for roxygen, README, article, vignette, and pkgdown
+validation. Its routed
+[documentation-validation reference](../../r-docs-pkgdown/references/validation.md)
+owns fresh-session checks and the restricted temporary-library install recipe.
 
-- `build_args` is passed to `R CMD build`.
-- `args` is passed to `R CMD check`.
-
-For `r-lib/actions/check-r-package`, putting `--no-build-vignettes` only in
-`args` does not stop build-time vignette rebuilds. When no `inst/doc` vignette
-output is expected, use `--no-build-vignettes` on the build side and
-`--ignore-vignettes` on the check side:
-
-```r
-rcmdcheck::rcmdcheck(
-  args = c("--no-manual", "--ignore-vignettes"),
-  build_args = c("--no-manual", "--no-build-vignettes"),
-  error_on = "never"
-)
-```
-
-If local or CI output says a vignette was rebuilt despite an intended skip, or
-reports "Package vignette without corresponding single PDF/HTML", inspect both
-layers before changing vignette sources.
+When CI intentionally skips vignette building, use the two-layer `rcmdcheck`
+contract in `$r-ci-hardening`; workflow build and check arguments have different
+owners. Use `$r-rcpp-package` for attribute regeneration, generated-wrapper
+review, compiled checks, and C++ formatting boundaries.
 
 ## R Warning Attribution
 
@@ -170,31 +157,6 @@ Inspect generated and temporary output before finalizing:
 creating new files, run an explicit whitespace check over those paths, such as
 `rg -n '[ \t]+$' <new-files>`, or use
 `git diff --no-index --check /dev/null <new-file>` for a single file.
-
-## Documentation
-
-- Roxygen refresh: `Rscript -e 'roxygen2::roxygenise()'`
-- README/article smoke tests if present.
-- pkgdown build when changing `_pkgdown.yml`, articles, examples, or generated
-  docs: `Rscript -e 'pkgdown::build_site(new_process = FALSE)'`
-
-After roxygen refreshes, inspect `git diff -- DESCRIPTION` separately and
-revert unrelated changes. During an intentional documentation rebuild, retain
-expected generator-version metadata from the installed roxygen release unless
-the repository explicitly pins another generator. When a command mutates
-documentation incidentally and no rebuild was requested, keep treating that
-metadata as unrelated churn.
-
-Network-restricted environments may need escalation for pkgdown external
-assets or CRAN metadata.
-
-## Rcpp
-
-- Attribute refresh: `Rscript -e 'Rcpp::compileAttributes()'`
-- Full tests after compiled changes.
-- `R CMD check` or `devtools::check()` for installation and compiled-code
-  checks.
-- Run clang-format checks for hand-maintained C++ if configured.
 
 ## Restricted Environment Mechanics
 

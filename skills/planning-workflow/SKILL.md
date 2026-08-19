@@ -152,5 +152,9 @@ why; relevant files, commands, and expected observations; validation already run
 and remaining gaps; the exact next action and guardrails; and any reusable
 workflow-retrospective notes gathered during the work.
 
+For a handoff, verify every `Read first` path exists in the recipient's context.
+Name an inline substitute explicitly, and keep independent required reads
+separable so one missing or substituted path cannot suppress the rest.
+
 If any of those are missing at a stopping point, update the plan or include a
 handoff before ending the turn.
