@@ -42,6 +42,13 @@ update coefficients, or finite-termination counts where relevant. Golden output
 on a difficult nonlinear benchmark can cover recipe wiring, but it does not
 prove exact-condition equivalence or N-step termination.
 
+Treat adapted diagnostics as part of the same equivalence contract. Inventory
+their units, value domains, caps, sentinel or null meanings, and aggregation
+domains rather than comparing only field names or headline counts. Use an
+adversarial case where a coarse count agrees while an uncapped, basis-limited,
+or differently aggregated diagnostic diverges, then compare every promised
+diagnostic after adaptation.
+
 ## Legacy Numerical Oracle Firewalls
 
 Before replacing port-shaped or legacy numerical code, inventory which modes
@@ -105,6 +112,14 @@ the map-back identity through the public result. Express structural-subspace
 comparisons in the coordinate system—or weighted inner product—where the
 compared vectors are mathematically equivalent.
 
+When a fast path replaces singular values with eigenvalues of a Gram or
+covariance matrix, do not assume algebraically related rank cutoffs are
+numerically equivalent after the spectrum is squared. If it must preserve a
+direct-factorization rank decision, use a multiscale boundary fixture and
+compare both rank diagnostics and the owning numerical result. Derive the
+cutoff in the transformed domain, and fall back to a better-conditioned
+factorization when the transformed evidence is ambiguous.
+
 ## Diagnostics After Input Transformation
 
 When a pipeline canonicalizes, filters, deduplicates, drops structural columns,
@@ -134,6 +149,13 @@ the cutoff, assert membership-independent public invariants such as width,
 range, uniqueness, distances, and self handling. Reserve exact-ID golden tests
 for fixtures where the complete boundary tie is known to be represented or the
 backend explicitly guarantees its selection policy.
+
+When smaller structures are derived by taking prefixes of one maximum-width
+row, place every structural index or sentinel required at all scales in a
+canonical position that survives the shortest prefix. Apply optional removal
+before truncation, and reject precomputed layouts that merely contain the
+marker elsewhere. Test an adversarial row whose marker lies outside the
+smallest prefix under both retention and removal conventions.
 
 ## Undefined Rows And Aggregation
 

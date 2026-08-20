@@ -24,6 +24,11 @@ across agents and sessions.
 4. Define the acceptance question before editing: what must stay semantically
    identical, what speed or allocation evidence is expected, and what benchmark
    is strong enough to justify the change.
+5. Before selecting an algorithm grid, inventory relevant capabilities from
+   each problem or data provider through its adapter to each method's
+   prerequisites. Record explicit field mappings, exercised capabilities, and
+   intentional method exclusions; smoke-test at least one case through every
+   mapped capability before claiming algorithm-family coverage.
 
 ## Phase Discipline
 
@@ -67,6 +72,21 @@ For new optimizer or algorithm method profiles, keep experimental variants as
 internal prototypes until benchmark evidence, failure diagnostics, and
 complementarity against existing methods justify making them public documented
 choices. Do not graduate a method on raw speed alone.
+
+## Strategic Reassessment
+
+A crossed performance gate is evidence, not indefinite authorization to keep
+optimizing. At each separable phase boundary, record the latest absolute
+whole-operation impact and the remaining gate gap. Before opening another
+phase, pause for user review when recent candidates are marginal or rejected,
+component timings cannot plausibly close a meaningful part of the gap,
+profiles conflict with direct timings, or complexity is growing for a
+microbenchmark-scale gain.
+
+Present continue, revise-gate, accept-current, and stop options. If no
+materiality threshold exists, establish one instead of assuming every
+detectable gain is valuable. Scope review packets to both correctness and
+benchmark fairness and whether continued optimization is worth pursuing.
 
 ## Semantic Guardrails
 

@@ -102,6 +102,14 @@ the consumer that requires them. Treat established positive compatibility
 tests as contract evidence; do not rewrite them into sentinel workarounds merely
 to satisfy a newly shared validator without an explicit compatibility decision.
 
+Classify validation by data ownership and independent support. Validate user
+values once at the supported entry or first consuming boundary and validate
+external callback results at first consumption. A private helper reached only
+with normalized package-owned state may trust that invariant; do not preserve
+malformed direct-call tests as a contract unless the helper is independently
+supported. Keep non-finiteness, liveness, and recovery checks that describe
+algorithm state rather than malformed input.
+
 ## Progress Messages
 
 When progress messages are controlled by a `verbose` flag, pass the validated

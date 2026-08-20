@@ -16,6 +16,16 @@ identity assertion when numerically correct results cannot prove that an
 allocation-unsafe conversion was avoided. Document the safety invariant that
 justifies the internal test.
 
+## Structural Support Contracts
+
+When one sparse input estimates numerical quantities and another defines where
+contributions may be scattered, test those contracts independently. Define the
+allowed coordinate set, construct an adversarial fixture with estimation-only
+rows or columns, and assert that occupied slots are an exact subset of the
+allowed support and forbidden slots remain exactly zero. Keep tolerance-based
+value comparisons and algebraic invariants as separate evidence; dense
+closeness cannot establish structural nonparticipation.
+
 ## Slot Aggregation
 
 For unweighted structural counts, `tabulate()` is appropriate:

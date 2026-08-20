@@ -59,6 +59,13 @@ candidates. Pair a narrow transition invariant with an owning-algorithm result,
 because central finalization can mask discarded helper state and a helper-only
 test can miss stale outer selection.
 
+When a nested helper returns a safe no-op or fallback after non-success,
+preserve its termination reason and resource use far enough for the owning loop
+to classify the outcome. Do not let an outer tolerance rule relabel a fallback
+caused by local exhaustion or recovery failure as ordinary convergence. Test
+the accepted state or step, inner reason and callback counts, outer precedence,
+and a genuine stationary control together.
+
 ## Tagged Cache Entries
 
 Treat a cached value and its iteration, version, or parameter marker as one
