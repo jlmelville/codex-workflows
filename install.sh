@@ -292,11 +292,24 @@ report_lock_owner() {
   echo "Remove the lock directory only after confirming no installer is running." >&2
 }
 
+report_lock_creation_failure() {
+  echo "install.sh: could not create install lock directory ${lock_dir}" >&2
+  if [[ -e "${lock_dir}" || -L "${lock_dir}" ]]; then
+    echo "A non-directory path already exists at the lock location." >&2
+  else
+    echo "Check write permission and filesystem availability for ${agents_home}." >&2
+  fi
+}
+
 acquire_lock() {
   mkdir -p "${agents_home}"
   lock_token="pid=$$ host=$(host_name) created_at=$(now_utc)"
   if ! mkdir "${lock_dir}" 2>/dev/null; then
-    report_lock_owner
+    if [[ -d "${lock_dir}" ]]; then
+      report_lock_owner
+    else
+      report_lock_creation_failure
+    fi
     exit 1
   fi
   lock_acquired=1

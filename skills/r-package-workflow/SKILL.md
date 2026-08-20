@@ -90,7 +90,8 @@ Scripts:
 - `${HOME}/.agents/skills/r-package-workflow/scripts/audit-generated-r-files.sh`:
   list likely generated files touched in the current diff.
 
-For sparse `Matrix` slot-level implementation work, use the idioms in
+For sparse `Matrix` class preservation, exact structural-support contracts, or
+slot-level implementation work, use the idioms in
 [sparse-matrix.md](references/sparse-matrix.md).
 
 If the task touches a narrower area, also apply the focused skill when

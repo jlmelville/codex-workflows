@@ -86,6 +86,7 @@ papercuts --archive
 close-papercut --id ID --outcome OUTCOME --rationale TEXT
 template decision
 process --id ID --decision PATH
+reconsider --id ID --decision PATH
 template accepted
 record-accepted --file PATH
 update-accepted --id ID --file PATH
@@ -191,6 +192,13 @@ accepted outcomes, drafts, ledger actions, and a due artifact audit. Triage
 decides which event-based triggers have fired rather than merely refreshing
 their dates. Every triage run must inspect that queue before proposing its
 batch.
+
+When a deferred candidate's review trigger fires, create a complete replacement
+decision and use `reconsider --id ID --decision PATH`. The helper accepts only a
+currently deferred archived candidate and a newer `reviewed_at` timestamp. It
+preserves every prior deferral in `triage_history`, replaces the active `triage`,
+and leaves a replacement `defer` in the review queue while removing a terminal
+replacement verdict from it. Do not direct-edit archived triage state.
 
 After user acceptance, follow
 [report-to-patch.md](report-to-patch.md) for public implementation, validation,

@@ -89,6 +89,8 @@ For `defer`, require a review trigger, next action, and close condition. For
 `split` or `merge`, name all related opaque candidate IDs and preserve lineage.
 Keep drafts distinct from deferrals: a draft is a coherent new-skill kernel with
 activation criteria, while a deferral is evidence awaiting a specific decision.
+When a deferred trigger fires, attach its replacement verdict with the helper's
+`reconsider` command so earlier triage remains preserved as lineage.
 
 Drain every contradicted accepted outcome by correcting source guidance and
 marking it `superseded`, removing source guidance and marking it `reverted`, or

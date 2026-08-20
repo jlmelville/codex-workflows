@@ -22,6 +22,18 @@ assert_file_contains() {
   fi
 }
 
+assert_file_not_contains() {
+  local file="$1"
+  local needle="$2"
+
+  if grep -F "${needle}" "${file}" >/dev/null; then
+    echo "Expected ${file} not to contain: ${needle}" >&2
+    echo "--- ${file} ---" >&2
+    cat "${file}" >&2
+    exit 1
+  fi
+}
+
 path_mode() {
   local path="$1"
 
@@ -177,6 +189,21 @@ assert_file_contains "${tmp_root}/lock.out" "pid: 12345"
 assert_file_contains "${tmp_root}/lock.out" "hostname: smoke-host"
 assert_file_contains "${tmp_root}/lock.out" "created_at: 2026-01-02T03:04:05Z"
 [[ -d "${lock_agents_home}/.codex-workflows-install.lock" ]] || fail "installer removed a lock it did not acquire"
+
+denied_user_home="${tmp_root}/denied-lock-user-home"
+denied_agents_home="${denied_user_home}/.agents"
+create_fixture "${tmp_root}/denied-lock-fixture"
+mkdir -p "${denied_agents_home}"
+chmod 500 "${denied_agents_home}"
+if HOME="${denied_user_home}" CODEX_HOME="${denied_user_home}/.codex" "${tmp_root}/denied-lock-fixture/install.sh" >"${tmp_root}/denied-lock.out" 2>&1; then
+  chmod 700 "${denied_agents_home}"
+  fail "installer succeeded despite denied lock creation"
+fi
+chmod 700 "${denied_agents_home}"
+assert_file_contains "${tmp_root}/denied-lock.out" "could not create install lock directory"
+assert_file_contains "${tmp_root}/denied-lock.out" "Check write permission and filesystem availability"
+assert_file_not_contains "${tmp_root}/denied-lock.out" "another install appears"
+[[ ! -e "${denied_agents_home}/.codex-workflows-install.lock" ]] || fail "denied lock fixture created a lock"
 
 partial_fixture="${tmp_root}/partial-fixture"
 partial_user_home="${tmp_root}/partial-user-home"

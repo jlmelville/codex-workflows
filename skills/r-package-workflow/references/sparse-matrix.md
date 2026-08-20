@@ -1,7 +1,7 @@
 # Sparse Matrix Implementation Notes
 
-Use this when touching sparse-safe R code that works directly with
-`Matrix::dgCMatrix` slots.
+Use this when touching sparse-safe R code that preserves `Matrix` classes,
+defines exact sparse support, or works directly with `Matrix::dgCMatrix` slots.
 
 ## Conversion Boundaries
 

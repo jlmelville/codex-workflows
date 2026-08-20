@@ -181,7 +181,7 @@ module RetroState
       unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
         raise Error, "#{label}: intake_digest must be a SHA-256 digest"
       end
-      intake = without_keys(data, "intake_digest", "triage")
+      intake = without_keys(data, "intake_digest", "triage", "triage_history")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
       unless data["intake_digest"] == expected_digest
         raise Error, "#{label}: intake fields changed after routing"
@@ -191,9 +191,25 @@ module RetroState
     end
 
     triage = data["triage"]
+    triage_history = data.fetch("triage_history", [])
     if archived
       validate_triage(triage, data["candidate_id"], label)
-    elsif triage
+      unless triage_history.is_a?(Array)
+        raise Error, "#{label}: triage_history must be an array"
+      end
+      triage_history.each_with_index do |prior_triage, index|
+        history_label = "#{label} triage_history[#{index}]"
+        validate_triage(prior_triage, data["candidate_id"], history_label)
+        unless prior_triage["verdict"] == "defer"
+          raise Error, "#{history_label}: prior verdict must be defer"
+        end
+      end
+      reviewed_at = triage_history.map { |item| item.fetch("reviewed_at") }
+      reviewed_at << triage.fetch("reviewed_at")
+      unless reviewed_at.each_cons(2).all? { |earlier, later| earlier < later }
+        raise Error, "#{label}: triage decisions must have increasing reviewed_at timestamps"
+      end
+    elsif triage || data.key?("triage_history")
       raise Error, "#{label}: inbox candidate must not contain triage data"
     end
   end
@@ -882,6 +898,33 @@ module RetroState
       write_artifact_cadence(cadence)
       File.unlink(source)
       destination
+    end
+
+    def reconsider(candidate_id, decision_path)
+      ensure_initialized
+      path = candidate_path("archive", candidate_id)
+      raise Error, "candidate not found in archive: #{candidate_id}" unless File.file?(path)
+
+      candidate, body = RetroState.read_document(path)
+      RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
+      current_triage = candidate.fetch("triage")
+      unless current_triage.fetch("verdict") == "defer"
+        raise Error, "candidate is not currently deferred: #{candidate_id}"
+      end
+
+      decision, decision_body = RetroState.read_document(decision_path)
+      RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
+      unless decision.fetch("reviewed_at") > current_triage.fetch("reviewed_at")
+        raise Error, "replacement decision must be newer than the current triage"
+      end
+
+      replacement = RetroState.without_keys(decision, "schema_version", "record_type")
+      replacement["notes"] = decision_body.rstrip unless decision_body.strip.empty?
+      candidate["triage_history"] = candidate.fetch("triage_history", []) + [current_triage]
+      candidate["triage"] = replacement
+      RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
+      replace_write(path, RetroState.render_document(candidate, body))
+      path
     end
 
     def record_accepted(input_path)
@@ -1878,7 +1921,7 @@ module RetroState
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:00Z")
       File.write(decision, deferred_decision)
-      store.process(deferred_id, decision)
+      deferred_archive_path = store.process(deferred_id, decision)
       review_types = store.review_queue.map(&:first)
       raise "deferral missing from review queue" unless review_types.include?("deferred")
       raise "draft missing from review queue" unless review_types.include?("draft")
@@ -1899,6 +1942,71 @@ module RetroState
       raise "system audit missing from history" unless store.audits.map(&:first).include?(File.basename(audit_path, ".md"))
       if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
         raise "completed artifact audit did not reset cadence"
+      end
+
+      refreshed_decision = decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:06:00Z")
+        .sub(
+          'review_trigger: "Required for defer; remove for other verdicts."',
+          'review_trigger: "A second independent observation is recorded."'
+        )
+      File.write(decision, refreshed_decision)
+      store.reconsider(deferred_id, decision)
+      refreshed_candidate, refreshed_body = read_document(deferred_archive_path)
+      validate_candidate(
+        refreshed_candidate,
+        refreshed_body,
+        label: deferred_archive_path,
+        routed: true,
+        archived: true
+      )
+      unless refreshed_candidate.fetch("triage_history").map { |item| item.fetch("verdict") } == ["defer"]
+        raise "refreshed deferral did not preserve prior triage"
+      end
+      refreshed_row = store.review_queue.find { |type, id, _trigger, _path| type == "deferred" && id == deferred_id }
+      unless refreshed_row && refreshed_row.fetch(2) == "A second independent observation is recorded."
+        raise "refreshed deferral did not update the review queue trigger"
+      end
+
+      stale_decision = refreshed_decision.sub("2026-07-15T12:06:00Z", "2026-07-15T12:05:30Z")
+      File.write(decision, stale_decision)
+      begin
+        store.reconsider(deferred_id, decision)
+        raise "stale replacement decision was accepted"
+      rescue Error => e
+        raise unless e.message.include?("replacement decision must be newer")
+      end
+
+      accepted_decision = decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:07:00Z")
+        .sub("verdict: defer", "verdict: accept")
+        .sub(/^review_trigger:.*\n/, "")
+        .sub(/^next_action:.*\n/, "")
+        .sub(/^close_condition:.*\n/, "")
+      File.write(decision, accepted_decision)
+      store.reconsider(deferred_id, decision)
+      accepted_candidate, accepted_body = read_document(deferred_archive_path)
+      validate_candidate(
+        accepted_candidate,
+        accepted_body,
+        label: deferred_archive_path,
+        routed: true,
+        archived: true
+      )
+      unless accepted_candidate.fetch("triage_history").map { |item| item.fetch("verdict") } == %w[defer defer]
+        raise "accepted reconsideration did not preserve complete triage history"
+      end
+      raise "replacement verdict was not stored" unless accepted_candidate.dig("triage", "verdict") == "accept"
+      if store.review_queue.any? { |type, id, _trigger, _path| type == "deferred" && id == deferred_id }
+        raise "resolved deferral remained in the review queue"
+      end
+      begin
+        store.reconsider(deferred_id, decision)
+        raise "non-deferred candidate was reconsidered"
+      rescue Error => e
+        raise unless e.message.include?("candidate is not currently deferred")
       end
 
       closed_ledger = store.close_ledger(ledger_id, rationale: "The maintenance action was completed.")
@@ -2023,6 +2131,8 @@ def usage
       route --file PATH                Route a candidate into the inbox
       pending                           List validated inbox candidates
       process --id ID --decision PATH  Archive a candidate with a verdict
+      reconsider --id ID --decision PATH
+                                        Replace a deferred verdict and preserve its history
       record-accepted --file PATH       Store a curated accepted record
       update-accepted --id ID --file PATH
                                         Replace a curated record while preserving identity
@@ -2065,6 +2175,7 @@ def reject_inapplicable_options!(command, provided)
     "route" => %w[--root --file],
     "pending" => %w[--root],
     "process" => %w[--root --id --decision],
+    "reconsider" => %w[--root --id --decision],
     "record-accepted" => %w[--root --file],
     "update-accepted" => %w[--root --id --file],
     "verification-opportunities" => %w[--root --destination],
@@ -2092,7 +2203,7 @@ end
 command = ARGV.shift
 commands = %w[
   init template record-papercut papercuts close-papercut route pending process
-  record-accepted update-accepted record-draft record-ledger close-ledger
+  reconsider record-accepted update-accepted record-draft record-ledger close-ledger
   verification-opportunities record-audit audits artifact-audit-status
   review-queue validate self-test
 ]
@@ -2238,6 +2349,11 @@ begin
       raise RetroState::Error, "process requires --decision PATH" unless decision_path
 
       puts store.process(record_id, decision_path)
+    when "reconsider"
+      raise RetroState::Error, "reconsider requires --id ID" unless record_id
+      raise RetroState::Error, "reconsider requires --decision PATH" unless decision_path
+
+      puts store.reconsider(record_id, decision_path)
     when "record-accepted"
       raise RetroState::Error, "record-accepted requires --file PATH" unless input_path
 

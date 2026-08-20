@@ -8,7 +8,9 @@ accepted the proposed implementation batch.
 Read [state-protocol.md](state-protocol.md). Use the external helper to attach a
 complete verdict and archive each processed candidate. A deferred decision must
 name a review trigger, next action, and close condition. Split and merge
-decisions must retain all originating opaque IDs.
+decisions must retain all originating opaque IDs. When a deferred trigger later
+fires, use `reconsider --id ID --decision PATH` so the replacement verdict keeps
+the original triage lineage.
 
 Do not copy inbox, archive, accepted, draft, ledger, audit, or cadence documents
 into the source repository. They are disposable operational state beneath
