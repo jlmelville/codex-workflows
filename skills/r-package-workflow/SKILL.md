@@ -31,8 +31,8 @@ Use this as the default operating procedure for R package work.
   newly admitted boundary class. Use the reference-applicability checklist in
   [checks.md](references/checks.md#reference-metadata-applicability).
 - For API naming, public validation domains, shared controls, documented
-  sentinels, public diagnostic value, warning ownership, or progress-message
-  contracts, read
+  sentinels, equivalent exported workflows, public diagnostic value, warning
+  ownership, or progress-message contracts, read
   [public-api-contracts.md](references/public-api-contracts.md).
 - When an exported API forwards `...` to interchangeable backends, follow
   [variadic-backend-controls.md](references/variadic-backend-controls.md) for
@@ -97,11 +97,12 @@ slot-level implementation work, use the idioms in
 If the task touches a narrower area, also apply the focused skill when
 available:
 
-- GitHub Actions, pkgdown deploy, coverage, or Dependabot configuration:
+- GitHub Actions, pkgdown deploy, coverage workflows, or Dependabot
+  configuration:
   `$r-ci-hardening`.
 - Automated dependency PR review, stale-branch validation, or merge decisions:
   `$dependabot-pr-maintenance`.
-- Tests and fixtures: `$r-test-hygiene`.
+- Tests, fixtures, and local coverage analysis: `$r-test-hygiene`.
 - README, NEWS, roxygen, articles, pkgdown: `$r-docs-pkgdown`.
 - Rcpp, compiled code, `src/`, `Makevars`: `$r-rcpp-package`.
 - Performance benchmarks, phased optimization, before/after evidence:

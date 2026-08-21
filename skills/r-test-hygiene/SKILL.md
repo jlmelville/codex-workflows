@@ -65,7 +65,8 @@ rollback, eager parameter propagation, and restart hook replacement. Direct
 internal probes are justified when public golden traces cannot localize those
 lifecycle invariants; keep them named and narrow.
 
-For cache validity, reset lifetimes, oracle authority, state identity, and
+For cache validity, reset lifetimes, oracle authority, state identity,
+failure-state propagation, composite-transition classification, and
 tested-constructor wiring, read
 [state-machine-contracts.md](references/state-machine-contracts.md).
 

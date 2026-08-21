@@ -114,8 +114,9 @@ Capture enough metadata for a future agent to interpret the result:
 - baseline/current labels and result table.
 
 Use base R `system.time()` when adding benchmark dependencies is undesirable.
-When the bundled evidence script is appropriate, follow its
-[command, case-file, and output contract](references/benchmark-evidence.md).
+For the bundled evidence script, resumable checkpoint contracts, human-review
+projections, or allocation-evidence limits, follow the
+[benchmark evidence guidance](references/benchmark-evidence.md).
 If results are noisy, say so and record what stronger workload is needed.
 
 Scope relative performance gates before observing results. Name the workload

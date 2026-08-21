@@ -265,13 +265,6 @@ at column 1.
 For test fixtures, use `# fmt: skip` around shape-sensitive matrix/list
 fixtures where Air reduces readability.
 
-## GitHub Actions
-
-- Syntax/security checks: `actionlint` and `zizmor .github/workflows`; use
-  `uvx zizmor .github/workflows` when `zizmor` is not installed.
-- Inspect all `uses:` entries for full-length SHA pins.
-- Confirm checkout steps set `persist-credentials: false`.
-
 ## Coverage
 
 - `Rscript -e 'covr::package_coverage()'`

@@ -1,4 +1,4 @@
-# Benchmark Evidence Script
+# Benchmark Evidence
 
 Use the bundled harness for a simple case file that should emit raw timing CSV
 and plan-ready Markdown:
