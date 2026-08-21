@@ -66,6 +66,16 @@ a documentation gap, an API design seam, or explicitly accepted compatibility
 debt. Consult recorded compatibility decisions before treating an awkward
 surface as accidental or prescribing a rename.
 
+## Equivalent Exported Workflows
+
+When a high-level convenience loop and exported step, state, summary, or check
+primitives let users perform the same operation, treat their termination cause,
+status, message, runtime conditions, diagnostics, and resource accounting as a
+paired public contract. Inventory both routes whenever one changes
+classification or precedence, and run them from equivalent state in paired
+public regressions. Any intentional divergence needs its own user-facing
+contract rather than being left as an implementation accident.
+
 ## Public Diagnostic Value
 
 Before retaining a public diagnostic or detailed result field, require a

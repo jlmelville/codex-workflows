@@ -66,6 +66,15 @@ caused by local exhaustion or recovery failure as ordinary convergence. Test
 the accepted state or step, inner reason and callback counts, outer precedence,
 and a genuine stationary control together.
 
+For a composed transition, first decide whether each stage must succeed on its
+own or only contributes to the aggregate update. Unless independent stage
+success is part of the method contract, keep an inner no-transition or failure
+marker provisional until all authorized later stages, corrections, safeguards,
+and rollback checks have run. Preserve the inner provenance, then classify the
+outer result from the realized composite change. Pair a local no-op followed by
+nonzero later-stage progress with a zero-total-transition or whole-step rollback
+control so stage-local status is not mistaken for aggregate failure.
+
 ## Tagged Cache Entries
 
 Treat a cached value and its iteration, version, or parameter marker as one

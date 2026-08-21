@@ -31,6 +31,36 @@ and relative speed versus the baseline. Treat the generated files as benchmark
 evidence, not package validation, and follow the active plan or repository
 policy when deciding whether to retain them.
 
+## Resumable Evidence Checkpoints
+
+Treat an incremental checkpoint as an evidence cache rather than a list of
+outputs. Give it a versioned schema and bind every reusable result to the exact
+frozen design, full per-result specification, and canonical input subset or
+view that produced it. Store a stable content identity for the consumed input,
+validate every binding before reuse, and save completed increments atomically.
+
+Capture the producing runtime and toolchain record in the checkpoint and render
+later reports from that immutable record. If original provenance must be
+reconstructed, label it as reconstruction rather than implying it was captured
+during the run. Exercise cache guards with bounded mutations to the schema,
+design, result specification, and input binding. For an already complete run,
+hash the checkpoint and report before and after a resume and require byte-stable
+output when no evidence changed.
+
+## Human Review Projection
+
+Treat a human report as a tested projection of the frozen evaluation contract.
+Before a decision gate, crosswalk every required evidence field to the artifact
+schema and either a rendered summary or an explicit raw-artifact location. Keep
+decision-critical disaggregations visible, and compare rendered counts and
+values with their stored source using local deterministic assertions where
+practical.
+
+Audit every total, peak, and memory label against the exact measured code region
+and allocator. Name material exclusions such as result construction,
+validation, serialization, accumulated process state, or native allocations
+instead of describing a component observation as an end-to-end measurement.
+
 ## Allocation Evidence
 
 Name the allocation profiler, warmup or JIT policy, and allocation class it can

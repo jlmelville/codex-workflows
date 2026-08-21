@@ -68,6 +68,12 @@ dimension/configuration domain changes:
    example does not establish an all-dimensions or all-configurations claim.
 4. Check that metadata and documentation state field applicability accurately,
    including empty-index or degenerate branches admitted by a widened contract.
+5. When an adapter exposes applicability, represent documented applicability,
+   known inapplicability, and an unestablished rule separately. In R, use
+   `TRUE`, `FALSE`, and `NA` respectively, and retain a compact evidence-basis
+   field such as fixed configuration, documented dimension rule, mismatch,
+   missing reference, or unencoded rule. Compatible vector length proves shape,
+   not reference validity.
 
 For baseline or no-change validation, treat `devtools::run_examples()` as a
 potentially mutating command. Check `git status` immediately afterward and

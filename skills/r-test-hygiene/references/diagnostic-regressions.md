@@ -60,6 +60,21 @@ versions. For table-driven comparison diagnostics, prefer
 `expect_true(<comparison>, info = case$name)` when the case label matters, and
 smoke-run the focused test immediately after adding diagnostic arguments.
 
+## Optional Progress Diagnostics
+
+For an algorithm-specific progress field, record categorical provenance at the
+final owner of the realized value. A later safeguard that replaces a provisional
+result must also replace its provenance. Propagate the already-computed label
+through the ordinary detailed result without replaying callbacks or
+reconstructing the branch downstream.
+
+Treat progress history as a typed sparse schema. Backfill rows before first
+production with a type-appropriate missing value, such as `NA_real_` or
+`NA_character_`, and omit the field when the algorithm does not own it at all.
+Through the exported API, cover every supported producer label, the initial
+pre-production row, an unrelated-method control, final replacement behavior,
+and unchanged callback counts.
+
 ## Detailed And Convenience Results
 
 When an exported API offers both a convenience value and a detailed diagnostic

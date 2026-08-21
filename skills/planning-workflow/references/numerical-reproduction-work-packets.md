@@ -61,6 +61,20 @@ out cause without new evidence. An outcome-dependent gate should say whether to
 repair the current reproduction, stop because an upstream precondition failed,
 or start a separately identified method-development decision.
 
+## Calibrate Scientific Metric Gates
+
+Before applying an evaluation metric as a scientific or product stop on opaque
+data, state the claim the metric is meant to test and score at least one
+known-good oracle and one known-bad control that exercise that claim. Compare
+plausible reference geometries and inspect the relevant scales or intrinsic
+directions when a scalar can hide local failure or domination by one direction.
+
+If the metric family ranks the controls contrary to the intended claim, treat it
+as measuring its stated reference objective rather than generic quality. Narrow
+the interpretation or replace the gate before using it to stop the real-data
+workflow. A correctly computed frozen metric does not validate the decision
+contract by itself.
+
 ## Nested Baseline Closure
 
 When a proposed extension contains a trusted baseline at an equality, zero, or

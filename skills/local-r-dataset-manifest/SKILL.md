@@ -17,6 +17,14 @@ package repos and are local filesystem state, not package source.
 These paths are WSL-local. On non-WSL machines, report that the dataset root is
 absent instead of trying to recreate it.
 
+When the manifest is absent but the task still needs benchmark data, check
+known R-native dataset packages and relevant sibling repositories for a
+canonical structured loader before parsing raw artifacts or adding a
+cross-language bridge. Validate explicit split and metadata fields, and record
+the provider version or commit, acquisition URL, and stable content digests.
+Use raw files or a foreign-language loader only when no suitable R-native
+provider exists.
+
 ## Manifest Contract
 
 Each manifest row names a curated bundle:

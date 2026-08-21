@@ -75,6 +75,14 @@ validation, canonicalization, backend selection, and result construction.
 Distinguish literal input, canonical selector, and effective backend. Name
 meaningful nested fields and define their scales or identities.
 
+For an optional table whose schema grows during execution, document column
+absence for an inapplicable run, type-specific missing cells before first
+production, and populated values as separate states. Put the complete field
+vocabulary and interpretation rules on one primary result topic and link other
+exported producers or summaries to it. Describe ownership at the broadest public
+abstraction shared by every producing route rather than naming a narrower
+internal implementation.
+
 For non-unique numerical representations, document the identifiable value or
 subspace instead of promising unique vectors. Do not dismiss supported public
 diagnostics as maintainer-only data.

@@ -35,10 +35,23 @@ limits through the exact final permitted trial.
 A cache hit is free only when its parameter and validity markers are current.
 Make callback-free fallbacks explicit in the execution path or central wrapper;
 do not infer that they are free from their returned value. Audit callers for
-immediate value consumption after a blocked call. After a permitted callback,
+immediate value consumption after a blocked call.
+
+Materialize every applicable terminal cause at the owning adjudication point
+and choose the winner once. For a valid or otherwise non-failure transition,
 classify convergence, non-finiteness, and acceptance before declaring budget
-exhaustion. Remove branch-specific production behavior when no exported path
-can reach the remaining allowance.
+exhaustion. For a provenance-backed failed no-transition result, a reached hard
+global callback budget outranks algorithm failure, and algorithm failure
+outranks zero-change tolerance. Do not let a later general checker overwrite the
+selected cause.
+
+A precedence test must make every competing cause live at that same point. Arm
+required history such as a prior objective value, consume the exact final
+permitted callback in each relevant lifecycle phase, and cover a valid
+transition with convergence and an exhausted budget, a failed zero transition
+with a global-budget tie, and the same failure without that tie. Exercise every
+equivalent exported workflow. Remove branch-specific production behavior when
+no exported path can reach the remaining allowance.
 
 ## Budgeted Candidate Searches
 
