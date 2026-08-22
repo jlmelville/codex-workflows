@@ -26,6 +26,12 @@ Codex runtime directory.
   managed parity with `./install.sh --check`; ignore unrelated installed skills.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
+- Before source-changing work in a checkout shared across machines, reconcile
+  its upstream, worktree, stashes, divergence, and incoming changes. Re-read
+  instructions and relevant skills after integration because their structure or
+  policy may have changed. Use
+  [source-reconciliation.md](references/source-reconciliation.md) for the exact
+  preflight, recovery branches, and machine-local state compatibility gate.
 
 ## Consistency Surfaces
 

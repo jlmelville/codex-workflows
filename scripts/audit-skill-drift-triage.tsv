@@ -3,8 +3,10 @@ Repeated Helper Names	frontmatter:	Small parser helper names are acceptable in s
 Repeated Helper Names	require_command:	Small smoke-test helper names are acceptable in unrelated script contexts.
 Machine-Specific Paths	skills/local-r-dataset-manifest/	The local dataset skill intentionally names James-local paths and requires path verification before use.
 Repo-Relative Skill Script References	skills/codex-skill-repo/SKILL.md	Source-repository validation examples intentionally use source-tree script paths.
+Repo-Relative Skill Script References	skills/codex-skill-repo/references/source-reconciliation.md	The newly integrated source helper intentionally validates machine-local state before the installed copy is updated.
 Repo-Relative Skill Script References	skills/github-actions-hardening/SKILL.md	Installed command examples are paired with explicit source-repository alternatives.
 Repo-Relative Skill Script References	skills/r-ci-hardening/SKILL.md	Installed command examples are paired with explicit source-repository alternatives.
 Repo-Relative Skill Script References	skills/r-docs-pkgdown/references/roxygen-markdown.md	Installed command examples are paired with explicit source-repository alternatives.
 Repo-Relative Skill Script References	skills/skill-retro/references/state-protocol.md	The source-repository helper example is paired with the canonical installed command.
+Repo-Relative Skill Script References	skills/skill-retro-triage/SKILL.md	Triage intentionally uses the newly integrated source helper before interpreting state with an installed copy that may be stale.
 Repo-Relative Skill Script References	README.md:	README helper commands are explicitly scoped to source-repository setup and validation.

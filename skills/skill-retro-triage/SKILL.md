@@ -15,22 +15,31 @@ documentation.
 
 Before proposing edits:
 
-1. Read `skills/skill-retro/references/state-protocol.md` and
+1. When triage may change public source, first apply `$codex-skill-repo`'s
+   shared-checkout reconciliation preflight. Re-read this skill after
+   integration because its protocol, helper, or destinations may have changed.
+2. Read `skills/skill-retro/references/state-protocol.md` and
    `skills/skill-retro/references/report-to-patch.md`.
-2. List and read pending candidates with the installed helper:
+3. From the reconciled source repository root, validate the local state and
+   list pending candidates with the newly pulled source helper:
 
    ```sh
-   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
+   # From the source repository root:
+   ./skills/skill-retro/scripts/retro-state.rb validate
+   ./skills/skill-retro/scripts/retro-state.rb pending
    ```
 
-3. Read every cited destination skill, reference, prompt, or script.
-4. Inspect external archived deferrals, contradicted accepted outcomes, drafts,
+   Outside the source checkout, use the installed helper. Do not use a stale
+   installed helper to reject or mutate records that the source helper reports
+   as incompatible; resolve the documented compatibility path first.
+4. Read every cited destination skill, reference, prompt, or script.
+5. Inspect external archived deferrals, contradicted accepted outcomes, drafts,
    ledger entries, and artifact-audit cadence. Start with the helper's
    `review-queue` command on every triage run and do not load unrelated history.
-5. Run `./scripts/audit-skill-drift.rb` when bloat, trigger overlap, duplicate
+6. Run `./scripts/audit-skill-drift.rb` when bloat, trigger overlap, duplicate
    helpers, command repetition, machine paths, or installed-path drift may be
    relevant.
-6. Run `./scripts/list-skills.rb` when frontmatter descriptions, trigger
+7. Run `./scripts/list-skills.rb` when frontmatter descriptions, trigger
    boundaries, or `agents/openai.yaml` may change.
 
 If the state variable is unavailable, report that live intake cannot be read;
