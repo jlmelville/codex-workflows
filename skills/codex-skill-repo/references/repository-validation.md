@@ -39,6 +39,20 @@ print the resolved executable and version; do not silently prepend an ignored
 persistent environment to `PATH`. Remove pins and parity checks for tools the
 workflow does not execute.
 
+Treat a locked Ruby gem and its generated executable wrapper as separate
+availability surfaces. When `bundle check` succeeds but host packaging omits
+the wrapper from `PATH`, invoke the locked entry point through RubyGems under
+the selected Bundler instead of adding a persistent gem directory to `PATH`:
+
+```sh
+bundle exec ruby -rrubygems \
+  -e 'load Gem.activate_bin_path("standard", "standardrb")' -- path/to/script.rb
+```
+
+Use the repository's versioned Bundler command when required. Reserve this
+mechanic for repository-owned locked tools with a known gem and executable;
+ordinary host CLIs should continue to use normal executable discovery.
+
 ## Workflow Validation
 
 Use `${HOME}/.agents/skills/...` command paths inside installed
