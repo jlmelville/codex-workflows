@@ -33,9 +33,11 @@ Before proposing edits:
    installed helper to reject or mutate records that the source helper reports
    as incompatible; resolve the documented compatibility path first.
 4. Read every cited destination skill, reference, prompt, or script.
-5. Inspect external archived deferrals, contradicted accepted outcomes, drafts,
-   ledger entries, and artifact-audit cadence. Start with the helper's
-   `review-queue` command on every triage run and do not load unrelated history.
+5. Inspect external archived deferrals, interrupted accepted publication,
+   contradicted accepted outcomes, drafts, ledger entries, and artifact-audit
+   cadence. Start with the helper's `review-queue` command on every triage run
+   and do not load unrelated history. For an `accepted-publication` row,
+   reconcile whether public source, accepted metadata, or both are missing.
 6. Run `./scripts/audit-skill-drift.rb` when bloat, trigger overlap, duplicate
    helpers, command repetition, machine paths, or installed-path drift may be
    relevant.

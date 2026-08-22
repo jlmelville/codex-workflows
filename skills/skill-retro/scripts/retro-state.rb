@@ -1049,13 +1049,20 @@ module RetroState
       ensure_initialized
       rows = []
 
-      Dir.glob(File.join(root, "retrospectives", "archive", "*.md")).sort.each do |path|
-        data, body = RetroState.read_document(path)
-        RetroState.validate_candidate(data, body, label: path, routed: true, archived: true)
-        triage = data.fetch("triage")
-        next unless triage["verdict"] == "defer"
+      published_candidate_ids = accepted_records.flat_map do |_path, data|
+        data.fetch("originating_candidate_ids")
+      end
 
-        rows << ["deferred", data.fetch("candidate_id"), triage.fetch("review_trigger"), path]
+      archived_candidates.each do |path, data|
+        triage = data.fetch("triage")
+        candidate_id = data.fetch("candidate_id")
+        if triage["verdict"] == "defer"
+          rows << ["deferred", candidate_id, triage.fetch("review_trigger"), path]
+        elsif %w[accept merge split].include?(triage["verdict"]) &&
+            !published_candidate_ids.include?(candidate_id)
+          trigger = "Publish the accepted outcome and record accepted metadata for this candidate origin."
+          rows << ["accepted-publication", candidate_id, trigger, path]
+        end
       end
 
       accepted_records.each do |path, data|
@@ -1770,11 +1777,20 @@ module RetroState
       archive_path = store.process(id, decision)
       raise "candidate was not archived" unless File.file?(archive_path)
       raise "candidate remained in inbox" if File.exist?(path)
+      publication_row = store.review_queue.find do |type, candidate_id, _trigger, _path|
+        type == "accepted-publication" && candidate_id == id
+      end
+      raise "unpublished accepted candidate missing from review queue" unless publication_row
 
       accepted_text = accepted_template.sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
       File.write(accepted, accepted_text)
       accepted_path = store.record_accepted(accepted)
       raise "accepted record missing" unless File.file?(accepted_path)
+      if store.review_queue.any? { |type, candidate_id, _trigger, _path|
+           type == "accepted-publication" && candidate_id == id
+         }
+        raise "published accepted candidate remained in review queue"
+      end
       accepted_id = File.basename(accepted_path, ".md")
       accepted_data, = read_document(accepted_path)
       original_accepted_at = accepted_data.fetch("accepted_at")

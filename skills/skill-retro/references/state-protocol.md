@@ -188,7 +188,13 @@ attach the decision and move the record from inbox to archive. The intake
 digest and original intake fields remain in the archived document. For a
 deferred verdict, `review_trigger`, `next_action`, and `close_condition` are
 required. Use `review-queue` to list open archived deferrals, contradicted
-accepted outcomes, drafts, ledger actions, and a due artifact audit. Triage
+accepted outcomes, drafts, ledger actions, accepted publication gaps, and a due
+artifact audit. An `accepted-publication` row means an archived `accept`,
+`merge`, or `split` candidate origin is absent from every accepted record.
+Treat it as advisory reconciliation work: determine whether the public source,
+accepted metadata, or both were interrupted, then repair the missing surfaces.
+Its presence does not make the state invalid because an active triage
+legitimately archives a verdict before publishing source and metadata. Triage
 decides which event-based triggers have fired rather than merely refreshing
 their dates. Every triage run must inspect that queue before proposing its
 batch.

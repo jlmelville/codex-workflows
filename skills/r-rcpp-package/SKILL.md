@@ -1,16 +1,20 @@
 ---
 name: r-rcpp-package
-description: Rcpp and compiled-code workflow for R packages, including src changes, Makevars, Rcpp attributes, RcppExports, C++ formatting, thread safety, exception propagation, and compiled checks. Use when Codex edits or reviews C/C++/Rcpp code, headers, wrappers, Makevars, or compiled behavior.
+description: Rcpp and cpp11 compiled-code workflow for R packages, including src changes, Makevars, generated bindings, C++ formatting, thread safety, exception propagation, and compiled checks. Use when Codex edits or reviews C/C++/Rcpp/cpp11 code, headers, wrappers, Makevars, or compiled behavior.
 ---
 
-# Rcpp Package Work
+# Compiled R Package Work
 
 Use this for compiled-code changes in R packages.
 
 ## Core Rules
 
-- Read `src/`, `R/RcppExports.R`, `src/RcppExports.cpp`, `src/Makevars`, and
-  relevant R wrappers before editing.
+- Identify the bridge before editing from `DESCRIPTION` `LinkingTo`, source
+  attributes, and generated-file headers. Do not infer Rcpp merely from the
+  presence of compiled code.
+- Read `src/`, `src/Makevars`, relevant R wrappers, and the binding-specific
+  generated files: `R/RcppExports.R` and `src/RcppExports.cpp` for Rcpp, or
+  `R/cpp11.R` and `src/cpp11.cpp` for cpp11.
 - Keep generated C++ separate from clang-format decisions.
 - Prefer repository-local helper patterns over new concurrency or distance
   abstractions.
@@ -19,13 +23,21 @@ Use this for compiled-code changes in R packages.
 
 ## Generated Files
 
-After changing `// [[Rcpp::export]]` functions or attributes, regenerate the
-exports, confirm the generated diff contains only the intended signature or
-registration change, and regenerate again; the second pass must be idempotent.
-Do not hand-edit generated exports to repair a diff. Follow the exact
-[Attribute Workflow](references/rcpp.md#attribute-workflow), including the
-owned generated files. If generated output changes unexpectedly, stop and
-inspect before layering on more edits.
+Choose the generator from the detected bridge:
+
+- For Rcpp, after changing `// [[Rcpp::export]]` functions or attributes, use
+  `Rcpp::compileAttributes()` and inspect `R/RcppExports.R` and
+  `src/RcppExports.cpp`. Follow the exact
+  [Attribute Workflow](references/rcpp.md#attribute-workflow).
+- For cpp11, after changing `[[cpp11::register]]` functions or registered
+  signatures, use `cpp11::cpp_register()` and inspect `R/cpp11.R` and
+  `src/cpp11.cpp`. A hand-maintained parameter rename can change generated R
+  formals and C++ signatures without changing the registered function name.
+
+Run the selected generator twice; the second pass must be idempotent. Do not
+run the other bridge's generator or hand-edit generated outputs to repair a
+diff. If generated output changes unexpectedly, stop and inspect before
+layering on more edits.
 
 ## C++ Safety
 
@@ -48,12 +60,15 @@ See [rcpp.md](references/rcpp.md) for check guidance.
 
 ## Checks
 
+Choose exactly one generation command when bindings changed:
+
 ```sh
-Rscript -e 'Rcpp::compileAttributes()'
+Rscript -e 'Rcpp::compileAttributes()' # Rcpp
+Rscript -e 'cpp11::cpp_register()'     # cpp11
 Rscript -e 'testthat::test_local()'
 Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
-clang-format --dry-run --Werror src/*.cpp src/*.h
+clang-format --dry-run --Werror <hand-maintained-C++-paths>
 ```
 
-Adjust the clang-format target to exclude generated files when the repo treats
-`src/RcppExports.cpp` as generated-only.
+Always exclude generated `src/RcppExports.cpp` or `src/cpp11.cpp` from
+hand-maintained formatting judgments.

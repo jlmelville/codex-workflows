@@ -37,11 +37,15 @@ Use this as the default operating procedure for R package work.
 - When an exported API forwards `...` to interchangeable backends, follow
   [variadic-backend-controls.md](references/variadic-backend-controls.md) for
   early validation, routing categories, fallback behavior, and public tests.
+- For a compiled package, identify the binding toolchain from `LinkingTo`,
+  source attributes, and generated-file headers before selecting a generator
+  or generated-file workflow. Rcpp and cpp11 use different commands and own
+  different outputs.
 - Prefer exported API tests over private-helper tests. If an internal test
   remains, document the safety or user-visible behavior it protects.
 - Treat these as generated unless intentionally refreshed:
-  `R/RcppExports.R`, `src/RcppExports.cpp`, `NAMESPACE`, `man/*.Rd`,
-  pkgdown output under `docs/`.
+  `R/RcppExports.R`, `src/RcppExports.cpp`, `R/cpp11.R`, `src/cpp11.cpp`,
+  `NAMESPACE`, `man/*.Rd`, pkgdown output under `docs/`.
 - When introducing top-level hidden development config files such as
   `.air.toml`, `.lintr`, or `.styler.R`, add exact anchored `.Rbuildignore`
   entries in the same phase and confirm the R CMD check hidden-file check is OK.
@@ -104,6 +108,7 @@ available:
   `$dependabot-pr-maintenance`.
 - Tests, fixtures, and local coverage analysis: `$r-test-hygiene`.
 - README, NEWS, roxygen, articles, pkgdown: `$r-docs-pkgdown`.
-- Rcpp, compiled code, `src/`, `Makevars`: `$r-rcpp-package`.
+- Rcpp or cpp11 bridges, compiled code, `src/`, or `Makevars`:
+  `$r-rcpp-package`; select its binding-specific branch before generation.
 - Performance benchmarks, phased optimization, before/after evidence:
   `$r-performance-workflow`.

@@ -27,6 +27,11 @@ Use this for R package tests and fixtures.
 - For cleanup chunks that fix multiple unrelated bugs, organize regression tests
   by bug-scoped files or clearly separated sections so each fix can be reviewed,
   staged, and committed independently.
+- Before consolidating test helpers, compare their full bodies, setup, return
+  shapes, semantic postprocessing, and call-site contracts. Matching names do
+  not prove equivalence, and differently named helpers may be the true
+  duplicates; preserve separate raw and normalized fixtures when they protect
+  different behavior.
 - Keep tests readable enough to explain the behavior under review. Test files
   can use different formatting choices from application code when clarity
   requires it.

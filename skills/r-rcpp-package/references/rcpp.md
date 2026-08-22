@@ -1,4 +1,4 @@
-# Rcpp Package Reference
+# Compiled R Package Reference
 
 ## Attribute Workflow
 

@@ -68,6 +68,12 @@ and ignored planning paths when the repo uses local plans. If the artifacts
 disagree, record the reconciliation as a discovery or current-state update
 before continuing.
 
+When a live handoff names an accepted table or packet and also presents an
+inline checklist, compare their item sets before editing. If omissions or
+extras combine with limiting language such as `only` or `complete`, surface the
+scope contradiction for resolution; do not silently narrow or broaden the
+named authority.
+
 ## ExecPlans
 
 Create or update an ExecPlan when a future agent must be able to continue from

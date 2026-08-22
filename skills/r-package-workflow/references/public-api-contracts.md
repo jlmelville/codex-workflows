@@ -51,6 +51,20 @@ focused tests. For compiled packages, follow the generated-file workflow in
 tests, language formatters, lint, diff hygiene, and a complete status and diff
 review.
 
+## Compatibility Baseline
+
+Before classifying a public argument or result field as pushed, local-only, or
+unreleased, resolve the actual pushed baseline and trace that field's complete
+construction path there. Follow exported returns through helper-produced lists,
+list merges, compiled named results, and generated boundaries; presence or
+absence in the current worktree alone does not establish user availability.
+
+When provenance changes the compatibility decision, use bounded history such
+as `git log -S` or `git blame` to locate the field's introduction or prior
+meaning. Assign the compatibility strategy field by field, and do not call an
+indirectly assembled field local-only while any producer on the pushed baseline
+remains unexamined.
+
 ## End-To-End Explainability Audit
 
 Before declaring an exported surface coherent, reconstruct the shortest

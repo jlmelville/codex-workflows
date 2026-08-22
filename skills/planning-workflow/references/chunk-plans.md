@@ -110,6 +110,24 @@ patch identity. Also confirm a clean index and worktree. Equality proves that
 the combined content was preserved, but it does not replace isolated index
 validation for intermediate commits whose paths or hunks overlap.
 
+## Accepted Mapping Crosswalk
+
+When a packet accepts an itemized mapping, preserve the complete mapping in its
+handoff and use it as the completion checklist. Before editing, compare any
+inline checklist with the named mapping and enumerate missing or extra rows. If
+limiting language makes the authority unclear, resolve that contradiction
+instead of treating an omission as silent deauthorization or permission.
+
+During implementation and independent review, crosswalk every mapping row
+against the final scoped source. For an identifier rename, require the
+replacement at expected declarations, definitions, and call sites; search for
+the old executable name; and classify intentional diagnostic, documentation,
+generated, or compatibility matches separately. Passing behavioral tests does
+not establish item-set completeness, and an implementation-time scope reduction
+requires an explicit plan decision. If later review repairs an omission,
+preserve chronology by appending the correction and its evidence rather than
+rewriting the earlier progress claim.
+
 ## Overlapping Split Validation
 
 When an operator-directed or post-hoc commit split leaves staged and unstaged

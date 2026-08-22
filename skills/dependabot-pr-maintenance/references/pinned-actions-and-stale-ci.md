@@ -53,14 +53,18 @@ For a red check on a narrow bot PR:
 
 1. Inspect the failing log enough to identify the file, line, command, and
    failure class.
-2. Compare the failure location with the PR patch. If the failed line or command
+2. If a third-party check links to a JavaScript-only page that does not expose
+   its log, use the service's public read-only build or job API to resolve the
+   current job and retrieve its raw log. Confirm the job belongs to the current
+   commit before relying on a bounded diagnostic from it.
+3. Compare the failure location with the PR patch. If the failed line or command
    is untouched, treat it as unrelated until proven otherwise.
-3. Compare the same location against current remote `main`; stale bot bases can
+4. Compare the same location against current remote `main`; stale bot bases can
    fail on code that has already been fixed.
-4. If the PR merges cleanly into current `main` and the merged state passes the
+5. If the PR merges cleanly into current `main` and the merged state passes the
    relevant local checks, classify the original failure as stale CI and
    recommend rebase, rerun, or merge according to repository policy.
-5. Do not change unrelated product or language code on a dependency bot branch
+6. Do not change unrelated product or language code on a dependency bot branch
    merely to make a stale-base check green.
 
 Separate conclusions clearly:
@@ -69,6 +73,11 @@ Separate conclusions clearly:
   merged state.
 - `stale CI failure`: the bot branch failed because its base or check run was
   old, while the patch and current merge result are acceptable.
+- `infrastructure CI failure`: the current third-party job failed because of a
+  runner or service condition such as clock skew, an outage, or a broken image
+  that is demonstrably unrelated to the patch. Corroborate this with the raw
+  log and current-base or recent-build history; passing maintained CI alone is
+  not sufficient evidence.
 - `inconclusive`: validation could not inspect logs, fetch upstream refs, or
   run the relevant checks.
 
