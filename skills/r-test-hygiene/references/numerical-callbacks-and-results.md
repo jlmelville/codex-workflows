@@ -16,6 +16,17 @@ consumes; allow extras unless the public contract forbids them. Test malformed
 shapes and names, integer and double storage, shaped non-finite values, and
 independent call counts.
 
+Treat diagnostic completeness as a positive evidence claim. Validate every
+required returned metadata field before comparison and derive aggregate
+completeness only from affirmative `TRUE` predicates, such as `isTRUE(check)`;
+do not promote `NA` merely because it is not `FALSE`. For R scalar numeric
+metadata, require numeric storage, no dimensions, length one, finiteness, and
+the applicable domain, integrality, and range before coercion. Preserve a valid
+primary result separately when corroborating metadata is unavailable or
+malformed, but keep accounting, provenance, and aggregate completeness false.
+Table-test missing containers and components, dimensioned length-one values,
+malformed and mismatched values, and valid zero-work branches.
+
 ## Hard Budgets and Accounting
 
 Use independent external counters and cover zero, one, and exact allowance

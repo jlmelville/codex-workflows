@@ -67,6 +67,19 @@ For a red check on a narrow bot PR:
 6. Do not change unrelated product or language code on a dependency bot branch
    merely to make a stale-base check green.
 
+When the failure is confined to an external setup or resolver service, probe
+the same operation after the service appears to recover. If it succeeds, rerun
+only the failed jobs with:
+
+```sh
+gh run rerun RUN_ID --failed
+```
+
+Wait for the refreshed run, then re-read the PR head and checks before merging;
+restart validation if the head moved. If the rerun first fails only because the
+GitHub API is blocked by the sandbox, use the existing narrowly scoped network
+approval retry rather than reclassifying the CI failure.
+
 Separate conclusions clearly:
 
 - `unsafe patch`: the dependency update changes risky behavior or fails on the

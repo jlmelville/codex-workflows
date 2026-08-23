@@ -98,6 +98,44 @@ Pair repair cases with a successful fast-path control whose aggressive repair
 setting must not alter the ordinary factorization. Success, non-`NULL` output,
 or downstream convergence alone does not establish the repair identity.
 
+Separate real platform-sensitive numerical witnesses from portable downstream
+branch-contract tests. When BLAS, LAPACK, eigensolver, or rounding behavior can
+change whether the owning numerical failure occurs, retain the extreme input as
+qualified diagnostic evidence. To test downstream fallback, state, or
+provenance, narrowly inject only the owning unstable result, pair it with an
+adjacent control when that proves overwrite sequencing, and assert the real
+downstream implementation. The mock does not validate the numerical kernel;
+keep invariant-based kernel fixtures separate.
+
+## Conservative Spectrum And Newton Evidence
+
+For a tolerance-based symmetric spectrum, predeclare the scale and sign
+tolerance and classify eigenvalues as resolved positive, resolved negative,
+exact zero, or nonzero with unresolved sign. Build exhaustive sign families
+from those bins, including negative definite and semidefinite outcomes, and
+reserve indefinite for spectra with both resolved signs. Record singularity
+orthogonally. Define a magnitude condition estimate only for fully resolved
+nonzero spectra, use infinity for exact zero modes, and report it unavailable
+for unresolved or failed calculations. Exercise exact classes, both sides of
+the sign threshold, large and small finite scaling, and failed calculations.
+
+Treat Newton evidence as an ordered ladder: derivative integrity; spectral and
+conditioning eligibility; finite scale-aware residual for `H p = -g`; direction
+norm and `g' p` descent; unit-direction quadratic prediction; and only then
+selected-step and actual-decrease evidence. A resolved indefinite system may be
+useful diagnostic solve evidence, while an accurate solve does not establish
+descent, model merit, or optimizer safety. Retain singular, unresolved, and
+failed rows with explicit bases instead of dropping them.
+
+At globalization, preserve direction metrics at unit scale but recompute the
+selected-step prediction as
+`-alpha * g' p - 0.5 * alpha^2 * p' H p`. Form an actual-to-predicted ratio only
+when actual reduction and prediction are finite, the prediction is strictly
+positive, and a re-evaluated seed slope agrees with the recorded direction
+slope. Report selected step, method termination or acceptance, realized
+improvement, fallback status, and ratio availability as independent claims;
+neither step length nor objective change alone identifies the policy outcome.
+
 ## Transformed Eigensolver Coordinates
 
 When an eigensolver operates on a symmetric transformation and maps vectors
@@ -111,6 +149,14 @@ Test the generalized eigen-equation, weighted orthogonality and centering, and
 the map-back identity through the public result. Express structural-subspace
 comparisons in the coordinate system—or weighted inner product—where the
 compared vectors are mathematically equivalent.
+
+When model-construction dimension, displayed output dimension `d`, retained
+spectral dimension `m`, and solver candidate width differ, preserve that
+vocabulary in result fields and diagnostics. If `m > d`, compute and label both
+the displayed `d/(d+1)` and retained `m/(m+1)` boundary evidence, including
+scope-specific truncation state. Keep displayed instability visible when the
+retained block is stable, and make every suggested remedy name the control that
+changes the diagnosed boundary without silently rebuilding the estimator.
 
 When a fast path replaces singular values with eigenvalues of a Gram or
 covariance matrix, do not assume algebraically related rank cutoffs are

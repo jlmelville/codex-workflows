@@ -59,6 +59,19 @@ time of the decision. Record the current disposition, rationale, and evidence
 pointer so final closure does not have to infer which intermediate decisions
 still apply.
 
+## Review Target Identity
+
+Every asynchronous review request should name the exact artifact set and an
+immutable identity, and the response should echo both. Use a commit or tree for
+clean tracked content; use a frozen packet copy or content digest for dirty,
+ignored, untracked, or otherwise mutable artifacts.
+
+Before applying findings, confirm that the current target still has the reviewed
+identity. When it changed during review, treat the response as stale evidence:
+reconcile each finding against the current artifact and rerun a targeted review
+where needed. Do not apply or discard a mixed stale response wholesale. If no
+stable snapshot can be supplied, serialize patch-and-review cycles.
+
 ## Public API Value Gate
 
 When an audit recommends new public diagnostics, result fields, metadata, or

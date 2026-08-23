@@ -31,21 +31,93 @@ and relative speed versus the baseline. Treat the generated files as benchmark
 evidence, not package validation, and follow the active plan or repository
 policy when deciding whether to retain them.
 
+## Callback Work Accounting
+
+For callback-based algorithm benchmarks, define the measured workload boundary
+and install fresh external wrappers for each run. Count every physical provider
+entry point independently, including standalone, composite, and derivative
+callbacks, and increment attempted calls before provider execution. A composite
+call remains one composite invocation even when it computes several values;
+retain any real standalone calls made in the same mode.
+
+When the logical numerical operation differs from the provider callback that
+implements it, record both axes plus the owning phase so setup and
+reporting-oracle work cannot be mistaken for algorithm cost. Keep
+framework-native counters as a separate consistency witness rather than
+replacing either observed view.
+
 ## Resumable Evidence Checkpoints
 
 Treat an incremental checkpoint as an evidence cache rather than a list of
-outputs. Give it a versioned schema and bind every reusable result to the exact
-frozen design, full per-result specification, and canonical input subset or
-view that produced it. Store a stable content identity for the consumed input,
-validate every binding before reuse, and save completed increments atomically.
+outputs. Give it a versioned schema, bind every reusable result to its exact
+semantic design, configuration, and canonical input view, validate structural
+invariants before reuse, and save completed increments atomically. Exercise
+these guards with bounded mutations that must be rejected.
+
+Scale identity controls to the trust and storage boundary. A self-contained
+local checkpoint normally does not need hashes for every nested payload or the
+exact harness bytes. Preserve a stable content identity for mutable external
+inputs and separately stored artifacts, and use a run identifier when files
+must be joined. Treat complete-file hashing and byte-stable no-op reruns as
+high-assurance or reproducibility checks when file identity itself matters, not
+as universal cache-validity requirements.
 
 Capture the producing runtime and toolchain record in the checkpoint and render
-later reports from that immutable record. If original provenance must be
-reconstructed, label it as reconstruction rather than implying it was captured
-during the run. Exercise cache guards with bounded mutations to the schema,
-design, result specification, and input binding. For an already complete run,
-hash the checkpoint and report before and after a resume and require byte-stable
-output when no evidence changed.
+later reports from that immutable record. Structurally validate every provenance
+field that the report consumes; if provenance must be reconstructed, label it
+as reconstruction rather than implying capture during the run.
+
+Treat resumability as a lifecycle state machine. Run the production validator
+on the newly initialized zero-result state, each independently persisted valid
+prefix, and completion, with required and forbidden fields declared per stage.
+Inspect a valid completed state through the minimal read-and-validate dependency
+path before loading acquisition-only packages, providers, network clients, or
+expensive backends. Exercise that short circuit with later-stage operations
+stubbed to fail and at least one genuinely unavailable stage-only dependency.
+
+Define terminal attempts from the numerical result contract rather than from
+normal return. Persist success, structured non-success, and thrown conditions
+as distinct completed outcomes with their status, messages, diagnostics,
+resource use, and timing. Resume should skip every terminal outcome unless an
+explicit retry policy says otherwise. Smoke both returned non-success and
+thrown paths through save, resume, reporting, and completed replay.
+
+Independent acceptance changes phase authority. A downstream production entry
+point must require the accepted upstream state and fail closed on missing or
+incomplete evidence; it must not create, repair, or recompute that evidence
+unless authority is explicitly reopened. If a later continuation rule depends
+on an accepted prior packet, bind that packet as a read-only semantic input,
+validate its identity and minimum verdict fields, compute the frozen combination
+rule, and render the operand verdicts, combined status, and required action.
+Probe representative decision branches and forbidden upstream transitions.
+
+Before cost-bearing provider acquisition or fitting, exercise standalone R
+validators with fixtures that preserve provider classes, names, dimnames, and
+aggregation shapes. Decide field by field which attributes are semantic and
+normalize only incidental ones; follow the metadata-attribute guidance in
+[`r-test-hygiene`](../../r-test-hygiene/references/diagnostic-regressions.md#metadata-attributes).
+
+When a checkpoint stores primary per-observation floating evidence and a
+redundant aggregate, validate the primary values and calibrate aggregate
+consistency to plausible reduction roundoff and the metric's smallest meaningful
+resolution. Include the intended row scale or a constructed summation-order
+witness when a tiny smoke fixture cannot expose the difference.
+
+## Multi-artifact Output Preflight
+
+Treat every active destination of a multi-artifact evidence command as one
+pre-execution contract. Require each explicit path to be a non-missing,
+non-empty scalar; define a final-component symlink policy; canonicalize through
+existing parents; and reject lexical, relative/absolute, or symlink-parent
+aliases before collection or the first write.
+
+Path spelling is not sufficient. Compare platform-appropriate filesystem-object
+identity for existing outputs, including hard links, and evaluate prospective
+case-fold collisions against the actual destination filesystem rather than the
+operating-system name. Any filesystem probe must be private, removed before
+collection, and behavior-neutral. Exercise every active-output pairing plus
+distinct-file and case-sensitive controls. Rejected configurations must perform
+no evidence work and leave files and standard output untouched.
 
 ## Human Review Projection
 

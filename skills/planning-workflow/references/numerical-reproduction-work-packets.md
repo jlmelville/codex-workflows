@@ -15,6 +15,26 @@ selected by the public path. Treat computed-but-unused mathematical terms and
 unexplained norm or scaling substitutions as transcription signals. Do not
 claim the method is audited while an owning lifecycle phase remains unmapped.
 
+## Separate Numerical Policy Layers
+
+Keep raw algebra, the implementation selected by the current public policy,
+safeguarded variants, approximate methods, and later globalization in distinct
+evidence packets. Invoke the actual selected implementation for policy evidence
+rather than copying its fallback logic into a probe. Seed or capture required
+callbacks once, account for diagnostic work outside benchmark cost, and retain
+one row for every upstream-eligible point even when a narrower raw operation is
+unavailable. Compare layers only where both objects exist; record unavailable
+comparison explicitly.
+
+When the real implementation returns a reason that collapses materially
+different internal branches, preserve its result and replay only the smallest
+pure deterministic predicate that owns the distinction on the exact captured,
+validated input. Do not replay provider callbacks, repairs, or the full fallback
+algorithm, and record discriminator work separately. Before assigning a cause,
+enumerate the reachable histories that map to the observed predicate and final
+reason. If later finalization makes that mapping non-unique, keep primary-result
+validity separate and report causal provenance as unavailable or ambiguous.
+
 ## Publication-First Source Comparison
 
 For an inherited numerical method, preserve supported behavior with independent
@@ -40,6 +60,14 @@ finite objective. Give each phase one causal question, hold every other layer
 fixed, name the local invariant that answers it, and predeclare its stop gate.
 Plots and global association are supporting evidence, not substitutes for
 local residuals or compatibility conditions.
+
+Before a multi-point oracle runs, materialize its complete deterministic
+candidate universe in a selection manifest separate from the numerical result
+table. Record provenance, eligibility and exclusion bases, optimizer-return
+metadata, and exact or predeclared deduplication semantics. Run the oracle only
+on eligible unique points and preserve a stable join key from every result back
+to the manifest. Probe early termination, duplicate returns, and rejected or
+inapplicable references without creating fake result rows.
 
 ## Oracle Ladder
 
@@ -75,6 +103,21 @@ the interpretation or replace the gate before using it to stop the real-data
 workflow. A correctly computed frozen metric does not validate the decision
 contract by itself.
 
+Treat the arithmetic implementing the gate as part of the same contract. Use
+scale-first norm or residual reductions, choose algebraically equivalent
+evaluation orders that keep intermediates representable, and require every
+derived product, residual, scale, normalized value, allowance, and threshold to
+be finite before comparison. Include an extreme-but-finite incorrect control
+and a case whose mathematical result is representable even though a naive
+intermediate overflows or underflows.
+
+For multi-control decisions, name each comparator's role before defining gates.
+Require a positive outcome to satisfy both material relative improvement and
+any absolute adequacy precondition; define harm against the primary trusted
+baseline rather than every stress or ablation control. Keep mechanism or
+availability classification separate from evidence strength, and make final
+statuses ordered and exhaustive.
+
 ## Nested Baseline Closure
 
 When a proposed extension contains a trusted baseline at an equality, zero, or
@@ -88,6 +131,16 @@ under the proposed parameter change without the new mechanism, the equality
 control, and the actual extension. Treat one favorable setting as diagnostic
 only. Require stable results across fixed replicates and adjacent predeclared
 settings before optimization, compiled implementation, or public API work.
+
+For cross-configuration spectral comparisons, first determine whether the
+varied argument changes only the extracted eigenspace or rebuilds the estimator
+or operator. Compare invariant spans with principal angles or canonical
+correlations before aligning pointwise coordinates, and use an admissible
+Procrustes map before interpreting axes. When a qualitative comparison remains,
+show the same observed representatives in both views, selected from their joint
+aligned structure rather than labels, residual extremes, or a favorable score.
+Distinguish an alternative low-dimensional slice of shared structure from
+recovery of unique information.
 
 ## Local Chart Validity Across Noise Scales
 

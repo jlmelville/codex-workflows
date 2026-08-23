@@ -19,3 +19,12 @@ Construct link fixtures by writing a minimal tar header or using an archive API
 that sets the entry type and link target directly; do not require
 `file.symlink()` as an intermediate step because CI runners may lack that
 filesystem capability.
+
+For a specification-driven downloader, keep fixtures small but make at least
+one happy path complete enough to use the production specification and reach
+terminal result construction. At raw decoder boundaries, compare values without
+names or other representation attributes when the external format does not own
+them; at the canonical package boundary, assert exact names, dimensions, and
+other semantic metadata. Exercise every supported output mode when branching
+occurs after shared construction, and keep incomplete-archive controls separate
+so an early exit cannot stand in for the terminal formatter.

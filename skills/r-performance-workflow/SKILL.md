@@ -24,11 +24,11 @@ across agents and sessions.
 4. Define the acceptance question before editing: what must stay semantically
    identical, what speed or allocation evidence is expected, and what benchmark
    is strong enough to justify the change.
-5. Before selecting an algorithm grid, inventory relevant capabilities from
-   each problem or data provider through its adapter to each method's
-   prerequisites. Record explicit field mappings, exercised capabilities, and
-   intentional method exclusions; smoke-test at least one case through every
-   mapped capability before claiming algorithm-family coverage.
+5. Before selecting a grid, inventory provider-to-adapter-to-method capabilities
+   and exclusions; smoke-test each mapping. For developer callback benchmarks,
+   preflight required callbacks at resolved inputs before counters or timing,
+   validate their contracts, and record excluded usability setup. Production
+   validates already-needed results at first consumption without replay.
 
 ## Phase Discipline
 
