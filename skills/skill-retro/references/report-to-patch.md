@@ -82,6 +82,10 @@ failure and explains why it supports or contradicts the guidance. Model
 self-report alone is insufficient. Use `deterministic-test` only for executable
 behavior actually exercised.
 
+State the claim that evidence supports: executable correctness, conformance to
+guidance, or occurrence of the intended outcome. Do not claim comparative
+improvement unless the observation includes an actual comparator.
+
 For a correction, keep recurrence and replacement separate. Update the existing
 accepted identity with preserved contradiction evidence. Create a new accepted
 identity only when the correction candidate changes the decision; let

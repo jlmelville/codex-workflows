@@ -572,9 +572,12 @@ run_skill_index_smoke() {
   local fixture="${tmp_root}/list-skills"
   local fixture_script="${fixture}/scripts/list-skills.rb"
   local fixture_error="${fixture}/error"
+  local fixture_catalog="${fixture}/catalog"
 
+  ruby "${repo_dir}/scripts/list-skills.rb" --help >/dev/null
   ruby "${repo_dir}/scripts/list-skills.rb" >/dev/null
   ruby "${repo_dir}/scripts/list-skills.rb" --markdown >/dev/null
+  ruby "${repo_dir}/scripts/list-skills.rb" --catalog >/dev/null
   assert_usage_error \
     "list-skills-invalid-option" \
     "list-skills.rb: invalid option: --bogus" \
@@ -584,16 +587,38 @@ run_skill_index_smoke() {
     "list-skills.rb: unexpected argument: extra" \
     ruby "${repo_dir}/scripts/list-skills.rb" extra
 
-  mkdir -p "${fixture}/scripts" "${fixture}/skills/example/agents"
+  mkdir -p \
+    "${fixture}/scripts" \
+    "${fixture}/skills/example/agents" \
+    "${fixture}/skills/example/assets" \
+    "${fixture}/skills/example/references" \
+    "${fixture}/skills/example/scripts"
   cp "${repo_dir}/scripts/list-skills.rb" "${fixture_script}"
   cat >"${fixture}/skills/example/SKILL.md" <<'EOF_SKILL_INDEX'
 ---
 name: example
-description: Exercise skill index metadata errors.
+description: Exercise skill index catalogue and metadata errors.
 ---
 
 # Example
 EOF_SKILL_INDEX
+  cat >"${fixture}/skills/example/agents/openai.yaml" <<'EOF_SKILL_INDEX_AGENTS'
+interface:
+  display_name: "Example Skill"
+  short_description: "Exercise capability discovery"
+  default_prompt: "Use $example to inspect a tiny fixture."
+EOF_SKILL_INDEX_AGENTS
+  touch \
+    "${fixture}/skills/example/assets/example.txt" \
+    "${fixture}/skills/example/references/example.md" \
+    "${fixture}/skills/example/scripts/example.rb"
+  ruby "${fixture_script}" --catalog >"${fixture_catalog}"
+  grep -Fq "Example Skill (\$example)" "${fixture_catalog}"
+  grep -Fq 'Does: Exercise capability discovery' "${fixture_catalog}"
+  grep -Fq 'Use when: Exercise skill index catalogue and metadata errors.' "${fixture_catalog}"
+  grep -Fq "Try: Use \$example to inspect a tiny fixture." "${fixture_catalog}"
+  grep -Fq 'Includes: 1 script, 1 reference, 1 asset' "${fixture_catalog}"
+
   cat >"${fixture}/skills/example/agents/openai.yaml" <<'EOF_SKILL_INDEX_AGENTS'
 interface: []
 EOF_SKILL_INDEX_AGENTS

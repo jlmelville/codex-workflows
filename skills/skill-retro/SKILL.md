@@ -114,8 +114,16 @@ candidate as the terminal fallback when approval is unavailable or denied.
   is better, explain why a script is not warranted.
 - Harvest reusable craft that worked well, not only failures. The test is
   whether a fresh agent doing similar work would reuse the convention.
+- When an existing skill materially influenced the work, check whether it made
+  the task worse by misactivating, imposing unnecessary sequencing, displacing
+  a simpler valid approach, relying on stale assumptions, or rewarding
+  procedural compliance over the user's objective. Preserve that evidence for
+  narrowing, qualification, decomposition, supersession, or removal.
 - Split reusable kernels from repository-local wrappers. Route only the kernel;
   keep purely local conventions local.
+- State the narrowest context directly supported by the evidence. Broaden the
+  lesson only when a deterministic or otherwise credible mechanism justifies
+  transfer beyond the observed context.
 - Identify ownership when known: source-owned in `codex-workflows`, repo-local,
   external/plugin-owned, or unknown.
 - For no-change recommendations, cite the existing section, numbered item,
@@ -137,6 +145,11 @@ implementation itself. A later session can support or contradict a rule only
 when it records the observed task, decisive behavior or failure, affected
 guidance, and why the observation matters. Model self-report alone is
 insufficient.
+
+State exactly what the evidence establishes. A deterministic test normally
+supports executable correctness; later-session evidence may support that the
+guidance was followed or that the intended outcome occurred. Neither
+establishes comparative improvement without an observed comparator.
 
 Do not recommend maintained prompt corpora, synthetic model fixtures, repeated
 model runs, `codex exec` benchmarks, raw trace archives, paid model-backed CI,

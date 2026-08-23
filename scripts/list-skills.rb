@@ -10,9 +10,10 @@ format = :tsv
 class MetadataError < StandardError; end
 
 parser = OptionParser.new do |opts|
-  opts.banner = "Usage: list-skills.rb [--tsv|--markdown]"
+  opts.banner = "Usage: list-skills.rb [--tsv|--markdown|--catalog]"
   opts.on("--tsv", "Output tab-separated rows (default)") { format = :tsv }
   opts.on("--markdown", "Output a Markdown table") { format = :markdown }
+  opts.on("--catalog", "Output a human-facing capability catalog") { format = :catalog }
 end
 
 begin
@@ -59,6 +60,15 @@ def count_files(path)
   Dir.glob(File.join(path, "**", "*")).count { |candidate| File.file?(candidate) }
 end
 
+def compact_text(value)
+  value.to_s.gsub(/\s+/, " ").strip
+end
+
+def count_label(count, singular)
+  label = (count == 1) ? singular : "#{singular}s"
+  "#{count} #{label}"
+end
+
 begin
   rows = Dir.glob(File.join(repo_dir, "skills", "*")).select { |path|
     File.directory?(path)
@@ -75,13 +85,16 @@ begin
 
     {
       "name" => skill_name,
+      "description" => compact_text(skill.fetch("description", "")),
       "description_length" => skill.fetch("description", "").length,
       "has_agents_yaml" => File.file?(agents_path),
-      "display_name" => interface.fetch("display_name", ""),
-      "short_description" => interface.fetch("short_description", ""),
+      "display_name" => compact_text(interface.fetch("display_name", "")),
+      "short_description" => compact_text(interface.fetch("short_description", "")),
+      "default_prompt" => compact_text(default_prompt),
       "default_prompt_mentions_skill" => default_prompt.include?("$#{skill_name}"),
       "reference_count" => count_files(File.join(skill_dir, "references")),
-      "script_count" => count_files(File.join(skill_dir, "scripts"))
+      "script_count" => count_files(File.join(skill_dir, "scripts")),
+      "asset_count" => count_files(File.join(skill_dir, "assets"))
     }
   end
 rescue MetadataError, Errno::ENOENT, Errno::EACCES => e
@@ -98,6 +111,7 @@ headers = %w[
   default_prompt_mentions_skill
   reference_count
   script_count
+  asset_count
 ]
 
 case format
@@ -106,6 +120,20 @@ when :markdown
   puts "| #{headers.map { "---" }.join(" | ")} |"
   rows.each do |row|
     puts "| #{headers.map { |header| row.fetch(header).to_s.gsub("|", '\\|') }.join(" | ")} |"
+  end
+when :catalog
+  rows.each_with_index do |row, index|
+    puts if index.positive?
+    puts "#{row.fetch("display_name")} ($#{row.fetch("name")})"
+    puts "  Does: #{row.fetch("short_description")}"
+    puts "  Use when: #{row.fetch("description")}"
+    puts "  Try: #{row.fetch("default_prompt")}"
+    includes = [
+      count_label(row.fetch("script_count"), "script"),
+      count_label(row.fetch("reference_count"), "reference"),
+      count_label(row.fetch("asset_count"), "asset")
+    ]
+    puts "  Includes: #{includes.join(", ")}"
   end
 else
   puts headers.join("\t")

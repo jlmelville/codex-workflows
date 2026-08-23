@@ -55,6 +55,8 @@ For every candidate, choose one verdict: `accept`, `defer`, `reject`, `split`,
 
 - concrete and materially distinct evidence;
 - durability and recurrence likelihood;
+- the narrowest context supported by the evidence, broadened only when a
+  deterministic or otherwise credible mechanism justifies transfer;
 - the exact gap in existing guidance;
 - separation of reusable kernel from repository-local wrapper;
 - expected benefit versus instruction and maintenance cost;

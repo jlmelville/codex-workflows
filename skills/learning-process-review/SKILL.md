@@ -68,6 +68,14 @@ deferrals without drains, fired drafts or ledgers, implemented-but-unverified
 guidance, contradicted guidance, and missing active domains without treating
 unequal report volume as a defect by itself.
 
+Aggregate behavioral evidence that an existing skill made ordinary work worse,
+including misactivation, unnecessary sequencing, displaced simpler approaches,
+stale assumptions, or procedural compliance that missed the user's objective.
+Route repeated or decisive evidence toward trigger narrowing, qualification,
+decomposition, supersession, or removal. Leave the provenance-blind artifact
+audit to identify structural risk factors rather than claiming behavioral
+incidents it cannot observe.
+
 Supervise semantic curation at the process level:
 
 - whether triage keeps adding incident-shaped default rules instead of changing

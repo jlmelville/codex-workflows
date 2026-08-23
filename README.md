@@ -37,6 +37,19 @@ project work -> papercuts and retros -> triage -> skill changes -> Git
                                                 pull and install on each laptop
 ```
 
+## Discover Capabilities
+
+Generate the current human-facing skill catalogue from canonical skill
+frontmatter and `agents/openai.yaml` metadata:
+
+```sh
+./scripts/list-skills.rb --catalog
+```
+
+The catalogue shows each capability, its activation contract, a copy-ready
+invocation, and whether the skill includes scripts, references, or assets. It is
+generated on demand so the README does not become a second skill inventory.
+
 ## Set Up A Laptop
 
 Clone the repository and install its managed skills:

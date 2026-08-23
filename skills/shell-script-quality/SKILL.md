@@ -78,6 +78,17 @@ ordinary arrays instead.
 - Run ShellCheck in CI when the repository contains shell scripts.
 - For GitHub Actions snippets, apply `$github-actions-hardening` too.
 
+## Bounded Parallel Checks
+
+Parallelize only a small, measured set of demonstrably independent checks when
+plain shell job control materially reduces latency. Capture each job's output
+separately, wait for every job while collecting all statuses, replay diagnostics
+in a stable order, propagate failure, and clean up scoped temporary output.
+
+When ShellCheck cannot see that an `EXIT` trap reaches its cleanup function,
+use only the narrow documented `SC2317` or `SC2329` suppression required by the
+supported versions after confirming the function has no other caller.
+
 ## Checks
 
 Run:

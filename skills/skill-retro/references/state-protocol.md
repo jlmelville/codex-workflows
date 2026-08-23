@@ -230,6 +230,12 @@ for executable contracts actually exercised. Use `later-session` only for an
 ordinary task that records the decisive behavior or failure, affected guidance,
 and why the observation supports or contradicts it.
 
+Every verification update states exactly what its evidence establishes. A
+deterministic test normally supports executable correctness. Later-session
+evidence may support conformance to the guidance or occurrence of the intended
+outcome. Neither basis establishes comparative improvement without an observed
+comparator.
+
 Use `update-accepted --id ID --file PATH` for later disposition, verification,
 evidence, or commit updates. Supply a complete unassigned accepted document,
 like `template accepted`; the helper preserves `accepted_id` and `accepted_at`
