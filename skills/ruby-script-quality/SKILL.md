@@ -1,6 +1,6 @@
 ---
 name: ruby-script-quality
-description: Write, review, test, and harden standalone Ruby scripts and command-line utilities. Use when Codex edits .rb files, Ruby CLIs, OptionParser interfaces, YAML or filesystem automation, executable Ruby helpers, or Ruby script validation and CI.
+description: Write, review, test, and harden standalone Ruby scripts and CLIs. Use for .rb files, OptionParser, structured-data or filesystem automation, executable helpers, output behavior, and Ruby script validation.
 ---
 
 # Ruby Script Quality
@@ -34,9 +34,17 @@ variables. Catch `OptionParser::ParseError`; print a stable one-line diagnostic
 and usage to standard error, then use a distinct usage-error status such as 2.
 
 Write machine-readable results to standard output. Write diagnostics and
-progress to standard error. Keep error prefixes and terminology consistent
-across related commands. Reject unknown commands, missing required arguments,
-unexpected trailing arguments, and invalid combinations before mutating state.
+enabled progress to standard error. Keep routine success silent or limited to
+one stable summary. Offer `--verbose` when progress is useful and `--quiet` when
+callers may need to suppress otherwise useful normal output. Keep error prefixes
+and terminology consistent across related commands. Reject unknown commands,
+missing required arguments, unexpected trailing arguments, and invalid
+combinations before mutating state.
+
+When wrapping noisy subprocesses, prefer their quiet and no-progress flags when
+failure diagnostics remain complete. Otherwise capture output, emit a compact
+success summary, and replay actionable output on failure. Do not make failures
+silent merely to reduce output volume.
 
 ## Structured Data And Filesystems
 
@@ -86,6 +94,9 @@ Assert exit status, standard output, standard error, and the absence of partial
 writes. Cover malformed structured data, missing inputs, invalid options,
 unexpected arguments, permission failures when practical, and idempotence for
 state-changing commands.
+
+When output modes exist, assert default, quiet, verbose, and failure behavior;
+quiet success must preserve actionable failure diagnostics.
 
 When an older interpreter is available, exercise the minimum-version guard and
 assert its status, diagnostic, and absence of partial writes.

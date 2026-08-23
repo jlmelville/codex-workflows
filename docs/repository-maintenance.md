@@ -171,7 +171,7 @@ exists.
 For workflow changes, run the source-tree workflow audit when present:
 
 ```sh
-./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 ```
 
 When adding or changing a manual validation lane, push it, trigger it once with

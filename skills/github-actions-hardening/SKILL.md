@@ -1,6 +1,6 @@
 ---
 name: github-actions-hardening
-description: Harden and maintain GitHub Actions workflows. Use when Codex edits, reviews, audits, or debugs .github/workflows or .github/dependabot.yml, including SHA pinning, permissions, checkout credentials, concurrency, actionlint, zizmor, ShellCheck, and safe pull_request behavior.
+description: Harden and maintain GitHub Actions workflows and Dependabot configuration. Use for workflow edits, reviews, audits, or debugging involving SHA pins, permissions, checkout credentials, concurrency, actionlint, zizmor, ShellCheck, or safe pull_request behavior.
 ---
 
 # GitHub Actions Hardening
@@ -54,20 +54,21 @@ Run the checks that exist in the repository:
 
 ```sh
 actionlint
-zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
+zizmor --quiet --no-progress .github/workflows
+# Fallback: uvx --quiet --no-progress zizmor --quiet --no-progress .github/workflows
 shellcheck path/to/scripts/*.sh
 ```
 
 Use this skill's bundled audit script when available:
 
 ```sh
-${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 ```
 
 From this source repository root, the same script is under:
 
 ```sh
-./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 ```
 
 The audit script runs the tag comment checker in offline `--require-comment`
@@ -77,8 +78,8 @@ full-SHA pins, use `--require-tag`; `--verify-remote` uses `git ls-remote` and
 may need network approval:
 
 ```sh
-${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag .github/workflows
-${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --require-tag --verify-remote .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --quiet --require-tag .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh --quiet --require-tag --verify-remote .github/workflows
 ```
 
 The tag-comment checker also accepts one `.yml` or `.yaml` workflow file. Use a

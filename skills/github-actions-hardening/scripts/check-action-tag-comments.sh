@@ -5,18 +5,20 @@ workflow_target=".github/workflows"
 target_explicit=false
 require_mode="tag"
 verify_remote=false
+quiet=false
 uses_pattern="^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*['\"]?([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*)@([0-9a-fA-F]{40})['\"]?([[:space:]#]|$)"
 
 usage() {
   cat <<'USAGE'
-Usage: check-action-tag-comments.sh [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_TARGET]
+Usage: check-action-tag-comments.sh [--quiet] [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_TARGET]
 
 Check SHA-pinned GitHub Actions uses: entries for nearby version/tag comments.
 
 By default this requires a nearby tag-like comment such as v4 or v4.1.2. Use
 --require-comment to accept any nearby non-empty comment. With --verify-remote,
 each detected tag is resolved with git ls-remote over public HTTPS and compared
-to the pinned SHA. WORKFLOW_TARGET may be a .yml/.yaml file or a directory.
+to the pinned SHA. Use --quiet to emit only diagnostics. WORKFLOW_TARGET may be
+a .yml/.yaml file or a directory.
 USAGE
 }
 
@@ -28,6 +30,10 @@ while (($# > 0)); do
       ;;
     --verify-remote)
       verify_remote=true
+      shift
+      ;;
+    --quiet)
+      quiet=true
       shift
       ;;
     --require-comment)
@@ -207,10 +213,12 @@ for file in "${workflow_files[@]}"; do
       continue
     fi
 
-    if [[ -n "${tag}" ]]; then
-      echo "${file}:${line_no}: ${action}@${sha} comment tag ${tag}"
-    else
-      echo "${file}:${line_no}: ${action}@${sha} nearby comment present"
+    if [[ "${quiet}" == false ]]; then
+      if [[ -n "${tag}" ]]; then
+        echo "${file}:${line_no}: ${action}@${sha} comment tag ${tag}"
+      else
+        echo "${file}:${line_no}: ${action}@${sha} nearby comment present"
+      fi
     fi
 
     if [[ "${verify_remote}" != true || -z "${tag}" ]]; then
@@ -228,7 +236,7 @@ for file in "${workflow_files[@]}"; do
   done
 done
 
-if [[ "${found}" == false ]]; then
+if [[ "${found}" == false && "${quiet}" == false ]]; then
   echo "No full-SHA GitHub Actions uses: entries found."
 fi
 

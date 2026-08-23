@@ -254,29 +254,46 @@ if ! ruby -e '
   status=1
 fi
 
-smoke_script="${repo_dir}/scripts/smoke-test-skill-scripts.sh"
-if [[ ! -x "${smoke_script}" ]]; then
-  echo "${smoke_script}: missing or not executable" >&2
-  status=1
-elif ! "${smoke_script}"; then
-  status=1
-fi
+smoke_scripts=(
+  "${repo_dir}/scripts/smoke-test-skill-scripts.sh"
+  "${repo_dir}/scripts/smoke-test-installer.sh"
+  "${repo_dir}/scripts/smoke-test-skill-drift.sh"
+)
+smoke_pids=()
+smoke_outputs=()
+smoke_output_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-skill-validation.XXXXXX")"
 
-installer_smoke_script="${repo_dir}/scripts/smoke-test-installer.sh"
-if [[ ! -x "${installer_smoke_script}" ]]; then
-  echo "${installer_smoke_script}: missing or not executable" >&2
-  status=1
-elif ! "${installer_smoke_script}"; then
-  status=1
-fi
+# shellcheck disable=SC2329  # Invoked by the EXIT trap.
+cleanup_smoke_outputs() {
+  if ((${#smoke_outputs[@]} > 0)); then
+    rm -f "${smoke_outputs[@]}"
+  fi
+  rmdir "${smoke_output_dir}" 2>/dev/null || true
+}
+trap cleanup_smoke_outputs EXIT
 
-drift_smoke_script="${repo_dir}/scripts/smoke-test-skill-drift.sh"
-if [[ ! -x "${drift_smoke_script}" ]]; then
-  echo "${drift_smoke_script}: missing or not executable" >&2
-  status=1
-elif ! "${drift_smoke_script}"; then
-  status=1
-fi
+for index in "${!smoke_scripts[@]}"; do
+  smoke_script="${smoke_scripts[${index}]}"
+  if [[ ! -x "${smoke_script}" ]]; then
+    echo "${smoke_script}: missing or not executable" >&2
+    status=1
+    continue
+  fi
+
+  smoke_output="${smoke_output_dir}/${index}.out"
+  "${smoke_script}" >"${smoke_output}" 2>&1 &
+  smoke_pids+=("$!")
+  smoke_outputs+=("${smoke_output}")
+done
+
+for index in "${!smoke_pids[@]}"; do
+  if wait "${smoke_pids[${index}]}"; then
+    cat "${smoke_outputs[${index}]}"
+  else
+    cat "${smoke_outputs[${index}]}" >&2
+    status=1
+  fi
+done
 
 mirror_manifest="${repo_dir}/scripts/mirrored-files.tsv"
 if [[ -f "${mirror_manifest}" ]]; then

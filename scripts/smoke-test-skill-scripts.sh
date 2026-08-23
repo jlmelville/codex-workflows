@@ -315,7 +315,7 @@ EOF_COMMAND
     PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" ci >/dev/null
   )
   grep -Fq 'actionlint ' "${log}"
-  grep -Fq 'zizmor .github/workflows' "${log}"
+  grep -Fq 'zizmor -qq --no-progress .github/workflows' "${log}"
 
   if (cd "${pkg_dir}" && "${script}" unknown >/dev/null 2>&1); then
     echo "check-r-package.sh should reject an unknown mode" >&2
@@ -357,6 +357,13 @@ EOF_FAKE_ZIZMOR
   chmod +x "${fake_bin}/actionlint" "${fake_bin}/zizmor"
 
   PATH="${fake_bin}:${PATH}" "${script}" "${workflow_dir}" >/dev/null
+  output="$(PATH="${fake_bin}:${PATH}" "${script}" --quiet "${workflow_dir}")"
+  [[ "${output}" == "GitHub Actions audit completed." ]]
+
+  if "${script}" --bogus "${workflow_dir}" >/dev/null 2>&1; then
+    echo "audit-actions.sh should reject an unknown option" >&2
+    return 1
+  fi
 
   cat >"${uvx_fake_bin}/actionlint" <<'EOF_FAKE_ACTIONLINT'
 #!/usr/bin/env bash
@@ -366,6 +373,15 @@ EOF_FAKE_ACTIONLINT
   cat >"${uvx_fake_bin}/uvx" <<'EOF_FAKE_UVX'
 #!/usr/bin/env bash
 set -euo pipefail
+
+filtered_args=()
+for arg in "$@"; do
+  case "${arg}" in
+    --quiet | --no-progress) ;;
+    *) filtered_args+=("${arg}") ;;
+  esac
+done
+set -- "${filtered_args[@]}"
 
 case "${FAKE_UVX_MODE:-}" in
   launcher)
@@ -389,7 +405,7 @@ EOF_FAKE_UVX
 
   if ! output="$(
     PATH="${uvx_fake_bin}:/usr/bin:/bin" CI=false FAKE_UVX_MODE=launcher \
-      "${script}" "${workflow_dir}" 2>&1
+      "${script}" --quiet "${workflow_dir}" 2>&1
   )"; then
     printf '%s\n' "${output}" >&2
     echo "audit-actions.sh should tolerate an empty uvx launcher failure outside CI" >&2
@@ -403,7 +419,7 @@ EOF_FAKE_UVX
 
   if output="$(
     PATH="${uvx_fake_bin}:/usr/bin:/bin" CI=true FAKE_UVX_MODE=launcher \
-      "${script}" "${workflow_dir}" 2>&1
+      "${script}" --quiet "${workflow_dir}" 2>&1
   )"; then
     echo "audit-actions.sh should reject an empty uvx launcher failure in CI" >&2
     return 1
@@ -413,7 +429,7 @@ EOF_FAKE_UVX
 
   if output="$(
     PATH="${uvx_fake_bin}:/usr/bin:/bin" FAKE_UVX_MODE=findings \
-      "${script}" "${workflow_dir}" 2>&1
+      "${script}" --quiet "${workflow_dir}" 2>&1
   )"; then
     echo "audit-actions.sh should fail when zizmor reports findings" >&2
     return 1
@@ -442,6 +458,8 @@ jobs:
 EOF_INLINE
   "${script}" --require-tag "${workflow_dir}" >/dev/null
   "${script}" --require-tag "${workflow_dir}/inline.yml" >/dev/null
+  output="$("${script}" --quiet --require-tag "${workflow_dir}/inline.yml")"
+  [[ -z "${output}" ]]
 
   if "${script}" --require-tag "${workflow_dir}/missing.yml" >/dev/null 2>&1; then
     echo "an invalid explicit workflow target should fail" >&2

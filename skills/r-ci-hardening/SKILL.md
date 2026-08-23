@@ -55,13 +55,13 @@ steps.
 Run after workflow changes:
 
 ```sh
-${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 ```
 
 The generic audit owns actionlint, zizmor fallback behavior, SHA pinning,
 checkout credentials, and nearby pin comments. From the `codex-workflows`
 source repository, run
-`./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows`.
+`./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows`.
 
 For rare reviews that need to confirm nearby version tags against full-SHA pins,
 use

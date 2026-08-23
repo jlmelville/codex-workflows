@@ -1,6 +1,6 @@
 ---
 name: shell-script-quality
-description: Review, write, and harden shell scripts for reliability, portability, validation, quoting, error handling, executable bits, ShellCheck, Bash syntax, command availability, and safe filesystem operations. Use when Codex edits .sh files, install scripts, CI snippets, or shell-heavy automation.
+description: Review, write, and harden shell scripts and shell-heavy automation. Use for .sh files, install scripts, CI snippets, portability, quoting, error handling, command availability, output behavior, ShellCheck, and safe filesystem operations.
 ---
 
 # Shell Script Quality
@@ -15,6 +15,7 @@ Start by identifying:
 - expected working directory,
 - required tools,
 - inputs and arguments,
+- normal, quiet, verbose, and failure output,
 - files or directories the script may create, overwrite, or delete,
 - intended failure behavior.
 
@@ -32,6 +33,18 @@ set -euo pipefail
 Then handle expected nonzero commands explicitly with `if`, `case`, or `|| true`
 where silence is intentional. Avoid letting `set -e` obscure a meaningful
 failure message.
+
+## Output Behavior
+
+Keep routine success silent or limited to one stable summary. Put machine
+payloads on standard output and diagnostics on standard error. Add `--verbose`
+when progress is useful, and `--quiet` when a frequently composed command has
+normal output that callers may need to suppress.
+
+When wrapping a noisy command, use its quiet and no-progress flags when failure
+diagnostics remain complete. Otherwise capture its output, emit a compact
+success summary, and replay the actionable output on failure. Never discard
+warnings or errors merely to reduce output volume.
 
 ## Bash Portability
 
@@ -81,6 +94,9 @@ path/to/script.sh --help
 path/to/script.sh expected-mode
 path/to/script.sh invalid-mode
 ```
+
+When output modes exist, assert default, quiet, verbose, and failure streams;
+quiet success must not make failures silent.
 
 For install or sync scripts, test against a temporary target when possible
 before touching live directories. Exercise dry-run against an absent or

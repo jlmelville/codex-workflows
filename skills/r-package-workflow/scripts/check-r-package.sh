@@ -69,5 +69,5 @@ if [[ -d .github/workflows ]]; then
     echo "check-r-package.sh: shared workflow audit not found: ${actions_audit}" >&2
     exit 2
   fi
-  "${actions_audit}" .github/workflows
+  "${actions_audit}" --quiet .github/workflows
 fi

@@ -1,6 +1,6 @@
 ---
 name: uv-sandbox-workflow
-description: Run uv and uvx reliably in Codex sandboxes and restricted filesystems, including writable cache, tool, and Python directories, network approval decisions, uv run --with, uvx, uv sync, uv lock, uv python, and avoiding read-only home caches or blocked dependency downloads.
+description: Run uv and uvx reliably in Codex sandboxes. Use for writable cache, tool, and Python directories; network approval; uv run --with, uvx, sync, lock, or python; and read-only-cache or blocked-download failures.
 ---
 
 # uv Sandbox Workflow
@@ -96,6 +96,17 @@ the writable uv directories:
 ```sh
 uv sync
 ```
+
+For agent-driven commands whose result is primarily success or failure, suppress
+progress chatter while preserving diagnostics:
+
+```sh
+uv --quiet --no-progress sync
+uvx --quiet --no-progress tool-name ...
+```
+
+Do not quiet commands whose output is the requested payload, such as `uv tree`.
+Use verbose output only when diagnosing a failure or when the user requests it.
 
 ## After Running
 

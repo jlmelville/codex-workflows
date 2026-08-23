@@ -166,7 +166,7 @@ Before committing, run:
 For workflow changes from this source repository root, also run when present:
 
 ```sh
-./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 ```
 
 Before validating substantial skill, script, CI, installer, shared-policy, or

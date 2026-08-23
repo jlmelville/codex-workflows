@@ -77,7 +77,7 @@ jobs:
         run: ./scripts/validate-skills.sh
 
       - name: Audit workflows
-        run: ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+        run: ./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 
   skills-macos:
     if: github.event_name == 'workflow_dispatch'
@@ -139,4 +139,4 @@ jobs:
         run: ./scripts/validate-skills.sh
 
       - name: Audit workflows
-        run: ./skills/github-actions-hardening/scripts/audit-actions.sh .github/workflows
+        run: ./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
