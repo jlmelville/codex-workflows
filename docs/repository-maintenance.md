@@ -94,15 +94,16 @@ are tracked source that it validates but does not rewrite. It never edits
 `AGENTS.md`, `AGENTS.override.md`, `config.toml`, shell startup files, or
 external retrospective state.
 
-Standing papercut capture therefore has a separate one-time setup step. Its
-canonical instruction block is
-[`skills/papercut-capture/assets/global-agents-papercuts.md`](../skills/papercut-capture/assets/global-agents-papercuts.md).
+Standing papercut capture and automatic retrospective evaluation therefore have
+a separate one-time setup step. Their canonical instruction block is
+[`skills/skill-retro/assets/global-agents-learning.md`](../skills/skill-retro/assets/global-agents-learning.md).
 After installing the skills:
 
-- copy the installed asset from `$HOME/.agents/skills/papercut-capture/assets`
+- copy the installed asset from `$HOME/.agents/skills/skill-retro/assets`
   to `${CODEX_HOME:-$HOME/.codex}/AGENTS.md` only when neither
   `AGENTS.md` nor `AGENTS.override.md` exists in that Codex home;
-- otherwise merge or replace only its `## Workflow papercuts` section;
+- otherwise merge or replace its `## Workflow papercuts` and
+  `## Workflow retrospectives` sections;
 - when `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` exists, update the
   override instead because it takes precedence over the base global file;
 - restart Codex or open a new thread after changing the active global file;
@@ -110,7 +111,7 @@ After installing the skills:
   with the previously copied section because global instructions are not
   updated automatically.
 
-Removing the section disables the policy globally. A closer repository
+Removing either section disables that policy globally. A closer repository
 instruction or explicit task instruction may opt out without changing the
 canonical template.
 

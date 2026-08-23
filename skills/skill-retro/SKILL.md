@@ -1,6 +1,6 @@
 ---
 name: skill-retro
-description: Produce and optionally route mature Skill Candidate Reports from completed work. Use when the user requests a skill retrospective, candidate report, reusable workflow conclusion, or external retrospective routing. Do not use for low-cost during-work papercut capture.
+description: Produce and optionally route mature Skill Candidate Reports from completed work. Use when the user requests a skill retrospective, candidate report, reusable workflow conclusion, or external routing, or when standing instructions require an end-of-work evaluation. Do not use for low-cost during-work papercut capture.
 ---
 
 # Skill Retro
@@ -14,15 +14,29 @@ project repository or the public skill source repository.
 Read [state-protocol.md](references/state-protocol.md) before writing external
 state.
 
+## Authority
+
+Retrospective evaluation and a report in chat are read-only. Writing a
+candidate requires one of these grants:
+
+- the user explicitly accepts routing a proposed report;
+- the user explicitly requests `auto` mode for the task or session; or
+- applicable standing instructions explicitly authorize automatic routing.
+
+Routing authority permits only sanitized new files beneath
+`retrospectives/inbox` in the configured external state root. It does not
+authorize project or source-repository edits, commits, pushes, messages, or
+changes to existing external state. Explicit task instructions and closer
+repository privacy or opt-out rules may narrow standing authority.
+
 ## Candidate Modes
 
 - Default: show a compact candidate summary in chat and write nothing.
 - `route`: after the user explicitly accepts routing, write a detailed,
   sanitized candidate to the inbox beneath `CODEX_WORKFLOWS_STATE_DIR`.
-- `auto`: only when the user explicitly requests this mode, route candidates
-  with high confidence, concrete evidence, a clear missing delta, and a named
-  destination or well-justified new home. Its only authorized mutation is an
-  external inbox record.
+- `auto`: when explicitly requested or enabled by applicable standing
+  instructions, route candidates with high confidence, concrete evidence, a
+  clear missing delta, and a named destination or well-justified new home.
 
 Before either routing mode writes anything, assemble the complete current-task
 candidate set in memory or temporary scratch. Compare every proposed report's
@@ -30,8 +44,20 @@ missing delta, destination, and decision, consolidate overlaps, and only then
 write one file per surviving distinct delta. Do not route reports incrementally
 as conclusions surface.
 
-Neither routing mode authorizes project edits, source-repository edits,
-commits, pushes, messages, or changes to other external state.
+## Automatic Checkpoints
+
+When standing instructions enable `auto`, evaluate after a substantive,
+coherent work unit. Normally do this after validation and small review fixes,
+before the final response or a fresh-agent handoff. Also evaluate when
+substantial user redirection exposes missing guidance, or when the work reveals
+reusable craft that a fresh agent would benefit from.
+
+Err toward evaluating when the boundary is uncertain; a no-change evaluation
+is cheap and should remain quiet. Fold minor follow-up fixes into the current
+work unit. If evaluation already occurred, evaluate again only when continued
+work materially changes the lesson or reveals a distinct one. Disclose
+successfully routed candidates in the final response; do not add a zero-count
+status line unless applicable instructions require it.
 
 Use the installed helper from an arbitrary project repository:
 

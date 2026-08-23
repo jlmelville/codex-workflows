@@ -77,9 +77,10 @@ them out of the user-wide skill directory and validates their links.
    Merge these keys into existing tables rather than defining a TOML table
    twice.
 
-3. Enable standing papercut capture. The canonical global instruction block is
-   [`skills/papercut-capture/assets/global-agents-papercuts.md`](skills/papercut-capture/assets/global-agents-papercuts.md)
-   and is included in the installed skill.
+3. Enable standing learning capture. The canonical global instruction block is
+   [`skills/skill-retro/assets/global-agents-learning.md`](skills/skill-retro/assets/global-agents-learning.md)
+   and is included in the installed skill. It authorizes papercut capture during
+   work and high-confidence retrospective routing at meaningful task boundaries.
 
    If the Codex home has neither `AGENTS.md` nor `AGENTS.override.md`, install
    the block as `AGENTS.md`:
@@ -87,12 +88,13 @@ them out of the user-wide skill directory and validates their links.
    ```sh
    codex_profile="${CODEX_HOME:-$HOME/.codex}"
    mkdir -p "${codex_profile}"
-   cp "${HOME}/.agents/skills/papercut-capture/assets/global-agents-papercuts.md" \
+   cp "${HOME}/.agents/skills/skill-retro/assets/global-agents-learning.md" \
      "${codex_profile}/AGENTS.md"
    ```
 
-   Otherwise, merge its `## Workflow papercuts` section into the active global
-   instruction file. See
+   Otherwise, merge its `## Workflow papercuts` and
+   `## Workflow retrospectives` sections into the active global instruction
+   file. See
    [Repository Maintenance](docs/repository-maintenance.md#user-global-instruction-setup)
    for precedence and update details.
 
@@ -112,11 +114,14 @@ details, validation, CI, and local tooling.
 `$skill-retro-triage` and `$learning-process-review` are repository-local: run
 Codex from this checkout when invoking them. The producer skills remain
 user-scoped so they can collect evidence from other repositories.
+Automatically routed Skill Candidate Reports go directly to
+`$skill-retro-triage`; `$learning-process-review` is a periodic audit and is not
+a prerequisite for candidate triage.
 
 | Moment | Entry point | Scope |
 | --- | --- | --- |
 | During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
-| After a meaningful session | `$skill-retro` | Distill session evidence into a candidate; write externally only when routing is authorized. |
+| At a meaningful task boundary | `$skill-retro` | Evaluate session evidence and automatically route only high-confidence candidates when standing authorization is active. |
 | When candidates accumulate | `$skill-retro-triage` | Decide whether and how each candidate changes public source, then implement an accepted batch. |
 | At the process-review cadence below | `$learning-process-review` | Audit external learning state; when the artifact audit is due, also run and supervise the repository prompt below. |
 | When the artifact audit is due (direct/manual entry) | `prompts/skill-repository-retrospective.md` | Run the same report-only public-skill audit directly, without the broader learning-process review. |
