@@ -1104,7 +1104,7 @@ module RetroState
       rows
     end
 
-    def accepted_publication_expected?(triage, candidates_by_id)
+    def accepted_publication_expected?(triage, candidates_by_id, visited_ids = [])
       verdict = triage.fetch("verdict")
       return true if %w[accept split].include?(verdict)
       return false unless verdict == "merge"
@@ -1113,8 +1113,14 @@ module RetroState
       return true if related_ids.empty?
 
       related_ids.any? do |id|
+        next false if visited_ids.include?(id)
+
         related = candidates_by_id[id]
-        related.nil? || %w[accept merge split].include?(related.dig("triage", "verdict"))
+        related.nil? || accepted_publication_expected?(
+          related.fetch("triage"),
+          candidates_by_id,
+          visited_ids + [id]
+        )
       end
     end
 
@@ -1980,6 +1986,39 @@ module RetroState
         raise "merge into deferred candidate created a publication obligation"
       end
 
+      File.write(input, candidate_template.gsub("Short candidate title", "Merge into deferred merge"))
+      nested_merged_path = store.route(input)
+      nested_merged_id = File.basename(nested_merged_path, ".md")
+      nested_merged_decision = decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", nested_merged_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:45Z")
+        .sub("verdict: defer", "verdict: merge")
+        .sub("related_candidate_ids: []", "related_candidate_ids:\n  - #{merged_id}")
+        .sub(/^review_trigger:.*\n/, "")
+        .sub(/^next_action:.*\n/, "")
+        .sub(/^close_condition:.*\n/, "")
+      File.write(decision, nested_merged_decision)
+      store.process(nested_merged_id, decision)
+      if store.review_queue.any? { |type, row_id, _trigger, _path|
+           type == "accepted-publication" && row_id == nested_merged_id
+         }
+        raise "nested merge into deferred candidate created a publication obligation"
+      end
+
+      cycle_a_id = "RC-20260715T120546Z-000001"
+      cycle_b_id = "RC-20260715T120547Z-000002"
+      cycle_candidates = {
+        cycle_a_id => {
+          "triage" => {"verdict" => "merge", "related_candidate_ids" => [cycle_b_id]}
+        },
+        cycle_b_id => {
+          "triage" => {"verdict" => "merge", "related_candidate_ids" => [cycle_a_id]}
+        }
+      }
+      if store.accepted_publication_expected?(cycle_candidates.fetch(cycle_a_id).fetch("triage"), cycle_candidates)
+        raise "merge cycle created a publication obligation"
+      end
+
       unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
         raise "artifact audit did not become due after candidate archives"
       end
@@ -2056,6 +2095,11 @@ module RetroState
                type == "accepted-publication" && row_id == merged_id
              }
         raise "merge into accepted candidate missing publication obligation"
+      end
+      unless store.review_queue.any? { |type, row_id, _trigger, _path|
+               type == "accepted-publication" && row_id == nested_merged_id
+             }
+        raise "nested merge into accepted candidate missing publication obligation"
       end
       if store.review_queue.any? { |type, id, _trigger, _path| type == "deferred" && id == deferred_id }
         raise "resolved deferral remained in the review queue"
