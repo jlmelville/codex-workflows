@@ -1052,13 +1052,17 @@ module RetroState
       published_candidate_ids = accepted_records.flat_map do |_path, data|
         data.fetch("originating_candidate_ids")
       end
+      candidates = archived_candidates
+      candidates_by_id = candidates.to_h do |_path, data|
+        [data.fetch("candidate_id"), data]
+      end
 
-      archived_candidates.each do |path, data|
+      candidates.each do |path, data|
         triage = data.fetch("triage")
         candidate_id = data.fetch("candidate_id")
         if triage["verdict"] == "defer"
           rows << ["deferred", candidate_id, triage.fetch("review_trigger"), path]
-        elsif %w[accept merge split].include?(triage["verdict"]) &&
+        elsif accepted_publication_expected?(triage, candidates_by_id) &&
             !published_candidate_ids.include?(candidate_id)
           trigger = "Publish the accepted outcome and record accepted metadata for this candidate origin."
           rows << ["accepted-publication", candidate_id, trigger, path]
@@ -1098,6 +1102,20 @@ module RetroState
       end
 
       rows
+    end
+
+    def accepted_publication_expected?(triage, candidates_by_id)
+      verdict = triage.fetch("verdict")
+      return true if %w[accept split].include?(verdict)
+      return false unless verdict == "merge"
+
+      related_ids = triage.fetch("related_candidate_ids", [])
+      return true if related_ids.empty?
+
+      related_ids.any? do |id|
+        related = candidates_by_id[id]
+        related.nil? || %w[accept merge split].include?(related.dig("triage", "verdict"))
+      end
     end
 
     def verification_opportunities(destination: nil)
@@ -1943,6 +1961,25 @@ module RetroState
       raise "draft missing from review queue" unless review_types.include?("draft")
       raise "ledger missing from review queue" unless review_types.include?("ledger")
 
+      File.write(input, candidate_template.gsub("Short candidate title", "Merge into deferral"))
+      merged_path = store.route(input)
+      merged_id = File.basename(merged_path, ".md")
+      merged_decision = decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", merged_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:30Z")
+        .sub("verdict: defer", "verdict: merge")
+        .sub("related_candidate_ids: []", "related_candidate_ids:\n  - #{deferred_id}")
+        .sub(/^review_trigger:.*\n/, "")
+        .sub(/^next_action:.*\n/, "")
+        .sub(/^close_condition:.*\n/, "")
+      File.write(decision, merged_decision)
+      store.process(merged_id, decision)
+      if store.review_queue.any? { |type, row_id, _trigger, _path|
+           type == "accepted-publication" && row_id == merged_id
+         }
+        raise "merge into deferred candidate created a publication obligation"
+      end
+
       unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
         raise "artifact audit did not become due after candidate archives"
       end
@@ -2015,6 +2052,11 @@ module RetroState
         raise "accepted reconsideration did not preserve complete triage history"
       end
       raise "replacement verdict was not stored" unless accepted_candidate.dig("triage", "verdict") == "accept"
+      unless store.review_queue.any? { |type, row_id, _trigger, _path|
+               type == "accepted-publication" && row_id == merged_id
+             }
+        raise "merge into accepted candidate missing publication obligation"
+      end
       if store.review_queue.any? { |type, id, _trigger, _path| type == "deferred" && id == deferred_id }
         raise "resolved deferral remained in the review queue"
       end

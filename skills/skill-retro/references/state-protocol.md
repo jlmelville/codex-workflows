@@ -189,8 +189,10 @@ digest and original intake fields remain in the archived document. For a
 deferred verdict, `review_trigger`, `next_action`, and `close_condition` are
 required. Use `review-queue` to list open archived deferrals, contradicted
 accepted outcomes, drafts, ledger actions, accepted publication gaps, and a due
-artifact audit. An `accepted-publication` row means an archived `accept`,
-`merge`, or `split` candidate origin is absent from every accepted record.
+artifact audit. An `accepted-publication` row means an archived `accept` or
+`split`, or a `merge` into a publication-bound related outcome, is absent from
+every accepted record. A merge into only deferred, rejected, or no-change
+outcomes consolidates evidence without creating a publication obligation.
 Treat it as advisory reconciliation work: determine whether the public source,
 accepted metadata, or both were interrupted, then repair the missing surfaces.
 Its presence does not make the state invalid because an active triage
