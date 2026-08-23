@@ -107,6 +107,14 @@ EOF_NOTES
   chmod 640 "${fixture}/skills/${name}/notes.txt"
 }
 
+make_repo_local() {
+  local fixture="$1"
+  local name="$2"
+
+  mkdir -p "${fixture}/.agents/skills"
+  ln -s "../../skills/${name}" "${fixture}/.agents/skills/${name}"
+}
+
 create_fixture() {
   local fixture="$1"
 
@@ -114,6 +122,8 @@ create_fixture() {
   cp -a "${repo_dir}/install.sh" "${fixture}/install.sh"
   create_skill "${fixture}" alpha "alpha v1"
   create_skill "${fixture}" beta "beta v1"
+  create_skill "${fixture}" repo-only "repo-only v1"
+  make_repo_local "${fixture}" repo-only
 }
 
 fixture="${tmp_root}/fixture"
@@ -141,8 +151,12 @@ HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/nul
 assert_file_contains "${manifest}" "# codex-workflows-managed-skills v1"
 assert_file_contains "${manifest}" "alpha"
 assert_file_contains "${manifest}" "beta"
+assert_file_not_contains "${manifest}" "repo-only"
 [[ -f "${agents_home}/skills/alpha/SKILL.md" ]] || fail "first run did not replace alpha"
 [[ -f "${agents_home}/skills/beta/SKILL.md" ]] || fail "first run did not install beta"
+[[ ! -e "${agents_home}/skills/repo-only" ]] || fail "first run installed a repository-local skill globally"
+[[ -L "${fixture}/.agents/skills/repo-only" ]] || fail "repository-local skill is not a symlink"
+[[ -f "${fixture}/.agents/skills/repo-only/SKILL.md" ]] || fail "repository-local skill symlink does not resolve"
 [[ -f "${agents_home}/skills/legacy-stale/data.txt" ]] || fail "first run removed unknown legacy stale skill"
 [[ "$(cat "${agents_home}/skills/unrelated/data.txt")" == "do not touch" ]] || fail "unrelated skill content changed"
 assert_mode "${agents_home}/skills/unrelated" 700
@@ -150,6 +164,12 @@ assert_mode "${agents_home}/skills/unrelated/data.txt" 600
 assert_mode "${agents_home}/skills/alpha/scripts/run.sh" 755
 assert_mode "${agents_home}/skills/alpha/notes.txt" 640
 
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
+mkdir -p "${agents_home}/skills/repo-only"
+if HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null 2>&1; then
+  fail "--check did not detect a repository-local skill duplicated in the user scope"
+fi
+rm -rf "${agents_home}/skills/repo-only"
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
 before_idempotence="$(snapshot_tree "${agents_home}")"
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
@@ -174,6 +194,25 @@ HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/nul
 if grep -F "beta" "${manifest}" >/dev/null; then
   fail "manifest still lists removed managed skill beta"
 fi
+
+scope_fixture="${tmp_root}/scope-fixture"
+scope_user_home="${tmp_root}/scope-user-home"
+scope_agents_home="${scope_user_home}/.agents"
+scope_manifest="${scope_agents_home}/codex-workflows-managed-skills.tsv"
+create_fixture "${scope_fixture}"
+rm -rf "${scope_fixture}/.agents"
+HOME="${scope_user_home}" CODEX_HOME="${scope_user_home}/.codex" "${scope_fixture}/install.sh" >/dev/null
+[[ -f "${scope_agents_home}/skills/repo-only/SKILL.md" ]] || fail "scope fixture did not create the old global copy"
+assert_file_contains "${scope_manifest}" "repo-only"
+make_repo_local "${scope_fixture}" repo-only
+HOME="${scope_user_home}" CODEX_HOME="${scope_user_home}/.codex" "${scope_fixture}/install.sh" --dry-run >"${tmp_root}/scope-dry.out"
+assert_file_contains "${tmp_root}/scope-dry.out" "Would use repository-local skill link: repo-only"
+assert_file_contains "${tmp_root}/scope-dry.out" "Would remove stale managed skill: repo-only"
+HOME="${scope_user_home}" CODEX_HOME="${scope_user_home}/.codex" "${scope_fixture}/install.sh" >/dev/null
+[[ ! -e "${scope_agents_home}/skills/repo-only" ]] || fail "scope migration retained the old global copy"
+assert_file_not_contains "${scope_manifest}" "repo-only"
+[[ -f "${scope_fixture}/.agents/skills/repo-only/SKILL.md" ]] || fail "scope migration broke the repository-local skill"
+HOME="${scope_user_home}" CODEX_HOME="${scope_user_home}/.codex" "${scope_fixture}/install.sh" --check >/dev/null
 
 lock_user_home="${tmp_root}/lock-user-home"
 lock_agents_home="${lock_user_home}/.agents"

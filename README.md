@@ -17,17 +17,19 @@ The system has three parts:
 
 - **Source:** this Git repository contains the durable skills, prompts, and
   tooling shared between laptops.
-- **Runtime:** `./install.sh` copies repository-owned skills into
-  `$HOME/.agents/skills`, the current user-wide skill location documented by
+- **Runtime and discovery:** `./install.sh` copies user-scoped skills into
+  `$HOME/.agents/skills`, while tracked links under `.agents/skills` expose
+  repository-only skills inside this checkout. These are the current `USER`
+  and `REPO` locations documented by
   [OpenAI](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
-  The installer tracks its own skills and leaves unrelated installed skills
-  alone.
+  The installer tracks its user-scoped skills and leaves unrelated installed
+  skills alone.
 - **Learning state:** `CODEX_WORKFLOWS_STATE_DIR` holds papercuts, candidate
   reports, triage outcomes, and other working state outside the source
   repository and Codex home.
 
-The runtime and learning state are replaceable. Git remains the source of truth
-for reusable behavior.
+The user runtime and learning state are replaceable. Git remains the source of
+truth for reusable behavior and repository-local discovery links.
 
 ```text
 project work -> papercuts and retros -> triage -> skill changes -> Git
@@ -44,6 +46,9 @@ git clone git@github.com:jlmelville/codex-workflows.git
 cd codex-workflows
 ./install.sh
 ```
+
+The checkout itself supplies the repository-local skills; the installer keeps
+them out of the user-wide skill directory and validates their links.
 
 1. Choose an external state directory and initialize it:
 
@@ -104,6 +109,10 @@ details, validation, CI, and local tooling.
 
 ## Learning And Introspection
 
+`$skill-retro-triage` and `$learning-process-review` are repository-local: run
+Codex from this checkout when invoking them. The producer skills remain
+user-scoped so they can collect evidence from other repositories.
+
 | Moment | Entry point | Scope |
 | --- | --- | --- |
 | During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
@@ -163,7 +172,7 @@ For accepted repository changes, run:
 
 ```sh
 ./scripts/validate-skills.sh
-./install.sh              # when skills/ changed
+./install.sh              # update user scope and validate repo-local links
 ./install.sh --check
 ```
 

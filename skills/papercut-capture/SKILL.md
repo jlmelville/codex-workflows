@@ -90,6 +90,7 @@ disclose nonzero records and any paste-ready fallback; follow stricter
 applicable instructions when present.
 
 Do not turn a papercut into a mature conclusion during project work. Review
-open observations later with `$learning-process-review`; use `$skill-retro`
-and `$skill-retro-triage` only when the review identifies a mature reusable
-candidate.
+open observations later from the `codex-workflows` source checkout with its
+repository-local `$learning-process-review`. Use `$skill-retro` during work;
+the review routes mature reusable candidates to the repository-local
+`$skill-retro-triage` consumer.

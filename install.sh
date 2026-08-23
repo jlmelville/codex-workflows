@@ -6,6 +6,7 @@ agents_home="${HOME}/.agents"
 codex_home="${CODEX_HOME:-${HOME}/.codex}"
 source_dir="${repo_dir}/skills"
 target_dir="${agents_home}/skills"
+repo_skill_dir="${repo_dir}/.agents/skills"
 manifest_path="${agents_home}/codex-workflows-managed-skills.tsv"
 legacy_target_dir="${codex_home}/skills"
 legacy_manifest_path="${codex_home}/codex-workflows-managed-skills.tsv"
@@ -21,15 +22,16 @@ usage() {
   cat <<'EOF'
 Usage: ./install.sh [--check | --dry-run]
 
-Sync repository-owned skills into $HOME/.agents/skills.
+Sync user-scoped repository-owned skills into $HOME/.agents/skills. Skills
+linked from .agents/skills remain available only inside this repository.
 
 When a managed manifest exists in the legacy Codex-home location, a normal
 install migrates only the skills named by that manifest and preserves all
 unrelated installed skills.
 
 Options:
-  --check    Validate managed installed skills, manifest membership, and modes.
-  --dry-run  Report planned install changes without mutating the target.
+  --check    Validate user and repository scopes, manifest membership, and modes.
+  --dry-run  Report planned user-scope changes and repository-local links.
   --help     Show this help.
 EOF
 }
@@ -110,6 +112,16 @@ skill_names_from_source() {
   done | LC_ALL=C sort
 }
 
+skill_names_from_repo_scope() {
+  local skill_dir
+
+  [[ -d "${repo_skill_dir}" ]] || return 0
+  for skill_dir in "${repo_skill_dir}"/*; do
+    [[ -e "${skill_dir}" || -L "${skill_dir}" ]] || continue
+    basename "${skill_dir}"
+  done | LC_ALL=C sort
+}
+
 manifest_names() {
   local path="$1"
 
@@ -134,10 +146,24 @@ contains_name() {
 }
 
 read_source_names() {
-  source_names=()
+  local name
+
+  all_source_names=()
   while IFS= read -r name; do
-    [[ -n "${name}" ]] && source_names+=("${name}")
+    [[ -n "${name}" ]] && all_source_names+=("${name}")
   done < <(skill_names_from_source)
+
+  repo_local_names=()
+  while IFS= read -r name; do
+    [[ -n "${name}" ]] && repo_local_names+=("${name}")
+  done < <(skill_names_from_repo_scope)
+
+  source_names=()
+  for name in "${all_source_names[@]}"; do
+    if ! contains_name "${name}" "${repo_local_names[@]}"; then
+      source_names+=("${name}")
+    fi
+  done
 }
 
 read_old_manifest_names() {
@@ -175,13 +201,13 @@ validate_manifest_file() {
 }
 
 validate_source_tree() {
-  local name skill_file
+  local name skill_file link_target expected_dir actual_dir
 
   [[ -d "${source_dir}" ]] || die "source skills directory not found: ${source_dir}"
   read_source_names
-  ((${#source_names[@]} > 0)) || die "no source skills found in ${source_dir}"
+  ((${#all_source_names[@]} > 0)) || die "no source skills found in ${source_dir}"
 
-  for name in "${source_names[@]}"; do
+  for name in "${all_source_names[@]}"; do
     case "${name}" in
       .*|*/*|*" "*|*"	"*)
         die "invalid source skill directory name: ${name}"
@@ -189,6 +215,29 @@ validate_source_tree() {
     esac
     skill_file="${source_dir}/${name}/SKILL.md"
     [[ -f "${skill_file}" ]] || die "${source_dir}/${name}: missing SKILL.md"
+  done
+
+  for name in "${repo_local_names[@]}"; do
+    case "${name}" in
+      .*|*/*|*" "*|*"	"*)
+        die "invalid repository-local skill name: ${name}"
+        ;;
+    esac
+    contains_name "${name}" "${all_source_names[@]}" || \
+      die "repository-local skill has no canonical source: ${name}"
+    [[ -L "${repo_skill_dir}/${name}" ]] || \
+      die "repository-local skill must be a symlink: ${repo_skill_dir}/${name}"
+    link_target="$(readlink "${repo_skill_dir}/${name}")"
+    [[ "${link_target}" != /* ]] || \
+      die "repository-local skill symlink must be relative: ${repo_skill_dir}/${name}"
+    if ! expected_dir="$(cd "${source_dir}/${name}" && pwd -P)"; then
+      die "could not resolve canonical source skill: ${source_dir}/${name}"
+    fi
+    if ! actual_dir="$(cd "${repo_skill_dir}/${name}" 2>/dev/null && pwd -P)"; then
+      die "broken repository-local skill symlink: ${repo_skill_dir}/${name}"
+    fi
+    [[ "${actual_dir}" == "${expected_dir}" ]] || \
+      die "repository-local skill symlink points outside canonical source: ${repo_skill_dir}/${name}"
   done
 }
 
@@ -339,21 +388,30 @@ check_install() {
   read_old_manifest_names
   for name in "${old_manifest_names[@]}"; do
     if ! contains_name "${name}" "${source_names[@]}"; then
-      echo "install.sh: manifest contains stale managed skill absent from source: ${name}" >&2
+      echo "install.sh: manifest contains skill outside the user scope: ${name}" >&2
       status=1
     fi
   done
   for name in "${source_names[@]}"; do
     if ! contains_name "${name}" "${old_manifest_names[@]}"; then
-      echo "install.sh: source skill missing from managed manifest: ${name}" >&2
+      echo "install.sh: user-scoped source skill missing from managed manifest: ${name}" >&2
       status=1
     elif ! compare_trees "${source_dir}/${name}" "${target_dir}/${name}" "${name}"; then
       status=1
     fi
   done
+  for name in "${repo_local_names[@]}"; do
+    if [[ -e "${target_dir}/${name}" || -L "${target_dir}/${name}" ]]; then
+      echo "install.sh: repository-local skill also exists in the user scope: ${name}" >&2
+      status=1
+    fi
+  done
 
   if [[ "${status}" -eq 0 ]]; then
-    echo "Managed skills match ${source_dir} in ${target_dir}"
+    echo "Managed user-scoped skills match ${source_dir} in ${target_dir}"
+    if ((${#repo_local_names[@]} > 0)); then
+      echo "Repository-local skill links are valid in ${repo_skill_dir}"
+    fi
   fi
   return "${status}"
 }
@@ -371,7 +429,7 @@ dry_run_install() {
 
   if [[ ! -f "${manifest_path}" ]]; then
     echo "Would create first managed-skill manifest at ${manifest_path}"
-    echo "Would replace current source skills only; unrelated installed skills would be preserved."
+    echo "Would replace current user-scoped skills only; unrelated installed skills would be preserved."
   else
     echo "Would update managed-skill manifest at ${manifest_path}"
   fi
@@ -382,6 +440,10 @@ dry_run_install() {
     else
       echo "Would install managed skill: ${name}"
     fi
+  done
+
+  for name in "${repo_local_names[@]}"; do
+    echo "Would use repository-local skill link: ${name}"
   done
 
   if [[ -f "${manifest_path}" ]]; then
@@ -446,8 +508,11 @@ install_skills() {
     echo "Migrated legacy managed skills out of ${legacy_target_dir}"
   fi
 
-  echo "Installed managed skills from ${source_dir} to ${target_dir}"
+  echo "Installed managed user-scoped skills from ${source_dir} to ${target_dir}"
   echo "Managed-skill manifest updated at ${manifest_path}"
+  if ((${#repo_local_names[@]} > 0)); then
+    echo "Repository-local skills are available from ${repo_skill_dir}"
+  fi
 }
 
 case "${mode}" in

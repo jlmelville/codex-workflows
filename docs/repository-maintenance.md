@@ -15,6 +15,8 @@ skills/<skill-name>/
   references/
   scripts/
   assets/
+
+.agents/skills/<repo-only-skill> -> ../../skills/<repo-only-skill>
 ```
 
 Only include `references/`, `scripts/`, or `assets/` when the skill actually
@@ -31,18 +33,26 @@ not by itself reduce the number of decisions in the corpus.
 
 ## Installation Details
 
-Install the source tree into the user-wide skill directory:
+Install the user-scoped portion of the source tree into the user-wide skill
+directory:
 
 ```sh
 ./install.sh
 ```
 
-The installer syncs `skills/*` into `$HOME/.agents/skills`, the current Codex
-`USER` skill location. It writes a managed-skill manifest at
+Canonical skill content remains under `skills/`. A tracked relative symlink
+under `.agents/skills` marks a skill as repository-local; Codex discovers that
+skill only while working in this checkout. The installer validates those links
+and excludes their targets from the user-wide installation.
+
+All remaining skills are synced into `$HOME/.agents/skills`, the current Codex
+`USER` skill location. The installer writes a managed-skill manifest at
 `$HOME/.agents/codex-workflows-managed-skills.tsv`. On the first run without a
-manifest, the current source skill names become the ownership set; later runs
-remove only stale skills named in the previous manifest. Unrelated installed
-skills are preserved.
+manifest, the current user-scoped source skill names become the ownership set;
+later runs remove only stale skills named in the previous manifest. Unrelated
+installed skills are preserved. When a formerly user-scoped skill becomes
+repository-local, the next install removes its old user-wide copy only when the
+previous manifest proves this repository owned it.
 
 Earlier versions installed into `${CODEX_HOME:-$HOME/.codex}/skills`. When the
 old Codex home contains this repository's managed-skill manifest, a normal
@@ -65,8 +75,9 @@ Preview changes without replacing installed skills:
 ./install.sh --dry-run
 ```
 
-Confirm that managed installed skills match the source tree, including relevant
-file modes:
+Confirm that managed user-scoped skills match the source tree, repository-local
+links resolve to their canonical sources, no local skill is duplicated in the
+user scope, and relevant file modes match:
 
 ```sh
 ./install.sh --check
@@ -77,8 +88,9 @@ source repository and reinstall them.
 
 ### User-global instruction setup
 
-The skill installer manages only `$HOME/.agents/skills`, its ownership
-manifest, and repository-managed legacy copies during migration. It never edits
+The skill installer writes only `$HOME/.agents/skills`, its ownership manifest,
+and repository-managed legacy copies during migration. Repository-local links
+are tracked source that it validates but does not rewrite. It never edits
 `AGENTS.md`, `AGENTS.override.md`, `config.toml`, shell startup files, or
 external retrospective state.
 
@@ -183,9 +195,10 @@ Maintain the repository across four surfaces:
 
 - **Source validity:** frontmatter, metadata, links, scripts, smoke tests,
   mirrored files, and workflow hardening.
-- **Installed validity:** executable commands in installed skills should use
-  `${HOME}/.agents/skills/...` unless explicitly marked as
-  source-repository commands.
+- **Runtime validity:** executable commands in user-scoped skills should use
+  `${HOME}/.agents/skills/...` unless explicitly marked as source-repository
+  commands; repository-local links must resolve to canonical source without a
+  duplicate user-scoped copy.
 - **Cross-platform validity:** shell, Ruby, Python, and R checks should keep
   Linux and macOS behavior in view when scripts become substantial.
 - **Drift validity:** duplicated helpers, repeated command prose, overlapping

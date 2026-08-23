@@ -21,9 +21,11 @@ Codex runtime directory.
 
 - Treat the version-controlled source repository, not the installed runtime
   copy, as source of truth.
-- Treat `${HOME}/.agents/skills` as installed output. Make authorized changes in
-  source, install with the repository installer when in scope, and confirm
-  managed parity with `./install.sh --check`; ignore unrelated installed skills.
+- Treat `${HOME}/.agents/skills` as user-scoped installed output. A repository
+  may instead expose repository-only skills through tracked `.agents/skills`
+  directories or symlinks. Make authorized changes in canonical source, use the
+  repository installer when in scope, and confirm both scopes with
+  `./install.sh --check`; ignore unrelated installed skills.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
 - Before source-changing work in a checkout shared across machines, reconcile
@@ -39,9 +41,9 @@ Check this repo across four surfaces:
 
 1. Source validity: frontmatter, metadata, links, scripts, smoke tests, mirrored
    files, and workflow hardening.
-2. Installed validity: executable commands in installed skills should use
-   `${HOME}/.agents/skills/...` unless explicitly marked as
-   source-repository commands.
+2. Runtime validity: executable commands in user-scoped skills should use
+   `${HOME}/.agents/skills/...` unless explicitly marked as source-repository
+   commands; repository-local discovery paths must resolve to canonical source.
 3. Cross-platform validity: shell, Ruby, Python, and R behavior should account
    for Linux and macOS when scripts become substantial.
 4. Drift validity: duplicated helpers, repeated command prose, overlapping
@@ -60,6 +62,7 @@ README.md
 .github/
 skills/<skill-name>/
   SKILL.md, agents/openai.yaml, optional references/, scripts/, assets/
+.agents/skills/<repo-only-skill> -> ../../skills/<repo-only-skill>
 ```
 
 Only create `references/`, `scripts/`, or `assets/` when the skill needs them.
@@ -174,4 +177,7 @@ drift changes, read
 [repository-validation.md](references/repository-validation.md) for the quick
 validator, temporary state, mirrors, advisory audits, and pre-commit review.
 
-Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading cited destination files.
+Repository-specific candidate consumers belong in that repository's local
+skill scope. In the `codex-workflows` source checkout, use
+`$skill-retro-triage` for accepted Skill Candidate Reports after re-reading
+cited destination files.

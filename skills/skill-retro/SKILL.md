@@ -126,9 +126,10 @@ or public evidence records merely to validate a skill edit.
 - Add nothing when it is ordinary engineering judgment, one project's local
   convention, or already covered.
 
-When a candidate is ready for judgment or implementation, use
-`$skill-retro-triage`. External deferrals, drafts, ledgers, accepted records,
-and audit history follow the state protocol and must not be added to Git.
+When a candidate is ready for judgment or implementation, run the repository-
+local `$skill-retro-triage` from the `codex-workflows` source checkout.
+External deferrals, drafts, ledgers, accepted records, and audit history follow
+the state protocol and must not be added to Git.
 
 ## Compact Chat Shape
 
