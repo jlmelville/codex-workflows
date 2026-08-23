@@ -263,7 +263,7 @@ smoke_pids=()
 smoke_outputs=()
 smoke_output_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-skill-validation.XXXXXX")"
 
-# shellcheck disable=SC2329  # Invoked by the EXIT trap.
+# shellcheck disable=SC2317,SC2329  # Invoked by the EXIT trap.
 cleanup_smoke_outputs() {
   if ((${#smoke_outputs[@]} > 0)); then
     rm -f "${smoke_outputs[@]}"
