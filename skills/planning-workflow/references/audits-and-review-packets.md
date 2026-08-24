@@ -72,6 +72,28 @@ reconcile each finding against the current artifact and rerun a targeted review
 where needed. Do not apply or discard a mixed stale response wholesale. If no
 stable snapshot can be supplied, serialize patch-and-review cycles.
 
+## Bounded Independent Review
+
+Use this loop only when the operator or active plan requires independent review.
+Capture the scoped baseline before implementation, run focused validation, then
+freeze the exact review target. Ask for a read-only bounded verdict. Permit at
+most the agreed small correction and re-review allowance—one of each when the
+operator requests a bounded loop without another limit—and stop on a pass.
+
+Continue only when prior fixes are confirmed, the remaining finding is a
+bounded correctness gap, the goal and public semantics remain stable, and the
+review machinery stays proportionate to the packet. Treat repeated concerns,
+disputed goals, low-value proof requests, or process growth comparable to the
+work as a plan problem requiring operator review rather than another local fix
+cycle. Compaction before a passing verdict ends the live cycle; a later session
+may restart it explicitly but must not infer acceptance.
+
+When the operator requests several reviewers, give each a distinct contract
+against one immutable target and collect the full panel before editing.
+Deduplicate compatible findings into one correction pass and re-review the same
+corrected identity. Panel size supplies parallel evidence; it does not authorize
+serial rewrite loops or proactive reviewer panels for ordinary changes.
+
 ## Public API Value Gate
 
 When an audit recommends new public diagnostics, result fields, metadata, or

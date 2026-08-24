@@ -93,3 +93,19 @@ Do not require fixed emoji or marker taxonomies. If a repo or user explicitly
 requests progress markers for an active ExecPlan, define a small phase-local
 legend in chat and record it in `Artifacts and Notes`. Keep markers out of code,
 generated docs, commit messages, and copied terminal output.
+
+## Unpublished Experiment Retirement
+
+Do not infer history rewriting from a request to remove an experiment. Clarify
+whether the operator wants only current-tree cleanup or also wants unpublished
+experimental commits removed from the active branch. Use an ordinary removal or
+revert for published or shared history.
+
+When active-history removal is explicitly authorized for unpublished work,
+first preserve one verified recovery branch, bundle, or equivalent artifact;
+identify the upstream base; classify independently useful spillovers; and
+separate compact nonreproducible evidence from large reproducible caches. Rebuild
+the active line from the upstream base and reapply only validated product
+changes, then verify the experiment is absent from both the final tree and the
+active ancestry. Leave the recovery artifact and any original dirty checkout
+untouched until those checks pass.

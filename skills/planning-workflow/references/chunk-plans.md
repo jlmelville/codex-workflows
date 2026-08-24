@@ -24,6 +24,10 @@ Record independent review contracts, judge and accept each contract separately,
 and return only a failed slice for rework. Apply the smaller boundaries
 prospectively to later packets.
 
+When the operator requires an independent review gate, capture the scoped
+baseline before editing and follow the bounded loop and stop conditions in
+[audits-and-review-packets.md](audits-and-review-packets.md#bounded-independent-review).
+
 ## Progress Log Edits
 
 When a plan repeats marker text such as next-chunk recommendations, anchor a
@@ -109,6 +113,15 @@ binary diff with the same baseline and options and compare it with the accepted
 patch identity. Also confirm a clean index and worktree. Equality proves that
 the combined content was preserved, but it does not replace isolated index
 validation for intermediate commits whose paths or hunks overlap.
+
+## Sub-File Packet Ownership
+
+When sequential packets divide one file, record unique stable anchors before
+editing and compare every excluded slice between the frozen baseline and review
+target. Fail closed when an anchor is missing or duplicated. A byte comparison
+or digest can make unchanged adjacent regions explicit, but it supplements the
+complete patch identity; it does not replace review of the owned slices or the
+whole deliverable.
 
 ## Accepted Mapping Crosswalk
 

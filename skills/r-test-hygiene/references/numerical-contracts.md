@@ -150,6 +150,13 @@ the map-back identity through the public result. Express structural-subspace
 comparisons in the coordinate system—or weighted inner product—where the
 compared vectors are mathematically equivalent.
 
+Include at least one fixture whose effective weight diagonal varies materially,
+and assert that nonuniformity before using it to validate weighted null
+directions, centering, orthogonality, or elementwise map-back. A symmetric
+constant-weight fixture may remain as a separate eigenspace or boundary oracle,
+but it cannot distinguish the defining weighted transformations from scalar
+rescaling.
+
 When model-construction dimension, displayed output dimension `d`, retained
 spectral dimension `m`, and solver candidate width differ, preserve that
 vocabulary in result fields and diagnostics. If `m > d`, compute and label both
@@ -157,6 +164,12 @@ the displayed `d/(d+1)` and retained `m/(m+1)` boundary evidence, including
 scope-specific truncation state. Keep displayed instability visible when the
 retained block is stable, and make every suggested remedy name the control that
 changes the diagnosed boundary without silently rebuilding the estimator.
+
+Derive solver candidate width from the post-filter evidence contract. Budget
+the retained modes, every known direction removed before reporting, and every
+additional displayed or retained boundary mode. Exercise the exact minimum
+candidate width and maximum retained dimension so structural projection cannot
+silently consume the only boundary value.
 
 When a fast path replaces singular values with eigenvalues of a Gram or
 covariance matrix, do not assume algebraically related rank cutoffs are
@@ -234,6 +247,12 @@ infinity, `NA`, `NaN`, and relevant ties. Compare every affected public metric
 family with an independent reference oracle that encodes the established policy
 without calling the implementation's comparator. Document the same precise
 ordering contract after the test evidence establishes it.
+
+For distance- or rank-based metrics, also probe every nonfinite kind by
+location, information-free matrices, unlike nonfinite kinds, and simultaneous
+row/column relabeling. An ordinary finite score is not evidence of meaningful
+semantics. Admit positive infinity as unreachable only when reachability and
+tied-unreachable behavior are explicit public contracts.
 
 ## Derivative Evidence Before Fixes
 

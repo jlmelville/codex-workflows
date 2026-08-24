@@ -70,6 +70,11 @@ rollback, eager parameter propagation, and restart hook replacement. Direct
 internal probes are justified when public golden traces cannot localize those
 lifecycle invariants; keep them named and narrow.
 
+Before centralizing or reordering a registry, search tests for parallel
+positional expectation vectors. Key content expectations by stable identifiers
+and project or join them into current registry order; reserve positional
+fixtures for tests where order itself is the public contract.
+
 For cache validity, reset lifetimes, oracle authority, state identity,
 failure-state propagation, composite-transition classification, and
 tested-constructor wiring, read

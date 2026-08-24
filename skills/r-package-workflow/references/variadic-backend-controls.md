@@ -25,6 +25,13 @@ controls were supplied. Named formals with defaults can be removed from a
 provider's residual `...`, so `length(list(...))` at that layer is not a safe
 proxy for the public controls the caller provided.
 
+Before inserting a new formal into an exported function that accepts `...`,
+exercise legacy positional calls through the variadic boundary. When the new
+control should be named and positional compatibility matters, place it after
+`...`; R will require callers to name it without stealing values that previously
+reached the variadic contract. Keep a public regression for the legacy
+positional diagnostic as well as the new named control.
+
 Resolve and validate the top-level backend selector before entering any
 condition wrapper that relabels failures as forwarded-control errors. Limit
 that wrapper to provider argument matching so selector diagnostics retain

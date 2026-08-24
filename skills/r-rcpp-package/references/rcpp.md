@@ -75,6 +75,16 @@ clang-format --dry-run --Werror src/distance.h src/random-dist.cpp
   When the supported matrix already exercises the code successfully, record an
   explicit no-change decision instead of adding speculative flags.
 
+## Mixed Random And Deterministic Routes
+
+For one Rcpp export that combines implicit-random and supplied deterministic
+branches, treat the generated wrapper's RNG scope as observable behavior. When
+the deterministic route promises no RNG use, generate the export with
+`rng = false` and construct `Rcpp::RNGScope` only inside the branch that uses
+R's RNG. Test that deterministic calls neither advance an existing
+`.Random.seed` nor create one when it is absent, then recheck the implicit
+random sequence under its documented seed and thread contract.
+
 ## Removing Resource Estimators
 
 Before removing a memory estimator, cap, preflight, or accounting report, trace
@@ -118,6 +128,13 @@ private callers.
 Keep public semantic tests on exported R APIs. Add narrow direct-wrapper tests
 only for retained conversion, allocation, indexing, thread, or
 algorithm-integrity guards, and document the safety invariant each test owns.
+
+Generated wrappers convert parameters before the native implementation chooses
+a mode. When a public mode makes an argument inactive, normalize it to a valid
+placeholder at the R boundary or route that mode to a separate compiled entry;
+do not forward an otherwise invalid caller value merely because native code
+would ignore it. Protect the contract with an exported regression whose value
+is invalid only in the inactive mode.
 
 When a malformed native call may trigger undefined behavior or terminate R,
 probe an accepted native-boundary regression in a separate R process before the

@@ -69,6 +69,20 @@ on eligible unique points and preserve a stable join key from every result back
 to the manifest. Probe early termination, duplicate returns, and rejected or
 inapplicable references without creating fake result rows.
 
+## Review-Complete Checkpoints
+
+Before an expensive numerical run, derive the checkpoint schema from the claims
+and review questions it must support. Distinguish a restart cache from an
+independent-review packet. The latter should retain frozen settings, stable data
+identity or bounded regeneration inputs, upstream graph or intermediate
+witnesses, downstream diagnostics, deterministic selections, and artifact
+paths needed by a fresh process. Keep large reacquirable inputs disposable.
+
+Immediately read the persisted checkpoint through the intended review path and
+validate its fields before discarding live state. A successful write or a cache
+that can resume computation does not establish that an independent reviewer can
+audit the recorded claims.
+
 ## Oracle Ladder
 
 Move from the most algebraic component outward:
@@ -102,6 +116,14 @@ as measuring its stated reference objective rather than generic quality. Narrow
 the interpretation or replace the gate before using it to stop the real-data
 workflow. A correctly computed frozen metric does not validate the decision
 contract by itself.
+
+Before freezing a decision matrix, audit every branch for mathematical
+reachability. Combine metric ranges and floors or ceilings with observed or
+anticipated control values, comparison direction, strict versus non-strict
+operators, and conjunctions across required strata. If a positive branch is
+unreachable, either replace it with a predeclared boundary-aware criterion such
+as noninferiority plus degraded-regime improvement, or label the rule as a
+conservative continuation policy rather than a discriminating test.
 
 Treat the arithmetic implementing the gate as part of the same contract. Use
 scale-first norm or residual reductions, choose algebraically equivalent
@@ -141,6 +163,13 @@ show the same observed representatives in both views, selected from their joint
 aligned structure rather than labels, residual extremes, or a favorable score.
 Distinguish an alternative low-dimensional slice of shared structure from
 recovery of unique information.
+
+Before interpreting retained eigenvector views, measure whether each mode is
+globally supported, for example with participation-ratio support or
+top-fraction energy. Treat localization as distinct from convergence,
+eigengaps, graph connectedness, and local-rank validity. When robust plot limits
+exclude observations, report the window and omitted count and do not infer
+global semantic structure from a converged but highly localized mode.
 
 ## Local Chart Validity Across Noise Scales
 

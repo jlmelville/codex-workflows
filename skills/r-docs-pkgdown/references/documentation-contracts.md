@@ -50,6 +50,23 @@ Exercise the zero-budget boundary when the interaction is not obvious, and
 qualify the promise with the governing cap even when a separate budget section
 already states the limit correctly.
 
+## Third-Party Media
+
+Before publishing documentation that reproduces third-party images, icons,
+fonts, maps, or other media, inventory the actual distributed artifact.
+Distinguish raw or reusable payloads from static derived illustrations, and
+record the authoritative source, known license or terms, requested attribution,
+and relationship to the package license. Do not infer that the package license
+grants rights to embedded media or that small size or transformation alone
+establishes permission.
+
+Follow clear source terms. When the publication basis remains ambiguous,
+surface the bounded risk and request a user or appropriate legal-owner decision
+before release. Do not assert legal clearance, but also do not unilaterally
+delete or redesign a useful technical figure without that decision. Keep raw
+data and reacquirable caches out of the package unless their distribution is
+intentional and supported.
+
 ## Reference Values And Locations
 
 For paired reference values and locations, state their correspondence first.

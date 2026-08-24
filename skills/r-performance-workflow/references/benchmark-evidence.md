@@ -46,6 +46,15 @@ reporting-oracle work cannot be mistaken for algorithm cost. Keep
 framework-native counters as a separate consistency witness rather than
 replacing either observed view.
 
+Cumulative callback counts are resource totals, not selected-point identities.
+When the timed optimizer does not retain the values needed for target histories,
+keep tracing out of the measured run and perform an unmeasured deterministic
+replay. Match the measured result and physical callback counts exactly, then
+identify selected points from final parameter, objective, and realized-step
+identity rather than the last callback. Carry selected state across zero steps,
+handle improving fallbacks explicitly, and fail closed when the replay
+projection does not match the measured run.
+
 ## Resumable Evidence Checkpoints
 
 Treat an incremental checkpoint as an evidence cache rather than a list of
@@ -119,6 +128,13 @@ collection, and behavior-neutral. Exercise every active-output pairing plus
 distinct-file and case-sensitive controls. Rejected configurations must perform
 no evidence work and leave files and standard output untouched.
 
+Before an expensive heterogeneous grid, run a tiny representative Cartesian
+micro-grid containing every optional schema family through the same final bind,
+partition, summary, serialization, persisted-input derivation, and manifest
+finalization path as the evidence run. Keep this assembly smoke separate from
+scientific evidence; per-mapping smoke tests do not exercise aggregate-only
+failures.
+
 ## Human Review Projection
 
 Treat a human report as a tested projection of the frozen evaluation contract.
@@ -132,6 +148,13 @@ Audit every total, peak, and memory label against the exact measured code region
 and allocator. Name material exclusions such as result construction,
 validation, serialization, accumulated process state, or native allocations
 instead of describing a component observation as an end-to-end measurement.
+
+When a derived artifact controls a decision or is reported by byte hash, retain
+the executable transformation and make the persisted primary artifact—not a
+higher-precision pre-serialization object—its input. Freeze explicit ordering,
+precision, and serialization policy, record the producing command, and rerun
+the transformation to check byte identity when that identity is part of the
+claim. An output hash identifies the file; it does not preserve its provenance.
 
 ## Allocation Evidence
 
