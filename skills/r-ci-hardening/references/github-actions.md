@@ -230,16 +230,6 @@ intentional exclusions.
 
 ## Dependabot
 
-Use:
-
-```yaml
-version: 2
-updates:
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-```
-
-Extra settings such as cooldown and PR limits are fine when already used across
-reference repos.
+Dependabot policy is owned by `$github-actions-hardening`; use its
+[Dependabot guidance](../../github-actions-hardening/SKILL.md#dependabot) rather
+than maintaining an R-specific copy here.

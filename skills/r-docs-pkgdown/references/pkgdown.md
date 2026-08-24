@@ -161,12 +161,9 @@ If `gh` authentication or PAT scopes block Pages setup or API reads, report the
 exact permission failure. Public repos can often be checked through public HTTP
 and read APIs, but enabling or updating Pages requires repository permissions.
 
-Run:
-
-```sh
-actionlint
-zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
-```
+After workflow changes, run the complete
+[workflow audit](../../github-actions-hardening/SKILL.md#checks) required by
+`$r-ci-hardening` rather than duplicating its individual tool commands here.
 
 ## Build Notes
 

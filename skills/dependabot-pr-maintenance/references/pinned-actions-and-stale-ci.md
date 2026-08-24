@@ -37,13 +37,10 @@ state passes the workflow validators. Writing patch files with shell
 redirection may require separate network approval when the redirection prevents
 an existing `gh pr diff` prefix rule from matching.
 
-For workflow dependency PRs, run the repository's workflow audit on the merged
-or current workflow state when possible:
-
-```sh
-actionlint
-zizmor .github/workflows  # or uvx zizmor .github/workflows when not installed
-```
+For workflow dependency PRs, run the complete
+[workflow audit](../../github-actions-hardening/SKILL.md#checks) from
+`$github-actions-hardening` on the merged or current workflow state rather than
+duplicating individual `actionlint` or `zizmor` commands here.
 
 If checks are still running, wait for completion before merging.
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Learning Process Review"
-  short_description: "Review papercuts and learning-state drains"
-  default_prompt: "Use $learning-process-review to review open papercuts and learning-process state before proposing any changes."
+  short_description: "Review learning state and skill artifacts"
+  default_prompt: "Use $learning-process-review to review learning state and run any due public skill-artifact audit before proposing changes."

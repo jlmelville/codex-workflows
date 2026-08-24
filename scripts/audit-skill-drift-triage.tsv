@@ -10,3 +10,13 @@ Repo-Relative Skill Script References	skills/r-docs-pkgdown/references/roxygen-m
 Repo-Relative Skill Script References	skills/skill-retro/references/state-protocol.md	The source-repository helper example is paired with the canonical installed command.
 Repo-Relative Skill Script References	skills/skill-retro-triage/SKILL.md	Triage intentionally uses the newly integrated source helper before interpreting state with an installed copy that may be stale.
 Repo-Relative Skill Script References	README.md:	README helper commands are explicitly scoped to source-repository setup and validation.
+Description Overlap	github-actions-hardening <-> r-ci-hardening: 0.27 token overlap	The R skill is an explicit language-specific overlay and both skills assign shared workflow policy to the generic skill.
+Repeated Command Guidance	actionlint: 10 hits in 6 files	The residual mentions cover the canonical audit, trigger vocabulary, fallback mechanics, and limits of static validation rather than parallel command ownership.
+Repeated Command Guidance	zizmor or uvx zizmor: 14 hits in 7 files	The residual mentions cover the canonical audit, trigger vocabulary, sandbox fallback mechanics, and limits of static validation rather than parallel command ownership.
+Repeated Command Guidance	roxygen2::roxygenise: 7 hits in 3 files	Documentation generation and idempotence checks require the same command at distinct default, routed, and executable surfaces.
+Repeated Command Guidance	Rscript -e: 31 hits in 11 files	The shared launcher prefix introduces distinct task-specific R commands rather than one duplicated workflow.
+Repeated Command Guidance	devtools::check: 8 hits in 5 files	Package-check closure and diagnostic attribution recur across independently useful R workflow surfaces.
+Repeated Command Guidance	persist-credentials: 4 hits in 3 files	The generic checkout rule and complete R deployment examples must each keep the security setting explicit.
+Large Always-Read Skill Files	codex-skill-repo: 177 SKILL.md lines	The entrypoint retains source-of-truth, authority, privacy, authoring, and completion contracts while routing detailed mechanics.
+Large Always-Read Skill Files	planning-workflow: 171 SKILL.md lines	The entrypoint must select artifact types and preserve reconciliation, authority, recovery, and completion decisions while routing templates and specialized mechanics.
+Large Always-Read Skill Files	skill-retro: 189 SKILL.md lines	The independently activated producer must retain routing authority, intake, privacy, verification, and no-change rules while external-state mechanics remain routed.

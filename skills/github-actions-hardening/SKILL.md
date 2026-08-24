@@ -50,16 +50,9 @@ permissions:
 
 ## Checks
 
-Run the checks that exist in the repository:
-
-```sh
-actionlint
-zizmor --quiet --no-progress .github/workflows
-# Fallback: uvx --quiet --no-progress zizmor --quiet --no-progress .github/workflows
-shellcheck path/to/scripts/*.sh
-```
-
-Use this skill's bundled audit script when available:
+Use this skill's bundled audit script as the canonical workflow check. It runs
+`actionlint`, `zizmor` with its supported fallback, the action-pin comment
+check, and the checkout-credential check:
 
 ```sh
 ${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
@@ -69,6 +62,12 @@ From this source repository root, the same script is under:
 
 ```sh
 ./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
+```
+
+Run ShellCheck separately for repository shell scripts when applicable:
+
+```sh
+shellcheck path/to/scripts/*.sh
 ```
 
 The audit script runs the tag comment checker in offline `--require-comment`

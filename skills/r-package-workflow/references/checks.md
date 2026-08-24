@@ -129,8 +129,8 @@ repository diagnostic:
 - formatting: `air format . --check`
 - lint:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
-- workflow checks when workflows changed: `actionlint` and
-  `zizmor .github/workflows`
+- complete [workflow audit](../../github-actions-hardening/SKILL.md#checks) from
+  `$github-actions-hardening` when workflows changed;
 - pkgdown build when site output, articles, examples, or `_pkgdown.yml` changed.
 
 For CRAN-published packages or explicit release-prep work, add a separate CRAN

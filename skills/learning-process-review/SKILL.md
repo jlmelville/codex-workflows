@@ -30,7 +30,7 @@ until after the report and applicable mutation gate. In a broader process
 review, run the same prompt as a separate due-cadence report and keep private
 state out of its findings.
 
-## Required Context
+## Private Learning-State Review Context
 
 1. Confirm `CODEX_WORKFLOWS_STATE_DIR` is set and available. Stop rather than
    inventing a state location.
