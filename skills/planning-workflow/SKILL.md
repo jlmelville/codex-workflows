@@ -1,6 +1,6 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off plans for complex coding work. Use for features, audits, cleanups, migrations, debugging phases, cross-module changes, PLANS.md, plan directories, EXECPLAN files, review packets, planning state referenced by AGENTS.md, or fresh-agent handoffs.
+description: Create, execute, resume, and hand off plans for complex coding work. Use for features, migrations, debugging phases, cross-module changes, plan-producing audits or cleanups, PLANS.md, plan directories, EXECPLAN files, review packets, AGENTS.md execution state, or fresh-agent handoffs. Do not use for report-only audits with no planning artifact.
 ---
 
 # Planning Workflow
@@ -127,9 +127,8 @@ unfinished work, completing debugging or smoke-test follow-up, or when the user
 is likely to continue in a new session. Skip handoffs for ordinary Q&A, minor
 clarifications, and trivial edits unless the user asks.
 
-Put handoffs in chat by default and write files only when asked or when the repo
-already uses them. Keep durable state in the active plan and point to it from
-the handoff. See [handoffs.md](references/handoffs.md) for the full template.
+See [handoffs.md](references/handoffs.md) for placement, durable-state pointers,
+environment assumptions, path validation, and the full template.
 
 ## Location, Visibility, And Cleanup
 
@@ -157,10 +156,6 @@ the goal and current state; what changed or was ruled out; decisions made and
 why; relevant files, commands, and expected observations; validation already run
 and remaining gaps; the exact next action and guardrails; and any reusable
 workflow-retrospective notes gathered during the work.
-
-For a handoff, verify every `Read first` path exists in the recipient's context.
-Name an inline substitute explicitly, and keep independent required reads
-separable so one missing or substituted path cannot suppress the rest.
 
 If any of those are missing at a stopping point, update the plan or include a
 handoff before ending the turn.

@@ -146,20 +146,10 @@ confirm managed parity when applicable.
 
 ## Promoting Local Guidance
 
-When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,
-`AGENTS.md`, or `PLANS.md` material into global skills:
-
-1. Inventory the local guidance and classify it as generic, language-specific,
-   repo-specific, stale duplicate, or ordinary engineering judgment.
-2. Promote only reusable, non-obvious workflows that are likely to recur.
-3. Generalize names, triggers, paths, and examples so the new skill does not
-   leak one repo's domain model.
-4. Leave domain-specific contracts local until the same pattern appears in
-   another repo.
-5. When promoting a stable prompt into a skill, replace the old prompt file with
-   a short pointer if existing workflows may still link to that path.
-6. Replace duplicated local rules with short references to the global skill when
-   editing that repo is in scope.
+When promoting repo-local skills, instructions, prompts, or plan material into
+user-scoped skills, follow the classification, generalization, and
+source-replacement workflow in
+[semantic-authoring.md](references/semantic-authoring.md#promoting-local-guidance).
 
 ## Validation
 

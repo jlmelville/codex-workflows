@@ -79,10 +79,13 @@ When exported functions, topics, aliases, or return names are renamed:
 
 ## pkgdown Workflow
 
-Use complete scaffolding. Either run the relevant `usethis` helper first, or
-copy the complete feature bundle from a reference repo.
+Choose scaffolding by authority. For local-only setup, run
+`usethis::use_pkgdown()` or copy the complete local feature bundle from a
+reference repo. Run `usethis::use_pkgdown_github_pages()` only when remote
+Pages and repository-homepage changes are explicitly authorized; it is not a
+local-only scaffolding helper.
 
-After `usethis::use_pkgdown_github_pages()` or similar helpers:
+After any scaffolding helper:
 
 1. Inspect all changes, especially `.github/workflows/pkgdown.yaml` and
    `_pkgdown.yml`.

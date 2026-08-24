@@ -107,10 +107,16 @@ similar names do not prove that an asset is generated debris.
 
 `usethis::use_pkgdown_github_pages()` has both local scaffolding and remote
 GitHub side effects. It can enable Pages, set repository homepage metadata, add
-pkgdown URLs, add ignore files, and rewrite local workflow/config files. Treat
-these effects separately: preserve useful remote state and ignore-file updates,
-but restore hardened workflows and curated `_pkgdown.yml` content when helper
-defaults are too broad or remove intentional navigation.
+pkgdown URLs, add ignore files, and rewrite local workflow/config files. Do not
+run it for a local-only documentation or workflow request. Require explicit
+authority to enable or update remote Pages and repository-homepage state first;
+otherwise use `usethis::use_pkgdown()` or copy the complete local feature
+bundle and leave remote publication state unchanged.
+
+When remote mutation is authorized, treat the effects separately: preserve
+useful remote state and ignore-file updates, but restore hardened workflows and
+curated `_pkgdown.yml` content when helper defaults are too broad or remove
+intentional navigation.
 
 When running the helper mainly for remote Pages or repository-homepage side
 effects, expect local overwrites. Start from a clean worktree or save the

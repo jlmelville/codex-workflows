@@ -34,6 +34,23 @@ smallest change is the smallest truthful change to the decision model, not the
 fewest edited lines. Do not merge distinguishable conditions that require
 different actions.
 
+## Promoting Local Guidance
+
+When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,
+`AGENTS.md`, or `PLANS.md` material into user-scoped skills:
+
+1. Inventory the local guidance and classify it as generic, language-specific,
+   repo-specific, stale duplicate, or ordinary engineering judgment.
+2. Promote only reusable, non-obvious workflows that are likely to recur.
+3. Generalize names, triggers, paths, and examples so the new skill does not
+   leak one repo's domain model.
+4. Leave domain-specific contracts local until the same pattern appears in
+   another repo.
+5. When promoting a stable prompt into a skill, replace the old prompt file with
+   a short pointer if existing workflows may still link to that path.
+6. Replace duplicated local rules with short references to the user-scoped
+   skill when editing that repo is in scope.
+
 ## References And Casebooks
 
 A reference controls when material is loaded; moving text into `references/`

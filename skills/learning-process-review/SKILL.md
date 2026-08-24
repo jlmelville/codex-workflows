@@ -1,6 +1,6 @@
 ---
 name: learning-process-review
-description: Review codex-workflows learning state. Use for papercut review or closure, learning retrospectives, pilot audits, candidate and verification health, drain decisions, and cleanup.
+description: Review codex-workflows learning state and public skill-repository artifact audits. Use for papercut closure, retrospectives, candidate or verification health, drain decisions, and cleanup.
 ---
 
 # Learning Process Review
@@ -20,6 +20,15 @@ instructions to execute mechanically.
   actions as separate mutations requiring applicable authority.
 - Apply `$papercut-capture` only to new friction encountered during the review;
   do not use capture authority to close or promote existing records.
+
+## Public Artifact Audit Route
+
+For a direct public-only audit, follow
+`prompts/skill-repository-retrospective.md`. Do not require or inspect private
+learning state as audit evidence. Defer cadence or completed-audit state access
+until after the report and applicable mutation gate. In a broader process
+review, run the same prompt as a separate due-cadence report and keep private
+state out of its findings.
 
 ## Required Context
 
