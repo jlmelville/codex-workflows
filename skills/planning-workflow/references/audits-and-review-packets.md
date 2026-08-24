@@ -66,6 +66,15 @@ immutable identity, and the response should echo both. Use a commit or tree for
 clean tracked content; use a frozen packet copy or content digest for dirty,
 ignored, untracked, or otherwise mutable artifacts.
 
+Review-target identity covers the files or patch the reviewer saw; it does not
+automatically make every scientific input or in-memory object content-addressed.
+Keep run provenance separate with fixed inputs, settings, seeds, versions,
+schemas, and semantic witnesses. For persistent numerical packets, use
+[review-complete checkpoints](numerical-reproduction-work-packets.md#review-complete-checkpoints).
+Add digests for data, intermediates, or results only when they are themselves
+mutable review targets or an explicit integrity, regulatory, or
+costly-regeneration requirement makes the digest decision-relevant.
+
 Before applying findings, confirm that the current target still has the reviewed
 identity. When it changed during review, treat the response as stale evidence:
 reconcile each finding against the current artifact and rerun a targeted review
