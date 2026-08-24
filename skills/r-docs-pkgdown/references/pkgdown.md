@@ -177,6 +177,34 @@ directories when needed, for example `XDG_CACHE_HOME=/tmp/pkgdown-cache`. Treat
 generated `docs/` output as source diff only when the repo tracks or explicitly
 requests committed site output.
 
+For a reusable local HTTP preview when CI owns deployment, keep preview output
+separate from the configured deployment destination. Use a dedicated
+repository-local generated directory such as `.pkgdown-preview`, ignore
+`/.pkgdown-preview/` in Git and `^\.pkgdown-preview$` in `.Rbuildignore`, and
+leave the deployment destination and workflow artifact paths unchanged. From
+the package root, clear only that preview directory at the start of each
+invocation, build it, and keep pkgdown's preview server alive in a dedicated R
+process with:
+
+```r
+preview_pkgdown <- function(preview = ".pkgdown-preview") {
+  unlink(preview, recursive = TRUE, force = TRUE)
+  on.exit(pkgdown::stop_preview(), add = TRUE)
+  pkgdown::build_site(
+    override = list(destination = preview),
+    preview = TRUE
+  )
+  repeat Sys.sleep(3600)
+}
+
+preview_pkgdown()
+```
+
+The preview server requires pkgdown's optional `nanonext` dependency. `Ctrl-C`
+stops the server process but leaves the generated preview available for
+inspection; the next invocation starts fresh, or the directory can be removed
+explicitly when earlier cleanup is useful.
+
 When validating pkgdown without committing generated site output, combine a
 writable cache with a temporary destination:
 

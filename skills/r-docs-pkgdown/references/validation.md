@@ -65,7 +65,12 @@ put it in a tracked companion script and expose it through a collapsed details
 block. Parse and smoke the companion independently so the full render is not
 its only completeness witness. Inspect final figures at their intended page
 width for annotation size, legends, clipping, thumbnail alignment, and
-figure-text order; native-resolution inspection alone is insufficient.
+figure-text order; native-resolution inspection alone is insufficient. When a
+plot highlights observations selected by an estimator, subspace, or ranking,
+keep the exact source objects adjacent to that originating plot and state its
+ranking scope before a nearby panel introduces another ranking. If highlighted
+points coincide, preserve their markers at the true coordinates and offset only
+the labels, adding short leader lines when needed.
 
 ## Direct Temporary-Library Install
 
