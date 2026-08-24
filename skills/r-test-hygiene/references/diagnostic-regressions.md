@@ -60,6 +60,18 @@ versions. For table-driven comparison diagnostics, prefer
 `expect_true(<comparison>, info = case$name)` when the case label matters, and
 smoke-run the focused test immediately after adding diagnostic arguments.
 
+## Multi-Condition Streams
+
+Under testthat edition 3, `expect_message()` and `expect_warning()` capture at
+most one matching condition; later or non-matching conditions bubble outside
+the expectation. For a short sequence where every condition is part of the
+contract, nest one expectation per condition. Use `expect_snapshot()` when the
+combined output and conditions form the stable review surface. When the return
+value and complete ordered condition stream both matter, capture the stream
+with `withCallingHandlers()`, muffle every intended condition, then assert the
+value, count, order, and distinguishing content. Do not suppress important
+conditions merely to keep a passing reporter quiet.
+
 ## Optional Progress Diagnostics
 
 For an algorithm-specific progress field, record categorical provenance at the

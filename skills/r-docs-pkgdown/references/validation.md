@@ -26,6 +26,27 @@ keep the prose, table, and plot on that same basis. Add hidden semantic checks
 using stable status classes, equivalence relations, or inequalities rather than
 fragile exact iterations and floating-point snapshots.
 
+## Preserve Technical-Article Integrity
+
+Before revising a technical article, identify its primary reader task. Keep the
+code, visible output, and interpretation aligned with that task, and make each
+reader-facing paragraph motivate a problem, explain a choice, interpret visible
+evidence, or state a consequence. Hidden semantic checks normally need no
+narration; explain their underlying invariant only when it independently helps
+the reader. Review contrasts and caveats in context rather than mechanically
+removing connective words, because a meaningful distinction may be the clearest
+way to explain a boundary. Inspect the rendered article to confirm that hidden
+chunks do not leave visible transitions or references without their payoff.
+
+## Inspect Rendered Numerical Tables
+
+Inspect rendered table cells in addition to their source objects. Fixed decimal
+rounding can display a meaningful nonzero value as zero or erase relative scale
+while the build and hidden semantic checks still pass. When magnitude is part
+of the lesson, use significant-digit or scientific formatting for small or
+wide-ranging values, then confirm that the table and adjacent interpretation
+describe the same computed quantity.
+
 ## Precomputed Stochastic Figures
 
 When an article interprets a precomputed figure from a stochastic numerical

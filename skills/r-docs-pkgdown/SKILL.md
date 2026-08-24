@@ -19,8 +19,8 @@ Use this for documentation and pkgdown work in R packages.
   setup. A successful full render does not prove independence when earlier
   chunks can supply mutable objects or state.
 - For bounded fresh-session checks, semantic witnesses for generated claims,
-  precomputed stochastic figures, or figure-led articles with long reproduction
-  code, follow
+  technical-article editorial integrity, precomputed stochastic figures, or
+  figure-led articles with long reproduction code, follow
   [validation.md](references/validation.md).
 - Treat audit suggestions for new tutorials, comparison tables, examples, or
   plots as hypotheses rather than completion requirements. Require a named user

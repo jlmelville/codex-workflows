@@ -41,7 +41,13 @@ on chat history.
      another model to challenge conclusions.
    - Treat scratch notes and prototypes as inputs, not as the active source of
      truth, unless the user says otherwise.
-5. Use `$agent-instructions-maintenance` when the main task is creating,
+5. Before placing work in a long unattended iterative loop, define the in-loop
+   witness: what will be observed, how it distinguishes progress, success,
+   regression, and failure, and when the loop must stop or escalate. If the
+   decisive observation requires human judgment, end the loop at that boundary.
+   A usable witness does not expand task authority or loosen containment, cost,
+   scope, or irreversible-action limits.
+6. Use `$agent-instructions-maintenance` when the main task is creating,
    auditing, shrinking, or updating `AGENTS.md` or equivalent instruction
    policy rather than managing execution state.
 
