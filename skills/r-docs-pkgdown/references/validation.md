@@ -70,7 +70,10 @@ plot highlights observations selected by an estimator, subspace, or ranking,
 keep the exact source objects adjacent to that originating plot and state its
 ranking scope before a nearby panel introduces another ranking. If highlighted
 points coincide, preserve their markers at the true coordinates and offset only
-the labels, adding short leader lines when needed.
+the labels, adding short leader lines when needed. When several highlights need
+leaders, choose label placements jointly to avoid other highlighted markers,
+labels, leader segments, and plot boundaries, and stop each segment short of
+the marker edge and label glyph.
 
 ## Place Companion Code Deliberately
 
