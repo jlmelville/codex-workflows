@@ -110,6 +110,11 @@ Rscript -e 'pkgdown::build_site(new_process = FALSE)'
 Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
 ```
 
+These concise commands assume that the current package is loadable by the
+render process and that required caches are writable. Before a focused article
+build in a fresh or restricted process, use the composed setup in
+[validation.md](references/validation.md#focused-pkgdown-article-builds).
+
 When a pkgdown workflow changes, also run the required checks from
 `$r-ci-hardening`.
 

@@ -37,6 +37,9 @@ the reader. Review contrasts and caveats in context rather than mechanically
 removing connective words, because a meaningful distinction may be the clearest
 way to explain a boundary. Inspect the rendered article to confirm that hidden
 chunks do not leave visible transitions or references without their payoff.
+During final technical reconciliation, map each hidden assertion to visible
+code, output, prose, or a declared executable example. Move unmatched schema
+or coverage assertions to package tests or the API reference that owns them.
 
 ## Review Planned Articles In Two Stages
 
@@ -159,6 +162,28 @@ Direct `R CMD INSTALL` deliberately does not resolve or install dependencies.
 A missing dependency is a dependency-setup result, not evidence that the
 document or package source failed. Preserve the fresh-session boundary when
 adapting the render command to another document engine.
+
+### Focused pkgdown Article Builds
+
+For a focused R Markdown pkgdown article build in a fresh or restricted
+process, compose the preceding temporary-install harness with the pkgdown
+environment rather than invoking the concise default command first:
+
+1. Set `XDG_CACHE_HOME` to a writable temporary directory before launching R,
+   so Sass and related tools do not select a read-only user cache.
+2. Install the current source into `library_path`, then put that path first in
+   `.libPaths()` and set `R_LIBS_USER` to it before pkgdown starts any render
+   process.
+3. Pass the configured article name to `pkgdown::build_article()`. Use
+   `new_process = FALSE` when the harness owns the fresh R boundary; otherwise
+   keep `R_LIBS_USER` available to the child process.
+4. When generated site output must not remain, pass a temporary destination
+   through `override = list(destination = destination)` and remove it with the
+   same function-scoped cleanup pattern used for `library_path`.
+
+The current package and its dependencies are separate prerequisites. A direct
+source install does not acquire missing dependencies, and a cache-permission or
+package-loading failure does not establish that the article itself failed.
 
 A direct source-directory install validates installed package code but does not
 establish which vignette sources, rendered documents, or auxiliary files survive

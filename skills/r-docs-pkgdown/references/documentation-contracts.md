@@ -39,6 +39,13 @@ shortest useful task path. Link across surfaces instead of copying full
 explanations, then make a final conciseness pass that removes repeated validator
 prose and catalogs of obvious invalid inputs.
 
+When a task-oriented article recommends changing a control because its default
+materially affects the task, state that default beside the recommendation
+through its consequence: what the API observes, permits, or concludes, and
+what the reader should do as a result. Keep the exhaustive formals inventory
+on the function-reference surface rather than making readers derive the action
+from a compact list of defaults.
+
 For that shortest useful task, inspect whether the package defaults to a
 stochastic or approximate route. Prefer a deterministic exact route when it is
 practical for the small example. If the approximate route is essential, show

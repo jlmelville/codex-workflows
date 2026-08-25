@@ -86,6 +86,14 @@ the proposed commit, compare staged and unstaged path lists and confirm that no
 unstaged edits overlap staged paths. Tests exercise working-tree files, so they
 support the cached patch only when those paths have no unstaged drift.
 
+In a shared checkout, repeat the baseline and ownership check immediately
+before the first staging command: compare `HEAD` with the validated commit and
+re-read the complete worktree status. If another worker advanced `HEAD` or
+changed an owned path, do not stage the overlapping patch. Assign the affected
+path to one maintainer, reconcile the combined diff, and rerun the applicable
+validation. Continue disjoint work only when its paths were clean at the
+recorded baseline, remain nonoverlapping, and have explicit ownership.
+
 ## Accepted Patch Identity
 
 When independent review accepts an unstaged patch and validation commands may
