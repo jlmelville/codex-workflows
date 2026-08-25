@@ -24,6 +24,14 @@ When a basic user choice requires a multi-control recipe or several caveats,
 document only the non-obvious current contract and record a separate API-design
 follow-up instead of expanding the help indefinitely.
 
+For an integration article or optional backend, establish the declared minimum
+dependency version and verify examples and inspectable result claims against
+that published release, not only an adjacent development checkout. If the
+needed contract exists only in development, either provide a compatibility path
+that distinguishes native, conditional, and derived fields or sequence the
+dependency release before publishing the article. Do not present a derived
+replacement as a native dependency field.
+
 After a package-wide documentation search, assign each fact one primary
 surface. Function help owns exact non-obvious argument and return contracts,
 articles own comparisons and cross-family consequences, and README owns the

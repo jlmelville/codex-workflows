@@ -72,6 +72,28 @@ ranking scope before a nearby panel introduces another ranking. If highlighted
 points coincide, preserve their markers at the true coordinates and offset only
 the labels, adding short leader lines when needed.
 
+## Place Companion Code Deliberately
+
+Before locating executable article companions, decide which distribution
+boundary users need. Keep short essential code inline, use build-ignored
+article infrastructure only for website reproduction, and choose a
+build-included installed location when installed users need the asset. Inspect
+`.Rbuildignore` and the source archive rather than inferring visibility from a
+successful pkgdown render. Exercise source, built-package, installed-package,
+and website access only for the contexts the prose claims; do not rely on a
+test or companion that disappears from the built package.
+
+## Mathematical Catalogue Articles
+
+When an article promises a comprehensive catalogue of implemented formulas,
+inventory every entry's authoritative source, implemented domain, standard
+start, known correction, and witness state before drafting. Prototype each
+distinct formula shape, then independently transcribe and compare every
+published formula at a nontrivial deterministic point with an entry-appropriate
+absolute-plus-relative tolerance. Do not claim completeness while any entry
+lacks source reconciliation or a numeric witness. Keep the duplicate oracle as
+private documentation evidence unless users have a separate need for that API.
+
 ## Direct Temporary-Library Install
 
 For an R Markdown article or vignette, replace `DOCUMENT` with the document
@@ -110,3 +132,38 @@ Direct `R CMD INSTALL` deliberately does not resolve or install dependencies.
 A missing dependency is a dependency-setup result, not evidence that the
 document or package source failed. Preserve the fresh-session boundary when
 adapting the render command to another document engine.
+
+A direct source-directory install validates installed package code but does not
+establish which vignette sources, rendered documents, or auxiliary files survive
+the package build. When the claim concerns installed `doc/` contents, build a
+source tarball in a temporary directory and install that tarball into the
+temporary library instead. Inside a `local()` harness with the same cleanup
+pattern, replace the direct install step with:
+
+```r
+package_root <- normalizePath(".", mustWork = TRUE)
+build_path <- tempfile("doc-build-")
+dir.create(build_path)
+on.exit(unlink(build_path, recursive = TRUE, force = TRUE), add = TRUE)
+
+previous_path <- setwd(build_path)
+on.exit(setwd(previous_path), add = TRUE)
+build_status <- system2(
+  file.path(R.home("bin"), "R"),
+  c("CMD", "build", shQuote(package_root))
+)
+setwd(previous_path)
+stopifnot(identical(build_status, 0L))
+
+tarballs <- list.files(build_path, pattern = "[.]tar[.]gz$", full.names = TRUE)
+stopifnot(length(tarballs) == 1L)
+install_status <- system2(
+  file.path(R.home("bin"), "R"),
+  c("CMD", "INSTALL", "-l", shQuote(library_path), shQuote(tarballs))
+)
+stopifnot(identical(install_status, 0L))
+```
+
+Inspect the installed package's `doc/` directory through `system.file()` with
+`lib.loc = library_path`; a successful build and install alone does not prove
+that each expected artifact is present.
