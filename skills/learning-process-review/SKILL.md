@@ -122,12 +122,12 @@ Use these sections:
 ```
 
 During an initial pilot, use all reviewed papercuts as the denominator. Report
-actionable yield as unique observations warranting `local-fix`, `candidate`, or
-`external-owner`; duplicate rate as `duplicate`; noise rate as `no-action`; and
-capture gap as unique observations the mature candidate process probably would
-not retain. Run the first review after 10 papercuts or 14 days of substantive
-use, whichever comes first. Do not add per-task telemetry, impose a success
-quota, or treat zero-count disclosures as proof that no friction was missed.
+actionable yield for `local-fix`, `candidate`, or `external-owner`; duplicate and
+noise rates; and capture gap for observations mature candidate routing would omit.
+Keep classification, implemented outcomes, and behavioral support distinct;
+`external-owner` is attribution, not remediation, without recorded owner action,
+and implementation alone does not prove reduced recurrence. Review after 10
+papercuts or 14 days. Add no per-task telemetry or success quota; zero counts do not establish complete capture.
 
 ## Drain And Validate
 
