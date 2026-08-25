@@ -38,6 +38,32 @@ removing connective words, because a meaningful distinction may be the clearest
 way to explain a boundary. Inspect the rendered article to confirm that hidden
 chunks do not leave visible transitions or references without their payoff.
 
+## Review Planned Articles In Two Stages
+
+When an execution plan and documentation guidance both govern a substantial
+article revision, use the plan to preserve scope, factual obligations, state,
+and validation, while the reader task controls visible order, terminology, and
+explanatory depth. Draft the shortest question-to-payoff reader path before
+mapping the plan's obligations onto it. Keep that mapping as a coverage ledger;
+put an obligation into visible prose only when it changes what the reader does,
+observes, interprets, or concludes.
+
+Freeze and render the exact article before its editorial review. Give a cold
+reviewer only the rendered artifact, named audience, and primary reader task;
+withhold the source, execution plan, coverage ledger, and prior reviews. Ask
+whether the reader can reach and use the promised payoff, whether terminology
+or implementation machinery appears before it is needed, and whether visible
+headings, navigation, and links support the path. Require a bounded verdict and
+use `$planning-workflow`'s bounded independent-review rules for correction and
+re-review limits.
+
+After the corrected article passes that reader review, perform a separate
+plan-aware technical reconciliation against the exact source and coverage
+ledger. Confirm that editorial compression preserved required contracts,
+examples, semantic witnesses, and validation. Keep rendering, executable
+checks, and deterministic link checks as separate evidence; neither review
+stage substitutes for them.
+
 ## Inspect Rendered Numerical Tables
 
 Inspect rendered table cells in addition to their source objects. Fixed decimal
