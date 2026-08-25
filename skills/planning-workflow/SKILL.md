@@ -51,6 +51,11 @@ on chat history.
    auditing, shrinking, or updating `AGENTS.md` or equivalent instruction
    policy rather than managing execution state.
 
+When a plan governs reader-facing documentation, record scope, factual
+obligations, state, and validation without prescribing visible order,
+terminology, or explanatory depth. Let the applicable documentation skill
+control those reader-facing decisions.
+
 ## Artifact Types
 
 Classify planning files explicitly when creating or updating them:

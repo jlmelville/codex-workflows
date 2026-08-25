@@ -134,7 +134,9 @@ the narrow evidence needed for review and the specific questions to answer.
 For planned reader-facing documentation, treat the plan as a coverage ledger,
 not a prose outline. Let the applicable documentation guidance control visible
 order, terminology, and explanatory depth. When that guidance calls for a cold
-reader stage, limit the first packet to the rendered artifact, audience, and
-reader task, then use a later plan-aware packet for technical reconciliation.
-For R package articles, follow
+reader stage, limit the first packet to the rendered artifact, audience, reader
+task, the document's reader-facing role, nearby-guide responsibilities, and an
+explicit scope boundary; withhold implementation sources, plan or coverage
+obligations, and prior reviews. Then use a later plan-aware packet for technical
+reconciliation. For R package articles, follow
 [the staged article review](../../r-docs-pkgdown/references/validation.md#review-planned-articles-in-two-stages).

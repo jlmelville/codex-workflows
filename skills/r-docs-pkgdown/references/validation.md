@@ -49,7 +49,9 @@ put an obligation into visible prose only when it changes what the reader does,
 observes, interprets, or concludes.
 
 Freeze and render the exact article before its editorial review. Give a cold
-reviewer only the rendered artifact, named audience, and primary reader task;
+reviewer the rendered artifact, named audience, primary reader task, the
+article's role in the documentation set, what nearby guides are intended to
+cover, and an explicit scope boundary. Keep that context reader-facing;
 withhold the source, execution plan, coverage ledger, and prior reviews. Ask
 whether the reader can reach and use the promised payoff, whether terminology
 or implementation machinery appears before it is needed, and whether visible

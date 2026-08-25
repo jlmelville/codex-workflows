@@ -18,5 +18,5 @@ Repeated Command Guidance	Rscript -e:	The shared launcher prefix introduces dist
 Repeated Command Guidance	devtools::check:	Package-check closure and diagnostic attribution recur across independently useful R workflow surfaces.
 Repeated Command Guidance	persist-credentials:	The generic checkout rule and complete R deployment examples must each keep the security setting explicit.
 Large Always-Read Skill Files	codex-skill-repo: 177 SKILL.md lines	The entrypoint retains source-of-truth, authority, privacy, authoring, and completion contracts while routing detailed mechanics.
-Large Always-Read Skill Files	planning-workflow: 171 SKILL.md lines	The entrypoint must select artifact types and preserve reconciliation, authority, recovery, and completion decisions while routing templates and specialized mechanics.
+Large Always-Read Skill Files	planning-workflow: 176 SKILL.md lines	The entrypoint must select artifact types and preserve reconciliation, documentation-presentation authority, recovery, and completion decisions while routing templates and specialized mechanics.
 Large Always-Read Skill Files	skill-retro: 189 SKILL.md lines	The independently activated producer must retain routing authority, intake, privacy, verification, and no-change rules while external-state mechanics remain routed.
