@@ -88,7 +88,17 @@ repo-relative skill script references.
 
 Accepted advisory findings live in `scripts/audit-skill-drift-triage.tsv`;
 each row records the audit section, a row substring to match, and the rationale
-for accepting that finding.
+for accepting that finding. Keep repeated-command triage patterns stable at the
+command-label level. Their reviewed per-file hit counts live separately in
+`scripts/audit-skill-drift-command-baseline.tsv` as
+`command<TAB>path<TAB>hit-count` rows.
+
+The audit continues to print current absolute totals, then compares every
+tracked command with that per-file baseline. A new path or an increased count
+on an existing path produces an untriaged `Repeated Command Growth` finding;
+unchanged and reduced repetition do not. Review the named delta before updating
+the baseline. Never regenerate or advance it automatically merely to make the
+audit green.
 
 ## Pre-Commit Review
 

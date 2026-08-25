@@ -1,0 +1,36 @@
+# command	path	hit-count
+actionlint	skills/codex-skill-repo/references/repository-validation.md	1
+actionlint	skills/dependabot-pr-maintenance/references/pinned-actions-and-stale-ci.md	1
+actionlint	skills/github-actions-hardening/SKILL.md	2
+actionlint	skills/r-ci-hardening/SKILL.md	2
+actionlint	skills/r-ci-hardening/references/github-actions.md	3
+actionlint	skills/r-docs-pkgdown/references/pkgdown.md	1
+zizmor or uvx zizmor	skills/codex-skill-repo/references/repository-validation.md	1
+zizmor or uvx zizmor	skills/dependabot-pr-maintenance/references/pinned-actions-and-stale-ci.md	1
+zizmor or uvx zizmor	skills/github-actions-hardening/SKILL.md	3
+zizmor or uvx zizmor	skills/r-ci-hardening/SKILL.md	2
+zizmor or uvx zizmor	skills/r-ci-hardening/references/github-actions.md	4
+zizmor or uvx zizmor	skills/r-docs-pkgdown/references/pkgdown.md	1
+zizmor or uvx zizmor	skills/uv-sandbox-workflow/SKILL.md	2
+roxygen2::roxygenise	skills/r-docs-pkgdown/SKILL.md	4
+roxygen2::roxygenise	skills/r-docs-pkgdown/references/pkgdown.md	1
+roxygen2::roxygenise	skills/r-docs-pkgdown/references/roxygen-markdown.md	2
+Rscript -e	skills/r-ci-hardening/references/github-actions.md	3
+Rscript -e	skills/r-docs-pkgdown/SKILL.md	3
+Rscript -e	skills/r-docs-pkgdown/references/pkgdown.md	1
+Rscript -e	skills/r-docs-pkgdown/references/roxygen-markdown.md	1
+Rscript -e	skills/r-package-workflow/references/checks.md	11
+Rscript -e	skills/r-rcpp-package/SKILL.md	4
+Rscript -e	skills/r-rcpp-package/references/rcpp.md	2
+Rscript -e	skills/r-test-hygiene/SKILL.md	3
+Rscript -e	skills/r-test-hygiene/references/coverage-roi.md	1
+Rscript -e	skills/r-test-hygiene/references/fixtures.md	1
+Rscript -e	skills/r-test-hygiene/references/testthat-edition-migrations.md	1
+devtools::check	skills/r-docs-pkgdown/SKILL.md	1
+devtools::check	skills/r-docs-pkgdown/references/roxygen-markdown.md	1
+devtools::check	skills/r-package-workflow/references/check-diagnostic-cases.md	1
+devtools::check	skills/r-package-workflow/references/checks.md	4
+devtools::check	skills/r-rcpp-package/SKILL.md	1
+persist-credentials	skills/github-actions-hardening/SKILL.md	1
+persist-credentials	skills/r-ci-hardening/references/github-actions.md	2
+persist-credentials	skills/r-docs-pkgdown/references/pkgdown.md	1

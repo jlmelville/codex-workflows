@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 audit_source="${repo_dir}/scripts/audit-skill-drift.rb"
+baseline_source="${repo_dir}/scripts/audit-skill-drift-command-baseline.tsv"
 
 if ! command -v ruby >/dev/null 2>&1; then
   echo "ruby is required for the skill drift smoke test" >&2
@@ -14,6 +15,10 @@ trap 'rm -rf "${fixture_dir}"' EXIT
 
 mkdir -p "${fixture_dir}/scripts" "${fixture_dir}/skills/example/scripts"
 cp "${audit_source}" "${fixture_dir}/scripts/audit-skill-drift.rb"
+cp "${baseline_source}" "${fixture_dir}/scripts/audit-skill-drift-command-baseline.tsv"
+cat >"${fixture_dir}/scripts/audit-skill-drift-command-baseline.tsv" <<'EOF'
+# command	path	hit-count
+EOF
 
 cat >"${fixture_dir}/scripts/audit-skill-drift-triage.tsv" <<'EOF'
 # section	pattern	rationale
@@ -93,6 +98,32 @@ fi
 if ! grep -Fq "triage manifest not found" "${error_file}" || grep -Fq "from .*audit-skill-drift.rb" "${error_file}"; then
   cat "${error_file}" >&2
   echo "missing explicit triage manifest did not produce a stable error" >&2
+  exit 1
+fi
+
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --command-baseline "${fixture_dir}/missing-baseline.tsv" >"${output_file}" 2>"${error_file}"; then
+  echo "missing command baseline unexpectedly succeeded" >&2
+  exit 1
+fi
+if ! grep -Fq "command baseline not found" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "missing command baseline did not produce a stable error" >&2
+  exit 1
+fi
+
+cat >"${fixture_dir}/unmatched-baseline.tsv" <<'EOF'
+# command	path	hit-count
+actionlint	README.md	1
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --command-baseline "${fixture_dir}/unmatched-baseline.tsv" >"${output_file}" 2>"${error_file}"; then
+  echo "unmatched command baseline unexpectedly succeeded" >&2
+  exit 1
+fi
+if ! grep -Fq "repeated-command baseline and triage labels differ" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "unmatched command baseline did not produce a stable error" >&2
   exit 1
 fi
 
@@ -189,6 +220,89 @@ fi
 if ! grep -Fq "Run scripts/check.sh." "${output_file}"; then
   cat "${output_file}" >&2
   echo "punctuated bundled-script fixture did not produce the expected row" >&2
+  exit 1
+fi
+
+cat >"${fixture_dir}/scripts/audit-skill-drift-triage.tsv" <<'EOF'
+# section	pattern	rationale
+Repeated Helper Names	fixture_helper:	The duplicate helper is an intentional advisory fixture.
+Repeated Command Guidance	actionlint:	The repeated command is an intentional advisory fixture.
+EOF
+cat >"${fixture_dir}/scripts/audit-skill-drift-command-baseline.tsv" <<'EOF'
+# command	path	hit-count
+actionlint	README.md	1
+actionlint	skills/example/SKILL.md	1
+actionlint	skills/example/reference.md	1
+EOF
+cat >"${fixture_dir}/README.md" <<'EOF'
+Run actionlint for the repository workflow check.
+EOF
+cat >"${fixture_dir}/skills/example/reference.md" <<'EOF'
+Run actionlint for this routed workflow check.
+EOF
+cp "${fixture_dir}/good-skill.md" "${skill_file}"
+cat >>"${skill_file}" <<'EOF'
+
+Run actionlint for this skill workflow check.
+EOF
+
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "unchanged repeated-command baseline unexpectedly failed" >&2
+  exit 1
+fi
+if ! grep -Fq "Repeated command baselines: 1 stable, 0 expanded" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "unchanged repeated-command baseline was not reported as stable" >&2
+  exit 1
+fi
+
+cat >>"${skill_file}" <<'EOF'
+Run actionlint again after changing this path.
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "expanded repeated-command path unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Repeated Command Growth" "${output_file}" ||
+  ! grep -Fq "skills/example/SKILL.md +1" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "expanded repeated-command path did not produce a bounded delta" >&2
+  exit 1
+fi
+
+cp "${fixture_dir}/good-skill.md" "${skill_file}"
+cat >>"${skill_file}" <<'EOF'
+
+Run actionlint for this skill workflow check.
+EOF
+cat >"${fixture_dir}/skills/example/new-path.md" <<'EOF'
+Run actionlint from this new path.
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "new repeated-command path unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "skills/example/new-path.md new (+1)" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "new repeated-command path did not produce a bounded delta" >&2
+  exit 1
+fi
+
+for suffix in 2 3 4 5 6; do
+  printf 'Run actionlint from new path %s.\n' "${suffix}" \
+    >"${fixture_dir}/skills/example/new-path-${suffix}.md"
+done
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "many new repeated-command paths unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "+1 more paths" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "repeated-command growth output was not bounded" >&2
   exit 1
 fi
 

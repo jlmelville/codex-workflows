@@ -16,7 +16,8 @@ options = {
   hard_only: false,
   show_triaged: false,
   triage_explicit: false,
-  triage_path: File.join(repo_dir, "scripts", "audit-skill-drift-triage.tsv")
+  triage_path: File.join(repo_dir, "scripts", "audit-skill-drift-triage.tsv"),
+  command_baseline_path: File.join(repo_dir, "scripts", "audit-skill-drift-command-baseline.tsv")
 }
 
 parser = OptionParser.new do |opts|
@@ -46,6 +47,9 @@ parser = OptionParser.new do |opts|
     options[:triage_explicit] = true
     options[:triage_path] = value
   end
+  opts.on("--command-baseline PATH", "Use a repeated-command baseline TSV") do |value|
+    options[:command_baseline_path] = value
+  end
   opts.on("--show-triaged", "Show findings accepted by the triage manifest") do
     options[:show_triaged] = true
   end
@@ -70,6 +74,11 @@ if options[:triage_explicit] && !File.file?(options[:triage_path])
   exit 1
 end
 
+unless File.file?(options[:command_baseline_path])
+  warn "audit-skill-drift.rb: command baseline not found: #{options[:command_baseline_path]}"
+  exit 1
+end
+
 STOP_WORDS = Set.new(%w[
   about across after against already also and any are ask asks automated
   before between both but can choosing codex code commit commits common
@@ -91,6 +100,8 @@ COMMAND_PATTERNS = {
   "devtools::check" => /devtools::check/,
   "persist-credentials" => /persist-credentials:\s*false/
 }.freeze
+
+MAX_COMMAND_GROWTH_PATHS = 5
 
 FUNCTION_PATTERNS = [
   [/\.sh\z/, /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{/],
@@ -157,6 +168,84 @@ def load_triage_entries(path)
     }
   end
   entries
+end
+
+def load_command_baselines(path, known_labels)
+  baselines = Hash.new { |hash, key| hash[key] = {} }
+  read_text(path).each_line.with_index(1) do |line, line_no|
+    row = line.chomp
+    next if row.empty? || row.start_with?("#")
+
+    label, relative_path, count_text = row.split("\t", -1)
+    if [label, relative_path, count_text].any? { |field| field.nil? || field.empty? }
+      raise ArgumentError, "#{path}:#{line_no}: expected command<TAB>path<TAB>hit-count"
+    end
+    unless known_labels.include?(label)
+      raise ArgumentError, "#{path}:#{line_no}: unknown command label: #{label}"
+    end
+    unless relative_path.match?(%r{\A[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z})
+      raise ArgumentError, "#{path}:#{line_no}: expected a normalized repository-relative path"
+    end
+
+    begin
+      count = Integer(count_text, 10)
+    rescue ArgumentError
+      raise ArgumentError, "#{path}:#{line_no}: hit-count must be a positive integer"
+    end
+    if count <= 0
+      raise ArgumentError, "#{path}:#{line_no}: hit-count must be a positive integer"
+    end
+    if baselines[label].key?(relative_path)
+      raise ArgumentError, "#{path}:#{line_no}: duplicate command and path"
+    end
+
+    baselines[label][relative_path] = count
+  end
+  baselines
+end
+
+def validate_command_baseline_triage(triage_entries, command_baselines, known_labels)
+  triaged_labels = triage_entries.filter_map do |entry|
+    next unless entry[:section] == "Repeated Command Guidance"
+
+    known_labels.find { |label| entry[:pattern] == "#{label}:" }
+  end.to_set
+  baseline_labels = command_baselines.keys.to_set
+  missing_baselines = (triaged_labels - baseline_labels).sort
+  untriaged_baselines = (baseline_labels - triaged_labels).sort
+  return if missing_baselines.empty? && untriaged_baselines.empty?
+
+  details = []
+  details << "missing baselines: #{missing_baselines.join(", ")}" if missing_baselines.any?
+  details << "untriaged baselines: #{untriaged_baselines.join(", ")}" if untriaged_baselines.any?
+  raise ArgumentError, "repeated-command baseline and triage labels differ; #{details.join("; ")}"
+end
+
+def repeated_command_growth_rows(command_hits, command_baselines)
+  command_baselines.sort.filter_map do |label, baseline_counts|
+    current_counts = Hash.new(0)
+    command_hits.fetch(label, []).each do |path, _line_no, _line|
+      current_counts[path] += 1
+    end
+
+    growth = current_counts.filter_map do |path, count|
+      baseline_count = baseline_counts.fetch(path, 0)
+      next unless count > baseline_count
+
+      [path, count - baseline_count, baseline_count.zero?]
+    end
+    next if growth.empty?
+
+    growth.sort_by! { |path, delta, _new_path| [-delta, path] }
+    shown = growth.first(MAX_COMMAND_GROWTH_PATHS).map do |path, delta, new_path|
+      new_path ? "#{path} new (+#{delta})" : "#{path} +#{delta}"
+    end
+    omitted = growth.length - shown.length
+    shown << "+#{omitted} more paths" if omitted.positive?
+    added_hits = growth.sum { |_path, delta, _new_path| delta }
+
+    "#{label}: +#{added_hits} baseline-relative hits across #{growth.length} paths; #{shown.join("; ")}"
+  end
 end
 
 def triage_entry(entries, section, row)
@@ -318,6 +407,8 @@ skill_markdown_files = markdown_files.select { |path|
 reference_files = skill_markdown_files.select { |path| path.include?("/references/") }
 begin
   triage_entries = load_triage_entries(options[:triage_path])
+  command_baselines = load_command_baselines(options[:command_baseline_path], COMMAND_PATTERNS.keys)
+  validate_command_baseline_triage(triage_entries, command_baselines, COMMAND_PATTERNS.keys)
 rescue ArgumentError, Errno::EACCES => e
   warn "audit-skill-drift.rb: #{e.message}"
   exit 1
@@ -336,6 +427,13 @@ puts "Always-loaded description budget: #{total_description_chars} characters (~
 reference_lines = reference_files.sum { |path| read_text(path).lines.length }
 reference_words = reference_files.sum { |path| read_text(path).scan(/\S+/).length }
 puts "Routed references: #{reference_files.length} files, #{reference_lines} lines, ~#{reference_words} words"
+
+command_hits = COMMAND_PATTERNS.transform_values do |pattern|
+  line_hits(repo_dir, markdown_files, pattern)
+end
+command_growth_rows = repeated_command_growth_rows(command_hits, command_baselines)
+stable_command_baselines = command_baselines.length - command_growth_rows.length
+puts "Repeated command baselines: #{stable_command_baselines} stable, #{command_growth_rows.length} expanded"
 
 if total_description_chars > options[:max_total_description]
   record_findings(
@@ -383,13 +481,20 @@ duplicate_helper_rows = script_function_definitions(repo_dir, script_files).sort
 end
 record_findings(findings, triaged_findings, triage_entries, :review, "Repeated Helper Names", duplicate_helper_rows)
 
-repeated_command_rows = COMMAND_PATTERNS.filter_map do |label, pattern|
-  hits = line_hits(repo_dir, markdown_files, pattern)
+repeated_command_rows = command_hits.filter_map do |label, hits|
   next if hits.map(&:first).uniq.length < 3
 
   "#{label}: #{hits.length} hits in #{hits.map(&:first).uniq.length} files"
 end
 record_findings(findings, triaged_findings, triage_entries, :review, "Repeated Command Guidance", repeated_command_rows)
+record_findings(
+  findings,
+  triaged_findings,
+  triage_entries,
+  :review,
+  "Repeated Command Growth",
+  command_growth_rows
+)
 
 machine_path_rows = line_hits(repo_dir, all_review_files, %r{/(?:home|Users)/james|/mnt/[A-Za-z]/}).map { |path, line_no, line|
   "#{path}:#{line_no}: #{line}"
