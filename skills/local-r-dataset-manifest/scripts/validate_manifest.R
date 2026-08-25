@@ -56,7 +56,39 @@ parse_args <- function(args) {
     }
   }
 
+  if (opts$replace && !is.na(opts$max_rows)) {
+    stop("--replace cannot be combined with --max-rows", call. = FALSE)
+  }
+
   opts
+}
+
+canonical_path <- function(path, must_work = FALSE) {
+  normalizePath(path, winslash = "/", mustWork = must_work)
+}
+
+path_is_within <- function(path, root) {
+  normalized_path <- canonical_path(path, must_work = FALSE)
+  normalized_root <- canonical_path(root, must_work = TRUE)
+  identical(normalized_path, normalized_root) ||
+    startsWith(normalized_path, paste0(normalized_root, "/"))
+}
+
+replace_file_atomically <- function(source, destination) {
+  destination <- canonical_path(destination, must_work = TRUE)
+  staged <- tempfile(".manifest-stage-", tmpdir = dirname(destination))
+  on.exit(unlink(staged, force = TRUE), add = TRUE)
+
+  if (!file.copy(source, staged, overwrite = FALSE)) {
+    stop("failed to stage replacement beside manifest: ", destination, call. = FALSE)
+  }
+  mode <- file.info(destination)$mode
+  if (!is.na(mode)) {
+    Sys.chmod(staged, mode = mode)
+  }
+  if (!file.rename(staged, destination)) {
+    stop("failed to atomically replace manifest: ", destination, call. = FALSE)
+  }
 }
 
 empty_string <- function(x) {
@@ -136,7 +168,7 @@ inspect_row <- function(row, data_root) {
   if (!identical(basename(path), expected_basename)) {
     errors <- c(errors, paste0("path basename ", basename(path), " != ", expected_basename))
   }
-  if (!startsWith(normalizePath(path, mustWork = FALSE), normalizePath(data_root, mustWork = FALSE))) {
+  if (!path_is_within(path, data_root)) {
     errors <- c(errors, paste0("path is outside data root: ", path))
   }
   if (!file.exists(path)) {
@@ -240,6 +272,12 @@ inspect_row <- function(row, data_root) {
 
 main <- function() {
   opts <- parse_args(commandArgs(trailingOnly = TRUE))
+  if (identical(
+    canonical_path(opts$manifest, must_work = TRUE),
+    canonical_path(opts$draft, must_work = FALSE)
+  )) {
+    stop("--draft must not name the live manifest", call. = FALSE)
+  }
   manifest <- read_manifest(opts$manifest)
   if (!is.na(opts$max_rows)) {
     manifest <- manifest[seq_len(min(opts$max_rows, nrow(manifest))), , drop = FALSE]
@@ -285,10 +323,7 @@ main <- function() {
   cat("draft ", opts$draft, "\n", sep = "")
 
   if (opts$replace) {
-    ok <- file.copy(opts$draft, opts$manifest, overwrite = TRUE)
-    if (!ok) {
-      stop("failed to replace manifest: ", opts$manifest, call. = FALSE)
-    }
+    replace_file_atomically(opts$draft, opts$manifest)
     cat("replaced ", opts$manifest, "\n", sep = "")
   }
 }

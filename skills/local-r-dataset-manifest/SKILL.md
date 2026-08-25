@@ -58,6 +58,8 @@ manifest is the curated source of truth for agents choosing benchmark data.
 4. Write proposed changes to `/tmp` first. Review the draft and failure report.
 5. Replace the live manifest only after zero validation errors. Because this
    writes outside the repo, request sandbox approval before using `--replace`.
+   Full replacement is atomic and cannot be combined with the inspection-only
+   `--max-rows` option.
 
    ```sh
    Rscript --vanilla "${HOME}/.agents/skills/local-r-dataset-manifest/scripts/validate_manifest.R" --replace

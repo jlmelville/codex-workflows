@@ -90,7 +90,8 @@ alone before treating it as a code regression.
 Scripts:
 
 - `${HOME}/.agents/skills/r-package-workflow/scripts/check-r-package.sh`:
-  run a local check bundle.
+  run a local check bundle, refreshing the one existing Rcpp or cpp11 binding
+  family; use `$r-rcpp-package` to initialize or disambiguate bindings.
 - `${HOME}/.agents/skills/r-package-workflow/scripts/audit-generated-r-files.sh`:
   list likely generated files touched in the current diff.
 

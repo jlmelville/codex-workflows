@@ -69,7 +69,9 @@ python3 "${HOME}/.agents/skills/notebook-inspection/scripts/notebook_inspect.py"
 ```
 
 Use `--type markdown` when searching prose and `--type all` when both code and
-markdown are relevant.
+markdown are relevant. Batch `stats` and `search` continue through readable
+notebooks but exit nonzero if any input cannot be parsed; do not treat partial
+output as a clean scan.
 
 ## Outputs
 

@@ -50,6 +50,9 @@ assert_usage_error() {
 run_notebook_smoke() {
   local script="${repo_dir}/skills/notebook-inspection/scripts/notebook_inspect.py"
   local notebook="${tmp_root}/tiny.ipynb"
+  local malformed="${tmp_root}/malformed.ipynb"
+  local stdout_file="${tmp_root}/notebook.stdout"
+  local stderr_file="${tmp_root}/notebook.stderr"
 
   require_command python3
   python3 - "${notebook}" <<'PY'
@@ -68,6 +71,7 @@ path.write_text(json.dumps({
     "nbformat_minor": 5,
 }), encoding="utf-8")
 PY
+  printf '%s\n' '{"cells": [' >"${malformed}"
 
   python3 "${script}" --help >/dev/null
   python3 "${script}" validate "${notebook}" >/dev/null
@@ -78,6 +82,27 @@ PY
     echo "notebook_inspect.py search should exit 1 when no match is found" >&2
     return 1
   fi
+  if python3 "${script}" stats "${notebook}" "${malformed}" \
+    >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "notebook_inspect.py stats should fail after a partial parse" >&2
+    return 1
+  fi
+  grep -Fq "${notebook}" "${stdout_file}"
+  grep -Fq "parse failed" "${stderr_file}"
+  if python3 "${script}" search --type all alpha "${tmp_root}" \
+    >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "notebook_inspect.py search should fail after a partial parse" >&2
+    return 1
+  fi
+  grep -Fq "alpha notes" "${stdout_file}"
+  grep -Fq "failed to parse notebook" "${stderr_file}"
+  if python3 "${script}" outputs --limit 0 "${notebook}" \
+    >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "notebook_inspect.py outputs should reject a nonpositive limit" >&2
+    return 1
+  fi
+  [[ ! -s "${stdout_file}" ]]
+  grep -Fq "must be a positive integer" "${stderr_file}"
 }
 
 run_benchmark_smoke() {
@@ -85,8 +110,14 @@ run_benchmark_smoke() {
   local smoke_dir="${tmp_root}/benchmark"
   local cases="${smoke_dir}/cases.R"
   local out_prefix="${smoke_dir}/evidence"
+  local alias_cases="${smoke_dir}/alias-cases.R"
+  local alias_prefix="${smoke_dir}/alias-evidence"
+  local sentinel="${smoke_dir}/evidence-work-started"
+  local stdout_file="${smoke_dir}/alias.stdout"
+  local stderr_file="${smoke_dir}/alias.stderr"
 
   require_command Rscript
+  require_command ln
   mkdir -p "${smoke_dir}"
   cat >"${cases}" <<'RS'
 benchmark_metadata <- list(scope = "smoke")
@@ -97,6 +128,13 @@ benchmark_cases <- list(
   }
 )
 RS
+  cat >"${alias_cases}" <<'RS'
+sentinel <- Sys.getenv("BENCHMARK_SMOKE_SENTINEL")
+if (nzchar(sentinel)) {
+  writeLines("sourced", sentinel)
+}
+benchmark_cases <- list(base = function() sum(1:3))
+RS
 
   Rscript --vanilla "${script}" --help >/dev/null
   Rscript --vanilla "${script}" "${cases}" --reps 1 --out "${out_prefix}" >/dev/null
@@ -106,6 +144,30 @@ RS
   fi
   [[ -s "${out_prefix}.csv" ]]
   [[ -s "${out_prefix}.md" ]]
+
+  printf '%s\n' 'preserved' >"${alias_prefix}.csv"
+  ln "${alias_prefix}.csv" "${alias_prefix}.md"
+  if BENCHMARK_SMOKE_SENTINEL="${sentinel}" \
+    Rscript --vanilla "${script}" "${alias_cases}" --out "${alias_prefix}" \
+    >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "benchmark-evidence.R should reject aliased output files" >&2
+    return 1
+  fi
+  [[ ! -e "${sentinel}" ]]
+  [[ ! -s "${stdout_file}" ]]
+  grep -Fq "existing outputs alias the same filesystem object" "${stderr_file}"
+  [[ "$(<"${alias_prefix}.csv")" == "preserved" ]]
+  [[ "$(<"${alias_prefix}.md")" == "preserved" ]]
+
+  if BENCHMARK_SMOKE_SENTINEL="${sentinel}" \
+    Rscript --vanilla "${script}" "${alias_cases}" --out "" \
+    >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "benchmark-evidence.R should reject an empty output prefix" >&2
+    return 1
+  fi
+  [[ ! -e "${sentinel}" ]]
+  [[ ! -s "${stdout_file}" ]]
+  grep -Fq -- "--out must be a non-empty path prefix" "${stderr_file}"
 }
 
 run_manifest_smoke() {
@@ -113,6 +175,11 @@ run_manifest_smoke() {
   local smoke_dir="${tmp_root}/manifest"
   local manifest="${smoke_dir}/manifest.tsv"
   local draft="${smoke_dir}/draft.tsv"
+  local outside_manifest="${smoke_dir}/outside.tsv"
+  local outside_draft="${smoke_dir}/outside-draft.tsv"
+  local before="${smoke_dir}/manifest.before"
+  local stdout_file="${smoke_dir}/manifest.stdout"
+  local stderr_file="${smoke_dir}/manifest.stderr"
 
   require_command Rscript
   mkdir -p "${smoke_dir}"
@@ -158,6 +225,21 @@ write.table(
   row.names = FALSE,
   na = ""
 )
+
+outside_root <- paste0(root, "-outside")
+dir.create(outside_root)
+outside_bundle <- file.path(outside_root, "tinyl.Rda")
+save(tiny, file = outside_bundle)
+outside_manifest <- manifest
+outside_manifest$path <- outside_bundle
+write.table(
+  outside_manifest,
+  file = file.path(root, "outside.tsv"),
+  sep = "\t",
+  quote = TRUE,
+  row.names = FALSE,
+  na = ""
+)
 RS
 
   Rscript --vanilla "${script}" --help >/dev/null
@@ -166,6 +248,56 @@ RS
     --draft "${draft}" \
     --max-rows 1 >/dev/null
   [[ -s "${draft}" ]]
+
+  cp "${manifest}" "${before}"
+  if Rscript --vanilla "${script}" \
+    --manifest "${manifest}" \
+    --draft "${smoke_dir}/partial.tsv" \
+    --max-rows 1 \
+    --replace >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "validate_manifest.R should reject partial replacement" >&2
+    return 1
+  fi
+  cmp -s "${manifest}" "${before}"
+  [[ ! -e "${smoke_dir}/partial.tsv" ]]
+  grep -Fq -- "--replace cannot be combined with --max-rows" "${stderr_file}"
+
+  if Rscript --vanilla "${script}" \
+    --manifest "${outside_manifest}" \
+    --draft "${outside_draft}" >"${stdout_file}" 2>"${stderr_file}"; then
+    echo "validate_manifest.R should reject a sibling-prefix bundle path" >&2
+    return 1
+  fi
+  grep -Fq "path is outside data root" "${stdout_file}"
+  [[ ! -e "${outside_draft}" ]]
+
+  Rscript --vanilla "${script}" \
+    --manifest "${manifest}" \
+    --draft "${smoke_dir}/replacement.tsv" \
+    --replace >"${stdout_file}"
+  grep -Fq "replaced ${manifest}" "${stdout_file}"
+  Rscript --vanilla "${script}" --manifest "${manifest}" --draft "${draft}" >/dev/null
+
+  cp "${manifest}" "${before}"
+  chmod a-w "${smoke_dir}"
+  local write_failure_status=0
+  if Rscript --vanilla "${script}" \
+    --manifest "${manifest}" \
+    --draft "${tmp_root}/manifest-write-failure-draft.tsv" \
+    --replace >"${tmp_root}/manifest-write-failure.stdout" \
+    2>"${tmp_root}/manifest-write-failure.stderr"; then
+    write_failure_status=0
+  else
+    write_failure_status=$?
+  fi
+  chmod u+w "${smoke_dir}"
+  if [[ "${write_failure_status}" -eq 0 ]]; then
+    echo "validate_manifest.R should preserve the manifest on staging failure" >&2
+    return 1
+  fi
+  cmp -s "${manifest}" "${before}"
+  grep -Fq "failed to stage replacement beside manifest" \
+    "${tmp_root}/manifest-write-failure.stderr"
 }
 
 run_roxygen_smoke() {
@@ -267,8 +399,11 @@ run_r_package_check_smoke() {
   local empty_dir="${tmp_root}/r-package-check-empty"
   local fake_bin="${tmp_root}/r-package-check-bin"
   local log="${tmp_root}/r-package-check.log"
+  local audit_output
 
-  mkdir -p "${pkg_dir}/R" "${pkg_dir}/.github/workflows" "${empty_dir}" "${fake_bin}"
+  mkdir -p \
+    "${pkg_dir}/R" "${pkg_dir}/src" "${pkg_dir}/.github/workflows" \
+    "${empty_dir}" "${fake_bin}"
   printf '%s\n' 'Package: tiny' 'Version: 0.0.0' >"${pkg_dir}/DESCRIPTION"
   printf '%s\n' '# generated fixture' >"${pkg_dir}/R/RcppExports.R"
   cat >"${pkg_dir}/.github/workflows/check.yml" <<'EOF_WORKFLOW'
@@ -298,6 +433,39 @@ EOF_COMMAND
   [[ "$(wc -l <"${log}")" -eq 2 ]]
   grep -Fq 'Rscript -e Rcpp::compileAttributes()' "${log}"
   grep -Fq 'Rscript -e testthat::test_local()' "${log}"
+
+  rm "${pkg_dir}/R/RcppExports.R"
+  printf '%s\n' '# generated cpp11 R fixture' >"${pkg_dir}/R/cpp11.R"
+  printf '%s\n' '// generated cpp11 C++ fixture' >"${pkg_dir}/src/cpp11.cpp"
+  : >"${log}"
+  (
+    cd "${pkg_dir}"
+    PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" fast >/dev/null
+  )
+  [[ "$(wc -l <"${log}")" -eq 2 ]]
+  grep -Fq 'Rscript -e cpp11::cpp_register()' "${log}"
+  grep -Fq 'Rscript -e testthat::test_local()' "${log}"
+
+  git -C "${pkg_dir}" init >/dev/null 2>&1
+  audit_output="$(cd "${pkg_dir}" && \
+    "${repo_dir}/skills/r-package-workflow/scripts/audit-generated-r-files.sh")"
+  grep -Fq 'R/cpp11.R' <<<"${audit_output}"
+  grep -Fq 'src/cpp11.cpp' <<<"${audit_output}"
+
+  printf '%s\n' '# generated Rcpp fixture' >"${pkg_dir}/R/RcppExports.R"
+  : >"${log}"
+  if (
+    cd "${pkg_dir}" &&
+      PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" fast \
+        >/dev/null 2>"${tmp_root}/r-package-mixed.stderr"
+  ); then
+    echo "check-r-package.sh should reject mixed binding families" >&2
+    return 1
+  fi
+  [[ ! -s "${log}" ]]
+  grep -Fq 'both Rcpp and cpp11 generated bindings are present' \
+    "${tmp_root}/r-package-mixed.stderr"
+  rm "${pkg_dir}/R/RcppExports.R"
 
   : >"${log}"
   (

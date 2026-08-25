@@ -52,7 +52,82 @@ parse_args <- function(args) {
   if (is.na(opts$seed)) {
     stop("--seed must be an integer", call. = FALSE)
   }
+  if (length(opts$out) != 1L || is.na(opts$out) || !nzchar(opts$out)) {
+    stop("--out must be a non-empty path prefix", call. = FALSE)
+  }
   opts
+}
+
+canonical_future_path <- function(path) {
+  candidate <- path
+  suffix <- character()
+  while (!file.exists(candidate)) {
+    parent <- dirname(candidate)
+    if (identical(parent, candidate)) {
+      stop("cannot resolve output path through an existing parent: ", path, call. = FALSE)
+    }
+    suffix <- c(basename(candidate), suffix)
+    candidate <- parent
+  }
+  if (length(suffix) > 0L && !dir.exists(candidate)) {
+    stop("output parent is not a directory: ", candidate, call. = FALSE)
+  }
+
+  canonical <- normalizePath(candidate, winslash = "/", mustWork = TRUE)
+  if (length(suffix) > 0L) {
+    canonical <- do.call(file.path, c(list(canonical), as.list(suffix)))
+  }
+  canonical
+}
+
+filesystem_identity <- function(path) {
+  stat <- Sys.which("stat")
+  system_name <- unname(Sys.info()[["sysname"]])
+  if (!nzchar(stat) || !system_name %in% c("Linux", "Darwin")) {
+    return(NA_character_)
+  }
+
+  canonical <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  args <- if (identical(system_name, "Darwin")) {
+    c("-f", "%d:%i", shQuote(canonical))
+  } else {
+    c("-Lc", "%d:%i", shQuote(canonical))
+  }
+  result <- suppressWarnings(system2(stat, args, stdout = TRUE, stderr = TRUE))
+  if (!is.null(attr(result, "status")) || length(result) != 1L) {
+    return(NA_character_)
+  }
+  trimws(result[[1L]])
+}
+
+preflight_outputs <- function(paths) {
+  for (path in paths) {
+    link_target <- Sys.readlink(path)
+    if (!is.na(link_target) && nzchar(link_target)) {
+      stop("output must not be a symlink: ", path, call. = FALSE)
+    }
+    if (dir.exists(path)) {
+      stop("output path is a directory: ", path, call. = FALSE)
+    }
+  }
+
+  canonical <- vapply(paths, canonical_future_path, character(1L))
+  if (anyDuplicated(canonical)) {
+    stop("output paths alias the same destination", call. = FALSE)
+  }
+
+  existing <- file.exists(paths)
+  if (sum(existing) > 1L) {
+    identities <- vapply(paths[existing], filesystem_identity, character(1L))
+    if (anyNA(identities)) {
+      stop("cannot verify existing output identities on this platform", call. = FALSE)
+    }
+    if (anyDuplicated(identities)) {
+      stop("existing outputs alias the same filesystem object", call. = FALSE)
+    }
+  }
+
+  invisible(canonical)
 }
 
 source_cases <- function(path) {
@@ -195,8 +270,74 @@ write_markdown <- function(path, opts, metadata, summary) {
   }
 }
 
+publish_files <- function(staged, destinations) {
+  backups <- rep(NA_character_, length(destinations))
+  published <- rep(FALSE, length(destinations))
+  complete <- FALSE
+
+  on.exit({
+    if (!complete) {
+      for (i in which(published)) {
+        unlink(destinations[[i]], force = TRUE)
+      }
+      for (i in which(!is.na(backups))) {
+        if (file.exists(backups[[i]]) &&
+            !file.rename(backups[[i]], destinations[[i]])) {
+          warning("failed to restore output after publication error: ", destinations[[i]])
+        }
+      }
+    }
+  }, add = TRUE)
+
+  for (i in seq_along(destinations)) {
+    if (!file.exists(destinations[[i]])) {
+      next
+    }
+    backups[[i]] <- tempfile(
+      ".benchmark-backup-",
+      tmpdir = dirname(destinations[[i]])
+    )
+    if (!file.rename(destinations[[i]], backups[[i]])) {
+      stop("failed to preserve existing output: ", destinations[[i]], call. = FALSE)
+    }
+  }
+
+  for (i in seq_along(destinations)) {
+    if (!file.rename(staged[[i]], destinations[[i]])) {
+      stop("failed to publish output: ", destinations[[i]], call. = FALSE)
+    }
+    published[[i]] <- TRUE
+  }
+
+  complete <- TRUE
+  unlink(backups[!is.na(backups)], force = TRUE)
+}
+
+write_output_bundle <- function(paths, opts, metadata, results, summary) {
+  output_dir <- dirname(paths[[1L]])
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  if (!dir.exists(output_dir)) {
+    stop("failed to create output directory: ", output_dir, call. = FALSE)
+  }
+
+  staged <- c(
+    tempfile(".benchmark-stage-", tmpdir = output_dir, fileext = ".csv"),
+    tempfile(".benchmark-stage-", tmpdir = output_dir, fileext = ".md")
+  )
+  on.exit(unlink(staged, force = TRUE), add = TRUE)
+
+  write.csv(results, staged[[1L]], row.names = FALSE)
+  write_markdown(staged[[2L]], opts, metadata, summary)
+  publish_files(staged, paths)
+}
+
 main <- function() {
   opts <- parse_args(commandArgs(trailingOnly = TRUE))
+  output_paths <- c(
+    csv = paste0(opts$out, ".csv"),
+    markdown = paste0(opts$out, ".md")
+  )
+  preflight_outputs(output_paths)
   loaded <- source_cases(opts$cases)
 
   results <- do.call(
@@ -207,15 +348,11 @@ main <- function() {
   )
   summary <- summarize_results(results, opts$baseline)
 
-  csv_path <- paste0(opts$out, ".csv")
-  md_path <- paste0(opts$out, ".md")
-  dir.create(dirname(csv_path), recursive = TRUE, showWarnings = FALSE)
-  write.csv(results, csv_path, row.names = FALSE)
-  write_markdown(md_path, opts, loaded$metadata, summary)
+  write_output_bundle(output_paths, opts, loaded$metadata, results, summary)
 
   print(summary, row.names = FALSE)
-  cat("Wrote ", csv_path, "\n", sep = "")
-  cat("Wrote ", md_path, "\n", sep = "")
+  cat("Wrote ", output_paths[["csv"]], "\n", sep = "")
+  cat("Wrote ", output_paths[["markdown"]], "\n", sep = "")
 }
 
 main()

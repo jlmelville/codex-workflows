@@ -31,6 +31,29 @@ and relative speed versus the baseline. Treat the generated files as benchmark
 evidence, not package validation, and follow the active plan or repository
 policy when deciding whether to retain them.
 
+## Gate And Probe Design
+
+Scope relative performance gates before observing results. Name the workload
+class each gate governs and report absolute medians beside ratios. For an
+abstraction boundary, pair low-operation and scaling-heavy cases, then classify
+a repeated regression as fixed per-call cost or scaling cost. Do not waive a
+crossed unconditional gate after the fact merely because its absolute cost is
+small; retain it as an explicit review decision.
+
+Before optimizing abstraction overhead, use bounded component probes to
+separate causes: compare direct and wrapped operations for marginal overhead,
+zero- and one-operation end-to-end paths for fixed versus marginal work, and
+rich versus minimal result construction when discarded diagnostics may be
+costly. Profiles and component microbenchmarks choose targets; representative
+whole-operation benchmarks plus the semantic oracle decide whether to keep or
+revert the change.
+
+For expensive exploratory benchmark grids, define the evidence threshold and
+stop rule before running the full grid. Start with rows likely to distinguish
+hypotheses, summarize after each tranche, and skip expensive remaining rows when
+they are unlikely to change the decision. Record the stop rationale in the plan
+or handoff.
+
 ## Callback Work Accounting
 
 For callback-based algorithm benchmarks, define the measured workload boundary

@@ -33,13 +33,22 @@ def selected_cell(cell: dict[str, Any], cell_type: str) -> bool:
     return cell_type == "all" or cell.get("cell_type") == cell_type
 
 
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
 def command_stats(args: argparse.Namespace) -> int:
+    failed = False
     for path in iter_notebooks(args.paths):
         try:
             text = path.read_text(encoding="utf-8")
             nb = json.loads(text)
         except Exception as exc:  # noqa: BLE001 - report parse failures and continue.
             print(f"{path}: parse failed: {exc}", file=sys.stderr)
+            failed = True
             continue
 
         cells = nb.get("cells", [])
@@ -54,7 +63,7 @@ def command_stats(args: argparse.Namespace) -> int:
             f"code_with_outputs={len(output_cells)}\t"
             f"outputs={output_items}"
         )
-    return 0
+    return 1 if failed else 0
 
 
 def command_cells(args: argparse.Namespace) -> int:
@@ -70,11 +79,13 @@ def command_cells(args: argparse.Namespace) -> int:
 
 def command_search(args: argparse.Namespace) -> int:
     found = False
+    failed = False
     for path in iter_notebooks(args.paths):
         try:
             nb = load_notebook(path)
         except Exception as exc:  # noqa: BLE001 - report parse failures and continue.
             print(f"{path}: failed to parse notebook: {exc}", file=sys.stderr)
+            failed = True
             continue
 
         for index, cell in enumerate(nb.get("cells", []), start=1):
@@ -85,7 +96,7 @@ def command_search(args: argparse.Namespace) -> int:
                 found = True
                 print(f"\n# %% [{path}:{index} {cell.get('cell_type', 'unknown')}]")
                 print(text.rstrip())
-    return 0 if found else 1
+    return 0 if found and not failed else 1
 
 
 def output_text(output: dict[str, Any]) -> list[tuple[str, str]]:
@@ -159,7 +170,7 @@ def parser() -> argparse.ArgumentParser:
     search.set_defaults(func=command_search)
 
     outputs = subparsers.add_parser("outputs", help="print safe text outputs")
-    outputs.add_argument("--limit", type=int, default=2000)
+    outputs.add_argument("--limit", type=positive_int, default=2000)
     outputs.add_argument("notebooks", nargs="+", type=Path)
     outputs.set_defaults(func=command_outputs)
 

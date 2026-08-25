@@ -11,11 +11,12 @@ Usage: check-r-package.sh [fast|full|ci]
 Run from an R package root.
 
 Modes:
-  fast  Rcpp attributes when relevant, then testthat::test_local()
+  fast  existing Rcpp or cpp11 bindings, then testthat::test_local()
   full  fast checks plus Air, lintr, and devtools::check(--no-manual)
   ci    full checks plus the shared GitHub Actions audit when workflows exist
 
-Rcpp attributes may update R/RcppExports.R or src/RcppExports.cpp.
+Existing generated bindings select Rcpp::compileAttributes() or
+cpp11::cpp_register(). Initialize a new binding through r-rcpp-package first.
 USAGE
 }
 
@@ -41,8 +42,20 @@ if [[ -f src/RcppExports.cpp || -f R/RcppExports.R ]]; then
   has_rcpp=true
 fi
 
+has_cpp11=false
+if [[ -f src/cpp11.cpp || -f R/cpp11.R ]]; then
+  has_cpp11=true
+fi
+
+if [[ "${has_rcpp}" == true && "${has_cpp11}" == true ]]; then
+  echo "check-r-package.sh: both Rcpp and cpp11 generated bindings are present" >&2
+  exit 2
+fi
+
 if [[ "${has_rcpp}" == true ]]; then
   Rscript -e 'Rcpp::compileAttributes()'
+elif [[ "${has_cpp11}" == true ]]; then
+  Rscript -e 'cpp11::cpp_register()'
 fi
 
 Rscript -e 'testthat::test_local()'
