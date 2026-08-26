@@ -20,23 +20,27 @@ render.
 ## Validate The Claimed Lesson
 
 A successful render establishes executability, not the truth of prose that
-interprets generated output. For each pivotal termination, ordering, tradeoff,
-or improvement claim, identify the result field and metric that proves it and
-keep the prose, table, and plot on that same basis. Add hidden semantic checks
-using stable status classes, equivalence relations, or inequalities rather than
-fragile exact iterations and floating-point snapshots.
+interprets generated output or describes how an example was selected and
+reproduced. For each pivotal empirical claim, identify maintained evidence that
+directly supports it. Keep the prose, executed parameter values, tables, plots,
+selection and provenance account, and public reproduction boundary aligned
+with that evidence. When the claim derives from generated output, add hidden
+semantic checks using stable status classes, equivalence relations, or
+inequalities rather than fragile exact iterations and floating-point snapshots.
 
 ## Preserve Technical-Article Integrity
 
 Before revising a technical article, identify its primary reader task. Keep the
-code, visible output, and interpretation aligned with that task, and make each
-reader-facing paragraph motivate a problem, explain a choice, interpret visible
-evidence, or state a consequence. Hidden semantic checks normally need no
-narration; explain their underlying invariant only when it independently helps
-the reader. Review contrasts and caveats in context rather than mechanically
-removing connective words, because a meaningful distinction may be the clearest
-way to explain a boundary. Inspect the rendered article to confirm that hidden
-chunks do not leave visible transitions or references without their payoff.
+code, visible output, and interpretation aligned with that task. As a default,
+give each substantial reader-facing passage a clear function such as orienting
+the reader, defining a needed relationship, motivating a problem, explaining a
+choice, connecting adjacent steps, interpreting visible evidence, or stating a
+consequence. Hidden semantic checks normally need no narration; explain their
+underlying invariant only when it independently helps the reader. Review
+contrasts and caveats in context rather than mechanically removing connective
+words, because a meaningful distinction may be the clearest way to explain a
+boundary. Inspect the rendered article to confirm that hidden chunks do not
+leave visible transitions or references without their payoff.
 During final technical reconciliation, map each hidden assertion to visible
 code, output, prose, or a declared executable example. Move unmatched schema
 or coverage assertions to package tests or the API reference that owns them.
@@ -64,6 +68,13 @@ confirm that editorial compression preserved required contracts, examples,
 semantic witnesses, and validation. Keep rendering, executable checks, and
 deterministic link checks as separate evidence; neither review stage substitutes
 for them.
+
+If the review packet transforms or packages the rendered article, treat the
+delivered file as a separate validation boundary. Inspect that exact file after
+transformation and before recording its immutable identity or sending it.
+Preserve every site-level script, stylesheet, asset, and interaction that the
+artifact or prose promises, or state explicitly which behavior the portable
+packet excludes.
 
 ## Inspect Rendered Numerical Tables
 
