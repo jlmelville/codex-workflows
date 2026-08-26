@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-installer-smoke.XXXXXX")"
+tmp_root="$(cd "${tmp_root}" && pwd -P)"
 trap 'rm -rf "${tmp_root}"' EXIT
 
 fail() {

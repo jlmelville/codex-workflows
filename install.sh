@@ -178,11 +178,14 @@ read_source_names() {
   done < <(skill_names_from_repo_scope)
 
   source_names=()
-  for name in "${all_source_names[@]}"; do
-    if ! contains_name "${name}" "${repo_local_names[@]}"; then
-      source_names+=("${name}")
-    fi
-  done
+  if ((${#all_source_names[@]} > 0)); then
+    for name in "${all_source_names[@]}"; do
+      if ((${#repo_local_names[@]} == 0)) || \
+        ! contains_name "${name}" "${repo_local_names[@]}"; then
+        source_names+=("${name}")
+      fi
+    done
+  fi
 }
 
 read_old_manifest_names() {
@@ -240,28 +243,30 @@ validate_source_tree() {
     [[ -f "${skill_file}" ]] || die "${source_dir}/${name}: missing SKILL.md"
   done
 
-  for name in "${repo_local_names[@]}"; do
-    case "${name}" in
-      .*|*/*|*" "*|*"	"*)
-        die "invalid repository-local skill name: ${name}"
-        ;;
-    esac
-    contains_name "${name}" "${all_source_names[@]}" || \
-      die "repository-local skill has no canonical source: ${name}"
-    [[ -L "${repo_skill_dir}/${name}" ]] || \
-      die "repository-local skill must be a symlink: ${repo_skill_dir}/${name}"
-    link_target="$(readlink "${repo_skill_dir}/${name}")"
-    [[ "${link_target}" != /* ]] || \
-      die "repository-local skill symlink must be relative: ${repo_skill_dir}/${name}"
-    if ! expected_dir="$(cd "${source_dir}/${name}" && pwd -P)"; then
-      die "could not resolve canonical source skill: ${source_dir}/${name}"
-    fi
-    if ! actual_dir="$(cd "${repo_skill_dir}/${name}" 2>/dev/null && pwd -P)"; then
-      die "broken repository-local skill symlink: ${repo_skill_dir}/${name}"
-    fi
-    [[ "${actual_dir}" == "${expected_dir}" ]] || \
-      die "repository-local skill symlink points outside canonical source: ${repo_skill_dir}/${name}"
-  done
+  if ((${#repo_local_names[@]} > 0)); then
+    for name in "${repo_local_names[@]}"; do
+      case "${name}" in
+        .*|*/*|*" "*|*"	"*)
+          die "invalid repository-local skill name: ${name}"
+          ;;
+      esac
+      contains_name "${name}" "${all_source_names[@]}" || \
+        die "repository-local skill has no canonical source: ${name}"
+      [[ -L "${repo_skill_dir}/${name}" ]] || \
+        die "repository-local skill must be a symlink: ${repo_skill_dir}/${name}"
+      link_target="$(readlink "${repo_skill_dir}/${name}")"
+      [[ "${link_target}" != /* ]] || \
+        die "repository-local skill symlink must be relative: ${repo_skill_dir}/${name}"
+      if ! expected_dir="$(cd "${source_dir}/${name}" && pwd -P)"; then
+        die "could not resolve canonical source skill: ${source_dir}/${name}"
+      fi
+      if ! actual_dir="$(cd "${repo_skill_dir}/${name}" 2>/dev/null && pwd -P)"; then
+        die "broken repository-local skill symlink: ${repo_skill_dir}/${name}"
+      fi
+      [[ "${actual_dir}" == "${expected_dir}" ]] || \
+        die "repository-local skill symlink points outside canonical source: ${repo_skill_dir}/${name}"
+    done
+  fi
 }
 
 manage_global_learning() {
@@ -340,9 +345,11 @@ write_manifest() {
 
   {
     printf '%s\n' "${manifest_version}"
-    for name in "${source_names[@]}"; do
-      printf '%s\n' "${name}"
-    done
+    if ((${#source_names[@]} > 0)); then
+      for name in "${source_names[@]}"; do
+        printf '%s\n' "${name}"
+      done
+    fi
   } >"${output}"
 }
 
@@ -351,10 +358,12 @@ stage_source() {
   mkdir -p "${stage_root}/skills"
 
   local name
-  for name in "${source_names[@]}"; do
-    cp -a "${source_dir}/${name}" "${stage_root}/skills/"
-    compare_trees "${source_dir}/${name}" "${stage_root}/skills/${name}" "staged ${name}" >/dev/null
-  done
+  if ((${#source_names[@]} > 0)); then
+    for name in "${source_names[@]}"; do
+      cp -a "${source_dir}/${name}" "${stage_root}/skills/"
+      compare_trees "${source_dir}/${name}" "${stage_root}/skills/${name}" "staged ${name}" >/dev/null
+    done
+  fi
   write_manifest "${stage_root}/manifest"
 }
 
@@ -417,26 +426,32 @@ check_install() {
   fi
 
   read_old_manifest_names
-  for name in "${old_manifest_names[@]}"; do
-    if ! contains_name "${name}" "${source_names[@]}"; then
-      echo "install.sh: manifest contains skill outside the user scope: ${name}" >&2
-      status=1
-    fi
-  done
-  for name in "${source_names[@]}"; do
-    if ! contains_name "${name}" "${old_manifest_names[@]}"; then
-      echo "install.sh: user-scoped source skill missing from managed manifest: ${name}" >&2
-      status=1
-    elif ! compare_trees "${source_dir}/${name}" "${target_dir}/${name}" "${name}"; then
-      status=1
-    fi
-  done
-  for name in "${repo_local_names[@]}"; do
-    if [[ -e "${target_dir}/${name}" || -L "${target_dir}/${name}" ]]; then
-      echo "install.sh: repository-local skill also exists in the user scope: ${name}" >&2
-      status=1
-    fi
-  done
+  if ((${#old_manifest_names[@]} > 0)); then
+    for name in "${old_manifest_names[@]}"; do
+      if ((${#source_names[@]} == 0)) || ! contains_name "${name}" "${source_names[@]}"; then
+        echo "install.sh: manifest contains skill outside the user scope: ${name}" >&2
+        status=1
+      fi
+    done
+  fi
+  if ((${#source_names[@]} > 0)); then
+    for name in "${source_names[@]}"; do
+      if ((${#old_manifest_names[@]} == 0)) || ! contains_name "${name}" "${old_manifest_names[@]}"; then
+        echo "install.sh: user-scoped source skill missing from managed manifest: ${name}" >&2
+        status=1
+      elif ! compare_trees "${source_dir}/${name}" "${target_dir}/${name}" "${name}"; then
+        status=1
+      fi
+    done
+  fi
+  if ((${#repo_local_names[@]} > 0)); then
+    for name in "${repo_local_names[@]}"; do
+      if [[ -e "${target_dir}/${name}" || -L "${target_dir}/${name}" ]]; then
+        echo "install.sh: repository-local skill also exists in the user scope: ${name}" >&2
+        status=1
+      fi
+    done
+  fi
 
   if ! manage_global_learning check; then
     status=1
@@ -469,21 +484,25 @@ dry_run_install() {
     echo "Would update managed-skill manifest at ${manifest_path}"
   fi
 
-  for name in "${source_names[@]}"; do
-    if [[ -d "${target_dir}/${name}" ]]; then
-      echo "Would replace managed skill: ${name}"
-    else
-      echo "Would install managed skill: ${name}"
-    fi
-  done
+  if ((${#source_names[@]} > 0)); then
+    for name in "${source_names[@]}"; do
+      if [[ -d "${target_dir}/${name}" ]]; then
+        echo "Would replace managed skill: ${name}"
+      else
+        echo "Would install managed skill: ${name}"
+      fi
+    done
+  fi
 
-  for name in "${repo_local_names[@]}"; do
-    echo "Would use repository-local skill link: ${name}"
-  done
+  if ((${#repo_local_names[@]} > 0)); then
+    for name in "${repo_local_names[@]}"; do
+      echo "Would use repository-local skill link: ${name}"
+    done
+  fi
 
-  if [[ -f "${manifest_path}" ]]; then
+  if [[ -f "${manifest_path}" ]] && ((${#old_manifest_names[@]} > 0)); then
     for name in "${old_manifest_names[@]}"; do
-      if ! contains_name "${name}" "${source_names[@]}"; then
+      if ((${#source_names[@]} == 0)) || ! contains_name "${name}" "${source_names[@]}"; then
         echo "Would remove stale managed skill: ${name}"
       fi
     done
@@ -491,11 +510,13 @@ dry_run_install() {
 
   if [[ -f "${legacy_manifest_path}" ]]; then
     echo "Would migrate legacy managed skills from ${legacy_target_dir}"
-    for name in "${legacy_manifest_names[@]}"; do
-      if [[ -e "${legacy_target_dir}/${name}" ]]; then
-        echo "Would remove legacy managed skill after migration: ${name}"
-      fi
-    done
+    if ((${#legacy_manifest_names[@]} > 0)); then
+      for name in "${legacy_manifest_names[@]}"; do
+        if [[ -e "${legacy_target_dir}/${name}" ]]; then
+          echo "Would remove legacy managed skill after migration: ${name}"
+        fi
+      done
+    fi
     echo "Would remove legacy managed-skill manifest: ${legacy_manifest_path}"
   fi
 
@@ -517,31 +538,35 @@ install_skills() {
   acquire_lock
   mkdir -p "${target_dir}"
 
-  if [[ -f "${manifest_path}" ]]; then
+  if [[ -f "${manifest_path}" ]] && ((${#old_manifest_names[@]} > 0)); then
     for name in "${old_manifest_names[@]}"; do
-      if ! contains_name "${name}" "${source_names[@]}"; then
+      if ((${#source_names[@]} == 0)) || ! contains_name "${name}" "${source_names[@]}"; then
         rm -rf "${target_dir:?}/${name}"
       fi
     done
   fi
 
-  for name in "${source_names[@]}"; do
-    rm -rf "${target_dir:?}/${name}"
-    cp -a "${stage_root}/skills/${name}" "${target_dir}/"
-    replaced_count=$((replaced_count + 1))
-    if [[ -n "${fail_after}" && "${replaced_count}" -ge "${fail_after}" ]]; then
-      echo "install.sh: simulated failure after replacing ${replaced_count} skill(s)" >&2
-      echo "install.sh: runtime may be partially updated; old manifest was retained. Rerun ./install.sh to recover." >&2
-      exit 1
-    fi
-  done
+  if ((${#source_names[@]} > 0)); then
+    for name in "${source_names[@]}"; do
+      rm -rf "${target_dir:?}/${name}"
+      cp -a "${stage_root}/skills/${name}" "${target_dir}/"
+      replaced_count=$((replaced_count + 1))
+      if [[ -n "${fail_after}" && "${replaced_count}" -ge "${fail_after}" ]]; then
+        echo "install.sh: simulated failure after replacing ${replaced_count} skill(s)" >&2
+        echo "install.sh: runtime may be partially updated; old manifest was retained. Rerun ./install.sh to recover." >&2
+        exit 1
+      fi
+    done
+  fi
 
   cp "${stage_root}/manifest" "${manifest_path}"
 
   if [[ -f "${legacy_manifest_path}" ]]; then
-    for name in "${legacy_manifest_names[@]}"; do
-      rm -rf "${legacy_target_dir:?}/${name}"
-    done
+    if ((${#legacy_manifest_names[@]} > 0)); then
+      for name in "${legacy_manifest_names[@]}"; do
+        rm -rf "${legacy_target_dir:?}/${name}"
+      done
+    fi
     rm -f "${legacy_manifest_path}"
     echo "Migrated legacy managed skills out of ${legacy_target_dir}"
   fi
