@@ -12,6 +12,8 @@ legacy_target_dir="${codex_home}/skills"
 legacy_manifest_path="${codex_home}/codex-workflows-managed-skills.tsv"
 global_learning_helper="${repo_dir}/scripts/manage-global-learning.rb"
 global_learning_asset="${source_dir}/skill-retro/assets/global-agents-learning.md"
+ruby_policy_checker="${repo_dir}/scripts/check-ruby-runtime.sh"
+ruby_version_file="${repo_dir}/.ruby-version"
 manifest_version="# codex-workflows-managed-skills v1"
 lock_dir="${agents_home}/.codex-workflows-install.lock"
 mode="install"
@@ -43,6 +45,17 @@ EOF
 die() {
   echo "install.sh: $*" >&2
   exit 1
+}
+
+run_ruby_preflight() {
+  [[ -x "${ruby_policy_checker}" ]] || \
+    die "Ruby policy checker is missing or not executable: ${ruby_policy_checker}"
+  if ! "${ruby_policy_checker}"; then
+    die "Ruby runtime preflight failed before installation changes"
+  fi
+  IFS= read -r required_ruby_version <"${ruby_version_file}" || \
+    die "could not read canonical Ruby version: ${ruby_version_file}"
+  export RBENV_VERSION="${required_ruby_version}"
 }
 
 cleanup() {
@@ -79,6 +92,8 @@ while (($# > 0)); do
   esac
   shift
 done
+
+run_ruby_preflight
 
 host_name() {
   hostname 2>/dev/null || uname -n
@@ -212,7 +227,6 @@ validate_source_tree() {
     die "global learning helper is missing or not executable: ${global_learning_helper}"
   [[ -f "${global_learning_asset}" ]] || \
     die "global learning asset not found: ${global_learning_asset}"
-  command -v ruby >/dev/null 2>&1 || die "ruby is required to manage global learning instructions"
   read_source_names
   ((${#all_source_names[@]} > 0)) || die "no source skills found in ${source_dir}"
 

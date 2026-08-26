@@ -39,6 +39,20 @@ print the resolved executable and version; do not silently prepend an ignored
 persistent environment to `PATH`. Remove pins and parity checks for tools the
 workflow does not execute.
 
+For language runtimes, distinguish the maintainer toolchain from the execution
+contract of installed helpers. A version-manager file in the source repository
+can select the maintainer interpreter without controlling a helper invoked from
+another working directory. If installed helpers own an exact runtime contract,
+bind selection in their shebang, launcher, or owning caller and retain an early
+in-process guard. Validate the actual executable shebang from a directory with
+a conflicting version-manager file; a shell command that explicitly invokes a
+known interpreter does not test shebang selection.
+
+Do not infer a downstream Bundler dependency merely because maintainers use a
+locked gem tool. Keep installed helpers on the standard library when that is
+their contract, and document Bundler as development-only unless runtime code
+actually invokes it.
+
 Treat a locked Ruby gem and its generated executable wrapper as separate
 availability surfaces. When `bundle check` succeeds but host packaging omits
 the wrapper from `PATH`, invoke the locked entry point through RubyGems under

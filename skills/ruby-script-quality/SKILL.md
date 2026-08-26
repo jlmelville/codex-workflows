@@ -20,11 +20,21 @@ Before editing, identify:
 - files or directories the script may create, replace, move, or delete;
 - the formatter, linter, and behavior tests the repository already uses.
 
-Keep executable scripts on `#!/usr/bin/env ruby`, preserve executable mode, and
-add `# frozen_string_literal: true` when it matches the repository convention.
-When a directly executable helper requires a Ruby newer than a plausible
-platform default, check `RUBY_VERSION` before argument parsing or command
-dispatch. Report the required and detected versions, then exit before mutation.
+Classify interpreter ownership before choosing a shebang: exact repository
+version, supported minimum, or deliberately ambient. Preserve the repository's
+existing contract rather than assuming `#!/usr/bin/env ruby` is universally
+appropriate. A version-manager file selects relative to the caller's working
+directory and does not by itself bind an installed helper invoked elsewhere.
+
+For an exact-version, repository-owned helper, bind interpreter selection in
+the shebang, launcher, or owning caller and add an in-process engine/version
+guard before argument parsing or mutation. For a portable minimum-version
+contract, `#!/usr/bin/env ruby` plus an early minimum guard can be appropriate.
+Use ambient Ruby without a guard only when interpreter variability is a
+deliberate supported contract. Preserve executable mode and add
+`# frozen_string_literal: true` when it matches the repository convention.
+Guards should report the required and detected interpreter and the resolved
+executable.
 
 ## CLI Behavior
 
@@ -98,8 +108,12 @@ state-changing commands.
 When output modes exist, assert default, quiet, verbose, and failure behavior;
 quiet success must preserve actionable failure diagnostics.
 
-When an older interpreter is available, exercise the minimum-version guard and
-assert its status, diagnostic, and absence of partial writes.
+Test the declared interpreter contract rather than generic compatibility. For
+an exact-version helper, execute its real shebang from a working directory with
+a conflicting version-manager file, then explicitly force a wrong interpreter
+and assert the guard's status, diagnostic, and absence of partial writes. For a
+minimum-version helper, exercise the oldest supported version and a version
+below the minimum when available.
 
 For a substantial change, run focused tests first and then the repository's
 complete validation. Never claim formatter, CI, or cross-version success from

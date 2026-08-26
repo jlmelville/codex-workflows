@@ -53,13 +53,24 @@ generated on demand so the README does not become a second skill inventory.
 
 ## Set Up A Laptop
 
-Clone the repository and install its managed skills:
+Install and initialize [rbenv](https://github.com/rbenv/rbenv#installation),
+then clone the repository, install its exact Ruby, and install the managed
+skills:
 
 ```sh
 git clone git@github.com:jlmelville/codex-workflows.git
 cd codex-workflows
+rbenv install -s "$(cat .ruby-version)"
+./scripts/check-ruby-runtime.sh
 ./install.sh
 ```
+
+The repository requires the exact CRuby version in `.ruby-version`; rbenv is
+the supported user setup. Installed Ruby helpers select that version through
+the rbenv shim even when they run from another repository with a different
+`.ruby-version`, and reject any explicitly forced incompatible interpreter
+before doing work. Bundler is needed only for repository development and
+validation, not for running installed helpers.
 
 The checkout itself supplies the repository-local skills; the installer keeps
 them out of the user-wide skill directory and validates their links.

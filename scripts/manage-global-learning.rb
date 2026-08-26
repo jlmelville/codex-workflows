@@ -1,5 +1,14 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env -S RBENV_VERSION=3.3.12 ruby
 # frozen_string_literal: true
+
+required_ruby_engine = "ruby"
+required_ruby_version = "3.3.12"
+unless required_ruby_engine == RUBY_ENGINE && required_ruby_version == RUBY_VERSION
+  warn "#{File.basename($PROGRAM_NAME)}: CRuby #{required_ruby_version} is required; detected #{RUBY_DESCRIPTION}"
+  warn "#{File.basename($PROGRAM_NAME)}: resolved interpreter: #{RbConfig.ruby}"
+  warn "#{File.basename($PROGRAM_NAME)}: select the required Ruby (rbenv is the supported user setup) and retry"
+  exit 1
+end
 
 require "digest"
 require "fileutils"
@@ -16,7 +25,11 @@ module GlobalLearning
 
   class Error < StandardError; end
 
+  # Keyword-only construction is intentional even though Ruby 3.3 also accepts
+  # keywords under Struct's default nil mode.
+  # standard:disable Style/RedundantStructKeywordInit
   Analysis = Struct.new(:path, :status, :content, :suffix, :mode, keyword_init: true)
+  # standard:enable Style/RedundantStructKeywordInit
 
   module_function
 

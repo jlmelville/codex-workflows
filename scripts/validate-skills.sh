@@ -8,6 +8,19 @@ python_files=()
 ruby_files=()
 r_files=()
 
+ruby_policy_checker="${repo_dir}/scripts/check-ruby-runtime.sh"
+if [[ ! -x "${ruby_policy_checker}" ]]; then
+  echo "${ruby_policy_checker}: missing or not executable" >&2
+  exit 1
+fi
+if ! "${ruby_policy_checker}"; then
+  exit 1
+fi
+IFS= read -r required_ruby_version <"${repo_dir}/.ruby-version"
+export RBENV_VERSION="${required_ruby_version}"
+export BUNDLE_GEMFILE="${repo_dir}/Gemfile"
+cd "${repo_dir}"
+
 parity_script="${repo_dir}/scripts/check-ci-tool-parity.sh"
 if [[ ! -x "${parity_script}" ]]; then
   echo "${parity_script}: missing or not executable" >&2
@@ -160,6 +173,20 @@ if ((${#ruby_files[@]} > 0)); then
     fi
 
     if ((${#bundler[@]} > 0)); then
+      if bundle_ruby_identity="$("${bundler[@]}" exec ruby -e \
+        'print [RUBY_ENGINE, RUBY_VERSION, RbConfig.ruby].join("\t")')"; then
+        IFS=$'\t' read -r bundle_ruby_engine bundle_ruby_version bundle_ruby_path \
+          <<<"${bundle_ruby_identity}"
+        if [[ "${bundle_ruby_engine}" != "ruby" || "${bundle_ruby_version}" != "${required_ruby_version}" ]]; then
+          echo "Bundler must use CRuby ${required_ruby_version}; found ${bundle_ruby_engine} ${bundle_ruby_version} via ${bundle_ruby_path}" >&2
+          status=1
+        else
+          echo "Bundler Ruby: CRuby ${bundle_ruby_version} via ${bundle_ruby_path}"
+        fi
+      else
+        status=1
+      fi
+
       tmp_cache_root="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
       standard_cache="${XDG_CACHE_HOME:-${tmp_cache_root}/codex-standard-cache}"
       if ! XDG_CACHE_HOME="${standard_cache}" "${bundler[@]}" exec ruby \

@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-skill-smoke.XXXXXX")"
+tmp_root="$(cd "${tmp_root}" && pwd -P)"
 trap 'rm -rf "${tmp_root}"' EXIT
 
 require_command() {
@@ -1012,6 +1013,9 @@ run_retro_state_smoke() {
   local papercut_path
   local papercut_id
   local audit_path
+  local guard_stdout="${smoke_dir}/guard.stdout"
+  local guard_stderr="${smoke_dir}/guard.stderr"
+  local system_ruby_version
 
   require_command ruby
   mkdir -p "${smoke_dir}"
@@ -1114,8 +1118,22 @@ run_retro_state_smoke() {
     --destination skill-retro >/dev/null
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" validate >/dev/null
   "${script}" self-test >/dev/null
+
+  mkdir -p "${smoke_dir}/conflicting-ruby"
+  printf '%s\n' '0.0.0-unavailable' >"${smoke_dir}/conflicting-ruby/.ruby-version"
+  (cd "${smoke_dir}/conflicting-ruby" && "${script}" --help >/dev/null)
+
   if [[ -x /usr/bin/ruby ]]; then
-    /usr/bin/ruby "${script}" self-test >/dev/null
+    system_ruby_version="$(/usr/bin/ruby -e 'print RUBY_VERSION')"
+    if [[ "${system_ruby_version}" != "3.3.12" ]]; then
+      if /usr/bin/ruby "${script}" --help >"${guard_stdout}" 2>"${guard_stderr}"; then
+        echo "retro-state.rb should reject explicit Ruby ${system_ruby_version}" >&2
+        return 1
+      fi
+      [[ ! -s "${guard_stdout}" ]]
+      grep -Fq "CRuby 3.3.12 is required; detected" "${guard_stderr}"
+      grep -Fq "resolved interpreter:" "${guard_stderr}"
+    fi
   fi
 
   mkdir -p "${smoke_dir}/git-root/.git"
@@ -1136,6 +1154,7 @@ run_patch_identity_smoke() {
   local changed_digest
   local command_status
   local newline_name=$'line\nbreak.txt'
+  local system_ruby_version
 
   require_command git
   require_command ruby
@@ -1156,23 +1175,37 @@ run_patch_identity_smoke() {
     "patch-identity.rb: invalid argument: unexpected argument: extra" \
     "${script}" extra
 
-  for ruby_command in "$(command -v ruby)" /usr/bin/ruby; do
-    [[ -x "${ruby_command}" ]] || continue
-    if (
-      cd "${smoke_dir}/repo" && "${ruby_command}" "${script}" \
-        --include-untracked new-test.R \
-        --include-untracked new-test.R \
-        >"${stdout_file}" 2>"${stderr_file}"
-    ); then
-      echo "patch-identity.rb should reject duplicate included paths under ${ruby_command}" >&2
-      return 1
-    else
-      command_status=$?
+  mkdir -p "${smoke_dir}/conflicting-ruby"
+  printf '%s\n' '0.0.0-unavailable' >"${smoke_dir}/conflicting-ruby/.ruby-version"
+  (cd "${smoke_dir}/conflicting-ruby" && "${script}" --help >/dev/null)
+
+  if (
+    cd "${smoke_dir}/repo" && "${script}" \
+      --include-untracked new-test.R \
+      --include-untracked new-test.R \
+      >"${stdout_file}" 2>"${stderr_file}"
+  ); then
+    echo "patch-identity.rb should reject duplicate included paths" >&2
+    return 1
+  else
+    command_status=$?
+  fi
+  [[ "${command_status}" -eq 1 ]]
+  [[ ! -s "${stdout_file}" ]]
+  grep -Fq 'duplicate included path: "new-test.R"' "${stderr_file}"
+
+  if [[ -x /usr/bin/ruby ]]; then
+    system_ruby_version="$(/usr/bin/ruby -e 'print RUBY_VERSION')"
+    if [[ "${system_ruby_version}" != "3.3.12" ]]; then
+      if /usr/bin/ruby "${script}" --help >"${stdout_file}" 2>"${stderr_file}"; then
+        echo "patch-identity.rb should reject explicit Ruby ${system_ruby_version}" >&2
+        return 1
+      fi
+      [[ ! -s "${stdout_file}" ]]
+      grep -Fq "CRuby 3.3.12 is required; detected" "${stderr_file}"
+      grep -Fq "resolved interpreter:" "${stderr_file}"
     fi
-    [[ "${command_status}" -eq 1 ]]
-    [[ ! -s "${stdout_file}" ]]
-    grep -Fq 'duplicate included path: "new-test.R"' "${stderr_file}"
-  done
+  fi
 
   if (cd "${smoke_dir}/repo" && "${script}" >"${stdout_file}" 2>"${stderr_file}"); then
     echo "patch-identity.rb should reject uncategorized untracked files" >&2

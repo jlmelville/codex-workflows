@@ -114,15 +114,29 @@ new thread after the active global instruction file changes.
 Run the repository validator before committing:
 
 ```sh
+rbenv install -s "$(cat .ruby-version)"
 bundle install
 ./scripts/validate-skills.sh
 ```
 
-Bundler installs the formatter/linter pinned in `Gemfile.lock`; the validator
-never installs dependencies implicitly. On distributions that expose only a
-versioned Bundler executable, use the matching command such as `bundle3.3`.
-System Ruby packages may also require their matching development-header package
-before Bundler can compile native dependencies.
+The exact CRuby version in `.ruby-version` is the runtime contract for both
+repository maintenance and installed Ruby helpers. rbenv is the supported user
+selector. `./scripts/check-ruby-runtime.sh`, the installer, and the validator
+verify the selected engine and version before mutation or validation work. A
+generic system Ruby is not a supported fallback; an exact CRuby installed by
+another mechanism is acceptable when it is the `ruby` resolved on `PATH`.
+
+An ordinary `.ruby-version` affects version-manager selection only relative to
+the current working directory. Installed helpers can run from arbitrary
+repositories, so each executable Ruby program also selects the repository
+version through `RBENV_VERSION` in its `env -S` shebang and enforces the same
+contract in-process. The runtime check executes a real shebang probe from a
+directory containing a deliberately conflicting `.ruby-version`.
+
+Bundler installs only the repository-development formatter/linter pinned in
+`Gemfile.lock`; installed helpers use the Ruby standard library and do not run
+through Bundler. The validator never installs dependencies implicitly. Run
+`bundle install` under the selected repository Ruby.
 
 The validator reports local `actionlint` and `zizmor` versions that do not
 match the versions pinned for CI. Treat the report as advisory locally and run
@@ -243,7 +257,8 @@ skills may use later inside other project repositories.
 | Tool | Required when | Version authority | Installation policy |
 | --- | --- | --- | --- |
 | Git and Bash | Cloning, installing, validating, and publishing | Host package manager; shell scripts remain compatible with macOS Bash 3.2 | Use the platform package manager or operating-system copy. |
-| Ruby and Bundler | All repository validation | `.ruby-version` selects the CI Ruby; `Gemfile.lock` pins Bundler and StandardRB | Use Homebrew, apt, or a Ruby version manager; run `bundle install` in the repository. |
+| CRuby | Installing, validating, and running bundled Ruby helpers | `.ruby-version` is the exact source, CI, and installed-helper version | Use rbenv as the supported user selector and install the exact repository version. Another provider is acceptable only when `ruby` resolves to that exact CRuby. |
+| Bundler and StandardRB | Repository development and validation only | `Gemfile` binds Ruby to `.ruby-version`; `Gemfile.lock` records the Ruby and gem dependency graph | Run `bundle install` in the repository under its selected Ruby. Installed helpers do not depend on Bundler. |
 | ShellCheck | All repository validation | Host package manager and CI runner | Use Homebrew or the distribution package. |
 | Python 3 | Syntax-checking bundled Python scripts | Host package manager and CI runner | Use Homebrew, apt, or the operating-system package. No project virtual environment is required. |
 | R / `Rscript` | Syntax-checking bundled R scripts | Host package manager and CI runner | Use Homebrew or the distribution package. |
@@ -253,22 +268,29 @@ skills may use later inside other project repositories.
 | GitHub CLI (`gh`) | Inspecting PRs and workflow runs or triggering manual CI | Host package manager | Optional for ordinary validation; install through Homebrew or the supported platform package. |
 | uv / `uvx` | Optional temporary Python-tool execution | Host package manager; not a repository dependency | Install through Homebrew or upstream only when a temporary tool workflow needs it. Do not create a persistent repository `.venv` for maintainer CLIs. |
 
-For a typical macOS maintainer setup, install the host tools with Homebrew, make
-the chosen Ruby available on `PATH`, and then install the locked Ruby
-dependencies:
+For a typical macOS maintainer setup, install rbenv and the host tools with
+Homebrew, initialize rbenv for the shell as described by `rbenv init`, and then
+install the repository Ruby and locked development dependencies:
 
 ```sh
-brew install git ruby python shellcheck ripgrep r actionlint zizmor gh
+brew install git rbenv python shellcheck ripgrep r actionlint zizmor gh
+rbenv install -s "$(cat .ruby-version)"
+./scripts/check-ruby-runtime.sh
 bundle install
 ```
 
-On Debian-like Linux, install the broadly available system dependencies with
-apt, then use the supported upstream package route for actionlint and zizmor
-when the distribution does not provide a suitable package:
+On Debian-like Linux, install the broadly available host dependencies with apt.
+Install and initialize rbenv and ruby-build through their supported upstream
+route, then install the exact repository Ruby rather than relying on the
+distribution's system Ruby. Use supported upstream package routes for
+actionlint and zizmor when the distribution does not provide suitable
+packages:
 
 ```sh
 sudo apt-get update
-sudo apt-get install -y git bash ruby-full bundler shellcheck python3 r-base ripgrep
+sudo apt-get install -y git bash shellcheck python3 r-base ripgrep
+rbenv install -s "$(cat .ruby-version)"
+./scripts/check-ruby-runtime.sh
 bundle install
 ```
 
@@ -284,7 +306,7 @@ resolved executable path and never prepends an ignored repository environment.
 | GitHub Actions SHAs | Weekly Dependabot PRs; keep nearby version comments synchronized. |
 | StandardRB and its Ruby dependencies | Weekly Bundler Dependabot PRs through `Gemfile.lock`. |
 | zizmor | Weekly pip Dependabot PRs through `.github/requirements.txt`. |
-| Ruby version | Manual update of `.ruby-version`, followed by Linux and manual macOS CI. |
+| Ruby version | Manual coordinated update of `.ruby-version`, `Gemfile.lock`, every executable Ruby shebang and guard, followed by the runtime-policy check, full validation, Linux CI, and manual macOS CI. |
 | actionlint | Manual update of `ACTIONLINT_VERSION`, followed by the workflow audit and CI. |
 | Host tools | `brew update && brew upgrade` or the operating system's normal package-update workflow. |
 | Optional uv | Update through the package manager that installed it; it is not tracked for CI parity. |

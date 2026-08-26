@@ -119,7 +119,9 @@ create_fixture() {
   local fixture="$1"
 
   mkdir -p "${fixture}/skills" "${fixture}/scripts"
+  cp -a "${repo_dir}/.ruby-version" "${fixture}/.ruby-version"
   cp -a "${repo_dir}/install.sh" "${fixture}/install.sh"
+  cp -a "${repo_dir}/scripts/check-ruby-runtime.sh" "${fixture}/scripts/"
   cp -a "${repo_dir}/scripts/manage-global-learning.rb" "${fixture}/scripts/"
   create_skill "${fixture}" alpha "alpha v1"
   create_skill "${fixture}" beta "beta v1"
@@ -127,6 +129,8 @@ create_fixture() {
   mkdir -p "${fixture}/skills/skill-retro/assets"
   cp -a "${repo_dir}/skills/skill-retro/assets/global-agents-learning.md" \
     "${fixture}/skills/skill-retro/assets/"
+  cp -a "${repo_dir}/skills/skill-retro/scripts/retro-state.rb" \
+    "${fixture}/skills/skill-retro/scripts/"
   create_skill "${fixture}" repo-only "repo-only v1"
   make_repo_local "${fixture}" repo-only
 }
@@ -137,6 +141,28 @@ agents_home="${user_home}/.agents"
 codex_home="${user_home}/.codex"
 manifest="${agents_home}/codex-workflows-managed-skills.tsv"
 create_fixture "${fixture}"
+
+preflight_fixture="${tmp_root}/preflight-fixture"
+preflight_user_home="${tmp_root}/preflight-user-home"
+preflight_fake_bin="${tmp_root}/preflight-fake-bin"
+create_fixture "${preflight_fixture}"
+mkdir -p "${preflight_user_home}" "${preflight_fake_bin}"
+printf '%s\n' preserve >"${preflight_user_home}/sentinel.txt"
+cat >"${preflight_fake_bin}/ruby" <<'EOF_FAKE_RUBY'
+#!/usr/bin/env bash
+printf 'ruby\t0.0.0\t/fake/ruby\t%s\n' "${RBENV_VERSION:-}"
+EOF_FAKE_RUBY
+chmod 755 "${preflight_fake_bin}/ruby"
+before_failed_preflight="$(snapshot_tree "${preflight_user_home}")"
+if PATH="${preflight_fake_bin}:${PATH}" HOME="${preflight_user_home}" \
+  CODEX_HOME="${preflight_user_home}/.codex" \
+  "${preflight_fixture}/install.sh" >"${tmp_root}/failed-preflight.out" 2>&1; then
+  fail "installer accepted a Ruby that violated the exact runtime contract"
+fi
+after_failed_preflight="$(snapshot_tree "${preflight_user_home}")"
+[[ "${before_failed_preflight}" == "${after_failed_preflight}" ]] || \
+  fail "failed Ruby preflight changed the target home"
+assert_file_contains "${tmp_root}/failed-preflight.out" "expected Ruby 3.3.12, found 0.0.0"
 
 mkdir -p "${agents_home}/skills/unrelated" "${agents_home}/skills/legacy-stale" "${agents_home}/skills/alpha"
 cat >"${agents_home}/skills/unrelated/data.txt" <<'EOF_UNRELATED'
@@ -168,12 +194,20 @@ assert_mode "${agents_home}/skills/unrelated" 700
 assert_mode "${agents_home}/skills/unrelated/data.txt" 600
 assert_mode "${agents_home}/skills/alpha/scripts/run.sh" 755
 assert_mode "${agents_home}/skills/alpha/notes.txt" 640
+assert_mode "${agents_home}/skills/skill-retro/scripts/retro-state.rb" 755
 [[ -f "${codex_home}/AGENTS.md" ]] || fail "first run did not install global learning instructions"
 assert_file_contains "${codex_home}/AGENTS.md" "<!-- codex-workflows:ambient-learning:start -->"
 assert_file_contains "${codex_home}/AGENTS.md" "## Workflow retrospectives"
 assert_file_contains "${codex_home}/AGENTS.md" "<!-- codex-workflows:ambient-learning:end -->"
 assert_mode "${codex_home}" 700
 assert_mode "${codex_home}/AGENTS.md" 600
+
+mkdir -p "${tmp_root}/installed-helper-conflict"
+printf '%s\n' '0.0.0-unavailable' >"${tmp_root}/installed-helper-conflict/.ruby-version"
+(
+  cd "${tmp_root}/installed-helper-conflict"
+  "${agents_home}/skills/skill-retro/scripts/retro-state.rb" --help >/dev/null
+)
 
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
 mkdir -p "${agents_home}/skills/repo-only"
