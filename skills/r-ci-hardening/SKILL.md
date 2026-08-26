@@ -1,6 +1,6 @@
 ---
 name: r-ci-hardening
-description: Harden and maintain R package GitHub Actions, pkgdown deploys, coverage workflows, Dependabot configuration, actionlint, and zizmor. Use when Codex touches .github/workflows, .github/dependabot.yml, pkgdown Pages deploys, codecov, CI permissions, action pins, workflow security, or usethis CI files.
+description: Harden R package GitHub Actions, including check, pkgdown, coverage, and Dependabot workflows. Use for workflow security, permissions, action pins, optional-dependency lanes, deploys, actionlint, zizmor, or usethis CI scaffolding.
 ---
 
 # R CI Hardening

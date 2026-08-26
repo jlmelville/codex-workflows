@@ -1,6 +1,6 @@
 ---
 name: codex-approval-rules-audit
-description: Audit Codex command-approval rules, layers, and scoping.
+description: Audit active Codex command-approval rules, rule layers, prefix scope, and execpolicy behavior.
 ---
 
 # Codex Approval Rules Audit

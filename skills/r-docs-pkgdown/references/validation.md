@@ -160,98 +160,35 @@ absolute-plus-relative tolerance. Do not claim completeness while any entry
 lacks source reconciliation or a numeric witness. Keep the duplicate oracle as
 private documentation evidence unless users have a separate need for that API.
 
-## Direct Temporary-Library Install
+## Fresh Temporary-Library Article Builds
 
-For an R Markdown article or vignette, replace `DOCUMENT` with the document
-being checked and run from the package root:
+Use the bundled helper from an R package root when dependencies are already
+available but the current package needs a fresh isolated install. It installs
+the source into a temporary library, puts that library first, uses a writable
+temporary cache and render destination, and removes all temporary output after
+the check:
 
 ```sh
-Rscript --vanilla - DOCUMENT <<'RS'
-local({
-  arguments <- commandArgs(trailingOnly = TRUE)
-  stopifnot(length(arguments) == 1L, file.exists(arguments[[1L]]))
-  document <- arguments[[1L]]
-
-  library_path <- tempfile("doc-library-")
-  dir.create(library_path)
-  on.exit(unlink(library_path, recursive = TRUE, force = TRUE), add = TRUE)
-
-  status <- system2(
-    file.path(R.home("bin"), "R"),
-    c(
-      "CMD", "INSTALL", "-l", shQuote(library_path),
-      shQuote(normalizePath(".", mustWork = TRUE))
-    )
-  )
-  stopifnot(identical(status, 0L))
-
-  .libPaths(c(library_path, .libPaths()))
-  rmarkdown::render(
-    document,
-    envir = new.env(parent = globalenv())
-  )
-})
-RS
+Rscript --vanilla \
+  "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" \
+  --rmarkdown path/to/article.Rmd
 ```
 
-Direct `R CMD INSTALL` deliberately does not resolve or install dependencies.
-A missing dependency is a dependency-setup result, not evidence that the
-document or package source failed. Preserve the fresh-session boundary when
-adapting the render command to another document engine.
+For a configured pkgdown article, pass its article name instead of a source
+path:
 
-### Focused pkgdown Article Builds
-
-For a focused R Markdown pkgdown article build in a fresh or restricted
-process, compose the preceding temporary-install harness with the pkgdown
-environment rather than invoking the concise default command first:
-
-1. Set `XDG_CACHE_HOME` to a writable temporary directory before launching R,
-   so Sass and related tools do not select a read-only user cache.
-2. Install the current source into `library_path`, then put that path first in
-   `.libPaths()` and set `R_LIBS_USER` to it before pkgdown starts any render
-   process.
-3. Pass the configured article name to `pkgdown::build_article()`. Use
-   `new_process = FALSE` when the harness owns the fresh R boundary; otherwise
-   keep `R_LIBS_USER` available to the child process.
-4. When generated site output must not remain, pass a temporary destination
-   through `override = list(destination = destination)` and remove it with the
-   same function-scoped cleanup pattern used for `library_path`.
-
-The current package and its dependencies are separate prerequisites. A direct
-source install does not acquire missing dependencies, and a cache-permission or
-package-loading failure does not establish that the article itself failed.
-
-A direct source-directory install validates installed package code but does not
-establish which vignette sources, rendered documents, or auxiliary files survive
-the package build. When the claim concerns installed `doc/` contents, build a
-source tarball in a temporary directory and install that tarball into the
-temporary library instead. Inside a `local()` harness with the same cleanup
-pattern, replace the direct install step with:
-
-```r
-package_root <- normalizePath(".", mustWork = TRUE)
-build_path <- tempfile("doc-build-")
-dir.create(build_path)
-on.exit(unlink(build_path, recursive = TRUE, force = TRUE), add = TRUE)
-
-previous_path <- setwd(build_path)
-on.exit(setwd(previous_path), add = TRUE)
-build_status <- system2(
-  file.path(R.home("bin"), "R"),
-  c("CMD", "build", shQuote(package_root))
-)
-setwd(previous_path)
-stopifnot(identical(build_status, 0L))
-
-tarballs <- list.files(build_path, pattern = "[.]tar[.]gz$", full.names = TRUE)
-stopifnot(length(tarballs) == 1L)
-install_status <- system2(
-  file.path(R.home("bin"), "R"),
-  c("CMD", "INSTALL", "-l", shQuote(library_path), shQuote(tarballs))
-)
-stopifnot(identical(install_status, 0L))
+```sh
+Rscript --vanilla \
+  "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" \
+  --pkgdown article-name
 ```
 
-Inspect the installed package's `doc/` directory through `system.file()` with
-`lib.loc = library_path`; a successful build and install alone does not prove
-that each expected artifact is present.
+The helper deliberately does not acquire dependencies. A missing dependency is
+a setup result, not evidence that the document or package source failed. Its
+temporary output proves execution, not final visual quality; inspect the normal
+rendered artifact separately when presentation matters.
+
+When the claim concerns files that survive `R CMD build`, add `--build-source`.
+Use one `--expect-installed-doc RELATIVE-PATH` per required file beneath the
+installed package's `doc/` directory. The helper rejects installed-artifact
+checks against a direct source-directory install.

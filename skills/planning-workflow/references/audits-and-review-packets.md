@@ -5,9 +5,6 @@ external review into executable repository work.
 
 ## Audit-To-Plan Conversion
 
-Keep audits and execution plans separate when possible. Audits preserve raw
-critique and evidence; execution plans convert that evidence into ordered work.
-
 When converting an external audit or model review into a chunk plan:
 
 1. Preserve the source audit.

@@ -1,6 +1,6 @@
 ---
 name: skill-retro-triage
-description: Judge and implement pending Skill Candidate Reports and Verification Evidence Proposals from external codex-workflows state. Use when reviewing retrospective or verification inboxes, deciding candidate verdicts, applying or rejecting verification evidence, draining fired deferrals or drafts, or turning accepted evidence into scoped source changes.
+description: Judge and implement pending Skill Candidate Reports and Verification Evidence Proposals in external codex-workflows state. Use for retrospective or verification inboxes, candidate verdicts, evidence application, fired deferrals or drafts, and accepted source-change batches.
 ---
 
 # Skill Retro Triage
@@ -101,12 +101,16 @@ to stay on the default path even though they are not conditional branches. The
 semantic gate supplements the evidence, durability, scope, cost, and
 destination checks above; it does not replace them.
 
-For `defer`, require a review trigger, next action, and close condition. For
-`split` or `merge`, name all related opaque candidate IDs and preserve lineage.
-Keep drafts distinct from deferrals: a draft is a coherent new-skill kernel with
-activation criteria, while a deferral is evidence awaiting a specific decision.
-When a deferred trigger fires, attach its replacement verdict with the helper's
-`reconsider` command so earlier triage remains preserved as lineage.
+For `defer`, require a review trigger, next action, and close condition. The
+trigger must be observable in durable state or supplied explicitly to a future
+triage. Do not defer until a skill's "next use" unless that use emits durable
+evidence; `review-queue` preserves the trigger but does not detect the event.
+For `split` or `merge`, name all related opaque candidate IDs and preserve
+lineage. Keep drafts distinct from deferrals: a draft is a coherent new-skill
+kernel with activation criteria, while a deferral is evidence awaiting a
+specific decision. When a deferred trigger fires, attach its replacement
+verdict with the helper's `reconsider` command so earlier triage remains
+preserved as lineage.
 
 Drain every contradicted accepted outcome by correcting source guidance and
 marking it `superseded`, removing source guidance and marking it `reverted`, or

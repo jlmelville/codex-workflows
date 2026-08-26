@@ -1,6 +1,6 @@
 ---
 name: dependabot-pr-maintenance
-description: Review, validate, update, and merge Dependabot or Renovate dependency PRs. Use for automated dependency updates, GitHub Actions SHA pins, stale bot branches, dirty-worktree or temp-merge validation, red-check triage, generated comment or lockfile fixes, batch PRs, and expected-head merges.
+description: Review, validate, update, or merge Dependabot and Renovate PRs. Use for dependency updates, GitHub Actions SHA pins, stale bot branches or checks, temporary merge-result validation, lockfile or comment fixes, batch merges, and expected-head safety.
 ---
 
 # Dependabot PR Maintenance

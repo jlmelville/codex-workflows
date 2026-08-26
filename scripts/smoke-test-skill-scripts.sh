@@ -37,7 +37,7 @@ assert_usage_error() {
     echo "${label} invalid invocation should not write standard output" >&2
     return 1
   fi
-  if ! grep -Fq "${expected}" "${stderr_file}" || ! grep -Fq "Usage:" "${stderr_file}"; then
+  if ! grep -Fq -- "${expected}" "${stderr_file}" || ! grep -Fq "Usage:" "${stderr_file}"; then
     echo "${label} invalid invocation did not print its diagnostic and usage" >&2
     return 1
   fi
@@ -385,6 +385,131 @@ EOF_FAKE_RSCRIPT
       exit 1
     fi
   )
+}
+
+run_document_validation_smoke() {
+  local script="${repo_dir}/skills/r-docs-pkgdown/scripts/validate-document.R"
+  local smoke_dir="${tmp_root}/document-validation"
+  local dependency_sources="${smoke_dir}/dependency-sources"
+  local dependency_library="${smoke_dir}/dependency-library"
+  local package_dir="${smoke_dir}/tinyarticle"
+  local stdout_file="${smoke_dir}/document-validation.stdout"
+
+  require_command R
+  require_command Rscript
+  mkdir -p \
+    "${dependency_sources}/rmarkdown/R" \
+    "${dependency_sources}/pkgdown/R" \
+    "${dependency_library}" \
+    "${package_dir}/R" \
+    "${package_dir}/inst/doc" \
+    "${package_dir}/vignettes"
+
+  cat >"${dependency_sources}/rmarkdown/DESCRIPTION" <<'EOF_RMARKDOWN_DESCRIPTION'
+Package: rmarkdown
+Type: Package
+Title: Smoke-Test R Markdown Stub
+Version: 0.0.0
+Authors@R: person("Skill", "Smoke", email = "smoke@example.invalid", role = c("aut", "cre"))
+Description: Minimal render implementation for repository smoke tests.
+License: MIT
+Encoding: UTF-8
+EOF_RMARKDOWN_DESCRIPTION
+  printf '%s\n' 'export(render)' >"${dependency_sources}/rmarkdown/NAMESPACE"
+  cat >"${dependency_sources}/rmarkdown/R/render.R" <<'EOF_RMARKDOWN_R'
+render <- function(input, output_dir, envir, quiet) {
+  stopifnot(file.exists(input), is.environment(envir), isTRUE(quiet))
+  stopifnot(requireNamespace("tinyarticle", quietly = TRUE))
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  output <- file.path(output_dir, paste0(tools::file_path_sans_ext(basename(input)), ".html"))
+  writeLines(as.character(tinyarticle::tiny_value()), output)
+  normalizePath(output, mustWork = TRUE)
+}
+EOF_RMARKDOWN_R
+
+  cat >"${dependency_sources}/pkgdown/DESCRIPTION" <<'EOF_PKGDOWN_DESCRIPTION'
+Package: pkgdown
+Type: Package
+Title: Smoke-Test pkgdown Stub
+Version: 0.0.0
+Authors@R: person("Skill", "Smoke", email = "smoke@example.invalid", role = c("aut", "cre"))
+Description: Minimal article implementation for repository smoke tests.
+License: MIT
+Encoding: UTF-8
+EOF_PKGDOWN_DESCRIPTION
+  printf '%s\n' 'export(build_article)' >"${dependency_sources}/pkgdown/NAMESPACE"
+  cat >"${dependency_sources}/pkgdown/R/build-article.R" <<'EOF_PKGDOWN_R'
+build_article <- function(name, pkg, new_process, override, quiet) {
+  stopifnot(
+    identical(name, "tiny"),
+    dir.exists(pkg),
+    identical(new_process, FALSE),
+    isTRUE(quiet),
+    requireNamespace("tinyarticle", quietly = TRUE)
+  )
+  destination <- override$destination
+  article_dir <- file.path(destination, "articles")
+  dir.create(article_dir, recursive = TRUE, showWarnings = FALSE)
+  output <- file.path(article_dir, "tiny.html")
+  writeLines(as.character(tinyarticle::tiny_value()), output)
+  invisible(output)
+}
+EOF_PKGDOWN_R
+
+  cat >"${package_dir}/DESCRIPTION" <<'EOF_PACKAGE_DESCRIPTION'
+Package: tinyarticle
+Type: Package
+Title: Tiny Article Package
+Version: 0.0.0
+Authors@R: person("Skill", "Smoke", email = "smoke@example.invalid", role = c("aut", "cre"))
+Description: Minimal package for document-validation smoke tests.
+License: MIT
+Encoding: UTF-8
+EOF_PACKAGE_DESCRIPTION
+  printf '%s\n' 'export(tiny_value)' >"${package_dir}/NAMESPACE"
+  printf '%s\n' 'tiny_value <- function() 1L' >"${package_dir}/R/tiny.R"
+  printf '%s\n' 'installed proof' >"${package_dir}/inst/doc/proof.txt"
+  printf '%s\n' '---' 'title: Tiny' '---' 'Smoke test.' >"${package_dir}/vignettes/tiny.Rmd"
+
+  R CMD INSTALL --library="${dependency_library}" \
+    "${dependency_sources}/rmarkdown" >/dev/null 2>&1
+  R CMD INSTALL --library="${dependency_library}" \
+    "${dependency_sources}/pkgdown" >/dev/null 2>&1
+
+  Rscript --vanilla "${script}" --help >/dev/null
+  assert_usage_error \
+    "document-validation-missing-mode" \
+    "choose exactly one of --rmarkdown or --pkgdown" \
+    Rscript --vanilla "${script}"
+  assert_usage_error \
+    "document-validation-artifact-without-build" \
+    "--expect-installed-doc requires --build-source" \
+    Rscript --vanilla "${script}" \
+      --rmarkdown vignettes/tiny.Rmd \
+      --expect-installed-doc proof.txt
+
+  (
+    cd "${package_dir}"
+    R_LIBS_USER="${dependency_library}" \
+      Rscript --vanilla "${script}" \
+        --rmarkdown vignettes/tiny.Rmd \
+        --build-source \
+        --expect-installed-doc proof.txt >"${stdout_file}"
+  )
+  grep -Fq \
+    "Validated rmarkdown target vignettes/tiny.Rmd using a temporary install of the built source tarball." \
+    "${stdout_file}"
+  [[ ! -e "${package_dir}/tiny.html" ]]
+
+  (
+    cd "${package_dir}"
+    R_LIBS_USER="${dependency_library}" \
+      Rscript --vanilla "${script}" --pkgdown tiny >"${stdout_file}"
+  )
+  grep -Fq \
+    "Validated pkgdown target tiny using a temporary install of the source directory." \
+    "${stdout_file}"
+  [[ ! -d "${package_dir}/docs" ]]
 }
 
 run_shell_script_smoke() {
@@ -1109,6 +1234,7 @@ run_notebook_smoke
 run_benchmark_smoke
 run_manifest_smoke
 run_roxygen_smoke
+run_document_validation_smoke
 run_shell_script_smoke
 run_r_package_check_smoke
 run_audit_actions_smoke

@@ -23,10 +23,6 @@ Common fields:
   metadata from the installed roxygen release unless the repository pins
   another generator. When documentation mutation was incidental and no rebuild
   was requested, restore generator metadata churn with other unrelated changes.
-- For inline algebra in markdown roxygen, prefer Rd-friendly plain forms such
-  as `D^(-1/2)` over TeX-like text in backticks such as `D^{-1/2}`. After
-  regenerating, inspect `man/*.Rd` for awkward formula rendering, not just the
-  roxygen source.
 - For exported renames, run roxygen twice: the first pass may delete old topics,
   aliases, or exports, and the second pass should be idempotent.
 - Search for stale public names after renames, including examples, articles,

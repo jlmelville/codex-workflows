@@ -1,6 +1,6 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off plans for complex coding work. Use for features, migrations, debugging phases, cross-module changes, plan-producing audits or cleanups, PLANS.md, plan directories, EXECPLAN files, review packets, AGENTS.md execution state, or fresh-agent handoffs. Do not use for report-only audits with no planning artifact.
+description: Create, execute, resume, and hand off durable plans for complex coding work. Use for features, migrations, cross-module changes, phased debugging, plan-backed audits or cleanups, ExecPlans, chunk plans, review packets, and fresh-agent handoffs. Do not use for report-only audits without a planning artifact.
 ---
 
 # Planning Workflow
