@@ -87,6 +87,10 @@ them out of the user-wide skill directory and validates their links.
    set = { CODEX_WORKFLOWS_STATE_DIR = "/absolute/path/to/codex-workflows-state" }
    ```
 
+   `workspace-write` permits normal repository edits, `writable_roots`
+   additionally permits the external learning-state writes used by these
+   workflows, and `on-request` keeps out-of-sandbox actions gated by approval.
+
    Merge these keys into existing tables rather than defining a TOML table
    twice.
 
