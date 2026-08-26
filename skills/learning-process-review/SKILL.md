@@ -42,6 +42,7 @@ state out of its findings.
    ```sh
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
+   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending-verifications
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" review-queue
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
    ```
@@ -73,9 +74,10 @@ closure, create the formal candidate first so the typed reference exists. For
 duplicates, identify the surviving papercut first.
 
 Evaluate candidate verdict distributions, repeated construction mistakes,
-deferrals without drains, fired drafts or ledgers, implemented-but-unverified
-guidance, contradicted guidance, and missing active domains without treating
-unequal report volume as a defect by itself.
+deferrals without drains, fired drafts or ledgers, stale or repeatedly rejected
+verification proposals, implemented-but-unverified guidance, contradicted
+guidance, and missing active domains without treating unequal report volume as
+a defect by itself.
 
 Aggregate behavioral evidence that an existing skill made ordinary work worse,
 including misactivation, unnecessary sequencing, displaced simpler approaches,

@@ -22,8 +22,9 @@ The system has three parts:
   repository-only skills inside this checkout. These are the current `USER`
   and `REPO` locations documented by
   [OpenAI](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
-  The installer tracks its user-scoped skills and leaves unrelated installed
-  skills alone.
+  The installer also maintains the canonical global learning block in the
+  active Codex instruction file. It tracks its owned content and leaves
+  unrelated installed skills and instructions alone.
 - **Learning state:** `CODEX_WORKFLOWS_STATE_DIR` holds papercuts, candidate
   reports, triage outcomes, and other working state outside the source
   repository and Codex home.
@@ -94,26 +95,16 @@ them out of the user-wide skill directory and validates their links.
    Merge these keys into existing tables rather than defining a TOML table
    twice.
 
-3. Enable standing learning capture. The canonical global instruction block is
+3. Confirm standing learning capture. The installer maintains the canonical
+   global instruction block from
    [`skills/skill-retro/assets/global-agents-learning.md`](skills/skill-retro/assets/global-agents-learning.md)
-   and is included in the installed skill. It authorizes papercut capture during
-   work and high-confidence retrospective routing at meaningful task boundaries.
-
-   If the Codex home has neither `AGENTS.md` nor `AGENTS.override.md`, install
-   the block as `AGENTS.md`:
-
-   ```sh
-   codex_profile="${CODEX_HOME:-$HOME/.codex}"
-   mkdir -p "${codex_profile}"
-   cp "${HOME}/.agents/skills/skill-retro/assets/global-agents-learning.md" \
-     "${codex_profile}/AGENTS.md"
-   ```
-
-   Otherwise, merge its `## Workflow papercuts` and
-   `## Workflow retrospectives` sections into the active global instruction
-   file. See
+   in `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` when that file exists,
+   otherwise in `AGENTS.md`. It authorizes papercut capture and high-confidence
+   candidate or verification-proposal routing. Existing unrelated instructions
+   are preserved. `./install.sh --check` fails when the managed block is absent,
+   stale, malformed, or left in the inactive global file. See
    [Repository Maintenance](docs/repository-maintenance.md#user-global-instruction-setup)
-   for precedence and update details.
+   for ownership and precedence details.
 
 4. Restart Codex or open a new thread, then verify the setup:
 
@@ -131,15 +122,15 @@ details, validation, CI, and local tooling.
 `$skill-retro-triage` and `$learning-process-review` are repository-local: run
 Codex from this checkout when invoking them. The producer skills remain
 user-scoped so they can collect evidence from other repositories.
-Automatically routed Skill Candidate Reports go directly to
-`$skill-retro-triage`; `$learning-process-review` is a periodic audit and is not
-a prerequisite for candidate triage.
+Automatically routed Skill Candidate Reports and Verification Evidence
+Proposals go directly to `$skill-retro-triage`; `$learning-process-review` is a
+periodic audit and is not a prerequisite for triage.
 
 | Moment | Entry point | Scope |
 | --- | --- | --- |
 | During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
-| At a meaningful task boundary | `$skill-retro` | Evaluate session evidence and automatically route only high-confidence candidates when standing authorization is active. |
-| When candidates accumulate | `$skill-retro-triage` | Decide whether and how each candidate changes public source, then implement an accepted batch. |
+| At a meaningful task boundary | `$skill-retro` | Evaluate session evidence and automatically route only high-confidence candidates or exact verification proposals. |
+| When intake accumulates | `$skill-retro-triage` | Judge candidates and verification proposals, then implement the accepted batch. |
 | At the process-review cadence below | `$learning-process-review` | Audit external learning state; when the artifact audit is due, also run and supervise the repository prompt below. |
 | When the artifact audit is due (direct/manual entry) | `prompts/skill-repository-retrospective.md` | Run the same report-only public-skill audit directly, without the broader learning-process review. |
 
@@ -181,11 +172,12 @@ The installed helper is available from any project repository:
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending-verifications
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
 ```
 
 If `CODEX_WORKFLOWS_STATE_DIR` is unavailable, `$skill-retro` routing prints a
-paste-ready candidate instead of writing it.
+paste-ready candidate or verification proposal instead of writing it.
 
 The complete record lifecycle is documented in the
 [External Retrospective State Protocol](skills/skill-retro/references/state-protocol.md).

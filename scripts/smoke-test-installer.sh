@@ -118,10 +118,15 @@ make_repo_local() {
 create_fixture() {
   local fixture="$1"
 
-  mkdir -p "${fixture}/skills"
+  mkdir -p "${fixture}/skills" "${fixture}/scripts"
   cp -a "${repo_dir}/install.sh" "${fixture}/install.sh"
+  cp -a "${repo_dir}/scripts/manage-global-learning.rb" "${fixture}/scripts/"
   create_skill "${fixture}" alpha "alpha v1"
   create_skill "${fixture}" beta "beta v1"
+  create_skill "${fixture}" skill-retro "skill-retro v1"
+  mkdir -p "${fixture}/skills/skill-retro/assets"
+  cp -a "${repo_dir}/skills/skill-retro/assets/global-agents-learning.md" \
+    "${fixture}/skills/skill-retro/assets/"
   create_skill "${fixture}" repo-only "repo-only v1"
   make_repo_local "${fixture}" repo-only
 }
@@ -163,6 +168,12 @@ assert_mode "${agents_home}/skills/unrelated" 700
 assert_mode "${agents_home}/skills/unrelated/data.txt" 600
 assert_mode "${agents_home}/skills/alpha/scripts/run.sh" 755
 assert_mode "${agents_home}/skills/alpha/notes.txt" 640
+[[ -f "${codex_home}/AGENTS.md" ]] || fail "first run did not install global learning instructions"
+assert_file_contains "${codex_home}/AGENTS.md" "<!-- codex-workflows:ambient-learning:start -->"
+assert_file_contains "${codex_home}/AGENTS.md" "## Workflow retrospectives"
+assert_file_contains "${codex_home}/AGENTS.md" "<!-- codex-workflows:ambient-learning:end -->"
+assert_mode "${codex_home}" 700
+assert_mode "${codex_home}/AGENTS.md" 600
 
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
 mkdir -p "${agents_home}/skills/repo-only"
@@ -171,10 +182,83 @@ if HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --chec
 fi
 rm -rf "${agents_home}/skills/repo-only"
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
-before_idempotence="$(snapshot_tree "${agents_home}")"
+before_idempotence="$(snapshot_tree "${user_home}")"
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
-after_idempotence="$(snapshot_tree "${agents_home}")"
+after_idempotence="$(snapshot_tree "${user_home}")"
 [[ "${before_idempotence}" == "${after_idempotence}" ]] || fail "second install changed paths, types, modes, or content"
+
+legacy_learning_fixture="${tmp_root}/legacy-learning-fixture"
+legacy_learning_user_home="${tmp_root}/legacy-learning-user-home"
+legacy_learning_codex_home="${legacy_learning_user_home}/.codex"
+create_fixture "${legacy_learning_fixture}"
+mkdir -p "${legacy_learning_codex_home}"
+cp "${legacy_learning_fixture}/skills/skill-retro/assets/global-agents-learning.md" \
+  "${legacy_learning_codex_home}/AGENTS.md"
+printf '%s\n' "Legacy unmanaged instructions." >>"${legacy_learning_codex_home}/AGENTS.md"
+chmod 640 "${legacy_learning_codex_home}/AGENTS.md"
+before_legacy_dry_run="$(snapshot_tree "${legacy_learning_codex_home}")"
+HOME="${legacy_learning_user_home}" CODEX_HOME="${legacy_learning_codex_home}" \
+  "${legacy_learning_fixture}/install.sh" --dry-run >"${tmp_root}/legacy-learning-dry.out"
+after_legacy_dry_run="$(snapshot_tree "${legacy_learning_codex_home}")"
+[[ "${before_legacy_dry_run}" == "${after_legacy_dry_run}" ]] || \
+  fail "legacy global-learning dry-run changed Codex instructions"
+assert_file_contains "${tmp_root}/legacy-learning-dry.out" \
+  "Would adopt legacy canonical learning instructions"
+HOME="${legacy_learning_user_home}" CODEX_HOME="${legacy_learning_codex_home}" \
+  "${legacy_learning_fixture}/install.sh" >/dev/null
+assert_file_contains "${legacy_learning_codex_home}/AGENTS.md" \
+  "<!-- codex-workflows:ambient-learning:start -->"
+assert_file_contains "${legacy_learning_codex_home}/AGENTS.md" "Legacy unmanaged instructions."
+[[ "$(grep -Fc '## Workflow retrospectives' "${legacy_learning_codex_home}/AGENTS.md")" == "1" ]] || \
+  fail "legacy adoption duplicated canonical learning instructions"
+assert_mode "${legacy_learning_codex_home}/AGENTS.md" 640
+HOME="${legacy_learning_user_home}" CODEX_HOME="${legacy_learning_codex_home}" \
+  "${legacy_learning_fixture}/install.sh" --check >/dev/null
+
+premanaged_user_home="${tmp_root}/premanaged-user-home"
+premanaged_codex_home="${premanaged_user_home}/.codex"
+mkdir -p "${premanaged_codex_home}"
+cp "${repo_dir}/scripts/fixtures/global-agents-learning-pre-managed.md" \
+  "${premanaged_codex_home}/AGENTS.md"
+HOME="${premanaged_user_home}" CODEX_HOME="${premanaged_codex_home}" \
+  "${legacy_learning_fixture}/install.sh" --dry-run >"${tmp_root}/premanaged-dry.out"
+assert_file_contains "${tmp_root}/premanaged-dry.out" \
+  "Would adopt legacy canonical learning instructions"
+HOME="${premanaged_user_home}" CODEX_HOME="${premanaged_codex_home}" \
+  "${legacy_learning_fixture}/install.sh" >/dev/null
+[[ "$(grep -Fc '## Workflow retrospectives' "${premanaged_codex_home}/AGENTS.md")" == "1" ]] || \
+  fail "pre-managed adoption duplicated canonical learning instructions"
+assert_file_contains "${premanaged_codex_home}/AGENTS.md" \
+  "Verification Evidence Proposals"
+HOME="${premanaged_user_home}" CODEX_HOME="${premanaged_codex_home}" \
+  "${legacy_learning_fixture}/install.sh" --check >/dev/null
+
+printf '\nManaged fixture update.\n' >>"${fixture}/skills/skill-retro/assets/global-agents-learning.md"
+if HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null 2>&1; then
+  fail "--check did not detect stale global learning instructions"
+fi
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
+assert_file_contains "${codex_home}/AGENTS.md" "Managed fixture update."
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
+
+printf '%s\n' "Base unmanaged instructions." >>"${codex_home}/AGENTS.md"
+chmod 640 "${codex_home}/AGENTS.md"
+printf '%s\n' "Override unmanaged instructions." >"${codex_home}/AGENTS.override.md"
+chmod 644 "${codex_home}/AGENTS.override.md"
+before_override_dry_run="$(snapshot_tree "${codex_home}")"
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --dry-run >"${tmp_root}/override-dry.out"
+after_override_dry_run="$(snapshot_tree "${codex_home}")"
+[[ "${before_override_dry_run}" == "${after_override_dry_run}" ]] || fail "override dry-run changed Codex instructions"
+assert_file_contains "${tmp_root}/override-dry.out" "Would prepend global learning instructions"
+assert_file_contains "${tmp_root}/override-dry.out" "Would remove the managed block from inactive instruction file"
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
+assert_file_contains "${codex_home}/AGENTS.override.md" "<!-- codex-workflows:ambient-learning:start -->"
+assert_file_contains "${codex_home}/AGENTS.override.md" "Override unmanaged instructions."
+assert_file_contains "${codex_home}/AGENTS.md" "Base unmanaged instructions."
+assert_file_not_contains "${codex_home}/AGENTS.md" "codex-workflows:ambient-learning"
+assert_mode "${codex_home}/AGENTS.md" 640
+assert_mode "${codex_home}/AGENTS.override.md" 644
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
 
 echo "drift" >>"${agents_home}/skills/alpha/SKILL.md"
 if HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null 2>&1; then
@@ -186,6 +270,39 @@ if HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --chec
   fail "--check did not detect managed mode drift"
 fi
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
+
+duplicate_fixture="${tmp_root}/duplicate-fixture"
+duplicate_user_home="${tmp_root}/duplicate-user-home"
+duplicate_codex_home="${duplicate_user_home}/.codex"
+create_fixture "${duplicate_fixture}"
+HOME="${duplicate_user_home}" CODEX_HOME="${duplicate_codex_home}" "${duplicate_fixture}/install.sh" >/dev/null
+cat >>"${duplicate_codex_home}/AGENTS.md" <<'EOF_DUPLICATE'
+<!-- codex-workflows:ambient-learning:start -->
+<!-- codex-workflows:ambient-learning:end -->
+EOF_DUPLICATE
+before_duplicate_failure="$(snapshot_tree "${duplicate_user_home}")"
+if HOME="${duplicate_user_home}" CODEX_HOME="${duplicate_codex_home}" \
+  "${duplicate_fixture}/install.sh" >"${tmp_root}/duplicate.out" 2>&1; then
+  fail "installer accepted duplicate managed markers"
+fi
+after_duplicate_failure="$(snapshot_tree "${duplicate_user_home}")"
+[[ "${before_duplicate_failure}" == "${after_duplicate_failure}" ]] || fail "duplicate-marker failure changed the installation"
+assert_file_contains "${tmp_root}/duplicate.out" "malformed or duplicate managed markers"
+
+malformed_fixture="${tmp_root}/malformed-fixture"
+malformed_user_home="${tmp_root}/malformed-user-home"
+malformed_codex_home="${malformed_user_home}/.codex"
+create_fixture "${malformed_fixture}"
+mkdir -p "${malformed_codex_home}"
+printf '%s\n' "<!-- codex-workflows:ambient-learning:start -->" >"${malformed_codex_home}/AGENTS.md"
+before_malformed_failure="$(snapshot_tree "${malformed_user_home}")"
+if HOME="${malformed_user_home}" CODEX_HOME="${malformed_codex_home}" \
+  "${malformed_fixture}/install.sh" >"${tmp_root}/malformed.out" 2>&1; then
+  fail "installer accepted unpaired managed markers"
+fi
+after_malformed_failure="$(snapshot_tree "${malformed_user_home}")"
+[[ "${before_malformed_failure}" == "${after_malformed_failure}" ]] || fail "malformed-marker failure changed the installation"
+assert_file_contains "${tmp_root}/malformed.out" "malformed or duplicate managed markers"
 
 rm -rf "${fixture}/skills/beta"
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
@@ -270,7 +387,9 @@ create_fixture "${tmp_root}/dry-fixture"
 HOME="${dry_user_home}" CODEX_HOME="${dry_user_home}/.codex" "${tmp_root}/dry-fixture/install.sh" --dry-run >"${tmp_root}/dry.out"
 [[ ! -e "${dry_user_home}/.agents/skills" ]] || fail "--dry-run created target skills directory"
 [[ ! -e "${dry_user_home}/.agents/codex-workflows-managed-skills.tsv" ]] || fail "--dry-run created manifest"
+[[ ! -e "${dry_user_home}/.codex" ]] || fail "--dry-run created the Codex home"
 assert_file_contains "${tmp_root}/dry.out" "Would create first managed-skill manifest"
+assert_file_contains "${tmp_root}/dry.out" "Would create global learning instructions"
 
 migration_fixture="${tmp_root}/migration-fixture"
 migration_user_home="${tmp_root}/migration-user-home"

@@ -879,6 +879,9 @@ run_retro_state_smoke() {
   local fallback="${smoke_dir}/fallback.md"
   local papercut="${smoke_dir}/papercut.md"
   local papercut_fallback="${smoke_dir}/papercut-fallback.md"
+  local verification="${smoke_dir}/verification.md"
+  local verification_fallback="${smoke_dir}/verification-fallback.md"
+  local verification_text
   local audit="${smoke_dir}/audit.md"
   local candidate_path
   local papercut_path
@@ -910,6 +913,9 @@ run_retro_state_smoke() {
     "${script}" validate --archive-threshold 10
   "${script}" template candidate >"${candidate}"
   "${script}" template papercut >"${papercut}"
+  verification_text="$("${script}" template verification)"
+  printf '%s\n' "${verification_text//SCR-YYYYMMDD-abcdef/SCR-20260715-abcdef}" >"${verification}"
+  "${script}" template verification-decision | rg -q 'record_type: verification-decision'
   "${script}" template audit >"${audit}"
 
   if (
@@ -928,6 +934,21 @@ run_retro_state_smoke() {
   [[ -s "${fallback}" ]]
   rg -q 'record_type: candidate' "${fallback}"
   rg -q 'Short candidate title' "${fallback}"
+
+  if (
+    unset CODEX_WORKFLOWS_STATE_DIR
+    "${script}" route-verification --file "${verification}" >"${verification_fallback}" 2>/dev/null
+  ); then
+    echo "retro-state route-verification should report fallback when the state root is unset" >&2
+    return 1
+  else
+    local verification_fallback_status=$?
+    if [[ "${verification_fallback_status}" -ne 2 ]]; then
+      echo "retro-state verification fallback should exit 2, got ${verification_fallback_status}" >&2
+      return 1
+    fi
+  fi
+  rg -q 'record_type: verification-proposal' "${verification_fallback}"
 
   if (
     unset CODEX_WORKFLOWS_STATE_DIR

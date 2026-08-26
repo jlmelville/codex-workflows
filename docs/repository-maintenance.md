@@ -77,7 +77,8 @@ Preview changes without replacing installed skills:
 
 Confirm that managed user-scoped skills match the source tree, repository-local
 links resolve to their canonical sources, no local skill is duplicated in the
-user scope, and relevant file modes match:
+user scope, relevant file modes match, and the active global learning block is
+current:
 
 ```sh
 ./install.sh --check
@@ -88,32 +89,25 @@ source repository and reinstall them.
 
 ### User-global instruction setup
 
-The skill installer writes only `$HOME/.agents/skills`, its ownership manifest,
-and repository-managed legacy copies during migration. Repository-local links
-are tracked source that it validates but does not rewrite. It never edits
-`AGENTS.md`, `AGENTS.override.md`, `config.toml`, shell startup files, or
-external retrospective state.
-
-Standing papercut capture and automatic retrospective evaluation therefore have
-a separate one-time setup step. Their canonical instruction block is
+The installer owns the marked global learning block sourced from
 [`skills/skill-retro/assets/global-agents-learning.md`](../skills/skill-retro/assets/global-agents-learning.md).
-After installing the skills:
+It writes that block to `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` when
+the override exists, otherwise to `AGENTS.md`, matching Codex's global
+instruction precedence. Existing unrelated bytes remain outside the marked
+block and preserve their file mode. On first install, an exact unmarked copy of
+the canonical asset at the top of the active file is adopted without
+duplication.
 
-- copy the installed asset from `$HOME/.agents/skills/skill-retro/assets`
-  to `${CODEX_HOME:-$HOME/.codex}/AGENTS.md` only when neither
-  `AGENTS.md` nor `AGENTS.override.md` exists in that Codex home;
-- otherwise merge or replace its `## Workflow papercuts` and
-  `## Workflow retrospectives` sections;
-- when `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` exists, update the
-  override instead because it takes precedence over the base global file;
-- restart Codex or open a new thread after changing the active global file;
-- after later source updates, reinstall skills and compare the canonical asset
-  with the previously copied section because global instructions are not
-  updated automatically.
+`./install.sh` updates stale owned content and removes an owned block from the
+inactive base file when an override becomes active. It refuses symlinked global
+instruction files, duplicate or unpaired markers, or an owned block away from
+the top rather than guessing. `--dry-run` reports the same decisions without
+writing, and `--check` requires the active block to match source and the
+inactive file to be free of owned content.
 
-Removing either section disables that policy globally. A closer repository
-instruction or explicit task instruction may opt out without changing the
-canonical template.
+The installer does not edit `config.toml`, shell startup files, external
+retrospective state, or unrelated global instructions. Restart Codex or open a
+new thread after the active global instruction file changes.
 
 ## Validation
 
@@ -226,9 +220,10 @@ Before publishing an accepted change:
    `git diff --cached --name-only`.
 6. Commit and push to `origin/main` unless the user says otherwise.
 
-Use `$skill-retro-triage` for accepted Skill Candidate Reports after re-reading
-the cited destinations. Personal candidate, ledger, draft, audit, and cadence
-state remains beneath `CODEX_WORKFLOWS_STATE_DIR` and must not be committed.
+Use `$skill-retro-triage` for accepted Skill Candidate Reports and Verification
+Evidence Proposals after re-reading the cited destinations. Personal candidate,
+verification, ledger, draft, audit, and cadence state remains beneath
+`CODEX_WORKFLOWS_STATE_DIR` and must not be committed.
 
 ## Deferred Maintenance
 

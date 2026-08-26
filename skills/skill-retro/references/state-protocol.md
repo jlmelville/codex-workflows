@@ -26,7 +26,8 @@ The configured state root owns:
 
 - open and reviewed papercut observations;
 - candidate inbox and processed archive;
-- curated accepted records and later verification evidence;
+- verification-proposal inbox and processed archive;
+- curated accepted records and applied verification evidence;
 - deferred candidates and uninstalled drafts;
 - maintenance ledgers, learning-process audits, and cadence state.
 
@@ -47,17 +48,24 @@ $CODEX_WORKFLOWS_STATE_DIR/
     inbox/
     archive/
     accepted/
+  verifications/
+    inbox/
+    archive/
   drafts/
   ledgers/
   audits/
     learning-process/
 ```
 
-Records are Markdown files with YAML frontmatter. Use one papercut or candidate
-per file so records can be reviewed, promoted, judged, or deleted
-independently. Opaque `PC-*` and `RC-*` IDs contain no repository or session
-name. Accepted `SCR-*` records use an array of
+Records are Markdown files with YAML frontmatter. Use one papercut, candidate,
+or verification proposal per file so records can be reviewed, promoted,
+judged, or deleted independently. Opaque `PC-*`, `RC-*`, and `VP-*` IDs contain
+no repository or session name. Accepted `SCR-*` records use an array of
 `originating_candidate_ids` so merges and splits remain representable.
+
+Existing schema-version-1 roots without `verifications/` remain valid. `init`
+or the first verification route creates both verification directories; a
+partially present verification layout is invalid.
 
 ## Installed Helper
 
@@ -87,6 +95,11 @@ close-papercut --id ID --outcome OUTCOME --rationale TEXT
 template decision
 process --id ID --decision PATH
 reconsider --id ID --decision PATH
+template verification
+route-verification --file PATH
+pending-verifications
+template verification-decision
+process-verification --id ID --decision PATH
 template accepted
 record-accepted --file PATH
 update-accepted --id ID --file PATH
@@ -108,9 +121,16 @@ The helper performs deterministic mechanics only. The agent remains
 responsible for evidence selection, sanitization, verdict judgment, destination
 choice, implementation, and verification interpretation.
 
-When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work, while `route`
-and `record-papercut` print the validated input as a paste-ready fallback
-without writing anything. Do not silently invent a default state location.
+When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work, while `route`,
+`route-verification`, and `record-papercut` print the validated input as a
+paste-ready fallback without writing anything. Do not silently invent a default
+state location.
+
+When a configured root is blocked only by the sandbox, retry an authorized
+write through the platform's narrowly scoped approval path or explain the
+durable writable-root configuration. Neither action broadens intake authority;
+keep the paste-ready record as the fallback when approval is unavailable or
+denied.
 
 ## Papercut Intake And Closure
 
@@ -165,16 +185,18 @@ raw transcripts, tool dumps, credentials, private source, raw runtime-history
 paths, unredacted user-home paths, and unnecessary private repository names.
 Use bounded error fragments and generalized commands where they are decisive.
 
-Default `$skill-retro` output remains chat-only. `route` requires explicit user
-acceptance to write the candidate. `auto` must be explicitly requested and may
-write only a high-confidence candidate to the configured inbox; it authorizes
-no project edits, source-repository edits, commits, pushes, or messages.
+Default `$skill-retro` output remains chat-only. Routing requires explicit user
+acceptance or applicable standing `auto` authority. That authority may write
+only high-confidence new candidate and verification-proposal files to their
+configured inboxes; it authorizes no application, rejection, project edits,
+source-repository edits, commits, pushes, or messages.
 
 When later evidence changes a previously accepted decision, a new candidate may
 add `supersedes_accepted_id` and `now_false`. Use those fields only when the
 corrected decision is itself a new candidate. Evidence that merely supports or
-contradicts the same decision and witness updates the existing accepted record
-instead; it does not create a second accepted identity.
+contradicts the same decision and witness belongs in a verification proposal
+for the existing accepted identity; it does not create a second candidate or
+accepted identity.
 
 ## Triage And Archive
 
@@ -187,9 +209,10 @@ Use `template decision`, fill the verdict and rationale, then use `process` to
 attach the decision and move the record from inbox to archive. The intake
 digest and original intake fields remain in the archived document. For a
 deferred verdict, `review_trigger`, `next_action`, and `close_condition` are
-required. Use `review-queue` to list open archived deferrals, contradicted
-accepted outcomes, drafts, ledger actions, accepted publication gaps, and a due
-artifact audit. An `accepted-publication` row means an archived `accept` or
+required. Use `review-queue` to list pending verification proposals, open
+archived deferrals, contradicted accepted outcomes, drafts, ledger actions,
+accepted publication gaps, and a due artifact audit. An `accepted-publication`
+row means an archived `accept` or
 `split`, or a `merge` into a publication-bound related outcome, is absent from
 every accepted record. A merge into only deferred, rejected, or no-change
 outcomes consolidates evidence without creating a publication obligation.
@@ -236,12 +259,51 @@ evidence may support conformance to the guidance or occurrence of the intended
 outcome. Neither basis establishes comparative improvement without an observed
 comparator.
 
-Use `update-accepted --id ID --file PATH` for later disposition, verification,
-evidence, or commit updates. Supply a complete unassigned accepted document,
+Use `verification-opportunities --destination TEXT` as a pull query only for
+destinations materially involved in a completed task. When the task produces
+decisive evidence for the target's exact opportunity, create `template
+verification` and route it with `route-verification`. A proposal names one
+`target_accepted_id`, proposes `supported` or `contradicted`, selects
+`later-session` or `deterministic-test`, records the opportunity match and
+observation, and classifies its claim as one of:
+
+```text
+executable-correctness
+guidance-conformance
+intended-outcome
+comparative-improvement
+```
+
+Contradicted proposals must also state `what_is_false`; supported proposals
+must not. Route one proposal per file. A query hit creates no obligation, and
+proposal routing authority creates only a new external inbox file.
+
+Triage lists proposals with `pending-verifications`, chooses `apply` or
+`reject` in `template verification-decision`, and records the result with
+`process-verification`. Apply only to an `accepted` or `implemented` target and
+only for these transitions:
+
+```text
+unverified -> supported
+unverified -> contradicted
+supported  -> contradicted
+```
+
+Application updates the existing accepted identity's observation, decisive
+evidence, verification state and basis, records the `VP-*` provenance, and
+creates the structured contradiction mapping when needed. Rejection archives
+the proposal without changing the accepted record. Processing is recoverable
+if interrupted between accepted-state replacement and proposal archival.
+Verification proposal archives do not increment candidate artifact-audit
+cadence.
+
+Use `update-accepted --id ID --file PATH` for later disposition, public-source
+destination, evidence curation, or commit updates; use the typed proposal path
+for new verification evidence. Supply a complete unassigned accepted document,
 like `template accepted`; the helper preserves `accepted_id` and `accepted_at`
-and requires the originating candidate and supersession lineage to remain
-identical. Do not direct-edit the stored record or create a second accepted
-identity for the same outcome merely to record later evidence.
+and requires the originating candidate, supersession lineage, and applied
+proposal IDs to remain intact. Do not direct-edit the stored record or create a
+second accepted identity for the same outcome merely to record later evidence.
 
 A newly contradicted record includes:
 

@@ -16,6 +16,11 @@ module RetroState
   DISPOSITIONS = %w[accepted implemented no-change superseded reverted].freeze
   VERIFICATIONS = %w[unverified supported contradicted].freeze
   VERIFICATION_BASES = %w[none later-session deterministic-test].freeze
+  VERIFICATION_PROPOSAL_STATES = %w[supported contradicted].freeze
+  VERIFICATION_PROPOSAL_VERDICTS = %w[apply reject].freeze
+  VERIFICATION_CLAIMS = %w[
+    executable-correctness guidance-conformance intended-outcome comparative-improvement
+  ].freeze
   TERMINAL_CONTRADICTION_DISPOSITIONS = %w[superseded reverted].freeze
   AUDIT_KINDS = %w[learning-process skill-repository].freeze
   ARTIFACT_AUDIT_ARCHIVE_THRESHOLD = 10
@@ -47,6 +52,10 @@ module RetroState
     drafts
     ledgers
     audits/learning-process
+  ].freeze
+  VERIFICATION_DIRS = %w[
+    verifications/inbox
+    verifications/archive
   ].freeze
   FORBIDDEN_PATTERNS = [
     [%r{(?:^|/)\.codex/(?:sessions|history|logs|attachments)(?:/|\b)}, "raw Codex runtime history path"],
@@ -214,6 +223,106 @@ module RetroState
     end
   end
 
+  def validate_verification_proposal(data, body, label:, routed:, archived: false)
+    text = render_document(data, body)
+    validate_common(data, text, label)
+    unless data["record_type"] == "verification-proposal"
+      raise Error, "#{label}: record_type must be verification-proposal"
+    end
+
+    require_fields(
+      data,
+      %w[
+        title source_scope target_accepted_id proposed_verification
+        verification_basis opportunity_match claim observation redaction_review
+      ],
+      label
+    )
+    require_string_array(data, "decisive_evidence", label)
+    unless data["target_accepted_id"].match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/)
+      raise Error, "#{label}: invalid target_accepted_id"
+    end
+    validate_enum(data, "proposed_verification", VERIFICATION_PROPOSAL_STATES, label)
+    unless %w[later-session deterministic-test].include?(data["verification_basis"])
+      raise Error, "#{label}: verification_basis must be later-session or deterministic-test"
+    end
+    validate_enum(data, "claim", VERIFICATION_CLAIMS, label)
+    if data["proposed_verification"] == "contradicted"
+      require_fields(data, %w[what_is_false], label)
+    elsif data.key?("what_is_false")
+      raise Error, "#{label}: supported proposals must not contain what_is_false"
+    end
+
+    if routed
+      require_fields(data, %w[verification_proposal_id created_at intake_digest], label)
+      unless data["verification_proposal_id"].match?(/\AVP-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid verification_proposal_id"
+      end
+      unless data["created_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+        raise Error, "#{label}: created_at must be a UTC timestamp"
+      end
+      unless data["intake_digest"].match?(/\A[a-f0-9]{64}\z/)
+        raise Error, "#{label}: intake_digest must be a SHA-256 digest"
+      end
+      intake = without_keys(data, "intake_digest", "triage")
+      expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
+      unless data["intake_digest"] == expected_digest
+        raise Error, "#{label}: verification proposal intake fields changed after routing"
+      end
+    elsif %w[verification_proposal_id created_at intake_digest].any? { |field| data.key?(field) }
+      raise Error, "#{label}: unrouted verification proposal must not assign identity fields"
+    end
+
+    triage = data["triage"]
+    if archived
+      validate_verification_triage(triage, data["verification_proposal_id"], label)
+    elsif triage
+      raise Error, "#{label}: inbox verification proposal must not contain triage data"
+    end
+  end
+
+  def validate_verification_triage(triage, proposal_id, label)
+    raise Error, "#{label}: missing triage mapping" unless triage.is_a?(Hash)
+
+    require_fields(
+      triage,
+      %w[verification_proposal_id verdict rationale reviewed_at],
+      "#{label} triage"
+    )
+    unless triage["verification_proposal_id"] == proposal_id
+      raise Error, "#{label}: triage verification_proposal_id does not match intake"
+    end
+    validate_enum(triage, "verdict", VERIFICATION_PROPOSAL_VERDICTS, "#{label} triage")
+    unless triage["reviewed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+      raise Error, "#{label}: triage reviewed_at must be a UTC timestamp"
+    end
+  end
+
+  def validate_verification_decision(data, body, label:, expected_id: nil)
+    text = render_document(data, body)
+    validate_common(data, text, label)
+    unless data["record_type"] == "verification-decision"
+      raise Error, "#{label}: record_type must be verification-decision"
+    end
+
+    require_fields(
+      data,
+      %w[verification_proposal_id verdict rationale reviewed_at],
+      label
+    )
+    proposal_id = data["verification_proposal_id"]
+    unless proposal_id.match?(/\AVP-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+      raise Error, "#{label}: invalid verification_proposal_id"
+    end
+    if expected_id && proposal_id != expected_id
+      raise Error, "#{label}: verification_proposal_id does not match #{expected_id}"
+    end
+    validate_enum(data, "verdict", VERIFICATION_PROPOSAL_VERDICTS, label)
+    unless data["reviewed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+      raise Error, "#{label}: reviewed_at must be a UTC timestamp"
+    end
+  end
+
   def validate_papercut(data, body, label:, routed:, archived: false)
     text = render_document(data, body)
     validate_common(data, text, label)
@@ -368,6 +477,18 @@ module RetroState
     require_string_array(data, "originating_candidate_ids", label)
     require_string_array(data, "decisive_evidence", label)
     require_string_array(data, "implementation_commits", label, allow_empty: true)
+    if data.key?("applied_verification_proposal_ids")
+      require_string_array(data, "applied_verification_proposal_ids", label)
+      proposal_ids = data["applied_verification_proposal_ids"]
+      unless proposal_ids.uniq.length == proposal_ids.length
+        raise Error, "#{label}: applied_verification_proposal_ids must not contain duplicates"
+      end
+      proposal_ids.each do |proposal_id|
+        unless proposal_id.match?(/\AVP-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+          raise Error, "#{label}: invalid applied_verification_proposal_ids entry"
+        end
+      end
+    end
     if data.key?("supersedes_accepted_ids")
       require_string_array(data, "supersedes_accepted_ids", label)
       data["supersedes_accepted_ids"].each do |accepted_id|
@@ -445,6 +566,11 @@ module RetroState
     end
     unless replacement.fetch("supersedes_accepted_ids", []) == current.fetch("supersedes_accepted_ids", [])
       raise Error, "accepted record supersedes_accepted_ids must not change: #{label}"
+    end
+    missing_proposal_ids = current.fetch("applied_verification_proposal_ids", []) -
+      replacement.fetch("applied_verification_proposal_ids", [])
+    unless missing_proposal_ids.empty?
+      raise Error, "accepted record applied_verification_proposal_ids must be preserved: #{label}"
     end
     return unless current["verification"] == "contradicted"
 
@@ -626,6 +752,49 @@ module RetroState
     MARKDOWN
   end
 
+  def verification_proposal_template
+    <<~MARKDOWN
+      ---
+      schema_version: 1
+      record_type: verification-proposal
+      title: "Short verification proposal title"
+      source_scope: "Sanitized repository or task category; omit private names."
+      target_accepted_id: SCR-YYYYMMDD-abcdef
+      proposed_verification: supported # #{VERIFICATION_PROPOSAL_STATES.join(", ")}
+      verification_basis: later-session # later-session, deterministic-test
+      opportunity_match: "How this evidence exercises the target's exact recorded verification opportunity."
+      claim: guidance-conformance # #{VERIFICATION_CLAIMS.join(", ")}
+      observation: "What the later session or deterministic check established."
+      decisive_evidence:
+        - "Bounded, sanitized evidence supporting the proposed state."
+      redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
+      # A contradicted proposal must also add:
+      # what_is_false: "What the accepted outcome asserted that is now false."
+      ---
+
+      # Short verification proposal title
+
+      Keep this proposal self-contained and limited to the named verification opportunity.
+    MARKDOWN
+  end
+
+  def verification_decision_template
+    <<~MARKDOWN
+      ---
+      schema_version: 1
+      record_type: verification-decision
+      verification_proposal_id: VP-YYYYMMDDTHHMMSSZ-abcdef
+      verdict: reject # #{VERIFICATION_PROPOSAL_VERDICTS.join(", ")}
+      rationale: "Why the evidence does or does not support the target's exact opportunity."
+      reviewed_at: "YYYY-MM-DDTHH:MM:SSZ"
+      ---
+
+      # Verification decision
+
+      Optional concise adjudication notes.
+    MARKDOWN
+  end
+
   def papercut_template
     <<~MARKDOWN
       ---
@@ -788,7 +957,7 @@ module RetroState
       refuse_git_worktree!
       FileUtils.mkdir_p(root, mode: 0o700)
       File.chmod(0o700, root)
-      STATE_DIRS.each do |relative|
+      (STATE_DIRS + VERIFICATION_DIRS).each do |relative|
         path = File.join(root, relative)
         FileUtils.mkdir_p(path, mode: 0o700)
         File.chmod(0o700, path)
@@ -823,6 +992,42 @@ module RetroState
         data, body = RetroState.read_document(path)
         RetroState.validate_candidate(data, body, label: path, routed: true)
         [data.fetch("candidate_id"), data.fetch("title"), path]
+      end
+    end
+
+    def route_verification(input_path)
+      data, body = RetroState.read_document(input_path)
+      RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
+      ensure_initialized
+      validate_verification_target!(data)
+      ensure_verification_dirs
+
+      now = Time.now.utc
+      id = unique_verification_id("VP-#{now.strftime("%Y%m%dT%H%M%SZ")}")
+      data["verification_proposal_id"] = id
+      data["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+      intake = RetroState.without_keys(data, "intake_digest")
+      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
+      output = RetroState.render_document(data, body)
+      destination = verification_path("inbox", id)
+      exclusive_write(destination, output)
+      destination
+    end
+
+    def pending_verifications
+      ensure_initialized
+      return [] unless verification_dirs_present?
+
+      Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_verification_proposal(data, body, label: path, routed: true)
+        [
+          data.fetch("verification_proposal_id"),
+          data.fetch("target_accepted_id"),
+          data.fetch("proposed_verification"),
+          data.fetch("title"),
+          path
+        ]
       end
     end
 
@@ -896,6 +1101,32 @@ module RetroState
       exclusive_write(destination, output)
       cadence["candidate_archives_total"] += 1
       write_artifact_cadence(cadence)
+      File.unlink(source)
+      destination
+    end
+
+    def process_verification(proposal_id, decision_path)
+      ensure_initialized
+      source = verification_path("inbox", proposal_id)
+      raise Error, "verification proposal not found in inbox: #{proposal_id}" unless File.file?(source)
+
+      proposal, body = RetroState.read_document(source)
+      RetroState.validate_verification_proposal(proposal, body, label: source, routed: true)
+      decision, decision_body = RetroState.read_document(decision_path)
+      RetroState.validate_verification_decision(
+        decision,
+        decision_body,
+        label: decision_path,
+        expected_id: proposal_id
+      )
+
+      apply_verification_proposal!(proposal, decision) if decision.fetch("verdict") == "apply"
+      triage = RetroState.without_keys(decision, "schema_version", "record_type")
+      triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
+      proposal["triage"] = triage
+      output = RetroState.render_document(proposal, body)
+      destination = verification_path("archive", proposal_id)
+      write_or_verify_archive(destination, output)
       File.unlink(source)
       destination
     end
@@ -994,7 +1225,7 @@ module RetroState
         strict_contradiction: true
       )
       RetroState.validate_accepted_transition(current, replacement, accepted_id)
-      validate_accepted_external_references!(replacement)
+      validate_accepted_external_references!(replacement, accepted_id: accepted_id)
 
       replacement["accepted_id"] = current.fetch("accepted_id")
       replacement["accepted_at"] = current.fetch("accepted_at")
@@ -1048,6 +1279,11 @@ module RetroState
     def review_queue
       ensure_initialized
       rows = []
+
+      pending_verifications.each do |proposal_id, accepted_id, proposed_state, _title, path|
+        trigger = "Adjudicate proposed #{proposed_state} evidence for #{accepted_id}."
+        rows << ["verification-proposal", proposal_id, trigger, path]
+      end
 
       published_candidate_ids = accepted_records.flat_map do |_path, data|
         data.fetch("originating_candidate_ids")
@@ -1205,6 +1441,8 @@ module RetroState
       errors = []
       ids = {}
       candidate_rows = []
+      verification_rows = []
+      verification_ids = {}
 
       {
         "inbox" => false,
@@ -1223,6 +1461,34 @@ module RetroState
           candidate_rows << [path, data]
         rescue Error => e
           errors << e.message
+        end
+      end
+
+      if verification_dirs_present?
+        {
+          "inbox" => false,
+          "archive" => true
+        }.each do |area, archived|
+          Dir.glob(File.join(root, "verifications", area, "*.md")).sort.each do |path|
+            data, body = RetroState.read_document(path)
+            RetroState.validate_verification_proposal(
+              data,
+              body,
+              label: path,
+              routed: true,
+              archived: archived
+            )
+            id = data.fetch("verification_proposal_id")
+            errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
+            if verification_ids.key?(id)
+              errors << "#{path}: duplicate verification_proposal_id also used by #{verification_ids.fetch(id)}"
+            else
+              verification_ids[id] = path
+            end
+            verification_rows << [path, data, archived]
+          rescue Error => e
+            errors << e.message
+          end
         end
       end
 
@@ -1288,6 +1554,34 @@ module RetroState
       accepted_rows.each do |path, data|
         data.fetch("supersedes_accepted_ids", []).each do |superseded_id|
           errors << "#{path}: superseded accepted record does not exist: #{superseded_id}" unless accepted_ids.key?(superseded_id)
+        end
+      end
+      verification_rows.each do |path, data, archived|
+        target_id = data.fetch("target_accepted_id")
+        unless accepted_ids.key?(target_id)
+          errors << "#{path}: target accepted record does not exist: #{target_id}"
+          next
+        end
+        next unless archived && data.dig("triage", "verdict") == "apply"
+
+        target = accepted_rows.find { |_accepted_path, accepted| accepted["accepted_id"] == target_id }&.last
+        unless target&.fetch("applied_verification_proposal_ids", [])&.include?(data["verification_proposal_id"])
+          errors << "#{path}: applied proposal is missing from target accepted metadata"
+        end
+      end
+      accepted_rows.each do |path, data|
+        data.fetch("applied_verification_proposal_ids", []).each do |proposal_id|
+          proposal_row = verification_rows.find do |_proposal_path, proposal, archived|
+            archived && proposal["verification_proposal_id"] == proposal_id
+          end
+          unless proposal_row
+            errors << "#{path}: applied verification proposal is not archived: #{proposal_id}"
+            next
+          end
+          proposal = proposal_row.fetch(1)
+          unless proposal.dig("triage", "verdict") == "apply" && proposal["target_accepted_id"] == data["accepted_id"]
+            errors << "#{path}: applied verification proposal does not match target: #{proposal_id}"
+          end
         end
       end
 
@@ -1359,11 +1653,33 @@ module RetroState
       raise Error, "candidate supersedes missing accepted record: #{supersedes_id}"
     end
 
-    def validate_accepted_external_references!(accepted)
-      accepted.fetch("supersedes_accepted_ids", []).each do |accepted_id|
-        next if File.file?(accepted_path(accepted_id))
+    def validate_accepted_external_references!(accepted, accepted_id: nil)
+      accepted.fetch("supersedes_accepted_ids", []).each do |superseded_id|
+        next if File.file?(accepted_path(superseded_id))
 
-        raise Error, "accepted record supersedes missing accepted record: #{accepted_id}"
+        raise Error, "accepted record supersedes missing accepted record: #{superseded_id}"
+      end
+
+      accepted.fetch("applied_verification_proposal_ids", []).each do |proposal_id|
+        unless accepted_id
+          raise Error, "new accepted records must not claim applied verification proposals"
+        end
+        proposal_path = verification_path("archive", proposal_id)
+        unless File.file?(proposal_path)
+          raise Error, "accepted record references unarchived verification proposal: #{proposal_id}"
+        end
+        proposal, proposal_body = RetroState.read_document(proposal_path)
+        RetroState.validate_verification_proposal(
+          proposal,
+          proposal_body,
+          label: proposal_path,
+          routed: true,
+          archived: true
+        )
+        unless proposal.dig("triage", "verdict") == "apply" &&
+            proposal["target_accepted_id"] == accepted_id
+          raise Error, "accepted record references mismatched verification proposal: #{proposal_id}"
+        end
       end
 
       residual_id = accepted.dig("contradiction", "residual_ledger_id")
@@ -1379,6 +1695,108 @@ module RetroState
       return if ledger["status"] == "open"
 
       raise Error, "unresolved contradiction requires an open residual ledger: #{residual_id}"
+    end
+
+    def apply_verification_proposal!(proposal, decision)
+      proposal_id = proposal.fetch("verification_proposal_id")
+      accepted_pathname, current, body = read_verification_target(proposal)
+      if current.fetch("applied_verification_proposal_ids", []).include?(proposal_id)
+        verify_applied_proposal!(current, proposal)
+        return
+      end
+
+      validate_verification_target_state!(current, proposal)
+      replacement = current.dup
+      replacement["observed_behavior"] = proposal.fetch("observation")
+      replacement["decisive_evidence"] = (
+        current.fetch("decisive_evidence") + proposal.fetch("decisive_evidence")
+      ).uniq
+      replacement["verification"] = proposal.fetch("proposed_verification")
+      replacement["verification_basis"] = proposal.fetch("verification_basis")
+      replacement["applied_verification_proposal_ids"] = (
+        current.fetch("applied_verification_proposal_ids", []) + [proposal_id]
+      )
+      if proposal["proposed_verification"] == "contradicted"
+        replacement["contradiction"] = {
+          "summary" => proposal.fetch("observation"),
+          "what_is_false" => proposal.fetch("what_is_false"),
+          "recorded_at" => decision.fetch("reviewed_at"),
+          "decisive_evidence" => proposal.fetch("decisive_evidence")
+        }
+      end
+      RetroState.validate_accepted(
+        replacement,
+        body,
+        label: accepted_pathname,
+        assigned: true,
+        strict_contradiction: true
+      )
+      RetroState.validate_accepted_transition(current, replacement, proposal_id)
+      replace_write(accepted_pathname, RetroState.render_document(replacement, body))
+    end
+
+    def verify_applied_proposal!(accepted, proposal)
+      expected_state = proposal.fetch("proposed_verification")
+      missing_evidence = proposal.fetch("decisive_evidence") - accepted.fetch("decisive_evidence")
+      unless missing_evidence.empty?
+        raise Error, "applied verification proposal evidence is missing from accepted state"
+      end
+      if expected_state == "supported"
+        return if %w[supported contradicted].include?(accepted["verification"])
+
+        raise Error, "applied supported proposal no longer matches accepted state"
+      end
+      unless accepted["verification"] == "contradicted"
+        raise Error, "applied contradicted proposal no longer matches accepted state"
+      end
+
+      contradiction = accepted.fetch("contradiction")
+      unless contradiction["what_is_false"] == proposal["what_is_false"]
+        raise Error, "applied contradiction no longer matches accepted state"
+      end
+    end
+
+    def validate_verification_target!(proposal)
+      target = read_verification_target(proposal)
+      validate_verification_target_state!(target.fetch(1), proposal)
+      target
+    end
+
+    def read_verification_target(proposal)
+      target_id = proposal.fetch("target_accepted_id")
+      target_path = accepted_path(target_id)
+      raise Error, "verification target accepted record not found: #{target_id}" unless File.file?(target_path)
+
+      accepted, body = RetroState.read_document(target_path)
+      RetroState.validate_accepted(accepted, body, label: target_path, assigned: true)
+      [target_path, accepted, body]
+    end
+
+    def validate_verification_target_state!(accepted, proposal)
+      unless %w[accepted implemented].include?(accepted["disposition"])
+        raise Error, "verification target disposition is not accepted or implemented"
+      end
+
+      proposed_state = proposal.fetch("proposed_verification")
+      current_state = accepted.fetch("verification")
+      valid = if proposed_state == "supported"
+        current_state == "unverified"
+      else
+        %w[unverified supported].include?(current_state)
+      end
+      return if valid
+
+      raise Error, "verification target state #{current_state} cannot receive proposed #{proposed_state} evidence"
+    end
+
+    def write_or_verify_archive(destination, output)
+      if File.file?(destination)
+        unless File.binread(destination) == output
+          raise Error, "existing verification archive differs: #{destination}"
+        end
+      else
+        exclusive_write(destination, output)
+      end
     end
 
     def archived_candidates
@@ -1561,6 +1979,24 @@ module RetroState
       end
     end
 
+    def verification_dirs_present?
+      paths = VERIFICATION_DIRS.map { |relative| File.join(root, relative) }
+      present = paths.map { |path| Dir.exist?(path) }
+      return false if present.none?
+      return true if present.all?
+
+      missing = paths.zip(present).reject { |_path, exists| exists }.map(&:first)
+      raise Error, "verification state directory is missing: #{missing.join(", ")}"
+    end
+
+    def ensure_verification_dirs
+      VERIFICATION_DIRS.each do |relative|
+        path = File.join(root, relative)
+        FileUtils.mkdir_p(path, mode: 0o700)
+        File.chmod(0o700, path)
+      end
+    end
+
     def validate_version
       path = File.join(root, "state-version")
       raise Error, "state-version is missing: #{path}" unless File.file?(path)
@@ -1620,6 +2056,14 @@ module RetroState
       File.join(root, "papercuts", area, "#{papercut_id}.md")
     end
 
+    def verification_path(area, proposal_id)
+      unless proposal_id.match?(/\AVP-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+        raise Error, "invalid verification_proposal_id: #{proposal_id}"
+      end
+
+      File.join(root, "verifications", area, "#{proposal_id}.md")
+    end
+
     def ledger_path(ledger_id)
       unless ledger_id.match?(/\ALE-\d{8}-[a-f0-9]{6}\z/)
         raise Error, "invalid ledger_id: #{ledger_id}"
@@ -1635,6 +2079,15 @@ module RetroState
         return id if paths.empty?
       end
       raise Error, "could not allocate a unique papercut ID"
+    end
+
+    def unique_verification_id(prefix)
+      100.times do
+        id = "#{prefix}-#{SecureRandom.hex(3)}"
+        paths = Dir.glob(File.join(root, "verifications", "**", "#{id}.md"))
+        return id if paths.empty?
+      end
+      raise Error, "could not allocate a unique verification proposal ID"
     end
 
     def unique_id(prefix)
@@ -1683,6 +2136,8 @@ module RetroState
       ledger = File.join(tmp, "ledger.md")
       audit = File.join(tmp, "audit.md")
       papercut = File.join(tmp, "papercut.md")
+      verification_proposal = File.join(tmp, "verification.md")
+      verification_decision = File.join(tmp, "verification-decision.md")
       recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
       unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
         raise "candidate template recommendation vocabulary is incomplete"
@@ -1818,22 +2273,83 @@ module RetroState
       accepted_id = File.basename(accepted_path, ".md")
       accepted_data, = read_document(accepted_path)
       original_accepted_at = accepted_data.fetch("accepted_at")
-      updated_accepted_text = accepted_template
-        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
-        .sub("disposition: accepted", "disposition: implemented")
-        .sub("verification: unverified", "verification: supported")
-        .sub("verification_basis: none", "verification_basis: deterministic-test")
-        .sub("implementation_commits: []", "implementation_commits:\n  - abc1234")
+
+      supported_proposal_text = verification_proposal_template
+        .sub("SCR-YYYYMMDD-abcdef", accepted_id)
+        .sub("verification_basis: later-session", "verification_basis: deterministic-test")
+        .sub("claim: guidance-conformance", "claim: executable-correctness")
+      File.write(verification_proposal, supported_proposal_text)
+      supported_proposal_path = store.route_verification(verification_proposal)
+      supported_proposal_id = File.basename(supported_proposal_path, ".md")
+      unless store.pending_verifications.map(&:first) == [supported_proposal_id]
+        raise "pending verification proposal missing"
+      end
+      unless store.review_queue.any? { |type, row_id, _trigger, _path|
+               type == "verification-proposal" && row_id == supported_proposal_id
+             }
+        raise "verification proposal missing from review queue"
+      end
+      cadence_before_verification = store.artifact_audit_status
+      supported_decision_text = verification_decision_template
+        .sub("VP-YYYYMMDDTHHMMSSZ-abcdef", supported_proposal_id)
+        .sub("verdict: reject", "verdict: apply")
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:01:00Z")
+      File.write(verification_decision, supported_decision_text)
+      supported_archive_path = store.process_verification(supported_proposal_id, verification_decision)
+      raise "verification proposal was not archived" unless File.file?(supported_archive_path)
+      raise "verification proposal remained pending" unless store.pending_verifications.empty?
+      unless store.artifact_audit_status == cadence_before_verification
+        raise "verification proposal changed candidate artifact-audit cadence"
+      end
+      supported_accepted, = read_document(accepted_path)
+      raise "verification proposal was not applied" unless supported_accepted["verification"] == "supported"
+      unless supported_accepted["verification_basis"] == "deterministic-test"
+        raise "verification proposal basis was not applied"
+      end
+      unless supported_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id]
+        raise "accepted record did not retain applied verification proposal identity"
+      end
+
+      contradicted_proposal_text = verification_proposal_template
+        .sub("SCR-YYYYMMDD-abcdef", accepted_id)
+        .sub("proposed_verification: supported", "proposed_verification: contradicted")
+        .sub(
+          '# what_is_false: "What the accepted outcome asserted that is now false."',
+          'what_is_false: "The accepted outcome remains correct; this proposal is rejected."'
+        )
+      File.write(verification_proposal, contradicted_proposal_text)
+      contradicted_proposal_path = store.route_verification(verification_proposal)
+      contradicted_proposal_id = File.basename(contradicted_proposal_path, ".md")
+      rejected_decision_text = verification_decision_template
+        .sub("VP-YYYYMMDDTHHMMSSZ-abcdef", contradicted_proposal_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:02:00Z")
+      File.write(verification_decision, rejected_decision_text)
+      rejected_archive_path = store.process_verification(contradicted_proposal_id, verification_decision)
+      raise "rejected verification proposal was not archived" unless File.file?(rejected_archive_path)
+      rejected_accepted, rejected_accepted_body = read_document(accepted_path)
+      unless rejected_accepted["verification"] == "supported" &&
+          rejected_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id]
+        raise "rejected verification proposal changed accepted state"
+      end
+      unless store.artifact_audit_status == cadence_before_verification
+        raise "rejected verification proposal changed candidate artifact-audit cadence"
+      end
+      store.validate
+
+      updated_accepted = without_keys(rejected_accepted, "accepted_id", "accepted_at")
+      updated_accepted["disposition"] = "implemented"
+      updated_accepted["implementation_commits"] = ["abc1234"]
+      updated_accepted_text = render_document(updated_accepted, rejected_accepted_body)
       File.write(accepted, updated_accepted_text)
       updated_accepted_path = store.update_accepted(accepted_id, accepted)
       raise "accepted update changed path" unless updated_accepted_path == accepted_path
-      updated_accepted, = read_document(updated_accepted_path)
-      raise "accepted update changed identity" unless updated_accepted["accepted_id"] == accepted_id
-      unless updated_accepted["accepted_at"] == original_accepted_at
+      stored_updated_accepted, = read_document(updated_accepted_path)
+      raise "accepted update changed identity" unless stored_updated_accepted["accepted_id"] == accepted_id
+      unless stored_updated_accepted["accepted_at"] == original_accepted_at
         raise "accepted update changed acceptance timestamp"
       end
-      raise "accepted update missed disposition" unless updated_accepted["disposition"] == "implemented"
-      raise "accepted update missed verification" unless updated_accepted["verification"] == "supported"
+      raise "accepted update missed disposition" unless stored_updated_accepted["disposition"] == "implemented"
+      raise "accepted update missed verification" unless stored_updated_accepted["verification"] == "supported"
 
       changed_lineage = updated_accepted_text.sub(id, "RC-20260715T120000Z-000000")
       File.write(accepted, changed_lineage)
@@ -1860,31 +2376,31 @@ module RetroState
       raise "ledger record missing" unless File.file?(ledger_path)
       ledger_id = File.basename(ledger_path, ".md")
 
-      contradiction_mapping = <<~YAML.rstrip
-        contradiction:
-          summary: "Later evidence contradicts the implemented outcome."
-          what_is_false: "The earlier action is not safe under the observed condition."
-          recorded_at: "2026-07-15T12:03:00Z"
-          decisive_evidence:
-            - "Later-session evidence reproduced the unsafe action."
-        implementation_commits:
-          - abc1234
-      YAML
-      contradicted_text = updated_accepted_text
-        .sub("verification: supported", "verification: contradicted")
-        .sub("verification_basis: deterministic-test", "verification_basis: later-session")
-        .sub("implementation_commits:\n  - abc1234", contradiction_mapping)
+      contradicted_data = updated_accepted.merge(
+        "verification" => "contradicted",
+        "verification_basis" => "later-session",
+        "contradiction" => {
+          "summary" => "Later evidence contradicts the implemented outcome.",
+          "what_is_false" => "The earlier action is not safe under the observed condition.",
+          "recorded_at" => "2026-07-15T12:03:00Z",
+          "decisive_evidence" => ["Later-session evidence reproduced the unsafe action."]
+        }
+      )
+      contradicted_text = render_document(contradicted_data, rejected_accepted_body)
       File.write(accepted, contradicted_text)
       store.update_accepted(accepted_id, accepted)
       unless store.review_queue.map(&:first).include?("contradiction")
         raise "contradicted accepted record missing from review queue"
       end
       begin
+        altered_contradiction = contradicted_data.fetch("contradiction").merge(
+          "decisive_evidence" => ["Replacement evidence that erases the original witness."]
+        )
         File.write(
           accepted,
-          contradicted_text.sub(
-            "Later-session evidence reproduced the unsafe action.",
-            "Replacement evidence that erases the original witness."
+          render_document(
+            contradicted_data.merge("contradiction" => altered_contradiction),
+            rejected_accepted_body
           )
         )
         store.update_accepted(accepted_id, accepted)
@@ -1892,10 +2408,12 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("contradiction decisive_evidence must be preserved")
       end
-      ledger_contradicted_text = contradicted_text.sub(
-        '    - "Later-session evidence reproduced the unsafe action."',
-        "    - \"Later-session evidence reproduced the unsafe action.\"\n  residual_ledger_id: #{ledger_id}"
+      ledger_contradicted_data = contradicted_data.merge(
+        "contradiction" => contradicted_data.fetch("contradiction").merge(
+          "residual_ledger_id" => ledger_id
+        )
       )
+      ledger_contradicted_text = render_document(ledger_contradicted_data, rejected_accepted_body)
       File.write(accepted, ledger_contradicted_text)
       store.update_accepted(accepted_id, accepted)
       if store.review_queue.map(&:first).include?("contradiction")
@@ -1907,7 +2425,10 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("unresolved contradicted record")
       end
-      superseded_text = ledger_contradicted_text.sub("disposition: implemented", "disposition: superseded")
+      superseded_text = render_document(
+        ledger_contradicted_data.merge("disposition" => "superseded"),
+        rejected_accepted_body
+      )
       File.write(accepted, superseded_text)
       store.update_accepted(accepted_id, accepted)
 
@@ -1944,6 +2465,40 @@ module RetroState
           .include?(correction_accepted.fetch("accepted_id"))
         raise "relevant verification opportunity missing"
       end
+
+      applied_contradiction_text = verification_proposal_template
+        .sub("SCR-YYYYMMDD-abcdef", correction_accepted.fetch("accepted_id"))
+        .sub("proposed_verification: supported", "proposed_verification: contradicted")
+        .sub(
+          '# what_is_false: "What the accepted outcome asserted that is now false."',
+          'what_is_false: "The corrected outcome does not hold under the observed condition."'
+        )
+      File.write(verification_proposal, applied_contradiction_text)
+      applied_contradiction_path = store.route_verification(verification_proposal)
+      applied_contradiction_id = File.basename(applied_contradiction_path, ".md")
+      applied_contradiction_decision = verification_decision_template
+        .sub("VP-YYYYMMDDTHHMMSSZ-abcdef", applied_contradiction_id)
+        .sub("verdict: reject", "verdict: apply")
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:04:30Z")
+      File.write(verification_decision, applied_contradiction_decision)
+      store.process_verification(applied_contradiction_id, verification_decision)
+      contradicted_correction, = read_document(correction_accepted_path)
+      applied_state = [
+        contradicted_correction["verification"],
+        contradicted_correction.dig("contradiction", "what_is_false")
+      ]
+      unless applied_state == [
+        "contradicted",
+        "The corrected outcome does not hold under the observed condition."
+      ]
+        raise "contradicted verification proposal was not applied"
+      end
+      unless store.review_queue.any? { |type, row_id, _trigger, _path|
+               type == "contradiction" && row_id == correction_accepted.fetch("accepted_id")
+             }
+        raise "applied contradiction proposal did not create a review obligation"
+      end
+      store.validate
 
       missing_supersession = correction_text.sub(accepted_id, "SCR-20260715-000000")
       File.write(input, missing_supersession)
@@ -2185,6 +2740,20 @@ module RetroState
         raise unless e.message.include?("unredacted user-home path")
       end
 
+      legacy_root = File.join(tmp, "legacy-state")
+      legacy_store = Store.new(legacy_root)
+      legacy_store.init
+      FileUtils.rm_r(File.join(legacy_root, "verifications"))
+      legacy_store.validate
+      raise "legacy state reported verification proposals" unless legacy_store.pending_verifications.empty?
+      FileUtils.mkdir_p(File.join(legacy_root, "verifications", "inbox"))
+      begin
+        legacy_store.validate
+        raise "partially initialized verification state was accepted"
+      rescue Error => e
+        raise unless e.message.include?("verification state directory is missing")
+      end
+
       git_root = File.join(tmp, "repo")
       FileUtils.mkdir_p(File.join(git_root, ".git"))
       File.write(File.join(git_root, ".git", "HEAD"), "ref: refs/heads/main\n")
@@ -2225,7 +2794,8 @@ def usage
 
     Commands:
       init                              Initialize the configured state root
-      template TYPE                    Print a papercut, candidate, decision, accepted, draft, ledger, or audit template
+      template TYPE                    Print a papercut, candidate, decision, verification,
+                                        verification-decision, accepted, draft, ledger, or audit template
       record-papercut --file PATH      Record a papercut from PATH, or - for standard input
       papercuts [--archive]            List open papercuts, or archived papercuts explicitly
       close-papercut --id ID --outcome OUTCOME --rationale TEXT
@@ -2233,6 +2803,10 @@ def usage
       route --file PATH                Route a candidate into the inbox
       pending                           List validated inbox candidates
       process --id ID --decision PATH  Archive a candidate with a verdict
+      route-verification --file PATH   Route verification evidence into its external inbox
+      pending-verifications            List validated verification proposals
+      process-verification --id ID --decision PATH
+                                        Apply or reject a verification proposal
       reconsider --id ID --decision PATH
                                         Replace a deferred verdict and preserve its history
       record-accepted --file PATH       Store a curated accepted record
@@ -2277,6 +2851,9 @@ def reject_inapplicable_options!(command, provided)
     "route" => %w[--root --file],
     "pending" => %w[--root],
     "process" => %w[--root --id --decision],
+    "route-verification" => %w[--root --file],
+    "pending-verifications" => %w[--root],
+    "process-verification" => %w[--root --id --decision],
     "reconsider" => %w[--root --id --decision],
     "record-accepted" => %w[--root --file],
     "update-accepted" => %w[--root --id --file],
@@ -2305,6 +2882,7 @@ end
 command = ARGV.shift
 commands = %w[
   init template record-papercut papercuts close-papercut route pending process
+  route-verification pending-verifications process-verification
   reconsider record-accepted update-accepted record-draft record-ledger close-ledger
   verification-opportunities record-audit audits artifact-audit-status
   review-queue validate self-test
@@ -2374,6 +2952,8 @@ begin
     when "papercut" then RetroState.papercut_template
     when "candidate" then RetroState.candidate_template
     when "decision" then RetroState.decision_template
+    when "verification" then RetroState.verification_proposal_template
+    when "verification-decision" then RetroState.verification_decision_template
     when "accepted" then RetroState.accepted_template
     when "draft" then RetroState.draft_template
     when "ledger" then RetroState.ledger_template
@@ -2386,17 +2966,23 @@ begin
     puts "Retro state self-test passed."
   else
     root = root_override || ENV[RetroState::STATE_ENV]
-    if %w[route record-papercut].include?(command) && RetroState.blank?(root)
-      command_label = (command == "route") ? "route" : "record-papercut"
+    if %w[route route-verification record-papercut].include?(command) && RetroState.blank?(root)
+      command_label = command
       raise RetroState::Error, "#{command_label} requires --file PATH" unless input_path
 
       data, body = RetroState.read_document(input_path)
       if command == "route"
         RetroState.validate_candidate(data, body, label: input_path, routed: false)
+      elsif command == "route-verification"
+        RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
       else
         RetroState.validate_papercut(data, body, label: input_path, routed: false)
       end
-      record_name = (command == "route") ? "candidate" : "papercut"
+      record_name = case command
+      when "route" then "candidate"
+      when "route-verification" then "verification proposal"
+      else "papercut"
+      end
       warn "#{RetroState::STATE_ENV} is not set; no state was written. Paste-ready #{record_name} follows."
       print RetroState.render_document(data, body)
       exit 2
@@ -2415,6 +3001,19 @@ begin
         puts store.route(input_path)
       rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
         warn "Could not route to external state (#{e.message}); no state was written. Paste-ready candidate follows."
+        print RetroState.render_document(data, body)
+        exit 2
+      end
+    when "route-verification"
+      raise RetroState::Error, "route-verification requires --file PATH" unless input_path
+
+      data, body = RetroState.read_document(input_path)
+      RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
+      begin
+        puts store.route_verification(input_path)
+      rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
+        warn "Could not route to external state (#{e.message}); no state was written. " \
+          "Paste-ready verification proposal follows."
         print RetroState.render_document(data, body)
         exit 2
       end
@@ -2451,6 +3050,13 @@ begin
       raise RetroState::Error, "process requires --decision PATH" unless decision_path
 
       puts store.process(record_id, decision_path)
+    when "pending-verifications"
+      store.pending_verifications.each { |row| puts row.join("\t") }
+    when "process-verification"
+      raise RetroState::Error, "process-verification requires --id ID" unless record_id
+      raise RetroState::Error, "process-verification requires --decision PATH" unless decision_path
+
+      puts store.process_verification(record_id, decision_path)
     when "reconsider"
       raise RetroState::Error, "reconsider requires --id ID" unless record_id
       raise RetroState::Error, "reconsider requires --decision PATH" unless decision_path

@@ -10,11 +10,13 @@ complete verdict and archive each processed candidate. A deferred decision must
 name a review trigger, next action, and close condition. Split and merge
 decisions must retain all originating opaque IDs. When a deferred trigger later
 fires, use `reconsider --id ID --decision PATH` so the replacement verdict keeps
-the original triage lineage.
+the original triage lineage. Adjudicate each verification proposal separately
+with `process-verification`; an applied proposal updates its existing accepted
+identity and a rejected proposal does not.
 
-Do not copy inbox, archive, accepted, draft, ledger, audit, or cadence documents
-into the source repository. They are disposable operational state beneath
-`CODEX_WORKFLOWS_STATE_DIR`.
+Do not copy candidate or verification inbox, archive, accepted, draft, ledger,
+audit, or cadence documents into the source repository. They are disposable
+operational state beneath `CODEX_WORKFLOWS_STATE_DIR`.
 
 ## Batch Review
 
@@ -40,8 +42,8 @@ For each accepted candidate:
    - keep a sanitized case capsule in an optional skill-local casebook only
      when its plausible wrong implementation or observation boundary is
      distinct;
-   - update external verification without a public edit when the candidate is
-     another occurrence of an existing decision and witness.
+   - process a typed external verification proposal without a public edit when
+     the evidence is another occurrence of an existing decision and witness.
 4. Treat `references/` as a loading mechanism, not a semantic category. A
    reference may need restructuring when it mixes default judgment, mechanics,
    and cases that should load under different conditions.
@@ -73,7 +75,8 @@ Activate, revise, or deprecate fired drafts.
 After the public commit exists, create or update a concise external accepted
 record. Store plural `originating_candidate_ids`, sanitized evidence,
 destination, trigger and non-trigger, verification opportunity, disposition,
-verification state and basis, and known implementation commits.
+verification state and basis, applied proposal provenance, and known
+implementation commits.
 
 Keep disposition and verification independent. A static validation pass for a
 prose or routing edit does not prove the guidance worked later. Use

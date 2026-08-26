@@ -10,6 +10,8 @@ repo_skill_dir="${repo_dir}/.agents/skills"
 manifest_path="${agents_home}/codex-workflows-managed-skills.tsv"
 legacy_target_dir="${codex_home}/skills"
 legacy_manifest_path="${codex_home}/codex-workflows-managed-skills.tsv"
+global_learning_helper="${repo_dir}/scripts/manage-global-learning.rb"
+global_learning_asset="${source_dir}/skill-retro/assets/global-agents-learning.md"
 manifest_version="# codex-workflows-managed-skills v1"
 lock_dir="${agents_home}/.codex-workflows-install.lock"
 mode="install"
@@ -22,16 +24,18 @@ usage() {
   cat <<'EOF'
 Usage: ./install.sh [--check | --dry-run]
 
-Sync user-scoped repository-owned skills into $HOME/.agents/skills. Skills
-linked from .agents/skills remain available only inside this repository.
+Sync user-scoped repository-owned skills into $HOME/.agents/skills, and manage
+the canonical global learning instructions in the active Codex instruction
+file. Skills linked from .agents/skills remain available only inside this
+repository.
 
 When a managed manifest exists in the legacy Codex-home location, a normal
 install migrates only the skills named by that manifest and preserves all
 unrelated installed skills.
 
 Options:
-  --check    Validate user and repository scopes, manifest membership, and modes.
-  --dry-run  Report planned user-scope changes and repository-local links.
+  --check    Validate skill scopes, manifests, modes, and global instructions.
+  --dry-run  Report planned skill and global-instruction changes.
   --help     Show this help.
 EOF
 }
@@ -204,6 +208,11 @@ validate_source_tree() {
   local name skill_file link_target expected_dir actual_dir
 
   [[ -d "${source_dir}" ]] || die "source skills directory not found: ${source_dir}"
+  [[ -x "${global_learning_helper}" ]] || \
+    die "global learning helper is missing or not executable: ${global_learning_helper}"
+  [[ -f "${global_learning_asset}" ]] || \
+    die "global learning asset not found: ${global_learning_asset}"
+  command -v ruby >/dev/null 2>&1 || die "ruby is required to manage global learning instructions"
   read_source_names
   ((${#all_source_names[@]} > 0)) || die "no source skills found in ${source_dir}"
 
@@ -239,6 +248,14 @@ validate_source_tree() {
     [[ "${actual_dir}" == "${expected_dir}" ]] || \
       die "repository-local skill symlink points outside canonical source: ${repo_skill_dir}/${name}"
   done
+}
+
+manage_global_learning() {
+  local learning_mode="$1"
+
+  "${global_learning_helper}" "${learning_mode}" \
+    --asset "${global_learning_asset}" \
+    --codex-home "${codex_home}"
 }
 
 compare_trees() {
@@ -407,6 +424,10 @@ check_install() {
     fi
   done
 
+  if ! manage_global_learning check; then
+    status=1
+  fi
+
   if [[ "${status}" -eq 0 ]]; then
     echo "Managed user-scoped skills match ${source_dir} in ${target_dir}"
     if ((${#repo_local_names[@]} > 0)); then
@@ -463,6 +484,8 @@ dry_run_install() {
     done
     echo "Would remove legacy managed-skill manifest: ${legacy_manifest_path}"
   fi
+
+  manage_global_learning dry-run
 }
 
 install_skills() {
@@ -475,6 +498,7 @@ install_skills() {
   fi
   read_old_manifest_names
   read_legacy_manifest_names
+  manage_global_learning dry-run >/dev/null
   stage_source
   acquire_lock
   mkdir -p "${target_dir}"
@@ -506,6 +530,12 @@ install_skills() {
     done
     rm -f "${legacy_manifest_path}"
     echo "Migrated legacy managed skills out of ${legacy_target_dir}"
+  fi
+
+  if ! manage_global_learning install; then
+    echo "install.sh: managed skills were updated, but global learning instructions were not." >&2
+    echo "install.sh: resolve the reported instruction-file issue and rerun ./install.sh." >&2
+    exit 1
   fi
 
   echo "Installed managed user-scoped skills from ${source_dir} to ${target_dir}"

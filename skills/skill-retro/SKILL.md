@@ -1,15 +1,14 @@
 ---
 name: skill-retro
-description: Produce and optionally route mature Skill Candidate Reports from completed work. Use when the user requests a skill retrospective, candidate report, reusable workflow conclusion, or external routing, or when standing instructions require an end-of-work evaluation. Do not use for low-cost during-work papercut capture.
+description: Produce and route mature skill candidates or verification proposals from completed work. Use for skill retrospectives, reusable workflow conclusions, verification evidence, external routing, or standing end-of-work evaluation. Not for low-cost papercuts.
 ---
 
 # Skill Retro
 
-Use this to identify reusable knowledge that might belong in
-`codex-workflows`. A Skill Candidate Report is a deliberate conclusion ready
-for triage. Use `$papercut-capture` instead when preserving low-cost friction
-before its wider meaning is known. Operational records never belong in a
-project repository or the public skill source repository.
+Identify reusable knowledge for `codex-workflows`. Candidates propose source
+decisions; verification proposals carry decisive later evidence for one
+accepted outcome. Use `$papercut-capture` for low-cost friction. Operational
+records never belong in a project or public skill repository.
 
 Read [state-protocol.md](references/state-protocol.md) before writing external
 state.
@@ -17,32 +16,36 @@ state.
 ## Authority
 
 Retrospective evaluation and a report in chat are read-only. Writing a
-candidate requires one of these grants:
+candidate or verification proposal requires one of these grants:
 
 - the user explicitly accepts routing a proposed report;
 - the user explicitly requests `auto` mode for the task or session; or
 - applicable standing instructions explicitly authorize automatic routing.
 
 Routing authority permits only sanitized new files beneath
-`retrospectives/inbox` in the configured external state root. It does not
-authorize project or source-repository edits, commits, pushes, messages, or
-changes to existing external state. Explicit task instructions and closer
-repository privacy or opt-out rules may narrow standing authority.
+`retrospectives/inbox` or `verifications/inbox` in the configured external
+state root. It does not authorize project or source-repository edits, commits,
+pushes, messages, proposal application, or changes to existing external state.
+Explicit task instructions and closer repository privacy rules may narrow
+standing authority.
 
-## Candidate Modes
+## Routing Modes
 
-- Default: show a compact candidate summary in chat and write nothing.
+- Default: show a compact candidate or verification summary in chat and write
+  nothing.
 - `route`: after the user explicitly accepts routing, write a detailed,
-  sanitized candidate to the inbox beneath `CODEX_WORKFLOWS_STATE_DIR`.
+  sanitized candidate or verification proposal to its inbox beneath
+  `CODEX_WORKFLOWS_STATE_DIR`.
 - `auto`: when explicitly requested or enabled by applicable standing
-  instructions, route candidates with high confidence, concrete evidence, a
-  clear missing delta, and a named destination or well-justified new home.
+  instructions, route high-confidence candidates with a concrete missing delta
+  or verification proposals that exactly match a recorded opportunity.
 
 Before either routing mode writes anything, assemble the complete current-task
-candidate set in memory or temporary scratch. Compare every proposed report's
-missing delta, destination, and decision, consolidate overlaps, and only then
-write one file per surviving distinct delta. Do not route reports incrementally
-as conclusions surface.
+candidate and verification-proposal sets in memory or temporary scratch.
+Consolidate candidate overlaps by missing delta, destination, and decision;
+consolidate verification overlaps by accepted identity, opportunity, and
+claim. Then write one file per surviving distinct record type and delta. Do not
+route reports incrementally as conclusions surface.
 
 ## Automatic Checkpoints
 
@@ -52,32 +55,32 @@ before the final response or a fresh-agent handoff. Also evaluate when
 substantial user redirection exposes missing guidance, or when the work reveals
 reusable craft that a fresh agent would benefit from.
 
+For the skills or destinations materially involved in the completed work, use
+`verification-opportunities --destination TEXT` as a pull query. Route a
+proposal only when the current task produced decisive evidence for the target's
+exact recorded opportunity. A query hit alone creates no work, quota, or
+record.
+
 Err toward evaluating when the boundary is uncertain; a no-change evaluation
 is cheap and should remain quiet. Fold minor follow-up fixes into the current
 work unit. If evaluation already occurred, evaluate again only when continued
 work materially changes the lesson or reveals a distinct one. Disclose
-successfully routed candidates in the final response; do not add a zero-count
-status line unless applicable instructions require it.
+successfully routed candidates and verification proposals in the final
+response; do not add a zero-count status line unless applicable instructions
+require it.
 
 Use the installed helper from an arbitrary project repository:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template candidate
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" route --file CANDIDATE_FILE
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template verification
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" route-verification --file PROPOSAL_FILE
 ```
 
-Create input in a temporary file, route it, and remove the temporary file when
-practical. Do not discover or depend on the location of the
-`codex-workflows` source checkout. If `CODEX_WORKFLOWS_STATE_DIR` is unset or
-unwritable, the helper prints a validated paste-ready candidate and writes no
-state.
-
-When an explicitly authorized route falls back because the configured state
-root is blocked only by the sandbox, distinguish that denial from unset or
-invalid state. Retry the same operation through the platform's narrowly scoped
-approval path when available, or explain the durable writable-root
-configuration; neither action broadens authority. Keep the paste-ready
-candidate as the terminal fallback when approval is unavailable or denied.
+Follow the installed-path, temporary-input, paste-ready fallback, and sandbox
+retry mechanics in [state-protocol.md](references/state-protocol.md); do not
+depend on the source checkout from an arbitrary project.
 
 ## Candidate Rules
 
@@ -87,17 +90,15 @@ candidate as the terminal fallback when approval is unavailable or denied.
   producing conversation.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
-- In the pre-routing batch pass, consolidate same-task evidence when it supports
-  one missing delta,
-  destination, and decision. Split only materially distinct deltas, and keep
-  one candidate per external Markdown file so separate candidates remain
-  independently judgeable.
+- Consolidate same-task evidence for one missing delta, destination, and
+  decision. Split materially distinct deltas into independently judgeable
+  files.
 - Preserve evidence at intake rather than forcing the producer to perform
   aggressive semantic compression. Triage and corpus review own distillation.
 - When a corrected decision supersedes an earlier accepted outcome, add
   `supersedes_accepted_id` and state `now_false`. When later evidence merely
-  supports or contradicts the same outcome and witness, update that accepted
-  identity instead of routing another candidate.
+  supports or contradicts the same outcome and witness, route a verification
+  proposal for that accepted identity instead of another candidate.
 - Distinguish three same-topic outcomes before routing: later behavioral
   evidence updates verification without source work; implementation drift may
   require a public repair under the existing accepted identity; a changed
@@ -151,6 +152,10 @@ supports executable correctness; later-session evidence may support that the
 guidance was followed or that the intended outcome occurred. Neither
 establishes comparative improvement without an observed comparator.
 
+A proposal must follow the typed fields and claim vocabulary in the state
+protocol, match one eligible `SCR-*` opportunity, and include `what_is_false`
+only for contradiction. `$skill-retro-triage` alone applies or rejects it.
+
 Do not recommend maintained prompt corpora, synthetic model fixtures, repeated
 model runs, `codex exec` benchmarks, raw trace archives, paid model-backed CI,
 or public evidence records merely to validate a skill edit.
@@ -172,18 +177,10 @@ the state protocol and must not be added to Git.
 
 ## Compact Chat Shape
 
-```md
-## Skill Candidate Report
-
-### candidate-name
-Observation or surprise:
-Decisive evidence:
-Reusable lesson:
-Suggested home:
-Testability:
-Confidence:
-Preliminary recommendation:
-```
+For a candidate, report name, observation, decisive evidence, reusable lesson,
+home, testability, confidence, and recommendation. For verification, report
+target, exact opportunity match, proposed state and basis, claim, evidence, and
+confidence.
 
 If no change is warranted, say so directly and cite the specific existing
 coverage instead of stretching ordinary project details into a candidate.

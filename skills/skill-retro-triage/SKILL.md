@@ -1,6 +1,6 @@
 ---
 name: skill-retro-triage
-description: Judge and implement pending Skill Candidate Reports from external codex-workflows state. Use when reviewing the retro inbox, deciding accept/defer/reject/split/merge/no-change verdicts, draining fired deferrals or drafts, or turning accepted evidence into scoped source changes.
+description: Judge and implement pending Skill Candidate Reports and Verification Evidence Proposals from external codex-workflows state. Use when reviewing retrospective or verification inboxes, deciding candidate verdicts, applying or rejecting verification evidence, draining fired deferrals or drafts, or turning accepted evidence into scoped source changes.
 ---
 
 # Skill Retro Triage
@@ -21,12 +21,14 @@ Before proposing edits:
 2. Read `skills/skill-retro/references/state-protocol.md` and
    `skills/skill-retro/references/report-to-patch.md`.
 3. From the reconciled source repository root, validate the local state and
-   list pending candidates with the newly pulled source helper:
+   list pending candidates and verification proposals with the newly pulled
+   source helper:
 
    ```sh
    # From the source repository root:
    ./skills/skill-retro/scripts/retro-state.rb validate
    ./skills/skill-retro/scripts/retro-state.rb pending
+   ./skills/skill-retro/scripts/retro-state.rb pending-verifications
    ```
 
    Outside the source checkout, use the installed helper. Do not use a stale
@@ -83,9 +85,10 @@ State the decision the candidate changes, then:
 4. Treat the smallest change as the smallest change to the decision model, not
    the fewest edited lines.
 
-If verification-only evidence has already arrived as an inbox candidate, give
-it a `no-change` verdict, archive it, and update the cited accepted identity;
-do not create another accepted record.
+If verification-only evidence has arrived through the candidate inbox, reject
+or mark that candidate `no-change` and ask the producer to use the typed
+verification route. Do not manually translate ambiguous candidate intake into
+accepted-state evidence.
 
 When the accepted decision remains true but source implementation is missing
 or has drifted on one public surface, use `no-change` for the semantic verdict
@@ -117,9 +120,21 @@ pull unverified outcomes only for the skills or destinations involved. Treat a
 hit as an optional observation opportunity, never as work, quota, or a new
 candidate.
 
-By default, present all verdicts and the proposed public implementation batch
-before editing source or external state. Continue autonomously only when the
-user explicitly requests autonomous batch triage.
+For every pending verification proposal, choose `apply` or `reject`. Apply only
+when the proposal targets an existing `accepted` or `implemented` record, its
+evidence exercises the target's exact recorded opportunity, its basis and claim
+match what was actually observed, and its proposed transition is eligible:
+`unverified` to `supported`, or `unverified`/`supported` to `contradicted`.
+Reject stale, duplicate, overclaimed, mismatched, or insufficient evidence.
+Use `template verification-decision` and `process-verification`; an applied
+proposal updates the accepted identity and archives its provenance, while a
+rejected proposal archives without changing accepted state. Verification
+proposal processing does not advance candidate artifact-audit cadence.
+
+By default, present all candidate verdicts, verification proposal verdicts, and
+the proposed public implementation batch before editing source or external
+state. Continue autonomously only when the user explicitly requests autonomous
+batch triage.
 
 ## Accepted Implementation Batch
 
@@ -143,7 +158,8 @@ Report:
 
 - verdicts and accepted implementation batch;
 - public source files changed and why;
-- external records processed, including disposition and verification state;
+- external candidates and verification proposals processed, including verdict,
+  disposition, and verification state;
 - deferrals, drafts, or ledgers promoted, refreshed, closed, or deleted;
 - source validation and install/check status;
 - external state validation status;
