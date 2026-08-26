@@ -506,7 +506,7 @@ module RetroState
     return if parsed.iso8601 == value
 
     raise Error, "#{label}: review_trigger_at must be an ISO date"
-  rescue Date::Error
+  rescue ArgumentError
     raise Error, "#{label}: review_trigger_at must be an ISO date"
   end
 
