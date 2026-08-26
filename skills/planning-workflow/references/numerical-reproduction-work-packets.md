@@ -98,6 +98,14 @@ Move from the most algebraic component outward:
 | Estimated intermediate fields | Fixed verified downstream pipeline | Stop if the estimator violates its own preconditions |
 | Sample and noise scaling | Predeclared bounded matrix | Limit claims to the exercised regime |
 
+When a dense generalized-eigen oracle has a known null under a positive
+diagonal mass, form the symmetric mass-scaled operator and the transformed
+null `M^(1/2) v0`, restrict the solve to that null's orthogonal complement,
+and only then map retained vectors back. Do not identify and drop one vector
+from the full decomposition by alignment when low modes may cluster. Check
+generalized residuals, mass-weighted centering and orthogonality, the map-back
+identity, and invariant-span agreement.
+
 Record negative results in the active plan so later work cannot reopen a ruled-
 out cause without new evidence. An outcome-dependent gate should say whether to
 repair the current reproduction, stop because an upstream precondition failed,
@@ -217,6 +225,13 @@ constrained solution, constraint and base energies, the relevant eigengap,
 smallest positive penalty modes, and low-mode Rayleigh-quotient crossings.
 Whole-operator norm matching does not prove that the constraint is active in
 the low spectrum.
+
+When a rank-one penalty only needs to move a known null beyond the requested
+low spectrum, choose its scale from a cheap certified upper bound, such as an
+induced matrix norm or Gershgorin bound. Do not add an auxiliary iterative
+largest-eigenvalue solve when exact spectral-edge estimation is unnecessary.
+Keep null removal, target-solve convergence, retained-boundary separation, and
+generalized residuals as the acceptance contract.
 
 Use this outcome table:
 
