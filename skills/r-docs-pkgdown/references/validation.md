@@ -10,6 +10,12 @@ order. It does not prove that a later chunk is self-contained when earlier
 chunks can create objects, attach packages, or change options. Run a declared
 self-contained chunk separately with only its documented setup.
 
+Before treating a render as execution evidence for reader-facing code,
+classify each block as an executable document chunk, an intentionally static
+example, or code exercised by a separate check. A successful render does not
+execute a plain fenced R block; keep that example explicitly illustrative or
+retain a separate execution witness.
+
 When the current package must be available, distinguish dependency setup from
 source installation. Use the repository's normal dependency workflow first.
 If dependencies are already available but a higher-level development helper
@@ -27,6 +33,10 @@ selection and provenance account, and public reproduction boundary aligned
 with that evidence. When the claim derives from generated output, add hidden
 semantic checks using stable status classes, equivalence relations, or
 inequalities rather than fragile exact iterations and floating-point snapshots.
+Before ranking displayed scores across scales, labels, methods, or metrics,
+establish that their baselines and normalizations are comparable. When they are
+not, interpret each score against its own baseline instead of treating the
+largest raw value as best.
 
 ## Preserve Technical-Article Integrity
 
@@ -44,6 +54,11 @@ leave visible transitions or references without their payoff.
 During final technical reconciliation, map each hidden assertion to visible
 code, output, prose, or a declared executable example. Move unmatched schema
 or coverage assertions to package tests or the API reference that owns them.
+When prose or a decision table compares several result or dataset families,
+enumerate structurally distinct shapes and decision-material outliers under the
+stated selection criterion before claiming a common contract or ranking. When
+an article delegates a demonstrated workflow to a reference page, verify that
+the reference documents the exact input shape used.
 
 ## Review Planned Articles In Two Stages
 
@@ -79,11 +94,13 @@ packet excludes.
 ## Inspect Rendered Numerical Tables
 
 Inspect rendered table cells in addition to their source objects. Fixed decimal
-rounding can display a meaningful nonzero value as zero or erase relative scale
-while the build and hidden semantic checks still pass. When magnitude is part
-of the lesson, use significant-digit or scientific formatting for small or
-wide-ranging values, then confirm that the table and adjacent interpretation
-describe the same computed quantity.
+rounding can display a meaningful nonzero value as zero, a near-one value as
+exactly one, or erase relative scale while the build and hidden semantic checks
+still pass. Choose precision that preserves the reader's interpretation near
+meaningful boundaries, baselines, thresholds, and decision cutoffs. When
+magnitude is part of the lesson, use significant-digit or scientific formatting
+for small or wide-ranging values, then confirm that the table and adjacent
+interpretation describe the same computed quantity.
 
 ## Precomputed Stochastic Figures
 

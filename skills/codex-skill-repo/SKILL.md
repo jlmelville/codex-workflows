@@ -79,6 +79,12 @@ remain human-owned inside an otherwise agent-maintained file, make its boundary
 clear with source comments when appropriate and keep the durable veto in a
 concise repository-local instruction.
 
+When repository documentation recommends Codex sandbox, approval, or other
+runtime controls, explain each non-obvious setting through its user-visible
+consequence. Distinguish controls that grant technical access from controls
+that decide when Codex must ask, and verify current product semantics against
+official documentation.
+
 ## Do Not Commit
 
 Never copy or commit raw Codex runtime state:
