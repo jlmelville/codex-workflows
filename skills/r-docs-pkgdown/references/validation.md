@@ -113,6 +113,14 @@ leaders, choose label placements jointly to avoid other highlighted markers,
 labels, leader segments, and plot boundaries, and stop each segment short of
 the marker edge and label glyph.
 
+When a lesson-bearing figure shows hover, selection, animation, or another
+transient widget state, treat automated widget generation and capture of that
+state as separate artifact boundaries. Reproduce the widget through the
+tracked recipe; for the capture, either maintain deterministic event injection
+or record a bounded manual recipe naming the viewport, state trigger, and
+output filename. Do not treat a rest-state static export as proof that an
+interaction-state screenshot is reproducible.
+
 ## Place Companion Code Deliberately
 
 Before locating executable article companions, decide which distribution
