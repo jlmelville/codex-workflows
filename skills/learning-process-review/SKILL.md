@@ -103,6 +103,13 @@ artifact-by-artifact compression work inside this review. When
 `prompts/skill-repository-retrospective.md` under the authority of the invoking
 task. Due cadence never authorizes source edits.
 
+For every proposed candidate deferral, first name the decision that current
+evidence cannot justify. Later behavioral uncertainty after a justified
+implementation belongs in an unverified accepted outcome, not a deferral.
+Candidate deferrals, open drafts, and open ledgers must each name their trigger
+predicate, observer, `review-queue` route, executable probe, next action, and
+close condition. Reject a durable description without a liveness path.
+
 ## Report
 
 Use these sections:
@@ -142,8 +149,9 @@ history when it no longer improves future judgment.
 After the applicable mutation gate, record the complete sanitized diagnosis as
 `template audit` with `audit_kind: learning-process`. First create every
 unresolved executable consequence as a candidate deferral, draft, or ledger and
-list those IDs in `unresolved_action_ids`. A completed diagnosis stays cold in
-audit history; only its unresolved actors remain in `review-queue`.
+list those IDs in `unresolved_action_ids`. Create no unresolved actor until it
+passes the shared structured trigger contract. A completed diagnosis stays cold
+in audit history; only its unresolved actors remain in `review-queue`.
 
 When supervising a completed repository artifact audit, record it with
 `audit_kind: skill-repository` only after the full report-only audit finishes.

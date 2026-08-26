@@ -101,10 +101,17 @@ to stay on the default path even though they are not conditional branches. The
 semantic gate supplements the evidence, durability, scope, cost, and
 destination checks above; it does not replace them.
 
-For `defer`, require a review trigger, next action, and close condition. The
-trigger must be observable in durable state or supplied explicitly to a future
-triage. Do not defer until a skill's "next use" unless that use emits durable
-evidence; `review-queue` preserves the trigger but does not detect the event.
+For `defer`, first name the decision that current evidence cannot justify and
+the missing evidence. Later behavioral uncertainty after a justified,
+reversible implementation belongs in an unverified accepted outcome and its
+verification opportunity, not a deferral. Every new or reconsidered deferral
+must use the structured trigger contract in
+[state-protocol.md](../skill-retro/references/state-protocol.md): predicate,
+observer, `review-queue` route, probe, next action, and close condition. Apply
+the same contract to open drafts and ledgers. `review-queue` preserves and
+routes live work but does not observe events; `destination-use` remains invalid
+until a supported matcher exists.
+
 For `split` or `merge`, name all related opaque candidate IDs and preserve
 lineage. Keep drafts distinct from deferrals: a draft is a coherent new-skill
 kernel with activation criteria, while a deferral is evidence awaiting a

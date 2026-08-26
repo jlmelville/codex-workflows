@@ -72,6 +72,32 @@ The first occurrence can be well grounded without earning a new clause, and a
 recurrence can strengthen verification without adding public guidance. Keep
 the existing concrete-failure-signal checks.
 
+Classify every recommendation as one of:
+
+- `implement-now`: the decision and implementation are justified, with no
+  distinct later behavioral claim to test;
+- `implement-now-verify-later`: the decision and implementation are justified,
+  while ordinary downstream behavior remains unverified;
+- `candidate-defer`: a named decision cannot yet be justified because specific
+  evidence is missing;
+- `draft`: a coherent new-skill kernel is not ready for activation;
+- `ledger`: an accepted implementation blocker, maintenance threshold, or
+  cross-report hypothesis needs an executable drain; or
+- `no-action`: no public or live operational change is warranted.
+
+Before using `candidate-defer`, state exactly what decision cannot be made now
+and what evidence is missing. Behavioral uncertainty after a justified,
+reversible implementation is `implement-now-verify-later`, not a deferral.
+
+Every proposed candidate deferral, draft, or ledger must include a liveness
+argument: the durable trigger predicate, the existing process that observes
+it, the route by which that observer discovers the record, the probe it runs,
+the next action, and the close condition. `review-queue` is a routing surface,
+not an observer. "Next use" is invalid unless an existing emitted record or
+destination-matched query makes that use observable. Do not propose a new
+destination-use matcher merely to preserve a recommendation that is already
+safe to implement and verify later.
+
 For casebooks, confirm that each capsule is sanitized, optional, skill-local,
 organized by reasoning problem or witness shape, and admitted for a distinct
 plausible wrong implementation or observation boundary rather than provenance.
@@ -96,9 +122,9 @@ Report using this shape:
 ```
 
 For each recommended edit, include file and line evidence, current location,
-proposed destination, reason, risk if omitted, and whether it should be done now
-or deferred externally. Prefer pruning, consolidating, or clarifying existing
-skills over creating new skills.
+proposed destination, reason, risk if omitted, and its classification from the
+preceding list. Prefer pruning, consolidating, or clarifying existing skills
+over creating new skills.
 
 End with a complete sanitized diagnosis suitable for a cold external audit
 record and a list of unresolved executable consequences. Do not write external

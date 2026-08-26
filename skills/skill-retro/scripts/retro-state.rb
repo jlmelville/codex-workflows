@@ -43,6 +43,25 @@ module RetroState
   ].freeze
   DRAFT_STATUSES = %w[open revised activated deprecated].freeze
   LEDGER_STATUSES = %w[open closed].freeze
+  REVIEW_TRIGGER_CONTRACT_VERSION = 1
+  REVIEW_TRIGGER_TYPES = %w[
+    date state-threshold external-artifact explicit-input destination-use
+  ].freeze
+  REVIEW_TRIGGER_OBSERVERS = %w[
+    learning-process-review skill-retro-triage
+  ].freeze
+  REVIEW_TRIGGER_ROUTE = "review-queue"
+  REVIEW_TRIGGER_COMMON_FIELDS = %w[
+    review_trigger_type review_trigger_observer review_trigger_route
+    review_trigger_probe review_trigger next_action close_condition
+  ].freeze
+  REVIEW_TRIGGER_TYPE_FIELDS = {
+    "date" => %w[review_trigger_at],
+    "state-threshold" => %w[review_trigger_counter review_trigger_threshold],
+    "external-artifact" => %w[review_trigger_locator],
+    "explicit-input" => %w[review_trigger_input],
+    "destination-use" => %w[review_trigger_destination]
+  }.freeze
   STATE_DIRS = %w[
     retrospectives/inbox
     retrospectives/archive
@@ -418,6 +437,79 @@ module RetroState
     raise Error, "#{label}: #{field} must be one of #{allowed.join(", ")}"
   end
 
+  def review_trigger_contract_fields
+    [
+      "review_trigger_contract_version",
+      "unresolved_decision",
+      *REVIEW_TRIGGER_COMMON_FIELDS,
+      *REVIEW_TRIGGER_TYPE_FIELDS.values.flatten
+    ].uniq
+  end
+
+  def validate_review_trigger_contract(data, label, legacy_allowed:)
+    unless data.key?("review_trigger_contract_version")
+      if legacy_allowed
+        require_fields(data, %w[review_trigger next_action close_condition], label)
+        return
+      end
+
+      raise Error,
+        "#{label}: review_trigger_contract_version must be #{REVIEW_TRIGGER_CONTRACT_VERSION}"
+    end
+
+    unless data["review_trigger_contract_version"] == REVIEW_TRIGGER_CONTRACT_VERSION
+      raise Error,
+        "#{label}: review_trigger_contract_version must be #{REVIEW_TRIGGER_CONTRACT_VERSION}"
+    end
+
+    require_fields(data, REVIEW_TRIGGER_COMMON_FIELDS, label)
+    validate_enum(data, "review_trigger_type", REVIEW_TRIGGER_TYPES, label)
+    validate_enum(data, "review_trigger_observer", REVIEW_TRIGGER_OBSERVERS, label)
+    unless data["review_trigger_route"] == REVIEW_TRIGGER_ROUTE
+      raise Error, "#{label}: review_trigger_route must be #{REVIEW_TRIGGER_ROUTE}"
+    end
+
+    trigger_type = data.fetch("review_trigger_type")
+    if trigger_type == "destination-use"
+      raise Error, "#{label}: destination-use triggers require a supported destination matcher"
+    end
+
+    expected_type_fields = REVIEW_TRIGGER_TYPE_FIELDS.fetch(trigger_type)
+    string_type_fields = expected_type_fields - %w[review_trigger_threshold]
+    require_fields(data, string_type_fields, label)
+
+    unexpected_type_fields = (
+      REVIEW_TRIGGER_TYPE_FIELDS.values.flatten - expected_type_fields
+    ).select { |field| data.key?(field) }
+    unless unexpected_type_fields.empty?
+      raise Error,
+        "#{label}: #{unexpected_type_fields.first} is not valid for #{trigger_type} triggers"
+    end
+
+    case trigger_type
+    when "date"
+      validate_review_trigger_date(data.fetch("review_trigger_at"), label)
+    when "state-threshold"
+      threshold = data["review_trigger_threshold"]
+      unless threshold.is_a?(Integer) && threshold.positive?
+        raise Error, "#{label}: review_trigger_threshold must be a positive integer"
+      end
+    end
+  end
+
+  def validate_review_trigger_date(value, label)
+    unless value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+      raise Error, "#{label}: review_trigger_at must be an ISO date"
+    end
+
+    parsed = Date.iso8601(value)
+    return if parsed.iso8601 == value
+
+    raise Error, "#{label}: review_trigger_at must be an ISO date"
+  rescue Date::Error
+    raise Error, "#{label}: review_trigger_at must be an ISO date"
+  end
+
   def validate_triage(triage, candidate_id, label)
     raise Error, "#{label}: missing triage mapping" unless triage.is_a?(Hash)
 
@@ -436,7 +528,9 @@ module RetroState
 
     return unless triage["verdict"] == "defer"
 
-    require_fields(triage, %w[review_trigger next_action close_condition], "#{label} deferred triage")
+    require_fields(triage, %w[unresolved_decision], "#{label} deferred triage") if
+      triage.key?("review_trigger_contract_version")
+    validate_review_trigger_contract(triage, "#{label} deferred triage", legacy_allowed: true)
   end
 
   def validate_decision(data, body, label:, expected_id: nil)
@@ -456,7 +550,13 @@ module RetroState
     end
     require_string_array(data, "related_candidate_ids", label, allow_empty: true)
     if data["verdict"] == "defer"
-      require_fields(data, %w[review_trigger next_action close_condition], label)
+      require_fields(data, %w[unresolved_decision], label)
+      validate_review_trigger_contract(data, label, legacy_allowed: false)
+    else
+      trigger_fields = review_trigger_contract_fields.select { |field| data.key?(field) }
+      unless trigger_fields.empty?
+        raise Error, "#{label}: #{trigger_fields.first} is only valid for defer"
+      end
     end
   end
 
@@ -598,19 +698,17 @@ module RetroState
     validate_common(data, text, label)
     raise Error, "#{label}: record_type must be draft" unless data["record_type"] == "draft"
 
-    require_fields(
-      data,
-      %w[
-        title purpose trigger_boundary review_trigger next_action close_condition
-        status redaction_review
-      ],
-      label
-    )
+    require_fields(data, %w[title purpose trigger_boundary status redaction_review], label)
     %w[evidence seeded_conventions missing_evidence activation_criteria].each do |field|
       require_string_array(data, field, label)
     end
     unless DRAFT_STATUSES.include?(data["status"])
       raise Error, "#{label}: status must be one of #{DRAFT_STATUSES.join(", ")}"
+    end
+    if %w[open revised].include?(data["status"])
+      validate_review_trigger_contract(data, label, legacy_allowed: assigned)
+    elsif data.key?("review_trigger_contract_version")
+      validate_review_trigger_contract(data, label, legacy_allowed: false)
     end
 
     validate_assigned_id(data, label, assigned, "draft_id", /\ASD-\d{8}-[a-f0-9]{6}\z/)
@@ -623,17 +721,15 @@ module RetroState
       raise Error, "#{label}: record_type must be ledger-entry"
     end
 
-    require_fields(
-      data,
-      %w[
-        title owner status last_reviewed review_trigger next_action
-        close_condition redaction_review
-      ],
-      label
-    )
+    require_fields(data, %w[title owner status last_reviewed redaction_review], label)
     require_string_array(data, "evidence", label)
     unless LEDGER_STATUSES.include?(data["status"])
       raise Error, "#{label}: status must be one of #{LEDGER_STATUSES.join(", ")}"
+    end
+    if data["status"] == "open"
+      validate_review_trigger_contract(data, label, legacy_allowed: assigned)
+    elsif data.key?("review_trigger_contract_version")
+      validate_review_trigger_contract(data, label, legacy_allowed: false)
     end
 
     closure = data["closure"]
@@ -826,6 +922,13 @@ module RetroState
       rationale: "Why this verdict is the smallest justified outcome."
       reviewed_at: "YYYY-MM-DDTHH:MM:SSZ"
       related_candidate_ids: []
+      review_trigger_contract_version: 1
+      unresolved_decision: "Decision that current evidence cannot justify."
+      review_trigger_type: explicit-input # #{REVIEW_TRIGGER_TYPES.join(", ")}
+      review_trigger_observer: skill-retro-triage # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
+      review_trigger_route: review-queue
+      review_trigger_probe: "Confirm the named input is present in the current triage request."
+      review_trigger_input: "Specific evidence or decision the user must supply."
       review_trigger: "Required for defer; remove for other verdicts."
       next_action: "Required for defer; remove for other verdicts."
       close_condition: "Required for defer; remove for other verdicts."
@@ -885,7 +988,13 @@ module RetroState
         - "Behavioral evidence or boundary question still missing."
       activation_criteria:
         - "Concrete condition required before installing a complete skill."
-      review_trigger: "Date or event that requires activate, revise, or deprecate judgment."
+      review_trigger_contract_version: 1
+      review_trigger_type: explicit-input # #{REVIEW_TRIGGER_TYPES.join(", ")}
+      review_trigger_observer: learning-process-review # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
+      review_trigger_route: review-queue
+      review_trigger_probe: "Confirm the named evidence is present in the current review input."
+      review_trigger_input: "Specific missing evidence that must be supplied."
+      review_trigger: "The named evidence is supplied to a learning-process review."
       next_action: "Executable next review action."
       close_condition: "Condition for activation or deprecation."
       status: open
@@ -907,7 +1016,14 @@ module RetroState
       owner: "skill-retro-triage"
       status: open
       last_reviewed: "never"
-      review_trigger: "Date, recurrence threshold, or concrete event."
+      review_trigger_contract_version: 1
+      review_trigger_type: state-threshold # #{REVIEW_TRIGGER_TYPES.join(", ")}
+      review_trigger_observer: learning-process-review # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
+      review_trigger_route: review-queue
+      review_trigger_probe: "Run the named helper query and read its durable counter."
+      review_trigger_counter: "Named helper-owned counter or state query."
+      review_trigger_threshold: 3
+      review_trigger: "The named durable counter reaches the threshold."
       evidence:
         - "Sanitized observation supporting continued monitoring."
       next_action: "Executable action when the review trigger fires."
@@ -937,8 +1053,9 @@ module RetroState
       # Completed system audit
 
       Keep the complete sanitized diagnosis here. Create every unresolved
-      executable consequence as a deferral, draft, or ledger action before
-      recording the audit, then list its ID above.
+      executable consequence with the structured trigger contract as a
+      deferral, draft, or ledger action before recording the audit, then list
+      its ID above.
     MARKDOWN
   end
 
@@ -2138,9 +2255,27 @@ module RetroState
       papercut = File.join(tmp, "papercut.md")
       verification_proposal = File.join(tmp, "verification.md")
       verification_decision = File.join(tmp, "verification-decision.md")
+      without_review_trigger_contract = lambda do |text|
+        data, body = parse_document(text)
+        review_trigger_contract_fields.each { |field| data.delete(field) }
+        render_document(data, body)
+      end
+      legacy_review_trigger_fields = review_trigger_contract_fields -
+        %w[review_trigger next_action close_condition]
       recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
       unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
         raise "candidate template recommendation vocabulary is incomplete"
+      end
+      trigger_type_line = decision_template.lines.find { |line| line.start_with?("review_trigger_type:") }
+      unless trigger_type_line && REVIEW_TRIGGER_TYPES.all? { |value| trigger_type_line.include?(value) }
+        raise "decision template trigger type vocabulary is incomplete"
+      end
+      trigger_observer_line = decision_template.lines.find do |line|
+        line.start_with?("review_trigger_observer:")
+      end
+      unless trigger_observer_line &&
+          REVIEW_TRIGGER_OBSERVERS.all? { |value| trigger_observer_line.include?(value) }
+        raise "decision template trigger observer vocabulary is incomplete"
       end
       {
         "kind" => PAPERCUT_KINDS,
@@ -2157,6 +2292,187 @@ module RetroState
 
       store = Store.new(root)
       store.init
+
+      base_decision, decision_body = parse_document(decision_template)
+      base_decision["candidate_id"] = "RC-20260715T120000Z-000000"
+      base_decision["reviewed_at"] = "2026-07-15T11:59:00Z"
+      base_contract = base_decision.slice(*review_trigger_contract_fields)
+      trigger_variant = lambda do |trigger_type|
+        variant = base_contract.dup
+        REVIEW_TRIGGER_TYPE_FIELDS.values.flatten.each { |field| variant.delete(field) }
+        variant["review_trigger_type"] = trigger_type
+        variant["review_trigger_observer"] = "learning-process-review"
+        case trigger_type
+        when "date"
+          variant["review_trigger_at"] = "2026-08-27"
+          variant["review_trigger_probe"] = "Compare the current UTC date with review_trigger_at."
+        when "state-threshold"
+          variant["review_trigger_counter"] = "candidate_archives_total from artifact-audit-status"
+          variant["review_trigger_threshold"] = 10
+          variant["review_trigger_probe"] = "Run retro-state.rb artifact-audit-status."
+        when "external-artifact"
+          variant["review_trigger_locator"] = "upstream-release-x"
+          variant["review_trigger_probe"] = "Inspect the named upstream release artifact."
+        when "explicit-input"
+          variant["review_trigger_input"] = "A bounded user decision supplied to triage."
+          variant["review_trigger_probe"] = "Confirm the named input is present in the triage request."
+        when "destination-use"
+          variant["review_trigger_destination"] = "skills/example/SKILL.md"
+        end
+        variant
+      end
+
+      %w[date state-threshold external-artifact explicit-input].each do |trigger_type|
+        validate_review_trigger_contract(
+          trigger_variant.call(trigger_type),
+          "#{trigger_type} trigger",
+          legacy_allowed: false
+        )
+      end
+
+      missing_contract = base_decision.dup
+      missing_contract.delete("review_trigger_contract_version")
+      begin
+        validate_decision(missing_contract, decision_body, label: "missing trigger contract")
+        raise "deferred decision without a trigger contract was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_contract_version must be")
+      end
+
+      missing_unresolved_decision = base_decision.dup
+      missing_unresolved_decision.delete("unresolved_decision")
+      begin
+        validate_decision(
+          missing_unresolved_decision,
+          decision_body,
+          label: "missing unresolved decision"
+        )
+        raise "deferred decision without an unresolved decision was accepted"
+      rescue Error => e
+        raise unless e.message.include?("unresolved_decision must be a non-empty string")
+      end
+
+      begin
+        validate_review_trigger_contract(
+          trigger_variant.call("destination-use"),
+          "destination-use trigger",
+          legacy_allowed: false
+        )
+        raise "destination-use trigger without a matcher was accepted"
+      rescue Error => e
+        raise unless e.message.include?("destination-use triggers require a supported destination matcher")
+      end
+
+      invalid_date = trigger_variant.call("date").merge("review_trigger_at" => "2026-02-30")
+      begin
+        validate_review_trigger_contract(invalid_date, "invalid date trigger", legacy_allowed: false)
+        raise "invalid date trigger was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_at must be an ISO date")
+      end
+
+      invalid_threshold = trigger_variant.call("state-threshold").merge(
+        "review_trigger_threshold" => 0
+      )
+      begin
+        validate_review_trigger_contract(
+          invalid_threshold,
+          "invalid threshold trigger",
+          legacy_allowed: false
+        )
+        raise "nonpositive state threshold was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_threshold must be a positive integer")
+      end
+
+      missing_counter = trigger_variant.call("state-threshold")
+      missing_counter.delete("review_trigger_counter")
+      begin
+        validate_review_trigger_contract(
+          missing_counter,
+          "state threshold trigger",
+          legacy_allowed: false
+        )
+        raise "state threshold trigger without a counter was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_counter must be a non-empty string")
+      end
+
+      missing_locator = trigger_variant.call("external-artifact")
+      missing_locator.delete("review_trigger_locator")
+      begin
+        validate_review_trigger_contract(
+          missing_locator,
+          "external artifact trigger",
+          legacy_allowed: false
+        )
+        raise "external artifact trigger without a locator was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_locator must be a non-empty string")
+      end
+
+      missing_input = trigger_variant.call("explicit-input")
+      missing_input.delete("review_trigger_input")
+      begin
+        validate_review_trigger_contract(missing_input, "explicit input trigger", legacy_allowed: false)
+        raise "explicit input trigger without named input was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_input must be a non-empty string")
+      end
+
+      invalid_observer = trigger_variant.call("explicit-input").merge(
+        "review_trigger_observer" => "review-queue"
+      )
+      begin
+        validate_review_trigger_contract(
+          invalid_observer,
+          "invalid trigger observer",
+          legacy_allowed: false
+        )
+        raise "routing surface was accepted as a trigger observer"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_observer must be one of")
+      end
+
+      invalid_route = trigger_variant.call("explicit-input").merge(
+        "review_trigger_route" => "skill-retro-triage"
+      )
+      begin
+        validate_review_trigger_contract(invalid_route, "invalid trigger route", legacy_allowed: false)
+        raise "observer was accepted as a trigger route"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_route must be review-queue")
+      end
+
+      missing_probe = trigger_variant.call("explicit-input")
+      missing_probe.delete("review_trigger_probe")
+      begin
+        validate_review_trigger_contract(missing_probe, "missing trigger probe", legacy_allowed: false)
+        raise "trigger without a probe was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_probe must be a non-empty string")
+      end
+
+      invalid_draft, invalid_draft_body = parse_document(draft_template)
+      invalid_draft.delete("review_trigger_contract_version")
+      File.write(draft, render_document(invalid_draft, invalid_draft_body))
+      begin
+        store.record_draft(draft)
+        raise "open draft without a trigger contract was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_contract_version must be")
+      end
+
+      invalid_ledger, invalid_ledger_body = parse_document(ledger_template)
+      invalid_ledger.delete("review_trigger_contract_version")
+      File.write(ledger, render_document(invalid_ledger, invalid_ledger_body))
+      begin
+        store.record_ledger(ledger)
+        raise "open ledger without a trigger contract was accepted"
+      rescue Error => e
+        raise unless e.message.include?("review_trigger_contract_version must be")
+      end
+
       path = store.route(input)
       id = File.basename(path, ".md")
       raise "pending candidate missing" unless store.pending.map(&:first) == [id]
@@ -2245,13 +2561,12 @@ module RetroState
         File.write(path, original)
       end
 
-      decision_text = decision_template
+      decision_text = without_review_trigger_contract.call(
+        decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
         .sub("verdict: defer", "verdict: accept")
-        .sub(/^review_trigger:.*\n/, "")
-        .sub(/^next_action:.*\n/, "")
-        .sub(/^close_condition:.*\n/, "")
+      )
       File.write(decision, decision_text)
       archive_path = store.process(id, decision)
       raise "candidate was not archived" unless File.file?(archive_path)
@@ -2375,6 +2690,12 @@ module RetroState
       ledger_path = store.record_ledger(ledger)
       raise "ledger record missing" unless File.file?(ledger_path)
       ledger_id = File.basename(ledger_path, ".md")
+      [draft_path, ledger_path].each do |legacy_path|
+        legacy_data, legacy_body = read_document(legacy_path)
+        legacy_review_trigger_fields.each { |field| legacy_data.delete(field) }
+        File.write(legacy_path, render_document(legacy_data, legacy_body))
+      end
+      store.validate
 
       contradicted_data = updated_accepted.merge(
         "verification" => "contradicted",
@@ -2445,13 +2766,12 @@ module RetroState
       File.write(input, correction_text)
       correction_path = store.route(input)
       correction_id = File.basename(correction_path, ".md")
-      correction_decision = decision_template
+      correction_decision = without_review_trigger_contract.call(
+        decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", correction_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:04:00Z")
         .sub("verdict: defer", "verdict: accept")
-        .sub(/^review_trigger:.*\n/, "")
-        .sub(/^next_action:.*\n/, "")
-        .sub(/^close_condition:.*\n/, "")
+      )
       File.write(decision, correction_decision)
       store.process(correction_id, decision)
       correction_accepted_text = accepted_template.sub("RC-YYYYMMDDTHHMMSSZ-abcdef", correction_id)
@@ -2517,6 +2837,15 @@ module RetroState
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:00Z")
       File.write(decision, deferred_decision)
       deferred_archive_path = store.process(deferred_id, decision)
+      legacy_deferred, legacy_deferred_body = read_document(deferred_archive_path)
+      legacy_review_trigger_fields.each do |field|
+        legacy_deferred.fetch("triage").delete(field)
+      end
+      File.write(
+        deferred_archive_path,
+        render_document(legacy_deferred, legacy_deferred_body)
+      )
+      store.validate
       review_types = store.review_queue.map(&:first)
       raise "deferral missing from review queue" unless review_types.include?("deferred")
       raise "draft missing from review queue" unless review_types.include?("draft")
@@ -2525,14 +2854,13 @@ module RetroState
       File.write(input, candidate_template.gsub("Short candidate title", "Merge into deferral"))
       merged_path = store.route(input)
       merged_id = File.basename(merged_path, ".md")
-      merged_decision = decision_template
+      merged_decision = without_review_trigger_contract.call(
+        decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", merged_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:30Z")
         .sub("verdict: defer", "verdict: merge")
         .sub("related_candidate_ids: []", "related_candidate_ids:\n  - #{deferred_id}")
-        .sub(/^review_trigger:.*\n/, "")
-        .sub(/^next_action:.*\n/, "")
-        .sub(/^close_condition:.*\n/, "")
+      )
       File.write(decision, merged_decision)
       store.process(merged_id, decision)
       if store.review_queue.any? { |type, row_id, _trigger, _path|
@@ -2544,14 +2872,13 @@ module RetroState
       File.write(input, candidate_template.gsub("Short candidate title", "Merge into deferred merge"))
       nested_merged_path = store.route(input)
       nested_merged_id = File.basename(nested_merged_path, ".md")
-      nested_merged_decision = decision_template
+      nested_merged_decision = without_review_trigger_contract.call(
+        decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", nested_merged_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:45Z")
         .sub("verdict: defer", "verdict: merge")
         .sub("related_candidate_ids: []", "related_candidate_ids:\n  - #{merged_id}")
-        .sub(/^review_trigger:.*\n/, "")
-        .sub(/^next_action:.*\n/, "")
-        .sub(/^close_condition:.*\n/, "")
+      )
       File.write(decision, nested_merged_decision)
       store.process(nested_merged_id, decision)
       if store.review_queue.any? { |type, row_id, _trigger, _path|
@@ -2625,13 +2952,12 @@ module RetroState
         raise unless e.message.include?("replacement decision must be newer")
       end
 
-      accepted_decision = decision_template
+      accepted_decision = without_review_trigger_contract.call(
+        decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:07:00Z")
         .sub("verdict: defer", "verdict: accept")
-        .sub(/^review_trigger:.*\n/, "")
-        .sub(/^next_action:.*\n/, "")
-        .sub(/^close_condition:.*\n/, "")
+      )
       File.write(decision, accepted_decision)
       store.reconsider(deferred_id, decision)
       accepted_candidate, accepted_body = read_document(deferred_archive_path)
@@ -2695,13 +3021,12 @@ module RetroState
 
       post_audit_path = store.route(input)
       post_audit_id = File.basename(post_audit_path, ".md")
-      post_audit_decision = decision_template
+      post_audit_decision = without_review_trigger_contract.call(
+        decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", post_audit_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:06:00Z")
         .sub("verdict: defer", "verdict: reject")
-        .sub(/^review_trigger:.*\n/, "")
-        .sub(/^next_action:.*\n/, "")
-        .sub(/^close_condition:.*\n/, "")
+      )
       File.write(decision, post_audit_decision)
       store.process(post_audit_id, decision)
       unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)

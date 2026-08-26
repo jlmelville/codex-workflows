@@ -7,11 +7,14 @@ accepted the proposed implementation batch.
 
 Read [state-protocol.md](state-protocol.md). Use the external helper to attach a
 complete verdict and archive each processed candidate. A deferred decision must
-name a review trigger, next action, and close condition. Split and merge
-decisions must retain all originating opaque IDs. When a deferred trigger later
-fires, use `reconsider --id ID --decision PATH` so the replacement verdict keeps
-the original triage lineage. Adjudicate each verification proposal separately
-with `process-verification`; an applied proposal updates its existing accepted
+name the unresolved decision and use the structured trigger contract: durable
+predicate, observer, `review-queue` route, probe, next action, and close
+condition. Later behavioral uncertainty after a justified implementation uses
+an unverified accepted outcome instead. Split and merge decisions must retain
+all originating opaque IDs. When a deferred trigger later fires, use
+`reconsider --id ID --decision PATH` so the replacement verdict keeps the
+original triage lineage. Adjudicate each verification proposal separately with
+`process-verification`; an applied proposal updates its existing accepted
 identity and a rejected proposal does not.
 
 Do not copy candidate or verification inbox, archive, accepted, draft, ledger,

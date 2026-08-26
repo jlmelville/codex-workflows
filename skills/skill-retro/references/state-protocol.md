@@ -208,11 +208,53 @@ implementation batch before editing source.
 Use `template decision`, fill the verdict and rationale, then use `process` to
 attach the decision and move the record from inbox to archive. The intake
 digest and original intake fields remain in the archived document. For a
-deferred verdict, `review_trigger`, `next_action`, and `close_condition` are
-required. Use `review-queue` to list pending verification proposals, open
-archived deferrals, contradicted accepted outcomes, drafts, ledger actions,
-accepted publication gaps, and a due artifact audit. An `accepted-publication`
-row means an archived `accept` or
+deferred verdict, first state the `unresolved_decision` that current evidence
+cannot justify. Post-implementation behavioral uncertainty is not a deferral:
+implement the justified outcome, keep it behaviorally `unverified`, and retain
+its destination-matched `verification_opportunity`.
+
+Every new or reconsidered candidate deferral uses this shared liveness
+contract in addition to `unresolved_decision`. New open drafts and ledgers use
+the liveness fields without claiming that an already accepted but blocked
+action is an undecided question:
+
+```yaml
+review_trigger_contract_version: 1
+review_trigger_type: explicit-input
+review_trigger_observer: skill-retro-triage
+review_trigger_route: review-queue
+review_trigger_probe: "Exact check the observer performs."
+review_trigger_input: "Specific input that must be supplied."
+review_trigger: "Durable predicate that fires the action."
+next_action: "Executable action after the predicate is observed."
+close_condition: "Condition that resolves or replaces the actor."
+```
+
+`review_trigger_observer` is either `learning-process-review` or
+`skill-retro-triage`; it names the routine judgment process responsible for the
+probe. `review_trigger_route` is currently always `review-queue`. The queue is
+the routing surface, not the observer or event source.
+
+Choose one bounded trigger type and add its required field:
+
+- `date`: `review_trigger_at` is a valid ISO date;
+- `state-threshold`: `review_trigger_counter` names a helper-owned durable
+  count or query and `review_trigger_threshold` is a positive integer;
+- `external-artifact`: `review_trigger_locator` names the stable artifact that
+  the probe inspects; or
+- `explicit-input`: `review_trigger_input` names what a future review must be
+  given.
+
+`destination-use` is reserved but rejected until a supported destination
+matcher exists. Do not use another type to disguise an ordinary next-use
+trigger. The helper continues to validate assigned legacy records that predate
+this contract, but every new helper-created actor and every replacement
+deferral must use it.
+
+Use `review-queue` to list pending verification proposals, open archived
+deferrals, contradicted accepted outcomes, drafts, ledger actions, accepted
+publication gaps, and a due artifact audit. An `accepted-publication` row means
+an archived `accept` or
 `split`, or a `merge` into a publication-bound related outcome, is absent from
 every accepted record. A merge into only deferred, rejected, or no-change
 outcomes consolidates evidence without creating a publication obligation.
@@ -351,8 +393,12 @@ repository-maintenance threshold. A deferred candidate is evidence awaiting a
 specific decision; it is not automatically a draft or ledger entry.
 
 Create drafts and ledger entries from the helper templates so validation can
-enforce their owner/status and executable-drain fields. Close, activate,
-deprecate, or delete them instead of accumulating generic notes.
+enforce their owner/status and executable-drain fields. Every open or revised
+draft and every open ledger uses the shared liveness contract from
+[Triage And Archive](#triage-and-archive). A durable note without an observable
+predicate, named observer, queue route, executable probe, next action, and
+close condition is not a valid unresolved actor. Close, activate, deprecate,
+or delete records instead of accumulating generic notes.
 
 Close an open maintenance ledger through `close-ledger`. The helper preserves
 the record, marks it closed, updates `last_reviewed`, and adds a UTC closure
@@ -368,11 +414,12 @@ rely on retention.
 
 `audits/learning-process` stores completed, sanitized system diagnoses. Generate
 `template audit`, create every unresolved consequence first as an existing
-candidate deferral, draft, or ledger action, list those IDs in
-`unresolved_action_ids`, and use `record-audit --file PATH` only after the user
-has authorized the external-state mutation. The helper requires each listed
-action to exist and be open when the audit is recorded. Completed audits stay
-cold; only their unresolved action records belong in `review-queue`.
+candidate deferral, draft, or ledger action with a valid liveness contract,
+list those IDs in `unresolved_action_ids`, and use `record-audit --file PATH`
+only after the user has authorized the external-state mutation. The helper
+requires each listed action to exist and be open when the audit is recorded.
+Completed audits stay cold; only their unresolved action records belong in
+`review-queue`.
 
 Use `audit_kind: learning-process` for feedback-loop diagnoses and
 `audit_kind: skill-repository` for completed report-only artifact audits. The
