@@ -53,6 +53,13 @@ explicitly installs and invokes a newer Bash. Avoid Bash 4+ features such as
 `mapfile`, `readarray`, `local -n`, and `declare -n`; use `while read` loops and
 ordinary arrays instead.
 
+When a repository promises an older Bash, run representative behavior checks
+through the actual promised interpreter and verify that the script's normal
+executable-resolution path selects it; a passing `env bash` run may only
+exercise a newer package-manager shell. Under Bash 3.2 with `set -u`, branch on
+an array's length before expanding `${array[@]}` when it can be empty, even
+after assignment.
+
 ## Robust Patterns
 
 - Quote expansions unless word splitting is required.

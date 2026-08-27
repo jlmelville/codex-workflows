@@ -115,6 +115,13 @@ orientation-dependent caption, representative selection, and visual claim.
 ## Figure-Led Articles
 
 Keep the shortest useful user action and observation on the main reading path.
+When the primary empirical question is visual, create a role-based
+reconnaissance packet before narrative compression. Include representative
+positive, adverse, stable or no-change, and mechanism-distinguishing views;
+mechanism diagrams and aggregate tables do not replace that visual evidence.
+Keep post-hoc visual interest qualitative unless a preference criterion was
+predeclared and reproducibly assessed.
+
 When complete reproduction code is necessary but would overwhelm that path,
 put it in a tracked companion script and expose it through a collapsed details
 block. Parse and smoke the companion independently so the full render is not
@@ -148,6 +155,14 @@ build-included installed location when installed users need the asset. Inspect
 successful pkgdown render. Exercise source, built-package, installed-package,
 and website access only for the contexts the prose claims; do not rely on a
 test or companion that disappears from the built package.
+
+For every non-image download an article promises, validate distribution
+separately: build the complete site, serve the final output, and request the
+promised URL as a reader would. A rendered anchor or successful build is not
+sufficient; require a successful response and an expected representation such
+as content type plus a stable length or digest. When a verbatim website-only
+file belongs under `pkgdown/assets/`, its relative path becomes
+website-root-relative, so choose and test the public URL deliberately.
 
 ## Mathematical Catalogue Articles
 

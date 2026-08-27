@@ -106,6 +106,30 @@ the current call. Put durable resource costs for documented default behavior in
 parameter documentation, keep normal default calls silent, and ensure warnings
 shown beside errors are causally relevant to those failures.
 
+## Recoverable Outcomes
+
+When an internal typed failure may be a documented, expected public outcome,
+decide explicitly whether the public boundary should propagate it or catch and
+return it as a clearly typed recovery object. Return it only when callers can
+inspect and resume the operation; continue to signal conditions outside that
+documented recovery contract. Establish stable recovery state before starting
+the fallible operation. Do not require advance opt-in solely to make an
+unpredictable same-session failure recoverable; reserve explicit caller-owned
+state for a longer lifecycle.
+
+Keep the exceptional recovery shape independent of selectors for completed
+domain results. Test the public paths separately:
+
+| Path | Public result | Required witness |
+| --- | --- | --- |
+| Completed operation | Established successful result mode | Every supported mode retains its class and fields |
+| Documented recoverable interruption | Typed recovery object independent of successful mode | Stable token or path, progress, resumability, lifecycle, and cleanup ownership |
+| Other failure | Propagated condition | The boundary does not catch unrelated failures broadly |
+
+Exercise fresh failure and rerun behavior through every successful mode
+selector, including default session state and explicit caller-owned state when
+both lifecycles are supported.
+
 ## Integer-Valued Controls
 
 Before calling `as.integer()` on a public control, validate the original value
