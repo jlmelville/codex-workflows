@@ -62,6 +62,11 @@ Use this as the default operating procedure for R package work.
 Choose checks based on blast radius. See [checks.md](references/checks.md) for
 the command matrix, warning attribution, and final-validation workflows.
 
+When a release check has a large, compiled, or repository-sensitive reverse-
+dependency universe, follow [revdepcheck.md](references/revdepcheck.md) before
+starting `revdepcheck`. It owns dependency preparation, external staging, and
+the exact runner-path preflight.
+
 After substantive edits to hand-maintained R source or tests, run the
 configured Air check and lintr in addition to behavior-driven checks. If either
 configured check is unavailable, name the command not run and report validation

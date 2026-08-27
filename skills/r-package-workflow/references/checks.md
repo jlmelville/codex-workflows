@@ -136,16 +136,41 @@ repository diagnostic:
 For CRAN-published packages or explicit release-prep work, add a separate CRAN
 release lane after the development checks:
 
+When a remote diagnostic names a published or submitted package version, first
+identify that exact source archive or release tag. Compare it with current
+`HEAD` and classify every reported path as still present, structurally removed,
+directly fixed, or only incidentally masked. Choose whether the next release is
+a minimal patch or current development from that evidence, then validate the
+artifact actually intended for submission instead of assuming the remote log
+describes the worktree.
+
+Before handoff, evaluate `roxygen2::needs_roxygenize()` against the exact
+release candidate even when documentation was not intentionally changed. If it
+reports drift, regenerate in an isolated copy or an explicitly authorized
+documentation phase, inspect `DESCRIPTION`, `NAMESPACE`, `man/`, and binding
+outputs, and run a second pass to establish idempotence. Use
+`$r-docs-pkgdown` to separate generated-content drift from generator-version
+metadata; a metadata-only result still requires an explicit keep-or-defer
+decision rather than incidental release churn.
+
 - CRAN-style local check:
   `Rscript -e 'rcmdcheck::rcmdcheck(args = c("--as-cran", "--no-manual"))'`
 - External platform checks such as R-hub and win-builder when submission
   compatibility matters.
 - `revdepcheck` when the package has downstream dependencies and the change can
-  affect public behavior.
+  affect public behavior. For a large, compiled, or repository-sensitive
+  dependency universe, complete the preparation and runner preflight in
+  [revdepcheck.md](revdepcheck.md) first.
 
 Treat R-hub, win-builder, CRAN metadata, and reverse-dependency results as
 remote service state. Report queued, unavailable, or network-blocked checks
 separately from local package failures.
+
+Keep `cran-comments.md` outcome-focused: include the release purpose, completed
+check environments and results, and package-attributable diagnostics that CRAN
+needs to assess. Keep queued or unrun checks and external setup or service
+failures that produced no package result in the internal validation handoff;
+they are not submission evidence.
 
 Inspect generated and temporary output before finalizing:
 
