@@ -33,6 +33,28 @@ and outcomes whenever work pauses, changes direction, completes a milestone, or
 hands off. Put the active state and next action near the top so large plans do
 not bury what matters.
 
+## Lifecycle Rollover
+
+Keep updating an ExecPlan in place while it remains the smallest useful,
+self-contained startup artifact. Line count alone is not a rollover trigger.
+Create a successor at a coherent phase boundary when completed history
+dominates the active queue, or when the next objective has a materially
+different acceptance witness and keeping both phases active would obscure the
+current work.
+
+When rolling over:
+
+1. Finish the predecessor's current-state and outcomes sections, mark it as
+   historical, and link to the successor.
+2. Make the successor self-contained for the new objective, including current
+   state, relevant decisions and guardrails, acceptance, and the next action;
+   link back to the predecessor for provenance.
+3. Keep the predecessor out of required startup reads. Consult it only when
+   earlier reasoning or evidence is needed; do not copy its chronology into the
+   successor.
+4. Put large result tables, logs, or benchmark outputs in bounded companion
+   artifacts and summarize the decisions they support in the successor.
+
 Do not record the hash of the commit currently being created in a file included
 in that same commit; amending the file changes the commit hash immediately.
 Record prior commit hashes in the plan, and report the final hash in chat or in
