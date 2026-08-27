@@ -53,9 +53,26 @@ generated on demand so the README does not become a second skill inventory.
 
 ## Set Up A Laptop
 
-Install and initialize [rbenv](https://github.com/rbenv/rbenv#installation),
-then clone the repository, install its exact Ruby, and install the managed
-skills:
+Install [rbenv](https://github.com/rbenv/rbenv#installation), ruby-build, and
+the platform packages needed to compile Ruby first. The exact macOS and
+Debian-like package lists are in
+[Repository Maintenance](docs/repository-maintenance.md#repository-maintainer-tooling).
+
+For Bash, load rbenv from the login profile that Codex can import. On the
+Debian-like setup used here, with no `~/.bash_profile` or `~/.bash_login`, add
+this to `~/.profile`:
+
+```sh
+if [ -x "$HOME/.rbenv/bin/rbenv" ]; then
+    eval "$("$HOME/.rbenv/bin/rbenv" init - --no-rehash bash)"
+elif command -v rbenv >/dev/null 2>&1; then
+    eval "$(rbenv init - --no-rehash bash)"
+fi
+```
+
+If Bash uses `~/.bash_profile` on another machine, put the block there or have
+that file source `~/.profile`. Open a new login shell, then clone the repository,
+install its exact Ruby, and install the managed skills:
 
 ```sh
 git clone git@github.com:jlmelville/codex-workflows.git
@@ -66,8 +83,8 @@ rbenv install -s "$(cat .ruby-version)"
 ```
 
 The repository requires the exact CRuby version in `.ruby-version`; rbenv is
-the supported user setup. Installed Ruby helpers select that version through
-the rbenv shim even when they run from another repository with a different
+the supported user setup. Installed Ruby helpers pin that version through their
+shebang even when they run from another repository with a different
 `.ruby-version`, and reject any explicitly forced incompatible interpreter
 before doing work. Bundler is needed only for repository development and
 validation, not for running installed helpers.
@@ -96,12 +113,19 @@ them out of the user-wide skill directory and validates their links.
    writable_roots = ["/absolute/path/to/codex-workflows-state"]
 
    [shell_environment_policy]
+   experimental_use_profile = true
    set = { CODEX_WORKFLOWS_STATE_DIR = "/absolute/path/to/codex-workflows-state" }
    ```
 
    `workspace-write` permits normal repository edits, `writable_roots`
    additionally permits the external learning-state writes used by these
    workflows, and `on-request` keeps out-of-sandbox actions gated by approval.
+   `experimental_use_profile` tells Codex to load the user shell profile when
+   it constructs command environments, so the rbenv shims reach sandboxed
+   commands without a machine-specific static `PATH`. The option is documented
+   in the current
+   [Codex configuration reference](https://developers.openai.com/codex/config-reference/),
+   despite retaining its experimental name.
 
    Merge these keys into existing tables rather than defining a TOML table
    twice.
@@ -117,12 +141,21 @@ them out of the user-wide skill directory and validates their links.
    [Repository Maintenance](docs/repository-maintenance.md#user-global-instruction-setup)
    for ownership and precedence details.
 
-4. Restart Codex or open a new thread, then verify the setup:
+4. Restart Codex or open a new thread, then have that new session verify the
+   setup. An already-running session can retain the `PATH` it captured before
+   the profile policy changed.
 
    ```sh
+   command -v ruby
+   ruby --version
+   codex --strict-config --version
+   ./scripts/check-ruby-runtime.sh
    ./skills/skill-retro/scripts/retro-state.rb validate
    ./install.sh --check
    ```
+
+   `command -v ruby` should resolve to the rbenv shim. Inside this checkout, the
+   two Ruby checks should report the exact version in `.ruby-version`.
 
 After pulling skill changes, run `./install.sh` again. See
 [Repository Maintenance](docs/repository-maintenance.md) for installation

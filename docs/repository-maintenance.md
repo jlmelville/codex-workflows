@@ -106,8 +106,82 @@ writing, and `--check` requires the active block to match source and the
 inactive file to be free of owned content.
 
 The installer does not edit `config.toml`, shell startup files, external
-retrospective state, or unrelated global instructions. Restart Codex or open a
-new thread after the active global instruction file changes.
+retrospective state, or unrelated global instructions. Those host-specific
+surfaces must be bootstrapped before the installer can reliably select Ruby.
+Restart Codex or open a new thread after the active global instruction file or
+shell-environment policy changes.
+
+### Ruby and Codex shell bootstrap
+
+Bootstrap a new machine in this order:
+
+1. Install the platform packages needed to compile Ruby.
+2. Install rbenv and its ruby-build plugin.
+3. Initialize rbenv in the Bash login profile that Codex will load.
+4. Start a new login shell, clone this repository, and install the version in
+   `.ruby-version`.
+5. Enable Codex profile loading, restart Codex, and run the checks below.
+
+This order needs no intermediate repository edit: rbenv installation and shell
+initialization are host prerequisites, while `.ruby-version` supplies the exact
+version only after the checkout exists.
+
+For Bash, add the following to the active login startup file. Debian-like
+systems normally use `~/.profile` when neither `~/.bash_profile` nor
+`~/.bash_login` exists; if `~/.bash_profile` exists, put the block there or
+source `~/.profile` from it.
+
+```sh
+if [ -x "$HOME/.rbenv/bin/rbenv" ]; then
+    eval "$("$HOME/.rbenv/bin/rbenv" init - --no-rehash bash)"
+elif command -v rbenv >/dev/null 2>&1; then
+    eval "$(rbenv init - --no-rehash bash)"
+fi
+```
+
+The first branch supports rbenv's upstream Git-checkout layout; the second
+supports package-manager installations already visible on `PATH`. The
+`--no-rehash` form retains rbenv's shim and shell setup without regenerating
+shims on every login.
+
+After starting a fresh login shell from the repository checkout, finish Ruby
+selection and verify the host shell:
+
+```sh
+rbenv install -s "$(cat .ruby-version)"
+command -v ruby
+ruby --version
+./scripts/check-ruby-runtime.sh
+```
+
+Then merge the following key into the existing table in
+`~/.codex/config.toml`:
+
+```toml
+[shell_environment_policy]
+experimental_use_profile = true
+```
+
+The current
+[Codex configuration reference](https://developers.openai.com/codex/config-reference/)
+documents this setting as loading the user shell profile for subprocesses. It
+therefore carries rbenv's shim `PATH` into Codex commands without hard-coding a
+complete machine-specific `PATH` in TOML. Its name remains experimental, so
+validate the installed Codex version and restart before relying on it:
+
+```sh
+codex --strict-config --version
+```
+
+An already-running Codex session can retain its previous command environment.
+After restarting or opening a new thread, verify there that `command -v ruby`
+resolves to the rbenv shim and that `./scripts/check-ruby-runtime.sh` passes.
+
+The `.ruby-version` file controls repository commands, while installed helper
+shebangs set `RBENV_VERSION` to prevent a different project's `.ruby-version`
+from changing their interpreter. Both layers rely on the rbenv shims being
+present on the command `PATH`; no user-wide `rbenv global` selection is
+required.
 
 ## Validation
 
@@ -268,31 +342,49 @@ skills may use later inside other project repositories.
 | GitHub CLI (`gh`) | Inspecting PRs and workflow runs or triggering manual CI | Host package manager | Optional for ordinary validation; install through Homebrew or the supported platform package. |
 | uv / `uvx` | Optional temporary Python-tool execution | Host package manager; not a repository dependency | Install through Homebrew or upstream only when a temporary tool workflow needs it. Do not create a persistent repository `.venv` for maintainer CLIs. |
 
-For a typical macOS maintainer setup, install rbenv and the host tools with
-Homebrew, initialize rbenv for the shell as described by `rbenv init`, and then
-install the repository Ruby and locked development dependencies:
+For a typical macOS maintainer setup, install rbenv, ruby-build's recommended
+build libraries, and the host tools with Homebrew. Initialize rbenv in the Bash
+login profile as described above, start a new login shell, and then install the
+repository Ruby and locked development dependencies:
 
 ```sh
-brew install git rbenv python shellcheck ripgrep r actionlint zizmor gh
+brew install git rbenv ruby-build openssl@3 readline libyaml gmp autoconf
+brew install python shellcheck ripgrep r actionlint zizmor gh
 rbenv install -s "$(cat .ruby-version)"
 ./scripts/check-ruby-runtime.sh
 bundle install
 ```
 
-On Debian-like Linux, install the broadly available host dependencies with apt.
-Install and initialize rbenv and ruby-build through their supported upstream
-route, then install the exact repository Ruby rather than relying on the
-distribution's system Ruby. Use supported upstream package routes for
-actionlint and zizmor when the distribution does not provide suitable
-packages:
+On Debian-like Linux, install the host tools and ruby-build's
+[suggested build environment](https://github.com/rbenv/ruby-build/wiki#suggested-build-environment)
+with apt. In particular, `libyaml-dev` is required for CRuby's Psych extension;
+omitting it can leave a seemingly installed Ruby unable to load YAML. The
+distribution rbenv package is commonly stale, so the upstream
+[rbenv installation guide](https://github.com/rbenv/rbenv#basic-git-checkout)
+recommends a Git checkout. Install the ruby-build plugin as well because it
+provides `rbenv install`:
 
 ```sh
 sudo apt-get update
-sudo apt-get install -y git bash shellcheck python3 r-base ripgrep
+sudo apt-get install -y git bash shellcheck python3 r-base ripgrep \
+  build-essential autoconf libssl-dev libyaml-dev zlib1g-dev \
+  libffi-dev libgmp-dev rustc
+git clone https://github.com/rbenv/rbenv.git "$HOME/.rbenv"
+git clone https://github.com/rbenv/ruby-build.git \
+  "$HOME/.rbenv/plugins/ruby-build"
+```
+
+Add the Bash login-profile block above and start a fresh login shell. Then clone
+this repository and run:
+
+```sh
 rbenv install -s "$(cat .ruby-version)"
 ./scripts/check-ruby-runtime.sh
 bundle install
 ```
+
+Use supported upstream package routes for actionlint and zizmor when the
+distribution does not provide suitable packages.
 
 Local package-manager versions may be newer than CI. That is acceptable for
 ordinary validation; use `./scripts/check-ci-tool-parity.sh --strict` only when
