@@ -9,7 +9,7 @@ Use this as the default operating procedure for R package work.
 
 ## First Pass
 
-1. Inspect the worktree before editing: `git --no-optional-locks status --short`.
+1. Apply `$repo-update-preflight` before task-specific inspection or editing.
 2. Read package context before assuming structure: `DESCRIPTION`, `NAMESPACE`,
    relevant `R/`, `src/`, `tests/testthat/`, `NEWS.md`, `README.md`, and any
    active plan or handoff under `plans/`.
