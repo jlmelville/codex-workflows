@@ -5,8 +5,8 @@ description: Harden and maintain GitHub Actions workflows and Dependabot configu
 
 # GitHub Actions Hardening
 
-Use this for GitHub Actions infrastructure that is not covered by a more
-specific language or package skill.
+Use this for shared GitHub Actions policy and audit tooling. Combine it with a
+more specific language or package skill when one applies.
 
 ## Use A More Specific Skill When
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Retro"
-  short_description: "Synthesize reusable workflow lessons"
-  default_prompt: "Use $skill-retro to review this session and produce a concise Skill Candidate Report."
+  short_description: "Route skill candidates or verification evidence"
+  default_prompt: "Use $skill-retro to review this completed work and report or route any mature skill candidate or matching verification evidence under the active authority."
