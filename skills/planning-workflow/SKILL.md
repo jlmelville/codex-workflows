@@ -41,13 +41,22 @@ on chat history.
      another model to challenge conclusions.
    - Treat scratch notes and prototypes as inputs, not as the active source of
      truth, unless the user says otherwise.
-5. Before placing work in a long unattended iterative loop, define the in-loop
+5. Treat discoveries as evidence to classify against the accepted outcome, not
+   as permission to expand the plan. Admit only the minimum work required to
+   satisfy that outcome safely and correctly. Technical strategy may evolve
+   within the contract; changes to goals, non-goals, public semantics,
+   acceptance criteria, or reader promises need an explicit scope decision and
+   user direction when they materially expand authority. Close when the
+   accepted contract is satisfied and known in-scope blockers are resolved or
+   explicitly dispositioned; report or escalate out-of-scope findings without
+   implementing them.
+6. Before placing work in a long unattended iterative loop, define the in-loop
    witness: what will be observed, how it distinguishes progress, success,
    regression, and failure, and when the loop must stop or escalate. If the
    decisive observation requires human judgment, end the loop at that boundary.
    A usable witness does not expand task authority or loosen containment, cost,
    scope, or irreversible-action limits.
-6. Use `$agent-instructions-maintenance` when the main task is creating,
+7. Use `$agent-instructions-maintenance` when the main task is creating,
    auditing, shrinking, or updating `AGENTS.md` or equivalent instruction
    policy rather than managing execution state.
 
