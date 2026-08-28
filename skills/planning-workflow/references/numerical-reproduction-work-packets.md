@@ -106,10 +106,32 @@ from the full decomposition by alignment when low modes may cluster. Check
 generalized residuals, mass-weighted centering and orthogonality, the map-back
 identity, and invariant-span agreement.
 
+Before scoring an exact-null favorable control, check identifiability as well
+as truth membership. After removing required structural nulls, characterize the
+remaining nullity and compare it with the requested target dimension. If excess
+exact null directions leave the selected span underidentified, preserve the
+case as underidentified or invalid; do not score an arbitrary null basis, blame
+the eigensolver, or tune the fixture until it selects a favorable representative.
+
 Record negative results in the active plan so later work cannot reopen a ruled-
 out cause without new evidence. An outcome-dependent gate should say whether to
 repair the current reproduction, stop because an upstream precondition failed,
 or start a separately identified method-development decision.
+
+## Audit Generalized Mass Semantics
+
+For `B y = lambda M y` with positive diagonal `M`, separate the exact symmetric
+transform from the scientific meaning assigned to the mass. Derive the
+Rayleigh constraints, factor `B` where useful, and interpret both the symmetric
+coordinates and mapped-back vectors. Compare plausible masses and test global
+scaling, selective reweighting, support, and permutation behavior before
+claiming an observation measure.
+
+Call `M` graph degree only when a nonnegative affinity or equivalent graph
+construction derives that diagonal. Likewise, require a corresponding model
+derivation before describing it as continuum, density, quadrature, likelihood,
+or reliability mass. Exact residuals, diagonal equilibration, and a familiar
+normalized operator do not establish those semantics by themselves.
 
 ## Calibrate Scientific Metric Gates
 
@@ -148,6 +170,20 @@ baseline rather than every stress or ablation control. Keep mechanism or
 availability classification separate from evidence strength, and make final
 statuses ordered and exhaustive.
 
+For method-family work, assign every gate to the claim layer it governs:
+algebraic legitimacy and the numerical contract; behavioral non-equivalence
+and public interpretability; or comparative task performance. Require
+superiority only when the proposed contract asserts it. A failed comparison
+must not invalidate a coherent endpoint or close an adjacent construction
+family that the experiment did not exercise.
+
+Label novelty and family-continuation gates as incremental when they require
+endpoint distinctness, recurrence, breadth, or comparator closure. Those
+conditions cannot judge the endpoints that define the family. Calibrate
+established or literature-adjacent anchors separately and describe a negative
+result as failure of the frozen continuation protocol, not as a general verdict
+on method legitimacy or utility.
+
 ## Nested Baseline Closure
 
 When a proposed extension contains a trusted baseline at an equality, zero, or
@@ -171,6 +207,13 @@ show the same observed representatives in both views, selected from their joint
 aligned structure rather than labels, residual extremes, or a favorable score.
 Distinguish an alternative low-dimensional slice of shared structure from
 recovery of unique information.
+
+When reporting a minimum candidate eigengap, give its case, configuration, and
+mode pair, then classify the gap as internal to, crossing, or beyond the
+retained invariant subspace. Also report the retained-boundary gap,
+multiplicity-block dimension, candidate and retained counts, and the
+invariant-span comparison used for sign-off. A small internal gap does not show
+that a retained plane is unstable when its boundary remains separated.
 
 Before interpreting retained eigenvector views, measure whether each mode is
 globally supported, for example with participation-ratio support or

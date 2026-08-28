@@ -22,6 +22,9 @@ Use this for documentation and pkgdown work in R packages.
   technical-article editorial integrity, precomputed stochastic figures, or
   figure-led articles with long reproduction code, follow
   [validation.md](references/validation.md).
+- When creating, reviewing, simplifying, or adding interactions to
+  documentation figures, use [figure-style.md](references/figure-style.md) for
+  semantic mappings, preservation, accessibility, and final-width review.
 - Treat audit suggestions for new tutorials, comparison tables, examples, or
   plots as hypotheses rather than completion requirements. Require a named user
   task and a confirmed coverage gap, account for dataset, dependency,

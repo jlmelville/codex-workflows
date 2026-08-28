@@ -114,6 +114,11 @@ orientation-dependent caption, representative selection, and visual claim.
 
 ## Figure-Led Articles
 
+Apply [figure-style.md](figure-style.md) when the review concerns palette
+semantics, preservation of existing reader value, accessibility text, display
+size, or enlargement behavior. Keep the execution and evidence checks below as
+separate validation boundaries.
+
 Keep the shortest useful user action and observation on the main reading path.
 When the primary empirical question is visual, create a role-based
 reconnaissance packet before narrative compression. Include representative

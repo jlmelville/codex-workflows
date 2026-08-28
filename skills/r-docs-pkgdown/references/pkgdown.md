@@ -62,6 +62,10 @@ defaults.
 
 ## Static Figures
 
+Use [figure-style.md](figure-style.md) for visual semantics, preservation,
+accessibility, and optional enlargement. This section owns generated-asset
+integrity and reproduction.
+
 When committed README or article figures depend on package plotting behavior,
 do more than validate that image paths resolve:
 
