@@ -35,10 +35,6 @@ Before proposing edits:
    Outside the source checkout, use the installed helper. Do not use a stale
    installed helper to reject or mutate records that the source helper reports
    as incompatible; resolve the documented compatibility path first.
-   Classification-only papercut incompatibility may use the typed
-   `repair-papercut` path in `state-protocol.md` after explicit user authority;
-   bind the decision to current intake, state each mapping rationale, and do not
-   treat repair as papercut review.
 4. Read every cited destination skill, reference, prompt, or script.
 5. Inspect external archived deferrals, interrupted accepted publication,
    contradicted accepted outcomes, drafts, ledger entries, and artifact-audit
