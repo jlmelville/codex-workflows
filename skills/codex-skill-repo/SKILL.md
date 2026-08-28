@@ -32,12 +32,12 @@ Codex runtime directory.
   user-scoped copy only when the prior managed manifest proves this repository
   owns it. Preserve and report an unowned collision instead of overwriting or
   deleting it.
-- Before source-changing work in a checkout shared across machines, reconcile
-  its upstream, worktree, stashes, divergence, and incoming changes. Re-read
-  instructions and relevant skills after integration because their structure or
-  policy may have changed. Use
-  [source-reconciliation.md](references/source-reconciliation.md) for the exact
-  preflight, recovery branches, and machine-local state compatibility gate.
+- Before source-changing work in a checkout shared across machines, apply
+  `$repo-update-preflight`. After it completes, re-read instructions and relevant
+  skills because their structure or policy may have changed. Then use
+  [source-reconciliation.md](references/source-reconciliation.md) for the skill
+  repository's incoming-policy review and machine-local state compatibility
+  gate.
 
 ## Consistency Surfaces
 

@@ -49,21 +49,11 @@ Use this for documentation and pkgdown work in R packages.
 - Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
 - Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen
   source change that produced them. Avoid unrelated generated churn.
-- When roxygen blocks move files without wording changes, regenerate docs and
-  classify generated `man/*.Rd` diffs that only update
-  `% Please edit documentation in ...` source comments as expected source-path
-  churn. Run `roxygen2::roxygenise()` a second time to confirm idempotence.
-- After `roxygen2::roxygenise()`, inspect `git diff -- DESCRIPTION`
-  separately. During an intentional documentation rebuild, retain expected
-  generator-version metadata from the installed roxygen release unless the
-  repository explicitly pins another generator, and revert unrelated
-  `DESCRIPTION` changes. Do not accept incidental documentation churn from a
-  command when no rebuild was requested merely because roxygen produced it.
-- Do not enable `Roxygen: list(markdown = TRUE)` as an opportunistic partial
-  change. Once roxygen markdown is enabled, complete the markdown conversion in
-  the same docs-modernization chunk or add an explicit required follow-up chunk
-  before formatting, lint, pkgdown, CI, or structural refactors.
-- For roxygen markdown audits or package-wide conversions, run
+- When regenerating documentation, follow the roxygen section in
+  [pkgdown.md](references/pkgdown.md#roxygen) to classify source-path churn,
+  generator metadata, and idempotence.
+- Do not begin a package-wide roxygen markdown conversion during an unrelated
+  narrow change. When enabling or auditing roxygen markdown, run
   `${HOME}/.agents/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`,
   then follow [roxygen-markdown.md](references/roxygen-markdown.md).
 - Avoid broad roxygen churn during narrow correctness phases.

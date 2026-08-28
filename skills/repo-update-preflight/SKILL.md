@@ -1,6 +1,6 @@
 ---
 name: repo-update-preflight
-description: Refresh and safely reconcile an existing Git checkout with its configured upstream before repository work. Use before editing, testing, reviewing, planning, or documenting in a Git repo; skip new repos without remotes.
+description: Refresh a Git checkout from its upstream without losing work. Use for requested updates or when another skill or repository instruction requires current upstream before source changes; skip new repos without remotes.
 ---
 
 # Repo Update Preflight

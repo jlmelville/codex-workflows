@@ -1,63 +1,24 @@
-# Shared-Checkout Source Reconciliation
+# Skill-Repository Reconciliation Overlay
 
-Use this before source-changing maintenance in a repository that may receive
-changes from another machine. The goal is to establish the actual source state
-without discarding local work or letting an old checkout interpret newer
-machine-local data.
+Apply `$repo-update-preflight` before this reference. It owns upstream refresh,
+worktree and stash inspection, divergence handling, safe integration, and
+generic post-integration checks. This overlay owns the additional decisions for
+a skill source repository that also has installed copies and machine-local
+operational state.
 
-## Establish The Evidence
+## Re-read Reconciled Policy
 
-Read the current repository instructions and active local plan first, but treat
-them as provisional until upstream is refreshed. Record the current branch and
-commit, then inspect all local work and recovery surfaces:
-
-```sh
-git --no-optional-locks status --short --branch --untracked-files=all
-git stash list
-git branch -vv
-git remote -v
-```
-
-Fetch the configured upstream without changing the worktree. Use Git's upstream
-configuration rather than assuming `origin/main` in a generic repository:
-
-```sh
-git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'
-git fetch
-git rev-list --left-right --count 'HEAD...@{upstream}'
-git log --oneline --decorate --graph 'HEAD..@{upstream}'
-git diff --stat 'HEAD..@{upstream}'
-git diff --check 'HEAD..@{upstream}'
-```
-
-Inspect changed paths and any machine-specific paths, installer destinations,
-state protocols, or validation-tool changes relevant to the task. A fetch
-updates remote-tracking refs; it does not authorize commits, rebases, stashes,
-or source edits outside the user's task.
-
-## Choose The Integration Branch
-
-- If the worktree is clean, there are no local-only commits, and upstream is
-  only ahead, use `git merge --ff-only '@{upstream}'`.
-- If the worktree has changes or untracked files, inspect ownership and preserve
-  them. Commit coherent authorized work, create a temporary branch, or stash
-  only after deciding which mechanism fits; never auto-stash unknown work.
-- If local commits and upstream have diverged, inspect both sides and follow the
-  repository's merge or rebase policy. Preserve the pre-operation branch and
-  commit so recovery does not depend on chat history.
-- If an ignored or untracked plan could collide with incoming history, apply
-  `$planning-workflow`'s plan-visibility recovery before integrating.
-
-After integration, re-read `AGENTS.md`, the active plan, the relevant skills and
-references, and the incoming files that define the task. Re-check worktree and
-branch status before editing. Earlier chat summaries and installed skill copies
-are not evidence that the newly integrated source has the same structure.
+After integration, inspect incoming changes to skill layout, installer
+destinations, state protocols, and validation tools relevant to the task.
+Re-read `AGENTS.md`, the active plan, and the relevant source skills and
+references. Earlier chat summaries and installed skill copies are not evidence
+that newly integrated source has the same structure or policy.
 
 ## Validate Machine-Local State
 
-When the repository owns a helper or schema for machine-local operational state,
-use the newly integrated source helper before the installed copy. For this
-repository's retrospective state, run from the source repository root:
+When incoming changes affect a helper or schema for machine-local operational
+state, use the newly integrated source helper before the installed copy. For
+this repository's retrospective state, run from the source repository root:
 
 ```sh
 # From the source repository root:

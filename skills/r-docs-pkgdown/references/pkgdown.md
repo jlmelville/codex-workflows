@@ -18,13 +18,17 @@ Common fields:
   [roxygen-markdown.md](roxygen-markdown.md).
 - Convert old `\code{}` and `\emph{}` markup when touching a topic.
 - Regenerate with `roxygen2::roxygenise()` after roxygen source changes.
+- When roxygen blocks move files without wording changes, classify generated
+  `man/*.Rd` diffs that only update `% Please edit documentation in ...` source
+  comments as expected source-path churn.
 - After regenerating, inspect `git diff -- DESCRIPTION` separately.
   During an intentional documentation rebuild, retain expected generator
   metadata from the installed roxygen release unless the repository pins
   another generator. When documentation mutation was incidental and no rebuild
   was requested, restore generator metadata churn with other unrelated changes.
-- For exported renames, run roxygen twice: the first pass may delete old topics,
-  aliases, or exports, and the second pass should be idempotent.
+- Run roxygen a second time after source moves or exported renames. The first
+  pass may update source comments or delete old topics, aliases, or exports; the
+  second pass should be idempotent.
 - Search for stale public names after renames, including examples, articles,
   README, NEWS, `_pkgdown.yml`, `NAMESPACE`, and `man/*.Rd`.
 

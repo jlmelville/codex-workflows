@@ -1,4 +1,4 @@
 interface:
   display_name: "Repo Update Preflight"
-  short_description: "Refresh Git upstream before repo work"
-  default_prompt: "Use $repo-update-preflight to refresh and safely reconcile this Git checkout before repository work."
+  short_description: "Safely refresh a Git checkout"
+  default_prompt: "Use $repo-update-preflight to refresh and safely reconcile this Git checkout when current upstream is required."

@@ -10,12 +10,12 @@ The visible user-authored preamble in `README.md`, between the
 and do not move, rewrite, or remove it unless James explicitly requests a change
 to that preamble.
 
-Before source-changing maintenance, apply `$codex-skill-repo`'s shared-checkout
-reconciliation preflight: refresh the configured upstream, inspect local work,
-stashes, divergence, and incoming changes, then integrate safely before editing.
-Never hide or overwrite unrelated work merely to make the checkout clean. After
-pulling retrospective helper or protocol changes, validate this machine's local
-state with the newly pulled source helper before judging or mutating records.
+Before source-changing maintenance, apply `$repo-update-preflight`, then use
+`$codex-skill-repo`'s source-reconciliation overlay for incoming skill-repository
+policy and machine-local state compatibility. Never hide or overwrite unrelated
+work merely to make the checkout clean. After pulling retrospective helper or
+protocol changes, validate this machine's local state with the newly pulled
+source helper before judging or mutating records.
 
 For accepted changes in this repo:
 

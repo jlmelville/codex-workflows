@@ -15,9 +15,10 @@ documentation.
 
 Before proposing edits:
 
-1. When triage may change public source, first apply `$codex-skill-repo`'s
-   shared-checkout reconciliation preflight. Re-read this skill after
-   integration because its protocol, helper, or destinations may have changed.
+1. When triage may change public source, first apply `$repo-update-preflight`,
+   then `$codex-skill-repo`'s source-reconciliation overlay. Re-read this skill
+   after integration because its protocol, helper, or destinations may have
+   changed.
 2. Read `skills/skill-retro/references/state-protocol.md` and
    `skills/skill-retro/references/report-to-patch.md`.
 3. From the reconciled source repository root, validate the local state and
