@@ -52,18 +52,9 @@ steps.
 
 ## Required Checks
 
-Run after workflow changes:
-
-```sh
-${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
-```
-
-The generic audit owns actionlint, zizmor fallback behavior, SHA pinning,
-checkout credentials, and nearby pin comments. From the `codex-workflows`
-source repository, run
-`./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows`.
-
-For rare reviews that need to confirm nearby version tags against full-SHA pins,
-use
-`${HOME}/.agents/skills/github-actions-hardening/scripts/check-action-tag-comments.sh`;
-its `--verify-remote` mode uses `git ls-remote` and may need network approval.
+After workflow changes, run the complete
+[generic workflow checks](../github-actions-hardening/SKILL.md#checks). That
+skill owns the audit command, actionlint and zizmor behavior, SHA pinning,
+checkout credentials, nearby pin comments, and optional remote tag
+verification. Add the R-specific hosted or semantic checks from
+[github-actions.md](references/github-actions.md) that apply to the change.
