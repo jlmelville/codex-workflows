@@ -1042,6 +1042,7 @@ run_retro_state_smoke() {
     "${script}" validate --archive-threshold 10
   "${script}" template candidate >"${candidate}"
   "${script}" template papercut >"${papercut}"
+  "${script}" template papercut-repair | rg -q 'record_type: papercut-repair'
   verification_text="$("${script}" template verification)"
   printf '%s\n' "${verification_text//SCR-YYYYMMDD-abcdef/SCR-20260715-abcdef}" >"${verification}"
   "${script}" template verification-decision | rg -q 'record_type: verification-decision'

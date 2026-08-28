@@ -47,6 +47,12 @@ module RetroState
   PAPERCUT_OWNERS = %w[
     unknown repo-local skill-system environment external-tool external-docs
   ].freeze
+  PAPERCUT_CLASSIFICATIONS = {
+    "kind" => PAPERCUT_KINDS,
+    "impact" => PAPERCUT_IMPACTS,
+    "resolution" => PAPERCUT_RESOLUTIONS,
+    "owner_hint" => PAPERCUT_OWNERS
+  }.freeze
   PAPERCUT_OUTCOMES = %w[
     no-action local-fix candidate external-owner duplicate
   ].freeze
@@ -352,6 +358,21 @@ module RetroState
   end
 
   def validate_papercut(data, body, label:, routed:, archived: false)
+    validate_papercut_integrity(data, body, label: label, routed: routed, archived: archived)
+    PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
+      validate_enum(data, field, allowed, label)
+    end
+  end
+
+  def validate_papercut_integrity(
+    data,
+    body,
+    label:,
+    routed:,
+    archived: false,
+    recover_classification_digest: false,
+    allow_unverified_digest: false
+  )
     text = render_document(data, body)
     validate_common(data, text, label)
     unless data["record_type"] == "papercut"
@@ -366,10 +387,6 @@ module RetroState
       ],
       label
     )
-    validate_enum(data, "kind", PAPERCUT_KINDS, label)
-    validate_enum(data, "impact", PAPERCUT_IMPACTS, label)
-    validate_enum(data, "resolution", PAPERCUT_RESOLUTIONS, label)
-    validate_enum(data, "owner_hint", PAPERCUT_OWNERS, label)
     if data.key?("workaround") && (!data["workaround"].is_a?(String) || data["workaround"].empty?)
       raise Error, "#{label}: workaround must be a non-empty string when present"
     end
@@ -387,11 +404,26 @@ module RetroState
       end
       intake = without_keys(data, "intake_digest", "closure")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
+      authenticated_classifications = nil
       unless data["intake_digest"] == expected_digest
-        raise Error, "#{label}: papercut intake fields changed after recording"
+        unless recover_classification_digest
+          raise Error, "#{label}: papercut intake fields changed after recording"
+        end
+        authenticated_classifications = recover_papercut_classifications(data, body, label)
+        if !authenticated_classifications && !allow_unverified_digest
+          raise Error, "#{label}: intake digest mismatch is not recoverable as classification-only change"
+        end
+      end
+      if authenticated_classifications || data["intake_digest"] == expected_digest
+        history_data = authenticated_classifications ? data.merge(authenticated_classifications) : data
+        validate_papercut_schema_repairs(history_data, body, label)
+      elsif data.key?("schema_repairs")
+        raise Error, "#{label}: existing schema repair history cannot be authenticated"
       end
     elsif data.key?("papercut_id") || data.key?("created_at") || data.key?("intake_digest")
       raise Error, "#{label}: unrecorded papercut must not assign identity fields"
+    elsif data.key?("schema_repairs")
+      raise Error, "#{label}: unrecorded papercut must not contain schema repair history"
     end
 
     closure = data["closure"]
@@ -399,6 +431,183 @@ module RetroState
       validate_papercut_closure(closure, data["papercut_id"], label)
     elsif closure
       raise Error, "#{label}: open papercut must not contain closure data"
+    end
+    authenticated_classifications
+  end
+
+  def recover_papercut_classifications(data, body, label)
+    expected_digest = data.fetch("intake_digest")
+    intake = without_keys(data, "intake_digest", "closure")
+    fields = PAPERCUT_CLASSIFICATIONS.keys
+    matches = PAPERCUT_CLASSIFICATIONS.values.reduce([[]]) do |combinations, values|
+      combinations.product(values).map { |prefix, value| prefix + [value] }
+    end.filter_map do |values|
+      candidate = intake.merge(fields.zip(values).to_h)
+      fields.zip(values).to_h if Digest::SHA256.hexdigest(render_document(candidate, body)) == expected_digest
+    end
+    if matches.length > 1
+      raise Error, "#{label}: intake digest matches multiple historical classification tuples"
+    end
+
+    matches.first
+  end
+
+  def validate_papercut_repair(data, body, label:, expected_id: nil)
+    text = render_document(data, body)
+    validate_common(data, text, label)
+    unless data["record_type"] == "papercut-repair"
+      raise Error, "#{label}: record_type must be papercut-repair"
+    end
+
+    fields = %w[
+      schema_version record_type papercut_id kind impact resolution owner_hint
+      observed_intake_digest accept_current_evidence rationale redaction_review
+    ]
+    unexpected = data.keys - fields
+    unless unexpected.empty?
+      raise Error, "#{label}: unexpected papercut repair field: #{unexpected.first}"
+    end
+    require_fields(
+      data,
+      %w[
+        papercut_id kind impact resolution owner_hint observed_intake_digest
+        rationale redaction_review
+      ],
+      label
+    )
+    papercut_id = data["papercut_id"]
+    unless papercut_id.match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+      raise Error, "#{label}: invalid papercut_id"
+    end
+    if expected_id && papercut_id != expected_id
+      raise Error, "#{label}: papercut_id does not match #{expected_id}"
+    end
+    PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
+      validate_enum(data, field, allowed, label)
+    end
+    unless data["observed_intake_digest"].match?(/\A[a-f0-9]{64}\z/)
+      raise Error, "#{label}: observed_intake_digest must be a SHA-256 digest"
+    end
+    unless [true, false].include?(data["accept_current_evidence"])
+      raise Error, "#{label}: accept_current_evidence must be true or false"
+    end
+    raise Error, "#{label}: papercut repair body must be empty" unless body.strip.empty?
+  end
+
+  def validate_papercut_schema_repairs(data, body, label)
+    repairs = data["schema_repairs"]
+    return unless repairs
+    unless repairs.is_a?(Array) && !repairs.empty? && repairs.all? { |repair| repair.is_a?(Hash) }
+      raise Error, "#{label}: schema_repairs must be a non-empty array of mappings"
+    end
+
+    working = without_keys(data, "intake_digest", "closure")
+    repairs.length.downto(1) do |length|
+      repair = repairs.fetch(length - 1)
+      repair_label = "#{label} schema repair #{length}"
+      allowed_fields = %w[
+        repaired_at rationale redaction_review prior_intake_digest
+        replaced_intake_digest digest_recovery authenticated_classifications changes
+      ]
+      unexpected = repair.keys - allowed_fields
+      unless unexpected.empty?
+        raise Error, "#{repair_label}: unexpected field: #{unexpected.first}"
+      end
+      require_fields(
+        repair,
+        %w[
+          repaired_at rationale redaction_review prior_intake_digest
+          replaced_intake_digest digest_recovery
+        ],
+        repair_label
+      )
+      unless repair["repaired_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+        raise Error, "#{repair_label}: repaired_at must be a UTC timestamp"
+      end
+      unless repair["prior_intake_digest"].match?(/\A[a-f0-9]{64}\z/)
+        raise Error, "#{repair_label}: prior_intake_digest must be a SHA-256 digest"
+      end
+      unless repair["replaced_intake_digest"].match?(/\A[a-f0-9]{64}\z/)
+        raise Error, "#{repair_label}: replaced_intake_digest must be a SHA-256 digest"
+      end
+      digest_recovery = repair["digest_recovery"]
+      unless %w[matched classification-only current-evidence-authorized].include?(digest_recovery)
+        raise Error, "#{repair_label}: invalid digest_recovery"
+      end
+
+      authenticated = repair["authenticated_classifications"]
+      if authenticated
+        unless authenticated.is_a?(Hash) && authenticated.keys.sort == PAPERCUT_CLASSIFICATIONS.keys.sort
+          raise Error, "#{repair_label}: authenticated_classifications must contain the complete tuple"
+        end
+        authenticated.each do |field, value|
+          unless PAPERCUT_CLASSIFICATIONS.fetch(field).include?(value)
+            raise Error, "#{repair_label}: authenticated #{field} is not valid"
+          end
+        end
+      end
+
+      changes = repair["changes"]
+      unless changes.is_a?(Hash) && !changes.empty?
+        raise Error, "#{repair_label}: changes must be a non-empty mapping"
+      end
+      unexpected_changes = changes.keys - PAPERCUT_CLASSIFICATIONS.keys
+      unless unexpected_changes.empty?
+        raise Error, "#{repair_label}: unsupported repaired field: #{unexpected_changes.first}"
+      end
+      changes.each do |field, change|
+        unless change.is_a?(Hash) && change.keys.sort == %w[from to]
+          raise Error, "#{repair_label}: #{field} change must contain only from and to"
+        end
+        require_fields(change, %w[from to], "#{repair_label} #{field}")
+        if change["from"] == change["to"]
+          raise Error, "#{repair_label}: #{field} change must alter the value"
+        end
+        if PAPERCUT_CLASSIFICATIONS.fetch(field).include?(change["from"])
+          unless authenticated && change["to"] == authenticated[field]
+            raise Error, "#{repair_label}: #{field} repair changed an already-valid value"
+          end
+        end
+        unless PAPERCUT_CLASSIFICATIONS.fetch(field).include?(change["to"])
+          raise Error, "#{repair_label}: #{field} repair target is not valid"
+        end
+        unless working[field] == change["to"]
+          raise Error, "#{repair_label}: #{field} repair does not match current state"
+        end
+      end
+
+      prior_repairs = repairs.first(length - 1)
+      if prior_repairs.empty?
+        working.delete("schema_repairs")
+      else
+        working["schema_repairs"] = prior_repairs
+      end
+      changes.each { |field, change| working[field] = change.fetch("from") }
+      replaced_digest = Digest::SHA256.hexdigest(render_document(working, body))
+      unless repair["replaced_intake_digest"] == replaced_digest
+        raise Error, "#{repair_label}: replaced_intake_digest does not match repair history"
+      end
+      prior_state = authenticated ? working.merge(authenticated) : working
+      prior_digest = Digest::SHA256.hexdigest(render_document(prior_state, body))
+      case digest_recovery
+      when "matched"
+        if authenticated || repair["prior_intake_digest"] != prior_digest || prior_digest != replaced_digest
+          raise Error, "#{repair_label}: matched digest recovery is inconsistent"
+        end
+      when "classification-only"
+        raise Error, "#{repair_label}: classification-only digest recovery is inconsistent" unless authenticated
+        unless repair["prior_intake_digest"] == prior_digest
+          raise Error, "#{repair_label}: prior_intake_digest does not match repair history"
+        end
+      when "current-evidence-authorized"
+        if authenticated || repair["prior_intake_digest"] == replaced_digest
+          raise Error, "#{repair_label}: current-evidence digest recovery is inconsistent"
+        end
+      end
+      unless digest_recovery == "current-evidence-authorized" || repair["prior_intake_digest"] == prior_digest
+        raise Error, "#{repair_label}: prior_intake_digest does not match repair history"
+      end
+      working = prior_state
     end
   end
 
@@ -921,6 +1130,24 @@ module RetroState
     MARKDOWN
   end
 
+  def papercut_repair_template
+    <<~MARKDOWN
+      ---
+      schema_version: 1
+      record_type: papercut-repair
+      papercut_id: PC-YYYYMMDDTHHMMSSZ-abcdef
+      observed_intake_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      accept_current_evidence: false
+      kind: other # #{PAPERCUT_KINDS.join(", ")}
+      impact: blocked # #{PAPERCUT_IMPACTS.join(", ")}
+      resolution: resolved # #{PAPERCUT_RESOLUTIONS.join(", ")}
+      owner_hint: unknown # #{PAPERCUT_OWNERS.join(", ")}
+      rationale: "Why each unsupported classification maps to the selected valid value."
+      redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
+      ---
+    MARKDOWN
+  end
+
   def decision_template
     <<~MARKDOWN
       ---
@@ -1171,6 +1398,144 @@ module RetroState
       destination = papercut_path("inbox", id)
       exclusive_write(destination, RetroState.render_document(record, body))
       destination
+    end
+
+    def repair_papercut(papercut_id, repair_path)
+      ensure_initialized
+      repair, repair_body = RetroState.read_document(repair_path)
+      RetroState.validate_papercut_repair(
+        repair,
+        repair_body,
+        label: repair_path,
+        expected_id: papercut_id
+      )
+
+      locations = %w[inbox archive].filter_map do |area|
+        path = papercut_path(area, papercut_id)
+        [area, path] if File.file?(path)
+      end
+      raise Error, "papercut not found: #{papercut_id}" if locations.empty?
+      if locations.length > 1
+        raise Error, "papercut exists in both inbox and archive: #{papercut_id}"
+      end
+
+      area, path = locations.fetch(0)
+      data, body = RetroState.read_document(path)
+      authenticated_classifications = RetroState.validate_papercut_integrity(
+        data,
+        body,
+        label: path,
+        routed: true,
+        archived: area == "archive",
+        recover_classification_digest: true,
+        allow_unverified_digest: true
+      )
+      unless data["papercut_id"] == papercut_id
+        raise Error, "#{path}: papercut_id does not match filename"
+      end
+
+      invalid_fields = PAPERCUT_CLASSIFICATIONS.filter_map do |field, allowed|
+        field unless allowed.include?(data.fetch(field))
+      end
+      if invalid_fields.empty?
+        raise Error, "#{path}: papercut classifications are already valid"
+      end
+
+      changes = {}
+      replaced_intake = RetroState.without_keys(data, "intake_digest", "closure")
+      replaced_digest = Digest::SHA256.hexdigest(RetroState.render_document(replaced_intake, body))
+      unless repair["observed_intake_digest"] == replaced_digest
+        raise Error, "#{repair_path}: observed_intake_digest does not match current papercut"
+      end
+      prior_digest = data.fetch("intake_digest")
+      digest_recovery = if prior_digest == replaced_digest
+        "matched"
+      elsif authenticated_classifications
+        "classification-only"
+      else
+        unless repair["accept_current_evidence"]
+          raise Error, "#{repair_path}: unrecoverable intake digest requires accept_current_evidence: true"
+        end
+        "current-evidence-authorized"
+      end
+      if digest_recovery != "current-evidence-authorized" && repair["accept_current_evidence"]
+        raise Error, "#{repair_path}: accept_current_evidence must be false when the prior digest is authenticated"
+      end
+
+      PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
+        current = data.fetch(field)
+        replacement = repair.fetch(field)
+        if allowed.include?(current)
+          valid_replacements = [current]
+          valid_replacements << authenticated_classifications[field] if authenticated_classifications
+          unless valid_replacements.include?(replacement)
+            raise Error, "#{path}: repair must not change already-valid #{field}"
+          end
+        end
+        changes[field] = {"from" => current, "to" => replacement} unless current == replacement
+      end
+
+      changes.each { |field, change| data[field] = change.fetch("to") }
+      schema_repair = {
+        "repaired_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "rationale" => repair.fetch("rationale"),
+        "redaction_review" => repair.fetch("redaction_review"),
+        "prior_intake_digest" => prior_digest,
+        "replaced_intake_digest" => replaced_digest,
+        "digest_recovery" => digest_recovery,
+        "changes" => changes
+      }
+      if authenticated_classifications
+        schema_repair["authenticated_classifications"] = authenticated_classifications
+      end
+      data["schema_repairs"] = data.fetch("schema_repairs", []) + [schema_repair]
+      intake = RetroState.without_keys(data, "intake_digest", "closure")
+      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
+      RetroState.validate_papercut(
+        data,
+        body,
+        label: path,
+        routed: true,
+        archived: area == "archive"
+      )
+      replace_write(path, RetroState.render_document(data, body))
+      path
+    end
+
+    def prepare_papercut_repair(papercut_id)
+      ensure_initialized
+      locations = %w[inbox archive].filter_map do |area|
+        path = papercut_path(area, papercut_id)
+        [area, path] if File.file?(path)
+      end
+      raise Error, "papercut not found: #{papercut_id}" if locations.empty?
+      if locations.length > 1
+        raise Error, "papercut exists in both inbox and archive: #{papercut_id}"
+      end
+
+      area, path = locations.fetch(0)
+      data, body = RetroState.read_document(path)
+      RetroState.validate_papercut_integrity(
+        data,
+        body,
+        label: path,
+        routed: true,
+        archived: area == "archive",
+        recover_classification_digest: true,
+        allow_unverified_digest: true
+      )
+      if PAPERCUT_CLASSIFICATIONS.all? { |field, allowed| allowed.include?(data.fetch(field)) }
+        raise Error, "#{path}: papercut classifications are already valid"
+      end
+
+      decision, decision_body = RetroState.parse_document(RetroState.papercut_repair_template)
+      decision["papercut_id"] = papercut_id
+      current_intake = RetroState.without_keys(data, "intake_digest", "closure")
+      decision["observed_intake_digest"] = Digest::SHA256.hexdigest(
+        RetroState.render_document(current_intake, body)
+      )
+      PAPERCUT_CLASSIFICATIONS.each_key { |field| decision[field] = data.fetch(field) }
+      RetroState.render_document(decision, decision_body)
     end
 
     def papercuts(archive: false)
@@ -2262,6 +2627,7 @@ module RetroState
       ledger = File.join(tmp, "ledger.md")
       audit = File.join(tmp, "audit.md")
       papercut = File.join(tmp, "papercut.md")
+      papercut_repair = File.join(tmp, "papercut-repair.md")
       verification_proposal = File.join(tmp, "verification.md")
       verification_decision = File.join(tmp, "verification-decision.md")
       without_review_trigger_contract = lambda do |text|
@@ -2286,15 +2652,16 @@ module RetroState
           REVIEW_TRIGGER_OBSERVERS.all? { |value| trigger_observer_line.include?(value) }
         raise "decision template trigger observer vocabulary is incomplete"
       end
-      {
-        "kind" => PAPERCUT_KINDS,
-        "impact" => PAPERCUT_IMPACTS,
-        "resolution" => PAPERCUT_RESOLUTIONS,
-        "owner_hint" => PAPERCUT_OWNERS
-      }.each do |field, values|
+      PAPERCUT_CLASSIFICATIONS.each do |field, values|
         line = papercut_template.lines.find { |candidate| candidate.start_with?("#{field}:") }
         unless line && values.all? { |value| line.include?(value) }
           raise "papercut template #{field} vocabulary is incomplete"
+        end
+        repair_line = papercut_repair_template.lines.find do |candidate|
+          candidate.start_with?("#{field}:")
+        end
+        unless repair_line && values.all? { |value| repair_line.include?(value) }
+          raise "papercut repair template #{field} vocabulary is incomplete"
         end
       end
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
@@ -2547,6 +2914,175 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("impact must be one of")
       end
+
+      seed_invalid_papercut = lambda do |overrides, recompute_digest: true|
+        source_data, source_body = read_document(papercut)
+        source_path = store.record_papercut(source_data, source_body, label: papercut)
+        assigned, assigned_body = read_document(source_path)
+        overrides.each { |field, value| assigned[field] = value }
+        if recompute_digest
+          intake = without_keys(assigned, "intake_digest", "closure")
+          assigned["intake_digest"] = Digest::SHA256.hexdigest(render_document(intake, assigned_body))
+        end
+        File.write(source_path, render_document(assigned, assigned_body))
+        [source_path, assigned, assigned_body]
+      end
+      build_repair = lambda do |papercut_id, values, accept_current_evidence: false|
+        repair, repair_body = parse_document(store.prepare_papercut_repair(papercut_id))
+        values.each { |field, value| repair[field] = value }
+        repair["accept_current_evidence"] = accept_current_evidence
+        File.write(papercut_repair, render_document(repair, repair_body))
+      end
+
+      repair_target, invalid_record, invalid_body = seed_invalid_papercut.call(
+        {
+          "kind" => "orchestration",
+          "impact" => "delay",
+          "resolution" => "resolved",
+          "owner_hint" => "skill"
+        },
+        recompute_digest: false
+      )
+      repair_target_id = invalid_record.fetch("papercut_id")
+      build_repair.call(
+        repair_target_id,
+        {
+          "kind" => "other",
+          "impact" => "blocked",
+          "resolution" => invalid_record.fetch("resolution"),
+          "owner_hint" => "skill-system"
+        }
+      )
+      repaired_path = store.repair_papercut(repair_target_id, papercut_repair)
+      raise "papercut repair changed the target path" unless repaired_path == repair_target
+      repaired, repaired_body = read_document(repaired_path)
+      raise "papercut repair changed identity" unless repaired["papercut_id"] == repair_target_id
+      raise "papercut repair changed evidence body" unless repaired_body == invalid_body
+      %w[source_scope observation workaround redaction_review created_at].each do |field|
+        raise "papercut repair changed #{field}" unless repaired[field] == invalid_record[field]
+      end
+      repair_history = repaired.fetch("schema_repairs")
+      raise "papercut repair history was not recorded" unless repair_history.length == 1
+      repair_entry = repair_history.fetch(0)
+      unless repair_entry["prior_intake_digest"] == invalid_record["intake_digest"]
+        raise "papercut repair did not preserve the prior digest"
+      end
+      authenticated = repair_entry.fetch("authenticated_classifications")
+      unless authenticated == {
+        "kind" => "command",
+        "impact" => "retry",
+        "resolution" => "worked-around",
+        "owner_hint" => "unknown"
+      }
+        raise "papercut repair did not preserve the authenticated classification tuple"
+      end
+      unless repair_entry.fetch("changes").keys.sort == %w[impact kind owner_hint]
+        raise "papercut repair did not record the exact invalid fields"
+      end
+      store.validate
+
+      begin
+        store.repair_papercut(repair_target_id, papercut_repair)
+        raise "already-valid papercut was repaired again"
+      rescue Error => e
+        raise unless e.message.include?("papercut classifications are already valid")
+      end
+
+      history_original = File.read(repaired_path)
+      history_tampered = repaired.dup
+      history_tampered["schema_repairs"] = repair_history.map(&:dup)
+      history_tampered["schema_repairs"][0] = repair_entry.merge("prior_intake_digest" => "0" * 64)
+      history_intake = without_keys(history_tampered, "intake_digest", "closure")
+      history_tampered["intake_digest"] = Digest::SHA256.hexdigest(
+        render_document(history_intake, repaired_body)
+      )
+      File.write(repaired_path, render_document(history_tampered, repaired_body))
+      begin
+        store.validate
+        raise "tampered papercut repair history was accepted"
+      rescue Error => e
+        raise unless e.message.include?("prior_intake_digest does not match repair history")
+      ensure
+        File.write(repaired_path, history_original)
+      end
+
+      reclassification_target, reclassification_record, = seed_invalid_papercut.call(
+        {"kind" => "orchestration"}
+      )
+      reclassification_id = reclassification_record.fetch("papercut_id")
+      build_repair.call(
+        reclassification_id,
+        {
+          "kind" => "other",
+          "impact" => "blocked",
+          "resolution" => reclassification_record.fetch("resolution"),
+          "owner_hint" => reclassification_record.fetch("owner_hint")
+        }
+      )
+      reclassification_original = File.read(reclassification_target)
+      begin
+        store.repair_papercut(reclassification_id, papercut_repair)
+        raise "papercut repair changed an already-valid classification"
+      rescue Error => e
+        raise unless e.message.include?("repair must not change already-valid impact")
+        raise "failed repair changed its target" unless File.read(reclassification_target) == reclassification_original
+      ensure
+        File.unlink(reclassification_target)
+      end
+
+      authorized_target, authorized_record, = seed_invalid_papercut.call(
+        {"kind" => "orchestration"},
+        recompute_digest: false
+      )
+      authorized_id = authorized_record.fetch("papercut_id")
+      authorized_data, authorized_body = read_document(authorized_target)
+      authorized_data["observation"] = "Sanitized current evidence accepted for compatibility repair."
+      File.write(authorized_target, render_document(authorized_data, authorized_body))
+      authorized_values = {
+        "kind" => "other",
+        "impact" => authorized_data.fetch("impact"),
+        "resolution" => authorized_data.fetch("resolution"),
+        "owner_hint" => authorized_data.fetch("owner_hint")
+      }
+      build_repair.call(authorized_id, authorized_values)
+      begin
+        store.repair_papercut(authorized_id, papercut_repair)
+        raise "unrecoverable digest was accepted without explicit current-evidence authority"
+      rescue Error => e
+        raise unless e.message.include?("unrecoverable intake digest requires accept_current_evidence: true")
+      end
+      build_repair.call(authorized_id, authorized_values, accept_current_evidence: true)
+      store.repair_papercut(authorized_id, papercut_repair)
+      authorized_repaired, = read_document(authorized_target)
+      unless authorized_repaired.dig("schema_repairs", 0, "digest_recovery") == "current-evidence-authorized"
+        raise "explicit current-evidence digest recovery was not recorded"
+      end
+      store.validate
+
+      digest_target, digest_record, = seed_invalid_papercut.call(
+        {"kind" => "orchestration"},
+        recompute_digest: false
+      )
+      digest_id = digest_record.fetch("papercut_id")
+      build_repair.call(
+        digest_id,
+        {
+          "kind" => "other",
+          "impact" => digest_record.fetch("impact"),
+          "resolution" => digest_record.fetch("resolution"),
+          "owner_hint" => digest_record.fetch("owner_hint")
+        }
+      )
+      File.write(digest_target, File.read(digest_target).sub("Unexpected, avoidable friction", "Altered friction"))
+      begin
+        store.repair_papercut(digest_id, papercut_repair)
+        raise "papercut with a bad original digest was repaired"
+      rescue Error => e
+        raise unless e.message.include?("observed_intake_digest does not match current papercut")
+      ensure
+        File.unlink(digest_target)
+      end
+      store.validate
 
       archived_original = File.read(closed_papercut)
       File.write(closed_papercut, archived_original.sub("Unexpected, avoidable friction", "Altered friction"))
@@ -3128,9 +3664,13 @@ def usage
 
     Commands:
       init                              Initialize the configured state root
-      template TYPE                    Print a papercut, candidate, decision, verification,
-                                        verification-decision, accepted, draft, ledger, or audit template
+      template TYPE                    Print a papercut, papercut-repair, candidate, decision,
+                                        verification, verification-decision, accepted, draft,
+                                        ledger, or audit template
       record-papercut --file PATH      Record a papercut from PATH, or - for standard input
+      prepare-papercut-repair --id ID  Print a repair decision bound to current intake
+      repair-papercut --id ID --file PATH
+                                        Repair invalid papercut classifications with a typed decision
       papercuts [--archive]            List open papercuts, or archived papercuts explicitly
       close-papercut --id ID --outcome OUTCOME --rationale TEXT
                                         Archive a papercut with a reviewed outcome
@@ -3177,6 +3717,8 @@ def reject_inapplicable_options!(command, provided)
     "init" => %w[--root],
     "template" => [],
     "record-papercut" => %w[--root --file],
+    "prepare-papercut-repair" => %w[--root --id],
+    "repair-papercut" => %w[--root --id --file],
     "papercuts" => %w[--root --archive],
     "close-papercut" => %w[
       --root --id --outcome --rationale --related-papercut-id
@@ -3215,7 +3757,8 @@ end
 
 command = ARGV.shift
 commands = %w[
-  init template record-papercut papercuts close-papercut route pending process
+  init template record-papercut prepare-papercut-repair repair-papercut papercuts
+  close-papercut route pending process
   route-verification pending-verifications process-verification
   reconsider record-accepted update-accepted record-draft record-ledger close-ledger
   verification-opportunities record-audit audits artifact-audit-status
@@ -3284,6 +3827,7 @@ begin
   when "template"
     template = case type
     when "papercut" then RetroState.papercut_template
+    when "papercut-repair" then RetroState.papercut_repair_template
     when "candidate" then RetroState.candidate_template
     when "decision" then RetroState.decision_template
     when "verification" then RetroState.verification_proposal_template
@@ -3363,6 +3907,15 @@ begin
         print RetroState.render_document(data, body)
         exit 2
       end
+    when "repair-papercut"
+      raise RetroState::Error, "repair-papercut requires --id ID" unless record_id
+      raise RetroState::Error, "repair-papercut requires --file PATH" unless input_path
+
+      puts store.repair_papercut(record_id, input_path)
+    when "prepare-papercut-repair"
+      raise RetroState::Error, "prepare-papercut-repair requires --id ID" unless record_id
+
+      print store.prepare_papercut_repair(record_id)
     when "papercuts"
       store.papercuts(archive: archive).each { |row| puts row.join("\t") }
     when "close-papercut"

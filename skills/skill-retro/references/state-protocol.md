@@ -89,6 +89,9 @@ route --file PATH
 pending
 template papercut
 record-papercut --file PATH
+template papercut-repair
+prepare-papercut-repair --id ID
+repair-papercut --id ID --file PATH
 papercuts
 papercuts --archive
 close-papercut --id ID --outcome OUTCOME --rationale TEXT
@@ -173,6 +176,50 @@ Do not promote mechanically. Reviewers synthesize a new candidate only when
 the observation is reusable, materially missing from current coverage, and has
 a justified destination. Repository-local fixes and external-owner actions do
 not need to pass through the candidate inbox.
+
+### Classification-Only Repair
+
+When live validation rejects an existing papercut only because one or more of
+`kind`, `impact`, `resolution`, or `owner_hint` is outside the current bounded
+vocabulary, use the typed repair path instead of editing or deleting the record.
+This mutation requires explicit user authority; papercut capture, review, or
+triage activation alone does not authorize it.
+
+Use the current source helper before installation when the incompatibility was
+discovered during source reconciliation. Prepare a decision bound to the
+current intake, map each unsupported value to one supported value, and add a
+concise sanitized rationale:
+
+From this source repository root:
+
+```sh
+retro_helper=./skills/skill-retro/scripts/retro-state.rb
+"${retro_helper}" prepare-papercut-repair \
+  --id PC-YYYYMMDDTHHMMSSZ-abcdef > /tmp/papercut-repair.md
+"${retro_helper}" repair-papercut \
+  --id PC-YYYYMMDDTHHMMSSZ-abcdef --file /tmp/papercut-repair.md
+"${retro_helper}" validate
+```
+
+`prepare-papercut-repair` records the digest of the exact current intake in the
+decision so a later change fails closed. The repair helper authenticates a
+matching prior digest or a unique prior valid classification tuple when it can.
+If neither works, it requires the explicitly reviewed decision to set
+`accept_current_evidence: true`; this authorizes rebasing only the digest of the
+unchanged current evidence, not editing that evidence. Keep the flag `false`
+when the helper can authenticate the prior digest.
+
+The helper refuses arbitrary changes to classifications that are already
+valid, preserves all evidence text, identity, timestamps, body, and closure,
+records the exact changes, recorded and replaced digests, recovery basis, and
+any authenticated prior tuple in `schema_repairs`, validates the resulting
+history, and atomically replaces the same file. A second repair of an
+already-valid record fails without writing.
+
+This is a compatibility operation, not papercut review or reclassification. If
+identity, filename, evidence shape, closure, or another structural field is
+invalid, stop and design a separately authorized compatibility path rather than
+weakening validation or using this command.
 
 ## Candidate Intake
 
