@@ -146,6 +146,9 @@ Test the generalized eigen-equation, weighted orthogonality and centering, and
 the map-back identity through the public result. Express structural-subspace
 comparisons in the coordinate system—or weighted inner product—where the
 compared vectors are mathematically equivalent.
+For exact or near-exact subspace equality, use a normalized Frobenius projector
+difference or another stable equivalent. Avoid one-minus-averaged-squared-cosine
+subtraction near coincidence, and test an identical span before setting a gate.
 
 Include at least one fixture whose effective weight diagonal varies materially,
 and assert that nonuniformity before using it to validate weighted null

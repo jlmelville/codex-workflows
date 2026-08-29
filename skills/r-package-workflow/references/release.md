@@ -18,6 +18,10 @@ when requirements differ from remembered practice.
 
 - Run the final CRAN-style check on the archive. A hosted `--no-manual` lane does
   not establish manual or artifact coverage; record their completion.
+- Before that check, probe PDF and HTML manual tools independently. Treat missing
+  styles or obsolete binaries as host prerequisites only when package evidence
+  agrees. Prefer a user-writable toolchain when needed, verify discovery, run
+  `R CMD Rd2pdf`, and rerun exact; host fixes are platform-specific, not source edits.
 - Complete material external checks and `revdepcheck`, using
   [revdepcheck.md](revdepcheck.md) first for sensitive dependency universes.
 - Report incomplete remote service state separately. Promptly retain expiring

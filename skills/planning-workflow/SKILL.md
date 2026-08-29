@@ -68,9 +68,9 @@ Classify files as `execplan`, `chunk-plan`, `audit`, `review-packet`, `handoff`,
 or `scratch`; do not mix them unless the repo requires it. Scratch and agent
 proposals are evidence, not accepted authority.
 
-At fresh starts and handoffs, reconcile the active plan with the worktree and
-source. When an inline checklist names an accepted table or packet, compare the
-item sets and resolve omissions, extras, or limiting language before editing.
+At fresh starts and handoffs, reconcile the plan with source; verify every
+`Read first` path, name inline substitutes, and keep remaining reads independent.
+Compare inline checklists with named accepted packets before editing.
 
 Use these routed references only when their condition applies:
 

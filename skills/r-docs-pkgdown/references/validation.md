@@ -125,12 +125,12 @@ size, or enlargement behavior. Keep the execution and evidence checks below as
 separate validation boundaries.
 
 Keep the shortest useful user action and observation on the main reading path.
-When the primary empirical question is visual, create a role-based
-reconnaissance packet before narrative compression. Include representative
-positive, adverse, stable or no-change, and mechanism-distinguishing views;
-mechanism diagrams and aggregate tables do not replace that visual evidence.
-Keep post-hoc visual interest qualitative unless a preference criterion was
-predeclared and reproducibly assessed.
+Before compressing a visual empirical study, collect positive, adverse, stable
+or no-change, and mechanism-distinguishing views; diagrams and aggregate tables
+do not replace them. For factorial or multi-axis work, cross those roles with
+each axis, use an invariant metric that detects its effect, and retain
+clear-change plus little-change cases or state the missing scope. Keep post-hoc
+visual interest qualitative unless a preference criterion was predeclared.
 
 When complete reproduction code is necessary but would overwhelm that path,
 put it in a tracked companion script and expose it through a collapsed details

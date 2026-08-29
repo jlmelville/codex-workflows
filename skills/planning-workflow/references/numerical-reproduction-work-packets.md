@@ -37,51 +37,50 @@ validity separate and report causal provenance as unavailable or ambiguous.
 
 ## Publication-First Source Comparison
 
-For an inherited numerical method, preserve supported behavior with independent
-oracles, then map the publication's states, equations, invariants, and
-independently derivable formulas before inspecting additional reference
-implementations. Fix a tentative target design at that boundary so a later
-source cannot silently become the structural template.
+For an inherited numerical method, preserve behavior with independent oracles.
+Before inspecting other implementations, map the publication's states,
+equations, invariants, and derivable formulas, and freeze a tentative target.
 
-Afterward, classify every retained difference as publication-specified,
-publication-derivable, standard numerical safeguard, implementation choice,
-compatibility behavior, extension, or unresolved. Source disagreement is not a
-defect without a mathematical, safety, or supported-contract witness. Separate
-characterization, behavior-neutral restructuring, and any correctness change
-into reviewable packets. Use the
+Classify differences as publication-specified, publication-derivable,
+safeguard, implementation choice, compatibility behavior, extension, or
+unresolved. Source disagreement needs a mathematical, safety, or contract
+witness before it is a defect. Separate characterization, neutral
+restructuring, and correctness changes; use the
 [legacy numerical oracle firewall](../../r-test-hygiene/references/numerical-contracts.md#backend-versions-and-legacy-oracle-firewalls)
 for migration evidence without preserving obsolete implementation expression.
 
 ## Decompose Before Tuning
 
-Inventory the defining equations, solver, kernel scale, graph topology,
-regularization, intermediate-field estimator, sampling and noise regime, and
-finite objective. Give each phase one causal question, hold every other layer
-fixed, name the local invariant that answers it, and predeclare its stop gate.
-Plots and global association are supporting evidence, not substitutes for
-local residuals or compatibility conditions.
+Inventory equations, solver, kernel, topology, regularization, intermediate
+estimator, sampling and noise, objective, and resource model. For each phase,
+hold other layers fixed and name one causal question, local invariant, and stop
+gate. Plots do not replace local residuals or compatibility conditions.
 
-Before a multi-point oracle runs, materialize its complete deterministic
-candidate universe in a selection manifest separate from the numerical result
-table. Record provenance, eligibility and exclusion bases, optimizer-return
-metadata, and exact or predeclared deduplication semantics. Run the oracle only
-on eligible unique points and preserve a stable join key from every result back
-to the manifest. Probe early termination, duplicate returns, and rejected or
-inapplicable references without creating fake result rows.
+Before a multi-point oracle runs, materialize its candidate universe in a
+selection manifest separate from results. Record provenance, eligibility,
+exclusions, optimizer metadata, and deduplication; run only eligible unique
+points with stable join keys. Probe early stops and inapplicable references
+without fake result rows.
 
 ## Review-Complete Checkpoints
 
-Before an expensive numerical run, derive the checkpoint schema from the claims
-and review questions it must support. Distinguish a restart cache from an
-independent-review packet. The latter should retain frozen settings, stable data
-identity or bounded regeneration inputs, upstream graph or intermediate
-witnesses, downstream diagnostics, deterministic selections, and artifact
-paths needed by a fresh process. Keep large reacquirable inputs disposable.
+Before an expensive run, derive checkpoint fields from its claims and review
+questions. Distinguish restart caches from review packets; the latter retain
+frozen settings, stable identity or bounded regeneration, upstream witnesses,
+downstream diagnostics, deterministic selections, and reviewable artifact
+paths. Keep large reacquirable inputs disposable.
 
-Immediately read the persisted checkpoint through the intended review path and
-validate its fields before discarding live state. A successful write or a cache
-that can resume computation does not establish that an independent reviewer can
-audit the recorded claims.
+Read the checkpoint through its intended review path before discarding live
+state. A successful write or resumable cache does not prove that another
+process can audit the claims.
+
+For frozen sparse local-block topology, enumerate exact allowed support before
+solves and forecast candidate and intermediate allocations from it. Account
+separately for source payload, checkpoints, graph, buffers, sparse additions,
+and solver workspace; label remaining heuristics. Calibrate timing and
+convergence per material operator class; baseline projections cover only the
+exercised class. Rank-, nullity-, or conditioning-changing constructions need a
+representative smoke point or explicitly unverified runtime classification.
 
 ## Oracle Ladder
 
@@ -98,34 +97,29 @@ Move from the most algebraic component outward:
 | Estimated intermediate fields | Fixed verified downstream pipeline | Stop if the estimator violates its own preconditions |
 | Sample and noise scaling | Predeclared bounded matrix | Limit claims to the exercised regime |
 
-When a dense generalized-eigen oracle has a known null under a positive
-diagonal mass, form the symmetric mass-scaled operator and the transformed
-null `M^(1/2) v0`, restrict the solve to that null's orthogonal complement,
-and only then map retained vectors back. Do not identify and drop one vector
-from the full decomposition by alignment when low modes may cluster. Check
-generalized residuals, mass-weighted centering and orthogonality, the map-back
-identity, and invariant-span agreement.
+For a dense generalized-eigen oracle with known null under positive diagonal
+mass, form the symmetric operator and transformed null `M^(1/2) v0`, solve in
+its orthogonal complement, then map back. Do not drop one aligned vector when
+low modes may cluster. Check generalized residuals, mass centering and
+orthogonality, map-back, and invariant-span agreement.
 
-Before scoring an exact-null favorable control, check identifiability as well
-as truth membership. After removing required structural nulls, characterize the
-remaining nullity and compare it with the requested target dimension. If excess
-exact null directions leave the selected span underidentified, preserve the
-case as underidentified or invalid; do not score an arbitrary null basis, blame
-the eigensolver, or tune the fixture until it selects a favorable representative.
+Before scoring an exact-null control, check identifiability and truth membership.
+Remove structural nulls, compare remaining nullity with target dimension, and
+preserve excess-null cases as underidentified or invalid. Do not score an
+arbitrary basis or tune the fixture toward a favorable representative.
 
-Record negative results in the active plan so later work cannot reopen a ruled-
-out cause without new evidence. An outcome-dependent gate should say whether to
-repair the current reproduction, stop because an upstream precondition failed,
-or start a separately identified method-development decision.
+Record negative results; each gate chooses repair, an upstream-precondition
+stop, or a separate method-development decision.
 
 ## Audit Generalized Mass Semantics
 
-For `B y = lambda M y` with positive diagonal `M`, separate the exact symmetric
-transform from the scientific meaning assigned to the mass. Derive the
-Rayleigh constraints, factor `B` where useful, and interpret both the symmetric
-coordinates and mapped-back vectors. Compare plausible masses and test global
-scaling, selective reweighting, support, and permutation behavior before
-claiming an observation measure.
+For `B y = lambda M y` with positive diagonal `M`, separate the symmetric
+transform from mass meaning. If `B = R'R` has method-owned invariant-indexed
+rows, inventory interpretable row equation changes and column masses, classify
+numerator versus mass changes before a sweep, and never transfer those semantics
+to an arbitrary factorization. Derive Rayleigh constraints, interpret symmetric
+and mapped-back coordinates, and test masses under scaling, reweighting, support,
+and permutation before claiming an observation measure.
 
 Call `M` graph degree only when a nonnegative affinity or equivalent graph
 construction derives that diagonal. Likewise, require a corresponding model
@@ -163,12 +157,13 @@ be finite before comparison. Include an extreme-but-finite incorrect control
 and a case whose mathematical result is representable even though a naive
 intermediate overflows or underflows.
 
-For multi-control decisions, name each comparator's role before defining gates.
-Require a positive outcome to satisfy both material relative improvement and
-any absolute adequacy precondition; define harm against the primary trusted
-baseline rather than every stress or ablation control. Keep mechanism or
-availability classification separate from evidence strength, and make final
-statuses ordered and exhaustive.
+Freeze comparator roles before defining multi-control gates. When cases differ
+in truth or interpretability, predeclare each role and allowed inference before
+outcomes. Keep validity universal, behavior all-case, and utility role-aware: a
+null or adverse control qualifies claims but does not veto a structure-bearing
+sentinel for lacking low-dimensional truth. Require material relative
+improvement plus any adequacy floor, define harm against the trusted baseline,
+separate mechanism from evidence strength, and exhaust statuses.
 
 For method-family work, assign every gate to the claim layer it governs:
 algebraic legitimacy and the numerical contract; behavioral non-equivalence
