@@ -72,15 +72,14 @@ configured Air check and lintr in addition to behavior-driven checks. If either
 configured check is unavailable, name the command not run and report validation
 as incomplete.
 
-Treat every repository-attributable package-check error, warning, or note as
-unfinished work and resolve it when first found. A completed local package check
-should report 0 errors, 0 warnings, and 0 notes attributable to the repository.
-If an environmental or external-service diagnostic cannot be cleared after
-appropriate reruns, lead the validation summary with the incomplete or blocked
-state rather than normalizing it as baseline noise. Preserve the exact
-diagnostic, attribution evidence, and whether it was present before the change.
-Treat a new, code-specific, or behavior-changing diagnostic as attributable to
-the repository until evidence establishes another owner.
+Before calling substantive R package work complete, run the configured Air,
+lint, full-test, and package-check gates from [checks.md](references/checks.md#final-validation-bundles),
+refreshing generated documentation when relevant. Fix every repository-owned
+failure or diagnostic. A skipped, unavailable, interrupted, or failing gate
+permits only an explicitly incomplete refactor checkpoint or blocked handoff
+recording the command, diagnostic, attribution, and next action—not a clean
+completion claim. Treat new code-specific or behavior-changing diagnostics as
+repository-owned until evidence identifies another owner.
 
 For ambiguous check ownership, use the exact restricted-environment mechanics
 in [checks.md](references/checks.md#restricted-environment-mechanics). Consult

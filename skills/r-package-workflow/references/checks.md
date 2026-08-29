@@ -125,7 +125,7 @@ repository diagnostic:
 
 - full tests: `Rscript -e 'testthat::test_local()'`
 - package check:
-  `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'`
+  `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")'`
 - formatting: `air format . --check`
 - lint:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
@@ -133,44 +133,9 @@ repository diagnostic:
   `$github-actions-hardening` when workflows changed;
 - pkgdown build when site output, articles, examples, or `_pkgdown.yml` changed.
 
-For CRAN-published packages or explicit release-prep work, add a separate CRAN
-release lane after the development checks:
-
-When a remote diagnostic names a published or submitted package version, first
-identify that exact source archive or release tag. Compare it with current
-`HEAD` and classify every reported path as still present, structurally removed,
-directly fixed, or only incidentally masked. Choose whether the next release is
-a minimal patch or current development from that evidence, then validate the
-artifact actually intended for submission instead of assuming the remote log
-describes the worktree.
-
-Before handoff, evaluate `roxygen2::needs_roxygenize()` against the exact
-release candidate even when documentation was not intentionally changed. If it
-reports drift, regenerate in an isolated copy or an explicitly authorized
-documentation phase, inspect `DESCRIPTION`, `NAMESPACE`, `man/`, and binding
-outputs, and run a second pass to establish idempotence. Use
-`$r-docs-pkgdown` to separate generated-content drift from generator-version
-metadata; a metadata-only result still requires an explicit keep-or-defer
-decision rather than incidental release churn.
-
-- CRAN-style local check:
-  `Rscript -e 'rcmdcheck::rcmdcheck(args = c("--as-cran", "--no-manual"))'`
-- External platform checks such as R-hub and win-builder when submission
-  compatibility matters.
-- `revdepcheck` when the package has downstream dependencies and the change can
-  affect public behavior. For a large, compiled, or repository-sensitive
-  dependency universe, complete the preparation and runner preflight in
-  [revdepcheck.md](revdepcheck.md) first.
-
-Treat R-hub, win-builder, CRAN metadata, and reverse-dependency results as
-remote service state. Report queued, unavailable, or network-blocked checks
-separately from local package failures.
-
-Keep `cran-comments.md` outcome-focused: include the release purpose, completed
-check environments and results, and package-attributable diagnostics that CRAN
-needs to assess. Keep queued or unrun checks and external setup or service
-failures that produced no package result in the internal validation handoff;
-they are not submission evidence.
+For CRAN packages or release preparation, follow the routed
+[release lifecycle](release.md) after development checks. It owns candidate
+identity, release validation, submission, acceptance, and return to development.
 
 Inspect generated and temporary output before finalizing:
 
@@ -221,41 +186,25 @@ observation boundaries; it is not an additional default checklist.
 
 ## Formatting and Lint
 
-- Air CLI owns formatting for supported R source files:
-  `air format . --check`.
-- Do not treat a clean directory check as proof that embedded R code in `.Rmd`
-  or Quarto documents was checked. Confirm mixed-document capabilities against
-  the installed Air version and integration.
-- Lintr should not fight Air:
+- Air owns supported R formatting: `air format . --check`.
+- Lintr should complement Air:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
 
-For embedded R code, use an explicitly supported editor integration such as
-Quarto-cell or injected-language formatting, or a repository-local helper that
-extracts fenced R blocks, formats only the R input, reinserts only block bodies,
-and has an exercised check mode. Do not pass an entire Markdown document to
-`air format` and interpret a parse failure as a formatting result.
+A clean directory check does not prove embedded R in Markdown or Quarto was
+formatted. Use a supported cell or injected-language integration, or an
+exercised helper that extracts and reinserts only R block bodies. Do not pass a
+whole Markdown document to Air and call its parse failure a format result.
 
-When Air CI fails, inspect the workflow and `air.toml` before editing, confirm
-the local `air --version` matches CI when the workflow pins Air, then run
-`air format .` followed by `air format . --check`. Report the changed files and
-diff scope; even roxygen trailing whitespace can be the whole failure.
+When Air CI fails, inspect the workflow and config, compare local and pinned
+versions, then run `air format .` and `air format . --check` and report the diff
+scope. Treat a version mismatch as an upgrade decision: trial the newer version
+on a temporary copy; if its diff is accepted, update the explicit CI pin and
+local tool together, otherwise use the pinned version and report the mismatch.
 
-Treat a local/CI version mismatch as an upgrade decision, not an automatic
-local downgrade. When workflow maintenance is authorized and CI pins an older
-Air release, first exercise the newer version in check mode or on a temporary
-copy and review any formatting diff. If the result is clean or the diff is
-accepted, update the explicit CI pin and local tool together in the same
-reviewed change. Otherwise install the CI-pinned version and report the
-incompatibility. Keep CI versions explicit rather than introducing an
-unreviewed latest-version pin.
-
-For scoped formatting work, format the intended scope first and confirm it with
-a scoped check, such as `air format tests/testthat --check` for test cleanup.
-Then finish with `air format . --check`. If the repo-wide check reports
-additional non-generated `R/` files, review a temporary-copy Air diff before
-applying the formatting. Do not let formatting sweeps touch generated files
-such as `R/RcppExports.R`, `src/RcppExports.cpp`, `NAMESPACE`, `man/*.Rd`, or
-pkgdown output unless those files are intentionally being regenerated.
+For scoped work, format and check the intended paths before the repository-wide
+check. Review unexpected non-generated `R/` changes on a temporary copy. Exclude
+generated bindings, `NAMESPACE`, `man/*.Rd`, and pkgdown output unless their
+generator is intentionally running.
 
 When changing `.lintr` policy in an Air-formatted repo, trial candidate linters
 without editing the config first. During discovery, isolate the trial from
@@ -268,29 +217,14 @@ Rscript -e 'linters <- lintr::linters_with_defaults(line_length_linter = NULL, o
 
 Enable only rules that stay low-noise on the real package. Treat
 `object_usage_linter` and `line_length_linter` as high-risk in same-package
-work until proven otherwise: `object_usage_linter` can flag local/test helpers
-as missing globals, and Air-clean code can still exceed lintr's default line
-length rule.
+work until proven otherwise.
 
 When `object_usage_linter` flags ordinary functions defined elsewhere in the
-same package, confirm that linting sees the current package namespace before
-adding suppressions. Call `pkgload::load_all(quiet = TRUE)` in the same R
-process before `lint_package()`, or install the current source into a temporary
-library and put that library first. A stale installed namespace can omit new
-helpers or global declarations. Reserve `utils::globalVariables()` for genuine
-NSE or data-mask symbols; registering ordinary helper functions can conceal
-real misspellings.
+same package, load the current source in that process or install it into a
+temporary first library before adding suppressions. Reserve
+`utils::globalVariables()` for genuine NSE or data-mask symbols.
 
 After editing `.lintr`, rerun both `air format . --check` and
 `lintr::lint_package()` from the saved config with normal settings parsing.
-Keep multi-line `.lintr` values as valid DCF: continuation lines, including
-closing parentheses for R expressions, must stay indented rather than starting
-at column 1.
-
-For test fixtures, use `# fmt: skip` around shape-sensitive matrix/list
-fixtures where Air reduces readability.
-
-## Coverage
-
-- `Rscript -e 'covr::package_coverage()'`
-- Use `.covrignore` only for intentional exclusions.
+Keep multi-line `.lintr` continuations indented as valid DCF. Use `# fmt: skip`
+only for shape-sensitive fixtures where Air reduces readability.

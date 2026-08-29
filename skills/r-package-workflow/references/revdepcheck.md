@@ -94,6 +94,20 @@ install with the final library layout and disk-backed `TMPDIR`. Proceed only
 after that smoke check builds and loads the development package and the runner
 can start a representative reverse-dependency worker.
 
+## Extend A Completed Stock Run
+
+Before resetting a completed run, distinguish its database, target-private
+libraries, and binary cache; workers may delete private libraries while leaving
+reusable archives. Record the cache root, audit exact versions and platform
+compatibility, and prefer supported incremental addition when only direct
+targets changed.
+
+Exclude preserved caches from live discovery and verify target count and install
+stage before launch. Update-disable flags are not integrity boundaries: expose
+artifacts read-only and isolate required metadata writes, using filesystem
+enforcement for frozen evidence. Compare manifests before and after and retain
+platform mount or namespace recipes in the handoff.
+
 ## Scale Across CI
 
 When the dependency closure cannot fit or recover reliably on one host, freeze

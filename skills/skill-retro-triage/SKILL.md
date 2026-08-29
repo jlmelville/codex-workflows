@@ -36,11 +36,9 @@ Before proposing edits:
    installed helper to reject or mutate records that the source helper reports
    as incompatible; resolve the documented compatibility path first.
 4. Read every cited destination skill, reference, prompt, or script.
-5. Inspect external archived deferrals, interrupted accepted publication,
-   contradicted accepted outcomes, drafts, ledger entries, and artifact-audit
-   cadence. Start with the helper's `review-queue` command on every triage run
-   and do not load unrelated history. For an `accepted-publication` row,
-   reconcile whether public source, accepted metadata, or both are missing.
+5. Start every run with `review-queue`; inspect its deferrals, publication gaps,
+   contradictions, drafts, ledgers, and audit cadence without loading unrelated
+   history. For publication gaps, reconcile source and accepted metadata.
 6. Run `./scripts/audit-skill-drift.rb` before proposing public prose. Its hard
    payload limits are admission constraints, not evidence that guidance is good.
 7. Run `./scripts/list-skills.rb` when frontmatter descriptions, trigger
@@ -66,25 +64,27 @@ For every candidate, choose one verdict: `accept`, `defer`, `reject`, `split`,
 - whether deterministic behavior belongs in code rather than prose.
 
 Use `reject` or `no-change` when a candidate changes no decision an agent would
-otherwise miss, or its likely instruction and execution cost exceeds the harm
-it prevents. Do not manufacture verdict diversity or a rejection quota.
+otherwise miss or costs more than the harm it prevents. Do not manufacture
+verdict diversity or a rejection quota.
 
-Treat lessons from owner-rejected, abandoned, severely over-built, or causally
-disproved work as tainted evidence. Until independent successful use clears the
-taint, they may support narrowing, removal, a diagnostic warning, or a bounded
-evaluation—not positive craft guidance extracted from the rejected mechanism.
+Check `evidence_lineage` before recurrence or transfer claims; legacy omissions
+are `unknown`. Artifact- or user-grounded descendant evidence may establish a
+source gap, conformance, or intended outcome, but repetition alone cannot prove
+independent recurrence, transfer, or comparative improvement.
 
-Before choosing a destination, state the changed decision, authority boundary,
-observation, or success condition. Split default judgment, exact mechanics,
-optional cases, and verification evidence. Prefer an existing principle;
-recurrence of the same decision and witness updates verification only. A new
-clause must introduce a distinguishable branch, while exact recipes belong in
-routed mechanics or code.
+Treat owner-rejected, abandoned, over-built, or disproved work as tainted. Until
+independent success clears it, use that evidence only for narrowing, removal,
+diagnosis, or bounded evaluation—not positive craft guidance.
 
-Public additions must fit the checked payload baselines. For a skill already at
-its limit, accept an addition only with a larger removal or demotion from that
-same skill; repository instructional prose must not grow. Never advance a
-baseline in the implementation batch to make an addition pass.
+Before choosing a destination, state the changed decision, authority,
+observation, or success condition. Separate default judgment, mechanics, cases,
+and verification. Prefer an existing principle; recurrence of the same decision
+and witness updates verification, while exact recipes belong in code or routed
+mechanics.
+
+Public additions must fit payload baselines. At a limit, require a larger
+removal or demotion from the same skill; never raise a baseline to admit the
+batch.
 
 If verification-only evidence has arrived through the candidate inbox, reject
 or mark that candidate `no-change` and ask the producer to use the typed
@@ -100,11 +100,10 @@ do not change behavioral verification or create another accepted identity.
 Privacy, authority, evidence, and completion contracts may remain on the
 default path even when unconditional.
 
-For `defer`, first name the decision that current evidence cannot justify and
-the missing evidence. Later behavioral uncertainty after a justified,
-reversible implementation belongs in an unverified accepted outcome and its
-verification opportunity, not a deferral. Every new or reconsidered deferral
-must use the structured trigger contract in
+For `defer`, name the unjustified decision and missing evidence. Behavioral
+uncertainty after a justified reversible implementation belongs in an
+unverified accepted outcome, not a deferral. New or reconsidered deferrals use
+the structured trigger contract in
 [state-protocol.md](../skill-retro/references/state-protocol.md): predicate,
 observer, `review-queue` route, probe, next action, and close condition. Apply
 the same contract to open drafts and ledgers. `review-queue` preserves and

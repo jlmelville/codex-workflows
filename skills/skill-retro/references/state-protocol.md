@@ -223,20 +223,20 @@ weakening validation or using this command.
 
 ## Candidate Intake
 
-Generate the current template with `template candidate`. A routed record must
-be self-contained because triage will not have the producing conversation. It
-captures the decision surface and missing delta without storing a transcript.
+Generate `template candidate`; the self-contained record preserves the decision
+surface without a transcript. New routes require `evidence_lineage` and a note
+naming the affected guidance and conditioning boundary. Classify lineage as
+`independent` when guidance was inactive; `descendant` when it may have shaped
+the work or report; `mixed` for both sources; `unknown` when retained evidence
+cannot decide; or `not-applicable` when the claim needs no behavioral use.
+Legacy omissions are `unknown`. Grounded descendant evidence can establish a
+source gap, conformance, or intended outcome, but repetition alone cannot prove
+independent recurrence, transfer, or comparative improvement.
 
-Treat even third-party or synchronized state as potentially exposed. Exclude
-raw transcripts, tool dumps, credentials, private source, raw runtime-history
-paths, unredacted user-home paths, and unnecessary private repository names.
-Use bounded error fragments and generalized commands where they are decisive.
-
-Default `$skill-retro` output remains chat-only. Routing requires explicit user
-acceptance or applicable standing `auto` authority. That authority may write
-only high-confidence new candidate and verification-proposal files to their
-configured inboxes; it authorizes no application, rejection, project edits,
-source-repository edits, commits, pushes, or messages.
+Treat synchronized state as exposed: omit transcripts, tool dumps, credentials,
+private source, runtime paths, unredacted home paths, and unnecessary repository
+names. User or standing `auto` authority permits only sanitized new inbox
+records—not application or other edits, commits, pushes, or messages.
 
 When later evidence changes a previously accepted decision, a new candidate may
 add `supersedes_accepted_id` and `now_false`. Use those fields only when the

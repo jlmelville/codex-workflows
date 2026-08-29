@@ -23,6 +23,11 @@ still attempts unavailable dependency planning, install the current source
 directly into an explicit temporary library and put that library first for the
 render.
 
+When `NEWS.md` structure or intervening prose is in doubt, install the built
+candidate in a temporary library, call `utils::news()`, inspect the latest
+`Version`, `Category`, and `Text`, and print the full database. This tests R's
+supported reader at the distribution boundary.
+
 ## Validate The Claimed Lesson
 
 A successful render establishes executability, not the truth of prose that
@@ -152,22 +157,21 @@ interaction-state screenshot is reproducible.
 
 ## Place Companion Code Deliberately
 
-Before locating executable article companions, decide which distribution
-boundary users need. Keep short essential code inline, use build-ignored
-article infrastructure only for website reproduction, and choose a
-build-included installed location when installed users need the asset. Inspect
-`.Rbuildignore` and the source archive rather than inferring visibility from a
-successful pkgdown render. Exercise source, built-package, installed-package,
-and website access only for the contexts the prose claims; do not rely on a
-test or companion that disappears from the built package.
+Choose the distribution boundary before locating companion code. Keep essential
+code inline, use build-ignored infrastructure only for website reproduction,
+and use a build-included location for installed users. Inspect `.Rbuildignore`
+and the source archive, then exercise only the source, built, installed, and
+website contexts the prose claims.
 
-For every non-image download an article promises, validate distribution
-separately: build the complete site, serve the final output, and request the
-promised URL as a reader would. A rendered anchor or successful build is not
-sufficient; require a successful response and an expected representation such
-as content type plus a stable length or digest. When a verbatim website-only
-file belongs under `pkgdown/assets/`, its relative path becomes
-website-root-relative, so choose and test the public URL deliberately.
+A document rendered on several surfaces has several link roots. Resolve every
+relative target in each output tree; when an installed vignette links to a
+website-only article, use its canonical absolute URL. Validate both installed
+HTML and final pkgdown output.
+
+For each promised non-image download, build and serve the final site and request
+the public URL. Require a successful response and expected representation, not
+only a rendered anchor. Files under `pkgdown/assets/` become website-root
+relative, so select and test that URL deliberately.
 
 ## Mathematical Catalogue Articles
 
@@ -189,24 +193,18 @@ temporary cache and render destination, and removes all temporary output after
 the check:
 
 ```sh
-Rscript --vanilla \
-  "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" \
-  --rmarkdown path/to/article.Rmd
+Rscript --vanilla "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" --rmarkdown path/to/article.Rmd
 ```
 
 For a configured pkgdown article, pass its article name instead of a source
 path:
 
 ```sh
-Rscript --vanilla \
-  "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" \
-  --pkgdown article-name
+Rscript --vanilla "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" --pkgdown article-name
 ```
 
-The helper deliberately does not acquire dependencies. A missing dependency is
-a setup result, not evidence that the document or package source failed. Its
-temporary output proves execution, not final visual quality; inspect the normal
-rendered artifact separately when presentation matters.
+The helper does not acquire dependencies; a missing one is a setup result. Its
+temporary output proves execution, not final visual quality.
 
 When the claim concerns files that survive `R CMD build`, add `--build-source`.
 Use one `--expect-installed-doc RELATIVE-PATH` per required file beneath the

@@ -35,6 +35,19 @@ formulas without claiming measured peak RSS. When exported cpp11 signatures
 change, regenerate registration twice with the package's established command
 and inspect the second pass for idempotence.
 
+## C++ Language Standard
+
+Inventory features used by hand-maintained and installed headers and select the
+narrowest standard supporting the package contract. Do not rely on R's moving
+default dialect or confuse dialect with minimum compiler version. Follow current
+[Writing R Extensions](https://cran.r-project.org/doc/manuals/r-devel/R-exts.html#Using-C_002b_002b-code)
+and keep declarations consistent, such as `SystemRequirements: C++17` with
+`CXX_STD = CXX17`; `R CMD check` gives the DESCRIPTION declaration precedence.
+
+Assess installed headers for downstream `LinkingTo` consumers separately. Check
+the declared standard; a newer-dialect lane may test compatibility without
+changing the release contract.
+
 ## Formatting
 
 - Format hand-maintained C++ files with the repo's `.clang-format`.
@@ -140,6 +153,17 @@ When a malformed native call may trigger undefined behavior or terminate R,
 probe an accepted native-boundary regression in a separate R process before the
 guard exists. Move it into the ordinary in-process suite only after the native
 guard makes the call safe.
+
+## Vendored Third-Party Code
+
+For vendored C or C++, record upstream project, version, source, and license;
+compare the tree with that source, identify local changes, and add notices when
+required. Treat NOTICE and similar obligations as artifact- and license-specific.
+
+Build and inspect the source tarball after `.Rbuildignore`. Require distributed
+vendored files and applicable license, attribution, notice, and provenance
+artifacts to survive. Compilation and package checks do not establish
+redistribution compliance; escalate ambiguous interpretation to its owner.
 
 ## Tests
 

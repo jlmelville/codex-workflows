@@ -49,42 +49,39 @@ adversarial case where a coarse count agrees while an uncapped, basis-limited,
 or differently aggregated diagnostic diverges, then compare every promised
 diagnostic after adaptation.
 
-## Legacy Numerical Oracle Firewalls
+## Backend Versions And Legacy Oracle Firewalls
 
-Before replacing port-shaped or legacy numerical code, inventory which modes
-are reachable through supported package paths. Freeze only those modes as
-implementation-independent output, trial-trace, callback-count, and invariant
-oracles. Treat legacy expected values as migration evidence, not as a contract
-for the old private dispatcher, integer mode flags, or unreachable branches.
+For a numerical backend upgrade, install old and new builds in isolated
+libraries. Read primary changelog, reference, and lifecycle guidance; diff the
+exported formals used by the adapter; then compare scientific results separately
+from trajectories, budgets, callback counts, terminal status, and retained
+state. A changed trace is not necessarily a result regression, and an unchanged
+result does not prove lifecycle conformance or sufficient observability.
 
-When useful, load the prior implementation from version control into an
-isolated environment for a temporary differential probe. Do not commit that
-implementation as a test dependency. After the supported-mode oracles pass,
-delete unreachable-mode tests with the obsolete code they would otherwise keep
-alive.
+Before replacing port-shaped or legacy code, inventory supported modes and
+freeze only their implementation-independent outputs, traces, callback counts,
+and invariants. A temporary isolated differential probe may load the prior
+implementation, but do not commit it as a dependency or retain tests for
+unreachable private modes.
 
-Pin the preserved lineage to the exact paper, routine, version, or port rather
-than relying on a shared algorithm name. When credible lineages differ, add a
-narrow transition-level discriminator at the predicate or update where they
-diverge, and record whether the refactor preserves one lineage or intentionally
-migrates to another. Treat source disagreement as a variant choice until a
-mathematical, safety, or supported-contract witness establishes a defect.
+Pin each oracle to the exact paper, routine, version, or port. When credible
+lineages differ, add a narrow transition-level discriminator and record whether
+the change preserves one lineage or intentionally migrates to another. Treat
+source disagreement as a variant choice until a mathematical, safety, or public
+contract witness establishes a defect.
 
 ## Research Prototype Defaults
 
-Test structural algebra and empirical target recovery as separate evidence
-layers. A method can satisfy every defining identity while remaining a weak
-finite-sample default. Before selecting a default, use a bounded repeated
-ground-truth matrix across relevant seeds and sample sizes with a predeclared
-recovery criterion; retain supported alternatives and limit claims to the
-exercised regime.
+Test structural algebra separately from empirical target recovery. Before
+selecting a default, use a bounded repeated ground-truth matrix across relevant
+seeds and sample sizes with a predeclared criterion; retain alternatives and
+limit claims to the exercised regime.
 
-Start with a fixture faithful to the reference challenge rather than a merely
-similar generator. Record material geometry, intrinsic scale, holes or
-boundaries, sampling regime, neighborhood construction, refinement, and
-pipeline stage. Check graph or operator preconditions before attributing poor
-recovery to the estimator. Related generators and out-of-domain stress tests
-may follow only after the claimed-regime benchmark is understood.
+Start with a fixture faithful to the reference challenge. Record material
+geometry, scale, boundaries, sampling, neighborhood construction, refinement,
+and pipeline stage, and check graph or operator preconditions before blaming the
+estimator. Add related generators or stress tests only after understanding the
+claimed regime.
 
 ## Factorization Repair Contracts
 
@@ -261,26 +258,23 @@ finite-difference mismatch as proof that the analytic code is wrong. Compare
 over several finite-difference step sizes and inspect relative error as well as
 absolute error before editing production code.
 
-Large absolute error alone is weak evidence for ill-scaled objectives. Look for
-patterns that stay bad across reasonable step sizes, relative-error outliers,
-shape or symmetry violations, or failures that are localized to a specific
-dimension branch. Record the evidence before changing analytic derivative code.
-When a committed test uses a non-default finite-difference scale, keep a short
-comment beside the override explaining the relevant scaling or cancellation
-issue and why that direction or magnitude was selected. Keep detailed probe
-results in the active plan or review record.
+Large absolute error alone is weak evidence for ill-scaled objectives. Require
+persistent multi-scale or relative error, shape or symmetry violations, or a
+localized branch failure before editing analytic code. For staged weights,
+penalties, normalization, exaggeration, or continuation controls, enumerate the
+objective phases and validate each scalar objective and gradient pair at
+representative points before using Armijo or Wolfe searches. Treat a newly
+strict line-search failure as possible caller inconsistency before weakening
+backend termination.
+
+Explain any committed non-default finite-difference scale beside the test and
+keep detailed probe results in the plan or review record.
 
 ## External AD Oracles
 
-When a package with hand-coded gradients or Hessians needs more assurance than
-finite differences can provide, consider a separate sibling oracle repository
-instead of adding an automatic-differentiation stack to the package test suite.
-Use the oracle to implement scalar objectives or residuals independently in a
-float64-capable AD backend, derive gradients or Hessians through autograd, and
-compare against the source package through optional scripts.
-
-Keep the oracle independent: do not transliterate the package's analytic
-derivative code or copy branch logic verbatim. Share only stable problem
-definitions, input cases, tolerances, and comparison reports. Treat oracle
-scripts as supplemental evidence; the source package should still keep
-lightweight finite-difference checks and contract tests for routine CI.
+When hand-coded derivatives need more assurance, consider a separate sibling
+oracle instead of adding automatic differentiation to package tests. Implement
+the scalar objective or residual independently in a float64-capable backend and
+compare through optional scripts; do not transliterate analytic code or branch
+logic. Share only stable problem definitions, cases, tolerances, and reports.
+Keep lightweight finite-difference and contract tests in routine package CI.

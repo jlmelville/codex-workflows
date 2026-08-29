@@ -22,12 +22,10 @@ candidate or verification proposal requires one of these grants:
 - the user explicitly requests `auto` mode for the task or session; or
 - applicable standing instructions explicitly authorize automatic routing.
 
-Routing authority permits only sanitized new files beneath
-`retrospectives/inbox` or `verifications/inbox` in the configured external
-state root. It does not authorize project or source-repository edits, commits,
-pushes, messages, proposal application, or changes to existing external state.
-Explicit task instructions and closer repository privacy rules may narrow
-standing authority.
+Routing authority permits only sanitized new inbox files beneath the configured
+state root. It does not authorize project or source edits, commits, pushes,
+messages, proposal application, or existing-state changes; closer instructions
+may narrow it.
 
 ## Routing Modes
 
@@ -40,31 +38,24 @@ standing authority.
   instructions, route high-confidence candidates with a concrete missing delta
   or verification proposals that exactly match a recorded opportunity.
 
-Before writing, assemble the complete current-task candidate and verification
-sets in memory or temporary scratch. Consolidate by missing delta and decision,
+Before writing, consolidate the current-task set by missing delta and decision
 or by accepted identity and claim, then write one file per distinct result.
 
 ## Automatic Checkpoints
 
-When standing instructions enable `auto`, evaluate after a substantive,
-coherent work unit. Normally do this after validation and small review fixes,
-before the final response or a fresh-agent handoff. Also evaluate when
-substantial user redirection exposes missing guidance, or when the work reveals
-reusable craft that a fresh agent would benefit from.
+When standing instructions enable `auto`, evaluate a substantive coherent unit
+after validation and small fixes, before the final response or handoff. Also
+evaluate when substantial user redirection exposes missing guidance or reusable
+craft.
 
-For the skills or destinations materially involved in the completed work, use
-`verification-opportunities --destination TEXT` as a pull query. Route a
-proposal only when the current task produced decisive evidence for the target's
-exact recorded opportunity. A query hit alone creates no work, quota, or
-record.
+For materially involved destinations, use `verification-opportunities
+--destination TEXT` as a pull query. Route only decisive evidence for the exact
+recorded opportunity; a query hit creates no work, quota, or record.
 
-Err toward evaluating when the boundary is uncertain; a no-change evaluation
-is cheap and should remain quiet. Fold minor follow-up fixes into the current
-work unit. If evaluation already occurred, evaluate again only when continued
-work materially changes the lesson or reveals a distinct one. Disclose
-successfully routed candidates and verification proposals in the final
-response; do not add a zero-count status line unless applicable instructions
-require it.
+Err toward a quiet no-change evaluation when the boundary is uncertain. Fold
+minor fixes into the current unit and reevaluate only for a materially changed
+or distinct lesson. Disclose routed records in the final response; omit zero
+counts unless instructions require them.
 
 Use the installed helper from arbitrary project repositories. Follow its
 temporary-input, paste-ready fallback, and sandbox mechanics in
@@ -73,10 +64,12 @@ checkout.
 
 ## Candidate Rules
 
-- Keep the chat summary concise: observation, decisive evidence, reusable
-  lesson, likely home, testability, confidence, and recommendation.
-- Make a routed candidate self-contained because triage will not have the
-  producing conversation.
+- Keep the summary concise and the routed candidate self-contained because
+  triage will not have the producing conversation.
+- Classify `evidence_lineage` against the affected destination guidance and
+  explain how active guidance may have shaped what was attempted, noticed, or
+  reported. Use `unknown` rather than inferring independence; repeated
+  descendant reports do not establish recurrence or transfer.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
 - Consolidate same-task evidence for one missing delta, destination, and

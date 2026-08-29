@@ -54,6 +54,9 @@ layering on more edits.
 - Avoid test-only exported C++ hooks in release code unless explicitly
   documented.
 - Use RAII for thread joining and resource cleanup.
+- Keep wrapper-owned shared bookkeeping out of parallel workers and commit it
+  after a successful join. Define supported state after partial native mutation
+  rather than inferring wrapper invariants from an item count.
 - Prefer explicit chunk IDs for per-thread RNG streams.
 
 See [rcpp.md](references/rcpp.md) for check guidance.

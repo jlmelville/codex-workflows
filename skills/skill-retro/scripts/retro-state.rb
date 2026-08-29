@@ -35,6 +35,7 @@ module RetroState
   ARTIFACT_AUDIT_ARCHIVE_THRESHOLD = 10
   ARTIFACT_CADENCE_RECORD_TYPE = "artifact-audit-cadence"
   CONFIDENCES = %w[high medium low].freeze
+  EVIDENCE_LINEAGES = %w[independent descendant mixed unknown not-applicable].freeze
   RECOMMENDATIONS = %w[
     update-existing no-change new-skill new-script new-prompt uncertain
   ].freeze
@@ -196,6 +197,15 @@ module RetroState
       label
     )
     require_string_array(data, "decisive_evidence", label)
+
+    lineage_present = data.key?("evidence_lineage") || data.key?("evidence_lineage_note")
+    if !routed || lineage_present
+      require_fields(data, %w[evidence_lineage evidence_lineage_note], label)
+      unless EVIDENCE_LINEAGES.include?(data["evidence_lineage"])
+        raise Error,
+          "#{label}: evidence_lineage must be one of #{EVIDENCE_LINEAGES.join(", ")}"
+      end
+    end
 
     unless CONFIDENCES.include?(data["confidence"])
       raise Error, "#{label}: confidence must be one of #{CONFIDENCES.join(", ")}"
@@ -1043,6 +1053,8 @@ module RetroState
       record_type: candidate
       title: "Short candidate title"
       source_scope: "Sanitized repository or task category; omit private names."
+      evidence_lineage: unknown # #{EVIDENCE_LINEAGES.join(", ")}
+      evidence_lineage_note: "Whether affected destination guidance was active and how it may have shaped what was attempted, noticed, or reported."
       observation: "What happened and why it matters."
       decisive_evidence:
         - "Bounded, sanitized failure signal or observed behavior."
@@ -2640,6 +2652,24 @@ module RetroState
       recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
       unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
         raise "candidate template recommendation vocabulary is incomplete"
+      end
+      lineage_line = candidate_template.lines.find { |line| line.start_with?("evidence_lineage:") }
+      unless lineage_line && EVIDENCE_LINEAGES.all? { |value| lineage_line.include?(value) }
+        raise "candidate template evidence lineage vocabulary is incomplete"
+      end
+      missing_lineage, missing_lineage_body = parse_document(candidate_template)
+      missing_lineage.delete("evidence_lineage")
+      missing_lineage.delete("evidence_lineage_note")
+      begin
+        validate_candidate(
+          missing_lineage,
+          missing_lineage_body,
+          label: "new candidate without evidence lineage",
+          routed: false
+        )
+        raise "new candidate without evidence lineage was accepted"
+      rescue Error => e
+        raise unless e.message.include?("evidence_lineage must be a non-empty string")
       end
       trigger_type_line = decision_template.lines.find { |line| line.start_with?("review_trigger_type:") }
       unless trigger_type_line && REVIEW_TRIGGER_TYPES.all? { |value| trigger_type_line.include?(value) }

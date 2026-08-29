@@ -35,6 +35,9 @@ Use this for documentation and pkgdown work in R packages.
 - Use `NEWS.md` for user-visible behavior, compatibility impact, or required
   action. Keep internal CI, implementation, diagnostic, and maintenance activity
   out unless it crosses that user-visible threshold.
+- When NEWS structure is material, validate the built and installed candidate
+  with `utils::news()` using the boundary in
+  [validation.md](references/validation.md).
 - For user-visible behavior changes, search roxygen and generated help,
   `README*`, `NEWS*`, vignettes or articles, and relevant pkgdown navigation
   for affected names and contract wording. Classify matches as current public
@@ -45,18 +48,16 @@ Use this for documentation and pkgdown work in R packages.
   backend-control documentation, reference values, or inspectable result
   objects, read
   [documentation-contracts.md](references/documentation-contracts.md).
-- Prefer roxygen source edits over direct `man/*.Rd` edits, then regenerate.
-- Treat `man/*.Rd` and `NAMESPACE` as generated unless intentionally refreshed.
-- Keep generated `man/*.Rd` changes in the same chunk or commit as the roxygen
-  source change that produced them. Avoid unrelated generated churn.
+- Edit roxygen sources rather than `man/*.Rd`, regenerate `man/*.Rd` and
+  `NAMESPACE`, and keep generated changes with their source without unrelated
+  churn.
 - When regenerating documentation, follow the roxygen section in
   [pkgdown.md](references/pkgdown.md#roxygen) to classify source-path churn,
   generator metadata, and idempotence.
-- Do not begin a package-wide roxygen markdown conversion during an unrelated
-  narrow change. When enabling or auditing roxygen markdown, run
+- Do not start package-wide roxygen markdown conversion during a narrow change.
+  When enabling or auditing it, run
   `${HOME}/.agents/skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh`,
   then follow [roxygen-markdown.md](references/roxygen-markdown.md).
-- Avoid broad roxygen churn during narrow correctness phases.
 
 ## Exported API Renames
 
