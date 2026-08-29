@@ -1,8 +1,7 @@
 # Private Learning-State Review
 
-Use this only for a review of external learning state or a broader process
-retrospective. A direct public artifact audit uses the route in the parent
-skill and does not inspect private state as evidence.
+Use only for external learning-state or broader process retrospectives. Direct
+public artifact audits use the parent route and no private-state evidence.
 
 ## Context
 
@@ -27,9 +26,8 @@ skill and does not inspect private state as evidence.
    and audits needed to judge verdict patterns, fired triggers, verification,
    producer quality, or cleanup.
 
-Treat synchronized state as potentially exposed. Do not reproduce credentials,
-private source, raw transcripts, unredacted local paths, or unnecessary private
-repository names in the report.
+Treat synchronized state as potentially exposed. Exclude credentials, private
+source, raw transcripts, unredacted paths, and unnecessary repository names.
 
 ## Judgment
 
@@ -37,27 +35,22 @@ Classify each reviewed papercut as one of:
 
 - `no-action`: useful observation, but no remedy is warranted;
 - `local-fix`: the remedy belongs only to the originating repository;
-- `candidate`: a reusable, materially missing kernel is ready for
-  `$skill-retro` and later `$skill-retro-triage`;
+- `candidate`: a reusable missing kernel is ready for `$skill-retro` and triage;
 - `external-owner`: another owner must act;
 - `duplicate`: an existing papercut owns the same evidence and drain.
 
-Do not promote mechanically. Name the exact missing delta and smallest owner.
-Keep repository-local wrappers out of reusable candidates. For a candidate
-closure, create the formal candidate first so the typed reference exists. For
-duplicates, identify the surviving papercut first.
+Do not promote mechanically. Name the exact missing delta and smallest owner;
+keep local wrappers out of reusable candidates. Create a candidate or identify
+the surviving duplicate before closing the papercut.
 
-Evaluate candidate verdict distributions, repeated construction mistakes,
-deferrals without drains, fired drafts or ledgers, stale or repeatedly rejected
-verification proposals, implemented-but-unverified guidance, contradicted
-guidance, and missing active domains without treating unequal report volume as
-a defect by itself.
+Evaluate verdict distributions, repeated construction mistakes, undrained
+deferrals, fired drafts or ledgers, stale or rejected verification proposals,
+implemented-but-unverified or contradicted guidance, and missing active domains.
+Unequal report volume is not itself a defect.
 
-Inspect a small, high-information sample of downstream work: owner-rejected or
-radically simplified plans, review growth above its scope threshold, abandoned
-plans, replacements of proven implementations, and explicit owner praise or
-blame. Prefer actual plans, diffs, timestamps, and owner corrections over agent
-self-report. For each affected skill record:
+Inspect a high-information sample of rejected or simplified plans, excessive
+review growth, abandoned plans, replaced proven implementations, and owner
+praise or blame. Prefer artifacts, timestamps, and owner corrections. Record:
 
 ```text
 Downstream artifacts inspected:
@@ -70,40 +63,48 @@ Behavioral conclusion:
 Plan-to-diff size may identify an anomaly but is never a target or sufficient
 verdict. Do not infer utility from conformance or successful completion alone.
 
-Aggregate behavioral evidence that an existing skill made ordinary work worse,
-including misactivation, unnecessary sequencing, displaced simpler approaches,
-stale assumptions, or procedural compliance that missed the user's objective.
-Route repeated or decisive evidence toward trigger narrowing, qualification,
-decomposition, supersession, or removal. Leave the provenance-blind artifact
-audit to identify structural risk factors rather than claiming behavioral
-incidents it cannot observe.
+Aggregate evidence that a skill made work worse through misactivation,
+unnecessary sequencing, displaced simpler paths, stale assumptions, or
+procedural compliance that missed the objective. Route repeated or decisive
+evidence toward narrowing, qualification, decomposition, supersession, or
+removal; the public audit may report risk, not unobserved behavioral incidents.
 
-Supervise semantic curation at the process level:
+Supervise whether triage adds incident-shaped rules without changing a decision,
+retrospectives find compressible clusters, accepted compression lands, casebooks
+become provenance dumps, and contradicted guidance reaches correction, removal,
+or an executable residual ledger.
 
-- whether triage keeps adding incident-shaped default rules instead of changing
-  a distinguishable decision;
-- whether repository retrospectives detect compressible decision clusters;
-- whether accepted compression recommendations land or remain undrained;
-- whether optional casebooks become provenance-organized dumps; and
-- whether contradicted guidance reaches correction, removal, or an executable
-  residual ledger.
+Inspect the artifact-audit report and actions without repeating its item-level
+work. When `artifact-audit-status` is due, use the parent route under the
+invoking task's authority; cadence never authorizes source edits.
 
-Inspect the artifact-audit report and its actions; do not repeat its
-artifact-by-artifact compression work inside this review. When
-`artifact-audit-status` is due, use the parent skill's public artifact-audit
-route under the authority of the invoking task. Due cadence never authorizes
-source edits.
+For a candidate deferral, name the decision current evidence cannot justify.
+Later behavioral uncertainty belongs in an unverified accepted outcome. Every
+deferral, draft, or ledger needs a trigger predicate, observer, `review-queue`
+route, executable probe, next action, and close condition.
 
-For every proposed candidate deferral, first name the decision that current
-evidence cannot justify. Later behavioral uncertainty after a justified
-implementation belongs in an unverified accepted outcome, not a deferral.
-Candidate deferrals, open drafts, and open ledgers must each name their trigger
-predicate, observer, `review-queue` route, executable probe, next action, and
-close condition. Reject a durable description without a liveness path.
+## External Orientation
+
+During every full learning-process review, use `https://mattwood.fyi/` as a
+bounded source of outside arguments, never as authority or ordinary task
+context. Check `https://mattwood.fyi/feed.json` since the last completed review;
+without a date, inspect only the newest items.
+
+Select at most three: a direct match for local evidence, a credible challenge to
+a decision, and an adjacent surprise suggesting another cause or owner. Fewer,
+including zero, is valid. Read original sources; summaries and graph edges are
+retrieval hints only.
+
+For each, report the local question and evidence, external claim, strongest
+limitation, decision delta, and `ignore`, `probe`, or `candidate` disposition.
+Default to `ignore`. Novelty is not local evidence; a probe must distinguish
+expected benefit from cost, and a candidate still needs local admission
+evidence. Create no feed cursor, registry, job, or ordinary task-agent context.
+
+Between reviews, consult it only for an unresolved choice or a large,
+settled-looking addition.
 
 ## Report
-
-Use these sections:
 
 ```md
 ## Learning Process Retrospective
@@ -114,6 +115,7 @@ Use these sections:
 ### Draft And Ledger Drains
 ### Verification Health
 ### Downstream Outcome Evidence
+### External Orientation
 ### Artifact Audit Supervision
 ### Producer Feedback Candidates
 ### Cleanup Candidates
@@ -130,26 +132,22 @@ Structural status: healthy or findings present
 Behavioral effectiveness: supported, mixed, harmful mode observed, or unknown
 ```
 
-Only downstream artifacts can support the second conclusion. Otherwise write:
-`Insufficient downstream evidence to assess behavioral effectiveness.` Do not
-add per-task telemetry, success quotas, or verdict quotas; zero counts do not
-establish complete capture. Review after 10 papercuts or 14 days during the
-pilot.
+Only downstream artifacts support the second conclusion; otherwise write
+`Insufficient downstream evidence to assess behavioral effectiveness.` Add no
+telemetry or quotas; zero counts do not prove capture. In the pilot, review
+after 10 papercuts or 14 days.
 
 ## Drain And Validate
 
-After acceptance, create required candidate or duplicate targets before closing
-their papercuts. Close each record with the helper's typed outcome and rationale.
-Route reusable public changes through `$skill-retro-triage`; implement purely
-local fixes only within their repository and authorized scope. Delete disposable
-history when it no longer improves future judgment.
+After acceptance, create candidate or duplicate targets before closing their
+papercuts with typed outcomes. Route reusable changes through
+`$skill-retro-triage`, keep local fixes local, and delete disposable history
+when it no longer improves judgment.
 
-After the applicable mutation gate, record the complete sanitized diagnosis as
-`template audit` with `audit_kind: learning-process`. First create every
-unresolved executable consequence as a candidate deferral, draft, or ledger and
-list those IDs in `unresolved_action_ids`. Create no unresolved actor until it
-passes the shared structured trigger contract. A completed diagnosis stays cold
-in audit history; only its unresolved actors remain in `review-queue`.
+After the mutation gate, record the sanitized diagnosis as `template audit`
+with `audit_kind: learning-process`. First create each unresolved consequence as
+a deferral, draft, or ledger and list its ID in `unresolved_action_ids`. Keep the
+diagnosis cold; only actors passing the trigger contract enter `review-queue`.
 
 Finish with:
 
@@ -157,7 +155,6 @@ Finish with:
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
 ```
 
-Report state changes, records left open, validation status, public publication
-status, and the next event-based review trigger. After the initial pilot,
-default to another review after five new papercuts or 14 days unless an open
-drain or verification opportunity provides an earlier meaningful trigger.
+Report state changes, open records, validation and publication status, and the
+next trigger. After the pilot, review after five papercuts or 14 days unless an
+open drain or verification opportunity gives an earlier meaningful trigger.
