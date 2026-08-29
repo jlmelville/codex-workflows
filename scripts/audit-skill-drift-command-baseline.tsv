@@ -26,8 +26,6 @@ Rscript -e	skills/r-test-hygiene/SKILL.md	3
 Rscript -e	skills/r-test-hygiene/references/coverage-roi.md	1
 Rscript -e	skills/r-test-hygiene/references/fixtures.md	1
 Rscript -e	skills/r-test-hygiene/references/testthat-edition-migrations.md	1
-devtools::check	skills/r-docs-pkgdown/SKILL.md	1
-devtools::check	skills/r-docs-pkgdown/references/roxygen-markdown.md	1
 devtools::check	skills/r-package-workflow/references/check-diagnostic-cases.md	1
 devtools::check	skills/r-package-workflow/references/checks.md	4
 devtools::check	skills/r-rcpp-package/SKILL.md	1

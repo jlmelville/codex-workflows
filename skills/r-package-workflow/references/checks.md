@@ -9,7 +9,7 @@ shared behavior, generated files, infrastructure, or compiled code.
 - Focused package-style test file:
   `Rscript -e 'pkgload::load_all(); testthat::test_file("tests/testthat/test-name.R")'`
 - Full tests: `Rscript -e 'testthat::test_local()'`
-- Full package check: `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'`
+- Full package check: `Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")'`
 
 Before running a single `tests/testthat/test-*.R` file directly, inspect
 `tests/testthat.R`. If the suite loads the package before running tests, use
@@ -172,7 +172,7 @@ CI-container, or external-service output. Preserve these exact recipes:
   ```r
   withr::with_envvar(
     c("_R_CHECK_SYSTEM_CLOCK_" = "FALSE"),
-    devtools::check(document = FALSE, args = c("--no-manual"))
+    devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")
   )
   ```
 

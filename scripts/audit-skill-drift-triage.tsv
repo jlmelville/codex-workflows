@@ -13,5 +13,5 @@ Repeated Command Guidance	actionlint:	The residual mentions cover the canonical 
 Repeated Command Guidance	zizmor or uvx zizmor:	The residual mentions cover the canonical audit, trigger vocabulary, sandbox fallback mechanics, and limits of static validation rather than parallel command ownership.
 Repeated Command Guidance	roxygen2::roxygenise:	Documentation generation and idempotence checks require the same command at distinct default, routed, and executable surfaces.
 Repeated Command Guidance	Rscript -e:	The shared launcher prefix introduces distinct task-specific R commands rather than one duplicated workflow.
-Repeated Command Guidance	devtools::check:	Package-check closure and diagnostic attribution recur across independently useful R workflow surfaces.
+Repeated Command Guidance	devtools::check:	The canonical bundle, diagnostic casebook, and compiled-code checklist keep the strict package-check gate visible at distinct use surfaces.
 Repeated Command Guidance	persist-credentials:	The generic checkout rule and complete R deployment examples must each keep the security setting explicit.

@@ -83,5 +83,5 @@ After a package-wide conversion:
 
 4. Run `roxygen2::roxygenise()` a second time and confirm it makes no
    additional `NAMESPACE` or `man/*.Rd` changes.
-5. Run `devtools::check(document = FALSE, args = c("--no-manual"))` before
-   handing off the docs chunk.
+5. Before handoff, run the package-wide bundle in
+   [R package checks](../../r-package-workflow/references/checks.md#final-validation-bundles).

@@ -49,7 +49,7 @@ compatibility behavior, extension, or unresolved. Source disagreement is not a
 defect without a mathematical, safety, or supported-contract witness. Separate
 characterization, behavior-neutral restructuring, and any correctness change
 into reviewable packets. Use the
-[legacy numerical oracle firewall](../../r-test-hygiene/references/numerical-contracts.md#legacy-numerical-oracle-firewalls)
+[legacy numerical oracle firewall](../../r-test-hygiene/references/numerical-contracts.md#backend-versions-and-legacy-oracle-firewalls)
 for migration evidence without preserving obsolete implementation expression.
 
 ## Decompose Before Tuning

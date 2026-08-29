@@ -101,13 +101,11 @@ See [pkgdown.md](references/pkgdown.md).
 ```sh
 Rscript -e 'roxygen2::roxygenise()'
 Rscript -e 'pkgdown::build_site(new_process = FALSE)'
-Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
 ```
 
-These concise commands assume that the current package is loadable by the
-render process and that required caches are writable. Before a focused article
-build in a fresh or restricted process, use the temporary-install helper in
-[validation.md](references/validation.md#fresh-temporary-library-article-builds).
+These focused commands assume a loadable package and writable caches. Before
+completion, run the [final package bundle](../r-package-workflow/references/checks.md#final-validation-bundles). For a fresh or
+restricted article build, use [validation.md](references/validation.md#fresh-temporary-library-article-builds).
 
 When a pkgdown workflow changes, also run the required checks from
 `$r-ci-hardening`.

@@ -12,7 +12,7 @@ Run from an R package root.
 
 Modes:
   fast  existing Rcpp or cpp11 bindings, then testthat::test_local()
-  full  fast checks plus Air, lintr, and devtools::check(--no-manual)
+  full  fast checks plus required Air, lintr, and a note-fatal package check
   ci    full checks plus the shared GitHub Actions audit when workflows exist
 
 Existing generated bindings select Rcpp::compileAttributes() or
@@ -34,6 +34,11 @@ fi
 
 if [[ ! -f DESCRIPTION ]]; then
   echo "check-r-package.sh: run from an R package root with DESCRIPTION" >&2
+  exit 2
+fi
+
+if [[ "${mode}" != "fast" ]] && ! command -v air >/dev/null 2>&1; then
+  echo "check-r-package.sh: air is required for ${mode} mode" >&2
   exit 2
 fi
 
@@ -64,14 +69,10 @@ if [[ "${mode}" == "fast" ]]; then
   exit 0
 fi
 
-if command -v air >/dev/null 2>&1; then
-  air format . --check
-else
-  echo "air not found; skipped Air format check." >&2
-fi
+air format . --check
 
 Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
-Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
+Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")'
 
 if [[ "${mode}" == "full" ]]; then
   exit 0

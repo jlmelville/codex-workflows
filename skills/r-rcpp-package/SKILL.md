@@ -69,7 +69,7 @@ Choose exactly one generation command when bindings changed:
 Rscript -e 'Rcpp::compileAttributes()' # Rcpp
 Rscript -e 'cpp11::cpp_register()'     # cpp11
 Rscript -e 'testthat::test_local()'
-Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"))'
+Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")'
 clang-format --dry-run --Werror <hand-maintained-C++-paths>
 ```
 

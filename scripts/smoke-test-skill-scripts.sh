@@ -526,6 +526,7 @@ run_r_package_check_smoke() {
   local fake_bin="${tmp_root}/r-package-check-bin"
   local log="${tmp_root}/r-package-check.log"
   local audit_output
+  local command_status
 
   mkdir -p \
     "${pkg_dir}/R" "${pkg_dir}/src" "${pkg_dir}/.github/workflows" \
@@ -601,7 +602,30 @@ EOF_COMMAND
   [[ "$(wc -l <"${log}")" -eq 5 ]]
   grep -Fq 'air format . --check' "${log}"
   grep -Fq 'lintr::lint_package()' "${log}"
-  grep -Fq 'devtools::check(document = FALSE' "${log}"
+  grep -Fq \
+    'Rscript -e devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")' \
+    "${log}"
+
+  mv "${fake_bin}/air" "${fake_bin}/air.saved"
+  : >"${log}"
+  if (
+    cd "${pkg_dir}" &&
+      PATH="${fake_bin}:/usr/bin:/bin" SMOKE_LOG="${log}" "${script}" full \
+        >/dev/null 2>"${tmp_root}/r-package-air.stderr"
+  ); then
+    command_status=0
+  else
+    command_status=$?
+  fi
+  mv "${fake_bin}/air.saved" "${fake_bin}/air"
+  if [[ "${command_status}" -eq 0 ]]; then
+    echo "check-r-package.sh full should require Air" >&2
+    return 1
+  fi
+  [[ "${command_status}" -eq 2 ]]
+  [[ ! -s "${log}" ]]
+  grep -Fq 'air is required for full mode' \
+    "${tmp_root}/r-package-air.stderr"
 
   : >"${log}"
   (
@@ -957,6 +981,44 @@ EOF_AGENTS
   fi
 }
 
+run_markdown_reference_smoke() {
+  local script="${repo_dir}/scripts/validate-markdown-references.rb"
+  local fixture="${tmp_root}/markdown-references"
+  local stderr_file="${tmp_root}/markdown-references.stderr"
+  local command_status
+
+  mkdir -p "${fixture}/docs" "${fixture}/skills/example"
+  cat >"${fixture}/README.md" <<'EOF_MARKDOWN_README'
+# Root Heading
+
+[Same-file heading](#root-heading)
+[Cross-file heading](docs/target.md#target-heading)
+EOF_MARKDOWN_README
+  printf '%s\n' '# Repository Instructions' >"${fixture}/AGENTS.md"
+  printf '%s\n' '# Target Heading' >"${fixture}/docs/target.md"
+  printf '%s\n' '# Example Skill' >"${fixture}/skills/example/SKILL.md"
+
+  "${script}" --help >/dev/null
+  assert_usage_error \
+    "markdown-reference-unknown-option" \
+    "unknown option: --bogus" \
+    "${script}" --bogus
+  "${script}" "${fixture}"
+
+  printf '%s\n' '[Broken fragment](target.md#missing-heading)' \
+    >"${fixture}/docs/broken.md"
+  if "${script}" "${fixture}" >/dev/null 2>"${stderr_file}"; then
+    echo "validate-markdown-references.rb should reject a missing fragment" >&2
+    return 1
+  else
+    command_status=$?
+  fi
+  [[ "${command_status}" -eq 1 ]]
+  grep -Fq \
+    'docs/broken.md: markdown link fragment not found: target.md#missing-heading' \
+    "${stderr_file}"
+}
+
 run_ci_tool_parity_smoke() {
   local fixture="${tmp_root}/ci-tool-parity"
   local script="${fixture}/scripts/check-ci-tool-parity.sh"
@@ -1275,6 +1337,7 @@ run_audit_actions_smoke
 run_action_tag_comment_smoke
 run_skill_index_smoke
 run_skill_metadata_smoke
+run_markdown_reference_smoke
 run_ci_tool_parity_smoke
 run_retro_state_smoke
 run_patch_identity_smoke

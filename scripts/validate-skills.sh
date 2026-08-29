@@ -39,6 +39,14 @@ elif ! "${metadata_validator}" "${repo_dir}"; then
   status=1
 fi
 
+markdown_validator="${repo_dir}/scripts/validate-markdown-references.rb"
+if [[ ! -x "${markdown_validator}" ]]; then
+  echo "${markdown_validator}: missing or not executable" >&2
+  status=1
+elif ! "${markdown_validator}" "${repo_dir}"; then
+  status=1
+fi
+
 for skill_dir in "${repo_dir}"/skills/*; do
   [[ -d "${skill_dir}" ]] || continue
 
@@ -218,67 +226,6 @@ if ((${#r_files[@]} > 0)); then
   ' "${r_files[@]}"; then
     status=1
   fi
-fi
-
-# shellcheck disable=SC2016
-if ! ruby -e '
-  repo = ARGV.fetch(0)
-  skills_dir = File.join(repo, "skills")
-  skill_names = Dir.children(skills_dir).select { |name|
-    File.directory?(File.join(skills_dir, name))
-  }
-
-  markdown_files = Dir.glob([
-    File.join(repo, "README.md"),
-    File.join(repo, "AGENTS.md"),
-    File.join(repo, "docs", "**", "*.md"),
-    File.join(repo, "prompts", "**", "*.md"),
-    File.join(repo, "skills", "**", "*.md")
-  ])
-
-  status = 0
-  markdown_files.each do |path|
-    text = File.read(path)
-    rel_path = path.delete_prefix("#{repo}/")
-
-    text.scan(/\[[^\]\n]+\]\(([^)\s]+)(?:\s+[^)]*)?\)/).each do |match|
-      target = match.fetch(0)
-      next if target.start_with?("#")
-      next if target.match?(/\A[A-Za-z][A-Za-z0-9+.-]*:/)
-
-      target_path = target.sub(/#.*/, "")
-      next if target_path.empty?
-
-      resolved = File.expand_path(target_path, File.dirname(path))
-      unless File.exist?(resolved)
-        warn "#{rel_path}: markdown link target not found: #{target}"
-        status = 1
-      end
-    end
-
-    text.scan(/\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)/).each do |match|
-      skill_ref = match.fetch(0)
-      next if skill_ref == "skill-name"
-      next if !skill_ref.include?("-") && !skill_names.include?(skill_ref)
-
-      unless skill_names.include?(skill_ref)
-        warn "#{rel_path}: unknown skill reference $#{skill_ref}"
-        status = 1
-      end
-    end
-
-    text.scan(/\bskills\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*[A-Za-z0-9_-]/).each do |target|
-      resolved = File.join(repo, target)
-      unless File.exist?(resolved)
-        warn "#{rel_path}: repo path not found: #{target}"
-        status = 1
-      end
-    end
-  end
-
-  exit(status)
-' "${repo_dir}"; then
-  status=1
 fi
 
 smoke_scripts=(

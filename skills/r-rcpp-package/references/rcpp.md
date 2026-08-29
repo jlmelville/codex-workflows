@@ -175,6 +175,6 @@ redistribution compliance; escalate ambiguous interpretation to its owner.
 
 ## Check Output
 
-`R CMD check` notes for compiler flags or time verification may be environment
-specific. Record known notes in project plans rather than treating them as new
-regressions each run.
+Environment-specific `R CMD check` notes still require attribution and the
+applicable [restricted-environment rerun](../../r-package-workflow/references/checks.md#restricted-environment-mechanics).
+Record the evidence; an unresolved note permits only an incomplete or blocked handoff.
