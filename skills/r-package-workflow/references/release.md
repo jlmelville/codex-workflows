@@ -40,6 +40,25 @@ Submit through the current form or supported helper and confirm by email. Do not
 upload while pending; after correction, update version and evidence as required
 and await the prior outcome before resubmitting.
 
-After acceptance, tag the exact source, publish the release note, restore the
-development version and NEWS heading, and monitor CRAN and downstream status
-for publication-only failures.
+## After Acceptance Checklist
+
+Use repository history and local documentation to identify package-specific
+release surfaces, then complete and report every applicable item:
+
+- [ ] Confirm CRAN published the intended version and retain the exact accepted
+  source identity.
+- [ ] Tag the exact accepted source and publish the hosting-platform release and
+  release notes.
+- [ ] Refresh repository-maintained release summaries, such as a concise README
+  activity item, a longer What's New article, a changelog, or a website. Follow
+  the repository's retention convention when pruning superseded latest items.
+- [ ] Restore development state in `DESCRIPTION` and NEWS. When it matches the
+  package convention, `usethis::use_version("dev")` updates both; inspect its
+  diff because it may also update `src/version.c`.
+- [ ] Commit and push the post-release documentation and development transition
+  when authorized, and deploy public documentation when the repository owns it.
+- [ ] Monitor CRAN checks and downstream status for publication-only failures.
+
+Treat tags, releases, pushes, and site deployments as separately authorized
+external mutations. Do not assume an example release surface exists; confirm it
+from the repository before marking it inapplicable.
