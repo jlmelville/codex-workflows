@@ -53,6 +53,23 @@ verification proposals, implemented-but-unverified guidance, contradicted
 guidance, and missing active domains without treating unequal report volume as
 a defect by itself.
 
+Inspect a small, high-information sample of downstream work: owner-rejected or
+radically simplified plans, review growth above its scope threshold, abandoned
+plans, replacements of proven implementations, and explicit owner praise or
+blame. Prefer actual plans, diffs, timestamps, and owner corrections over agent
+self-report. For each affected skill record:
+
+```text
+Downstream artifacts inspected:
+Observed effect: helpful, neutral, harmful, or unknown
+Observed cost: negligible, material, severe, or unknown
+Evidence limitations:
+Behavioral conclusion:
+```
+
+Plan-to-diff size may identify an anomaly but is never a target or sufficient
+verdict. Do not infer utility from conformance or successful completion alone.
+
 Aggregate behavioral evidence that an existing skill made ordinary work worse,
 including misactivation, unnecessary sequencing, displaced simpler approaches,
 stale assumptions, or procedural compliance that missed the user's objective.
@@ -96,6 +113,7 @@ Use these sections:
 ### Verdict And Deferral Patterns
 ### Draft And Ledger Drains
 ### Verification Health
+### Downstream Outcome Evidence
 ### Artifact Audit Supervision
 ### Producer Feedback Candidates
 ### Cleanup Candidates
@@ -104,14 +122,19 @@ Use these sections:
 ### Proposed Next Review Trigger
 ```
 
-During an initial pilot, use all reviewed papercuts as the denominator. Report
-actionable yield for `local-fix`, `candidate`, or `external-owner`; duplicate and
-noise rates; and capture gap for observations mature candidate routing would
-omit. Keep classification, implemented outcomes, and behavioral support
-distinct; `external-owner` is attribution, not remediation, without recorded
-owner action, and implementation alone does not prove reduced recurrence.
-Review after 10 papercuts or 14 days. Add no per-task telemetry or success
-quota; zero counts do not establish complete capture.
+Report control-plane counts only as control-plane evidence. End with separate
+conclusions:
+
+```text
+Structural status: healthy or findings present
+Behavioral effectiveness: supported, mixed, harmful mode observed, or unknown
+```
+
+Only downstream artifacts can support the second conclusion. Otherwise write:
+`Insufficient downstream evidence to assess behavioral effectiveness.` Do not
+add per-task telemetry, success quotas, or verdict quotas; zero counts do not
+establish complete capture. Review after 10 papercuts or 14 days during the
+pilot.
 
 ## Drain And Validate
 

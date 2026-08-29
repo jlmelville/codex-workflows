@@ -93,12 +93,10 @@ Run the advisory drift and bloat audit before or after consolidation work:
 ./scripts/audit-skill-drift.rb
 ```
 
-Use `--strict-hard --hard-only` for validation that should fail only on hard
-installed-runtime problems. Use `--strict` only when the current branch is
-meant to remove all untriaged findings. The audit surfaces hard, review, and
-informational findings for long descriptions, overlapping trigger surfaces,
-repeated helper names, repeated command guidance, machine-specific paths, and
-repo-relative skill script references.
+Use `--strict-hard --hard-only` for hard installed-runtime and instructional-
+payload failures. Use `--strict` only when the branch should remove every
+untriaged finding. Other findings cover long descriptions, trigger overlap,
+repeated helpers or commands, machine paths, and repo-relative script paths.
 
 Accepted advisory findings live in `scripts/audit-skill-drift-triage.tsv`;
 each row records the audit section, a row substring to match, and the rationale
@@ -113,6 +111,12 @@ on an existing path produces an untriaged `Repeated Command Growth` finding;
 unchanged and reduced repetition do not. Review the named delta before updating
 the baseline. Never regenerate or advance it automatically merely to make the
 audit green.
+
+`scripts/audit-skill-drift-payload-baseline.tsv` caps each `SKILL.md`, each
+skill's instructional Markdown, and repository instructional Markdown. Growth
+is hard; lowering a cap is allowed. Validation also compares a changed baseline
+with `HEAD` or `HEAD^`, so ordinary maintenance cannot raise a cap or add a
+skill entry. A separately accepted policy change must own any future exception.
 
 ## Pre-Commit Review
 

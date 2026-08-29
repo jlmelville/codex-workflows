@@ -40,12 +40,9 @@ standing authority.
   instructions, route high-confidence candidates with a concrete missing delta
   or verification proposals that exactly match a recorded opportunity.
 
-Before either routing mode writes anything, assemble the complete current-task
-candidate and verification-proposal sets in memory or temporary scratch.
-Consolidate candidate overlaps by missing delta, destination, and decision;
-consolidate verification overlaps by accepted identity, opportunity, and
-claim. Then write one file per surviving distinct record type and delta. Do not
-route reports incrementally as conclusions surface.
+Before writing, assemble the complete current-task candidate and verification
+sets in memory or temporary scratch. Consolidate by missing delta and decision,
+or by accepted identity and claim, then write one file per distinct result.
 
 ## Automatic Checkpoints
 
@@ -69,18 +66,10 @@ successfully routed candidates and verification proposals in the final
 response; do not add a zero-count status line unless applicable instructions
 require it.
 
-Use the installed helper from an arbitrary project repository:
-
-```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template candidate
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" route --file CANDIDATE_FILE
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template verification
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" route-verification --file PROPOSAL_FILE
-```
-
-Follow the installed-path, temporary-input, paste-ready fallback, and sandbox
-retry mechanics in [state-protocol.md](references/state-protocol.md); do not
-depend on the source checkout from an arbitrary project.
+Use the installed helper from arbitrary project repositories. Follow its
+temporary-input, paste-ready fallback, and sandbox mechanics in
+[state-protocol.md](references/state-protocol.md); do not depend on this source
+checkout.
 
 ## Candidate Rules
 
@@ -113,8 +102,10 @@ depend on the source checkout from an arbitrary project.
 - Prefer a validator or bundled script for deterministic command behavior, file
   layout, metadata, generated output, or recurring fragile searches. If prose
   is better, explain why a script is not warranted.
-- Harvest reusable craft that worked well, not only failures. The test is
-  whether a fresh agent doing similar work would reuse the convention.
+- Harvest craft only when observed benefit justified its cost. Technically
+  sound machinery inside owner-rejected, abandoned, or severely over-built
+  work is not positive evidence without an independent successful use; expose
+  that provenance so triage can narrow, remove, or park the lesson.
 - When an existing skill materially influenced the work, check whether it made
   the task worse by misactivating, imposing unnecessary sequencing, displacing
   a simpler valid approach, relying on stale assumptions, or rewarding

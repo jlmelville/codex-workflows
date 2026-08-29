@@ -4,9 +4,14 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 audit_source="${repo_dir}/scripts/audit-skill-drift.rb"
 baseline_source="${repo_dir}/scripts/audit-skill-drift-command-baseline.tsv"
+payload_baseline_source="${repo_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
 
 if ! command -v ruby >/dev/null 2>&1; then
   echo "ruby is required for the skill drift smoke test" >&2
+  exit 1
+fi
+if ! command -v git >/dev/null 2>&1; then
+  echo "git is required for the skill drift smoke test" >&2
   exit 1
 fi
 
@@ -16,6 +21,7 @@ trap 'rm -rf "${fixture_dir}"' EXIT
 mkdir -p "${fixture_dir}/scripts" "${fixture_dir}/skills/example/scripts"
 cp "${audit_source}" "${fixture_dir}/scripts/audit-skill-drift.rb"
 cp "${baseline_source}" "${fixture_dir}/scripts/audit-skill-drift-command-baseline.tsv"
+cp "${payload_baseline_source}" "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
 cat >"${fixture_dir}/scripts/audit-skill-drift-command-baseline.tsv" <<'EOF'
 # command	path	hit-count
 EOF
@@ -23,6 +29,12 @@ EOF
 cat >"${fixture_dir}/scripts/audit-skill-drift-triage.tsv" <<'EOF'
 # section	pattern	rationale
 Repeated Helper Names	fixture_helper:	The duplicate helper is an intentional advisory fixture.
+EOF
+
+cat >"${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv" <<'EOF'
+# scope	name	hot-lines	total-lines
+skill	example	1000	1000
+repository	instructional-markdown	-	10000
 EOF
 
 cat >"${fixture_dir}/scripts/one.sh" <<'EOF'
@@ -59,6 +71,12 @@ scripts/check.sh
 ```
 EOF
 cp "${skill_file}" "${fixture_dir}/good-skill.md"
+
+git -C "${fixture_dir}" init -q
+git -C "${fixture_dir}" config user.email smoke@example.invalid
+git -C "${fixture_dir}" config user.name "Smoke Test"
+git -C "${fixture_dir}" add .
+git -C "${fixture_dir}" commit -q -m baseline
 
 output_file="${fixture_dir}/audit.out"
 error_file="${fixture_dir}/audit.err"
@@ -109,6 +127,54 @@ fi
 if ! grep -Fq "command baseline not found" "${error_file}"; then
   cat "${error_file}" >&2
   echo "missing command baseline did not produce a stable error" >&2
+  exit 1
+fi
+
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/missing-payload-baseline.tsv" >"${output_file}" 2>"${error_file}"; then
+  echo "missing payload baseline unexpectedly succeeded" >&2
+  exit 1
+fi
+if ! grep -Fq "payload baseline not found" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "missing payload baseline did not produce a stable error" >&2
+  exit 1
+fi
+
+cp "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv" \
+  "${fixture_dir}/scripts/payload-baseline.clean"
+ruby -pi -e 'sub("skill\texample\t1000\t1000", "skill\texample\t1001\t1000")' \
+  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "increased payload baseline unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
+  ! grep -Fq "hot-path limit 1000 -> 1001 lines" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "payload baseline increase did not produce the expected hard finding" >&2
+  exit 1
+fi
+cp "${fixture_dir}/scripts/payload-baseline.clean" \
+  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
+
+cat >"${fixture_dir}/low-payload-baseline.tsv" <<'EOF'
+# scope	name	hot-lines	total-lines
+skill	example	1	1
+repository	instructional-markdown	-	1
+EOF
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/low-payload-baseline.tsv" \
+  --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "payload growth unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Instructional Payload Growth" "${output_file}" ||
+  ! grep -Fq "repository instructional Markdown" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "payload growth did not produce the expected hard finding" >&2
   exit 1
 fi
 

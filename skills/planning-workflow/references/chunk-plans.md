@@ -5,167 +5,46 @@ needs bounded packets instead of one monolithic instruction list.
 
 ## Minimum Shape
 
-A chunk plan should include:
+Include the goal and guardrails, source audit or review when applicable,
+chunking rules, a queue with scope and exit criteria, and a progress log of
+changes, validation, decisions, and the next packet. Each agent completes one
+coherent chunk, validates it, updates the log, and stops with a handoff when
+work remains. Do not combine unrelated chunks because context remains.
 
-- goal and guardrails;
-- source audit or review file, if any;
-- explicit operational chunking rules;
-- a chunk queue with scope, tasks, validation, and exit criteria;
-- a progress log recording completed chunks, files changed, tests run,
-  discoveries, decisions, and the recommended next chunk.
-
-Each agent should complete one coherent chunk, run focused validation, update
-the progress log, and stop with a handoff when more work remains. Do not
-combine unrelated chunks just because context remains.
-
-If later sizing shows that an in-flight chunk is oversized but it is making
-coherent progress, do not interrupt solely to retrofit packet boundaries.
-Record independent review contracts, judge and accept each contract separately,
-and return only a failed slice for rework. Apply the smaller boundaries
-prospectively to later packets.
-
-When the operator requires an independent review gate, capture the scoped
-baseline before editing and follow the bounded loop and stop conditions in
+If an active chunk proves oversized but is making coherent progress, finish its
+current contract and apply smaller boundaries prospectively. When independent
+review is required, use the bounded loop in
 [audits-and-review-packets.md](audits-and-review-packets.md#bounded-independent-review).
 
-## Progress Log Edits
+## Durable Source Boundary
 
-When a plan repeats marker text such as next-chunk recommendations, anchor a
-patch on a unique heading and nearby dated entry or on an explicit end-of-log
-context. After updating the log, inspect the dated-entry order and final
-recommended chunk so an earlier matching marker cannot silently receive the
-new entry.
+Keep chronology, packet identifiers, and review status in the plan or handoff.
+Source comments and user-facing output must stand alone and explain a lasting
+domain, API, compatibility, numerical, or safety constraint. Prefer structure
+that makes the intent clear enough to omit the comment.
 
-## Plan Provenance Boundary
+## Mechanical Splits And Staging
 
-Keep execution chronology in the plan progress log, handoff, or review record.
-Durable source comments and user-facing output must not depend on an ignored or
-private plan, chunk identifier, or review status for meaning. A necessary
-comment should stand alone and explain the lasting domain, API, compatibility,
-numerical, or safety constraint—why the code behaves this way, not when the
-decision was made. If moving the operation to its natural construction or
-validation boundary makes the intent clear, prefer that structure and omit the
-comment.
+For a behavior-neutral file split, snapshot and mechanically reconstruct the
+original with explicit separators, then compare it before tests. Any other
+difference needs review. Strip boundary-only trailing blank lines rather than
+treating them as source content.
 
-## Managed Sandbox Git Writes
-
-If staging or committing fails under managed sandboxing with a read-only
-`.git/index.lock` error, and `git -C <repo>` is an approved command form, retry
-the git operation with `git -C <repo>` before considering permission changes or
-lock-file cleanup.
-
-## Behavior-Neutral File Splits
-
-For behavior-neutral file splits, add a mechanical verification step before
-tests when practical:
-
-1. Snapshot the original source file.
-2. Split it mechanically.
-3. Rejoin the new files with the same separators the original used.
-4. Run a unified diff against the snapshot.
-
-Treat any non-separator diff as a source-content change that needs review
-before proceeding. Treat blank lines at new file boundaries as reconstruction
-separators, not content that must remain at the end of split files; strip
-trailing blank lines from the new files and make the separator counts explicit
-in the rejoin command.
-
-## Bug-Scoped Staging
-
-For cleanup chunks that may reveal several unrelated correctness bugs, decide
-the likely commit boundaries before editing. Keep fixes and tests independently
-stageable by bug whenever practical, instead of making one shared regression
-file or broad hunk that later requires delicate partial staging.
-
-## Staged Handoff Review
-
-When a handoff presents a staged patch, treat the Git index as the deliverable.
-Inspect `git diff --cached --name-status`, review `git diff --cached`, and run
-`git diff --cached --check`. Before using working-tree tests as evidence for
-the proposed commit, compare staged and unstaged path lists and confirm that no
-unstaged edits overlap staged paths. Tests exercise working-tree files, so they
-support the cached patch only when those paths have no unstaged drift.
-
-In a shared checkout, repeat the baseline and ownership check immediately
-before the first staging command: compare `HEAD` with the validated commit and
-re-read the complete worktree status. If another worker advanced `HEAD` or
-changed an owned path, do not stage the overlapping patch. Assign the affected
-path to one maintainer, reconcile the combined diff, and rerun the applicable
-validation. Continue disjoint work only when its paths were clean at the
-recorded baseline, remain nonoverlapping, and have explicit ownership.
-
-## Accepted Patch Identity
-
-When independent review accepts an unstaged patch and validation commands may
-mutate it, require a clean index so `HEAD` is the exact baseline. Inventory
-every untracked file as included or excluded, then use the bundled helper to
-hash the tracked binary diff followed by deterministic binary diffs for every
-included untracked file:
-
-```sh
-${HOME}/.agents/skills/planning-workflow/scripts/patch-identity.rb \
-  --include-untracked path/to/new-test.R \
-  --exclude-untracked path/to/unrelated-note.md
-```
-
-Repeat either option as needed. The helper refuses uncategorized untracked
-files, staged changes, and empty patches; it reports the baseline and inventory
-on standard error and prints only the SHA-256 on standard output. An equivalent
-recipe must be NUL-safe and must not label a tracked-only `git diff --binary`
-digest as the complete working patch. Apply the accepted patch to an isolated
-checkout for generators and other mutation-capable checks; treat any generated
-difference as review evidence instead of changing the submitter's checkout.
-
-After an operator-directed disjoint commit split, hash the baseline-to-final-HEAD
-binary diff with the same baseline and options and compare it with the accepted
-patch identity. Also confirm a clean index and worktree. Equality proves that
-the combined content was preserved, but it does not replace isolated index
-validation for intermediate commits whose paths or hunks overlap.
-
-## Sub-File Packet Ownership
-
-When sequential packets divide one file, record unique stable anchors before
-editing and compare every excluded slice between the frozen baseline and review
-target. Fail closed when an anchor is missing or duplicated. A byte comparison
-or digest can make unchanged adjacent regions explicit, but it supplements the
-complete patch identity; it does not replace review of the owned slices or the
-whole deliverable.
+For cleanup that reveals unrelated bugs, keep fixes and regression tests
+independently stageable when practical. In shared checkouts, inspect complete
+status immediately before staging and stop on overlapping or unattributed
+changes; do not hide or overwrite another worker's edits.
 
 ## Accepted Mapping Crosswalk
 
-When a packet accepts an itemized mapping, preserve the complete mapping in its
-handoff and use it as the completion checklist. Before editing, compare any
-inline checklist with the named mapping and enumerate missing or extra rows. If
-limiting language makes the authority unclear, resolve that contradiction
-instead of treating an omission as silent deauthorization or permission.
-
-During implementation and independent review, crosswalk every mapping row
-against the final scoped source. For an identifier rename, require the
-replacement at expected declarations, definitions, and call sites; search for
-the old executable name; and classify intentional diagnostic, documentation,
-generated, or compatibility matches separately. Passing behavioral tests does
-not establish item-set completeness, and an implementation-time scope reduction
-requires an explicit plan decision. If later review repairs an omission,
-preserve chronology by appending the correction and its evidence rather than
-rewriting the earlier progress claim.
-
-## Overlapping Split Validation
-
-When an operator-directed or post-hoc commit split leaves staged and unstaged
-hunks in the same paths, materialize the exact Git index in an isolated
-temporary checkout that excludes unstaged and untracked content. Run the
-commit's focused and proportional validation against that snapshot; ordinary
-working-tree tests are evidence only for the combined state.
-
-Inspect both the intermediate cached patch and the final combined patch. Record
-any compatibility edits needed only to keep an intermediate commit valid, and
-confirm that the final state removes them or retains them for an independently
-justified reason.
+When a packet accepts an itemized mapping, preserve it as the completion
+checklist. Compare any inline subset before editing and resolve contradictory
+limiting language. Crosswalk every row against final source; for renames, check
+declarations, definitions, call sites, and remaining old executable names.
+Passing behavioral tests does not establish item-set completeness. Append later
+corrections and evidence instead of rewriting earlier progress claims.
 
 ## Warning Ownership
 
-When a chunk accepts a remaining warning, note, or validation anomaly, assign
-ownership before moving on. Either fix it in the chunk, classify it as
-environmental or non-actionable with exact evidence, or add a named pending
-follow-up chunk. Do not leave "known warning" language without an owner and
-next action.
+Before moving on, fix each remaining warning or anomaly, classify it with exact
+evidence, or assign a named follow-up packet with a next action.

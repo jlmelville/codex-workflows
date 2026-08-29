@@ -103,8 +103,10 @@ organized by reasoning problem or witness shape, and admitted for a distinct
 plausible wrong implementation or observation boundary rather than provenance.
 Flag uncurated collections of report narratives.
 
-Reference word and line totals may support the advisory drift report, but give
-them no hard threshold and do not treat size as proof of semantic bloat.
+Reference word and line totals are not proof of semantic bloat. Treat checked
+payload budgets as circuit breakers against unbounded growth, then use semantic
+review to decide what to consolidate, demote, or remove; never advance a budget
+merely to clear a finding.
 
 Report using this shape:
 
@@ -130,3 +132,8 @@ End with a complete sanitized diagnosis suitable for a cold external audit
 record and a list of unresolved executable consequences. Do not write external
 state from this report-only audit; `$learning-process-review` owns action
 creation and audit recording after its applicable mutation gate.
+
+Report `Structural status: healthy` or `findings present` from this public
+evidence. Do not claim behavioral effectiveness from corpus organization,
+validation, or source history. Use: `Behavioral effectiveness: unknown —
+Insufficient downstream evidence to assess behavioral effectiveness.`

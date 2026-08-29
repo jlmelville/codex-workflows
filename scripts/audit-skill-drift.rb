@@ -10,6 +10,7 @@ unless required_ruby_engine == RUBY_ENGINE && required_ruby_version == RUBY_VERS
   exit 1
 end
 
+require "open3"
 require "optparse"
 require "yaml"
 
@@ -25,7 +26,8 @@ options = {
   show_triaged: false,
   triage_explicit: false,
   triage_path: File.join(repo_dir, "scripts", "audit-skill-drift-triage.tsv"),
-  command_baseline_path: File.join(repo_dir, "scripts", "audit-skill-drift-command-baseline.tsv")
+  command_baseline_path: File.join(repo_dir, "scripts", "audit-skill-drift-command-baseline.tsv"),
+  payload_baseline_path: File.join(repo_dir, "scripts", "audit-skill-drift-payload-baseline.tsv")
 }
 
 parser = OptionParser.new do |opts|
@@ -58,6 +60,9 @@ parser = OptionParser.new do |opts|
   opts.on("--command-baseline PATH", "Use a repeated-command baseline TSV") do |value|
     options[:command_baseline_path] = value
   end
+  opts.on("--payload-baseline PATH", "Use an instructional-payload baseline TSV") do |value|
+    options[:payload_baseline_path] = value
+  end
   opts.on("--show-triaged", "Show findings accepted by the triage manifest") do
     options[:show_triaged] = true
   end
@@ -84,6 +89,11 @@ end
 
 unless File.file?(options[:command_baseline_path])
   warn "audit-skill-drift.rb: command baseline not found: #{options[:command_baseline_path]}"
+  exit 1
+end
+
+unless File.file?(options[:payload_baseline_path])
+  warn "audit-skill-drift.rb: payload baseline not found: #{options[:payload_baseline_path]}"
   exit 1
 end
 
@@ -210,6 +220,131 @@ def load_command_baselines(path, known_labels)
     baselines[label][relative_path] = count
   end
   baselines
+end
+
+def parse_payload_baselines(text, label)
+  baselines = {skills: {}, repository_total: nil}
+  text.each_line.with_index(1) do |line, line_no|
+    row = line.chomp
+    next if row.empty? || row.start_with?("#")
+
+    scope, name, hot_text, total_text = row.split("\t", -1)
+    if [scope, name, hot_text, total_text].any? { |field| field.nil? || field.empty? }
+      raise ArgumentError, "#{label}:#{line_no}: expected scope<TAB>name<TAB>hot-lines<TAB>total-lines"
+    end
+    unless name.match?(/\A[A-Za-z0-9._-]+\z/)
+      raise ArgumentError, "#{label}:#{line_no}: invalid payload name: #{name}"
+    end
+
+    if scope == "skill"
+      begin
+        hot_lines = Integer(hot_text, 10)
+        total_lines = Integer(total_text, 10)
+      rescue ArgumentError
+        raise ArgumentError, "#{label}:#{line_no}: skill limits must be positive integers"
+      end
+      if hot_lines <= 0 || total_lines <= 0
+        raise ArgumentError, "#{label}:#{line_no}: skill limits must be positive integers"
+      end
+      if baselines[:skills].key?(name)
+        raise ArgumentError, "#{label}:#{line_no}: duplicate skill payload baseline: #{name}"
+      end
+      baselines[:skills][name] = {hot: hot_lines, total: total_lines}
+    elsif scope == "repository" && name == "instructional-markdown" && hot_text == "-"
+      begin
+        total_lines = Integer(total_text, 10)
+      rescue ArgumentError
+        raise ArgumentError, "#{label}:#{line_no}: repository total must be a positive integer"
+      end
+      if total_lines <= 0
+        raise ArgumentError, "#{label}:#{line_no}: repository total must be a positive integer"
+      end
+      if baselines[:repository_total]
+        raise ArgumentError, "#{label}:#{line_no}: duplicate repository payload baseline"
+      end
+      baselines[:repository_total] = total_lines
+    else
+      raise ArgumentError, "#{label}:#{line_no}: unknown payload scope or name"
+    end
+  end
+  unless baselines[:repository_total]
+    raise ArgumentError, "#{label}: missing repository instructional-markdown baseline"
+  end
+  baselines
+end
+
+def load_payload_baselines(path)
+  parse_payload_baselines(read_text(path), path)
+end
+
+def git_file(repo_dir, revision, relative_path)
+  stdout, _stderr, status = Open3.capture3(
+    "git", "-C", repo_dir, "show", "#{revision}:#{relative_path}"
+  )
+  status.success? ? stdout : nil
+rescue Errno::ENOENT
+  nil
+end
+
+def previous_payload_baselines(repo_dir, path)
+  prefix = "#{repo_dir}/"
+  return nil unless path.start_with?(prefix)
+
+  relative = path.delete_prefix(prefix)
+  current = read_text(path)
+  head = git_file(repo_dir, "HEAD", relative)
+  previous_text = if head && head != current
+    head
+  else
+    parent = git_file(repo_dir, "HEAD^", relative)
+    parent if parent && parent != current
+  end
+  return nil unless previous_text
+
+  parse_payload_baselines(previous_text, "git:previous:#{relative}")
+end
+
+def payload_baseline_increase_rows(current, previous)
+  return [] unless previous
+
+  rows = []
+  if current[:repository_total] > previous[:repository_total]
+    rows << "repository instructional Markdown: #{previous[:repository_total]} -> #{current[:repository_total]} lines"
+  end
+  current[:skills].sort.each do |name, limits|
+    prior = previous[:skills][name]
+    unless prior
+      rows << "#{name}: new skill payload baseline"
+      next
+    end
+    rows << "#{name}: hot-path limit #{prior[:hot]} -> #{limits[:hot]} lines" if limits[:hot] > prior[:hot]
+    rows << "#{name}: total limit #{prior[:total]} -> #{limits[:total]} lines" if limits[:total] > prior[:total]
+  end
+  rows
+end
+
+def payload_growth_rows(skills, baselines, repository_total)
+  rows = []
+  current_names = skills.map { |skill| skill[:name] }.to_set
+  baseline_names = baselines[:skills].keys.to_set
+  (current_names - baseline_names).sort.each { |name| rows << "#{name}: missing skill payload baseline" }
+  (baseline_names - current_names).sort.each { |name| rows << "#{name}: stale skill payload baseline" }
+
+  skills.each do |skill|
+    limits = baselines[:skills][skill[:name]]
+    next unless limits
+
+    if skill[:skill_lines] > limits[:hot]
+      rows << "#{skill[:name]}: SKILL.md #{skill[:skill_lines]} > #{limits[:hot]} lines"
+    end
+    if skill[:payload_lines] > limits[:total]
+      rows << "#{skill[:name]}: instructional Markdown #{skill[:payload_lines]} > #{limits[:total]} lines"
+    end
+  end
+  if repository_total > baselines[:repository_total]
+    rows << "repository instructional Markdown: #{repository_total} > #{baselines[:repository_total]} lines"
+  end
+  rows
 end
 
 def validate_command_baseline_triage(triage_entries, command_baselines, known_labels)
@@ -391,6 +526,9 @@ skills = skill_dirs.map do |skill_dir|
     name: skill_name,
     description: frontmatter_data.fetch("description", ""),
     skill_lines: skill_body.lines.length,
+    payload_lines: Dir.glob(File.join(skill_dir, "**", "*.md")).select { |path|
+      File.file?(path)
+    }.sum { |path| read_text(path).lines.length },
     token_set: description_tokens(frontmatter_data.fetch("description", ""))
   }
 end
@@ -412,10 +550,19 @@ all_review_files = (markdown_files + script_files).uniq
 skill_markdown_files = markdown_files.select { |path|
   path.start_with?(File.join(repo_dir, "skills", ""))
 }
+instructional_markdown_files = Dir.glob([
+  File.join(repo_dir, "README.md"),
+  File.join(repo_dir, "AGENTS.md"),
+  File.join(repo_dir, "docs", "**", "*.md"),
+  File.join(repo_dir, "prompts", "**", "*.md"),
+  File.join(repo_dir, "skills", "**", "*.md")
+]).select { |path| File.file?(path) }.sort
 reference_files = skill_markdown_files.select { |path| path.include?("/references/") }
 begin
   triage_entries = load_triage_entries(options[:triage_path])
   command_baselines = load_command_baselines(options[:command_baseline_path], COMMAND_PATTERNS.keys)
+  payload_baselines = load_payload_baselines(options[:payload_baseline_path])
+  previous_payload = previous_payload_baselines(repo_dir, options[:payload_baseline_path])
   validate_command_baseline_triage(triage_entries, command_baselines, COMMAND_PATTERNS.keys)
 rescue ArgumentError, Errno::EACCES => e
   warn "audit-skill-drift.rb: #{e.message}"
@@ -435,6 +582,8 @@ puts "Always-loaded description budget: #{total_description_chars} characters (~
 reference_lines = reference_files.sum { |path| read_text(path).lines.length }
 reference_words = reference_files.sum { |path| read_text(path).scan(/\S+/).length }
 puts "Routed references: #{reference_files.length} files, #{reference_lines} lines, ~#{reference_words} words"
+instructional_lines = instructional_markdown_files.sum { |path| read_text(path).lines.length }
+puts "Instructional Markdown: #{instructional_lines} lines"
 
 command_hits = COMMAND_PATTERNS.transform_values do |pattern|
   line_hits(repo_dir, markdown_files, pattern)
@@ -442,6 +591,13 @@ end
 command_growth_rows = repeated_command_growth_rows(command_hits, command_baselines)
 stable_command_baselines = command_baselines.length - command_growth_rows.length
 puts "Repeated command baselines: #{stable_command_baselines} stable, #{command_growth_rows.length} expanded"
+
+findings.fetch(:hard)["Instructional Payload Growth"].concat(
+  payload_growth_rows(skills, payload_baselines, instructional_lines)
+)
+findings.fetch(:hard)["Payload Baseline Increase"].concat(
+  payload_baseline_increase_rows(payload_baselines, previous_payload)
+)
 
 if total_description_chars > options[:max_total_description]
   record_findings(

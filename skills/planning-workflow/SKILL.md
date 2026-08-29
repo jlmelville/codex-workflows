@@ -1,185 +1,101 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off durable plans for complex coding work. Use for features, migrations, cross-module changes, phased debugging, plan-backed audits or cleanups, ExecPlans, chunk plans, review packets, and fresh-agent handoffs. Do not use for report-only audits without a planning artifact.
+description: Create, execute, resume, and hand off durable plans for complex coding work. Use for cross-module features, unresolved migrations, phased debugging, plan-backed audits or cleanups, ExecPlans, chunk plans, review packets, and fresh-agent handoffs. Do not use for report-only audits or small changes.
 ---
 
 # Planning Workflow
 
-Use this skill to make complex work executable and resumable without depending
-on chat history.
+Make complex work executable and resumable without turning planning into the
+work itself.
 
 ## First Decisions
 
-1. Inspect the current worktree before trusting any plan:
-   `git --no-optional-locks status --short --untracked-files=all`.
-2. Discover existing planning artifacts, including ignored files. Adapt this
-   search to the repo, and prefer targeted globs over a broad ignored-file
-   scan in dependency-heavy trees:
+1. Inspect the complete worktree and discover existing plans, handoffs, audits,
+   and repo instructions, including relevant ignored files. Read only the
+   active or newest likely artifact and the source needed for the current work.
+2. Choose the smallest planning surface that keeps the task on track:
+   - no persistent plan for Q&A, small edits, one-file fixes, simple validation,
+     or scratch exploration;
+   - an ExecPlan for complex work likely to outlive one context window;
+   - a chunk plan for broad work that needs bounded independent packets;
+   - an audit or review packet to preserve evidence or challenge conclusions.
+3. Before drafting a durable plan, write this compact scope decision in chat or
+   at its top:
 
-   ```sh
-   rg --files -uu \
-     -g '**/AGENTS.md' -g '**/PLANS.md' -g '**/plans/**' \
-     -g '**/plans_pending/**' -g '**/docs/plans/**' \
-     -g '**/EXECPLAN*.md' -g '**/*handoff*.md' -g '**/*audit*.md' \
-     -g '**/*review-packet*.md' -g '**/*briefing*.md' \
-     -g '!**/.git/**' -g '!**/.venv/**' -g '!**/node_modules/**' \
-     -g '!**/__pycache__/**'
+   ```text
+   Owner objective:
+   Already-working capabilities:
+   Explicit non-goals:
+   Existing proven path:
+   Cheapest capacity or scope adjustment preserving that path:
+   Why the proven path is insufficient:
+   Replacement mechanism: none, or owner-approved proposal
    ```
 
-3. Read only the relevant artifacts: repo instructions, the active plan or
-   newest likely plan, the latest handoff if present, and source files needed
-   for the current chunk.
-4. Decide the smallest planning surface that will keep the work on track:
-   - No persistent plan for Q&A, small edits, one-file fixes, simple validation,
-     or scratch exploration.
-   - Use an ExecPlan for complex features, migrations, cross-module changes,
-     debugging phases with meaningful state, or work likely to outlive one
-     context window.
-   - Use a chunk plan for broad cleanups, audits, or polish efforts where each
-     agent should complete one coherent packet and stop.
-   - Use an audit or review packet when the goal is to preserve evidence or ask
-     another model to challenge conclusions.
-   - Treat scratch notes and prototypes as inputs, not as the active source of
-     truth, unless the user says otherwise.
-5. Treat discoveries as evidence to classify against the accepted outcome, not
-   as permission to expand the plan. Admit only the minimum work required to
-   satisfy that outcome safely and correctly. Technical strategy may evolve
-   within the contract; changes to goals, non-goals, public semantics,
-   acceptance criteria, or reader promises need an explicit scope decision and
-   user direction when they materially expand authority. Close when the
-   accepted contract is satisfied and known in-scope blockers are resolved or
-   explicitly dispositioned; report or escalate out-of-scope findings without
-   implementing them.
-6. Before placing work in a long unattended iterative loop, define the in-loop
-   witness: what will be observed, how it distinguishes progress, success,
-   regression, and failure, and when the loop must stop or escalate. If the
-   decisive observation requires human judgment, end the loop at that boundary.
-   A usable witness does not expand task authority or loosen containment, cost,
-   scope, or irreversible-action limits.
-7. Use `$agent-instructions-maintenance` when the main task is creating,
-   auditing, shrinking, or updating `AGENTS.md` or equivalent instruction
-   policy rather than managing execution state.
+   Treat inherited handoff mechanisms as proposals unless the owner accepted
+   them. If the insufficiency field has no concrete answer, use the proven path.
+   Replacing working code, even for a more bounded or elegant mechanism, is an
+   owner question that must include the capacity-or-scope counterfactual.
+4. Freeze the owner's objective, constraints, and non-goals for review; keep
+   chosen mechanisms challengeable. Classify discoveries against that contract.
+   Admit only work required for safe, correct delivery, and seek direction for
+   material expansion of goals, semantics, acceptance, or authority.
+5. Before a long unattended loop, define an observation that distinguishes
+   progress, success, regression, and failure, plus its stop boundary. End at a
+   human-judgment boundary; the witness does not expand authority or cost.
+6. Use `$agent-instructions-maintenance` when instruction policy, rather than
+   execution state, is the main task.
 
-When a plan governs reader-facing documentation, record scope, factual
-obligations, state, and validation without prescribing visible order,
-terminology, or explanatory depth. Let the applicable documentation skill
-control those reader-facing decisions.
+For reader-facing documentation, let the applicable documentation skill own
+visible order, terminology, and depth. The plan records obligations and
+evidence, not a prose outline.
 
-## Artifact Types
+## Proportionality And Acceptance
 
-Classify planning files explicitly when creating or updating them:
+Record line and work-package counts for the first reviewable plan. Name a
+nearby precedent only when one is readily known. Before owner acceptance,
+summarize on one screen: objective, solved capabilities, non-goals, counts, and
+the three costliest or most novel decisions.
 
-- `execplan`: living execution document for feature or debugging work.
-- `chunk-plan`: queue of bounded packets for multi-agent cleanup.
-- `audit`: evidence-first critique, separate from the execution queue.
-- `review-packet`: self-contained briefing for external review or challenge.
-- `handoff`: concise continuation prompt; chat-first by default.
-- `scratch`: exploratory notes, scripts, or research that may inform a plan.
+After review, stop with `scope-reopen` when either count grows by more than 50%
+and the increase is at least three work packages or 50 lines. Do not resolve the
+stop by splitting or reorganizing the added machinery. Re-present the scope
+decision and the simpler proven alternative to the owner.
 
-Do not mix all artifact types into one file unless the repo already requires
-that shape.
+## Artifact And State Boundaries
 
-## State Reconciliation
+Classify files as `execplan`, `chunk-plan`, `audit`, `review-packet`, `handoff`,
+or `scratch`; do not mix them unless the repo requires it. Scratch and agent
+proposals are evidence, not accepted authority.
 
-For fresh-agent starts, handoffs, or long-running plans, assume chat summaries
-can be stale until checked. Compare the latest handoff against the active plan,
-worktree status, and source files that show actual completion. Search untracked
-and ignored planning paths when the repo uses local plans. If the artifacts
-disagree, record the reconciliation as a discovery or current-state update
-before continuing.
+At fresh starts and handoffs, reconcile the active plan with the worktree and
+source. When an inline checklist names an accepted table or packet, compare the
+item sets and resolve omissions, extras, or limiting language before editing.
 
-When a live handoff names an accepted table or packet and also presents an
-inline checklist, compare their item sets before editing. If omissions or
-extras combine with limiting language such as `only` or `complete`, surface the
-scope contradiction for resolution; do not silently narrow or broaden the
-named authority.
+Use these routed references only when their condition applies:
 
-## ExecPlans
+- [execplans.md](references/execplans.md): durable section shape, request
+  provenance, updates, and lifecycle rollover;
+- [chunk-plans.md](references/chunk-plans.md): bounded packet execution;
+- [audits-and-review-packets.md](references/audits-and-review-packets.md):
+  audit conversion and independent review;
+- [numerical-reproduction-work-packets.md](references/numerical-reproduction-work-packets.md):
+  evidence-gated layered numerical reproduction;
+- [handoffs.md](references/handoffs.md): concise continuation prompts;
+- [plan-file-visibility.md](references/plan-file-visibility.md): ignored,
+  untracked, or package-visible artifacts;
+- [workflow-retrospective-notes.md](references/workflow-retrospective-notes.md):
+  execution notes versus `$papercut-capture` and `$skill-retro`.
 
-Create or update an ExecPlan when a future agent must be able to continue from
-the repo plus the plan alone.
+## Execution And Recovery
 
-Use [execplans.md](references/execplans.md) for the section skeleton, detailed
-update rules, decision-entry template, and commit-hash caveat.
+Keep the active state and next action near the top. Update decisions,
+discoveries, progress, and validation when direction changes or work pauses.
+After compaction or interruption, re-read repo instructions, this skill, the
+active plan, and the latest handoff; verify them against source before
+continuing.
 
-## Chunk Plans
-
-For repository cleanups or broad audits, prefer small packets over one
-monolithic instruction list. See [chunk-plans.md](references/chunk-plans.md) for
-the required shape, packet boundaries, sandboxed staging recovery,
-behavior-neutral file split verification, bug-scoped staging, and warning
-ownership rules.
-
-## Audits And Review Packets
-
-Keep audits and execution plans separate when possible. Audits preserve raw
-critique and evidence; execution plans convert that evidence into ordered work.
-
-When converting an external audit or model review into a chunk plan, preserve
-the source audit, statically confirm findings before making them tasks, mark
-unverified claims, and resolve open questions into explicit decisions where
-possible. The resulting plan should include the source audit pointer, confirmed
-findings, guardrails, a decision log, open questions, and which claims still
-need test evidence.
-
-For stabilization chunks, review packet structure, and audit-to-plan conversion
-details, see
-[audits-and-review-packets.md](references/audits-and-review-packets.md).
-
-For layered numerical-method reproductions, use the evidence-gated oracle
-ladder, constrained-limit closure, and stop decisions in
-[numerical-reproduction-work-packets.md](references/numerical-reproduction-work-packets.md).
-
-## Workflow Retrospective Notes
-
-During multi-agent work, keep process observations in the plan only when they
-are needed for execution continuity or a later phase decision. Use
-`$papercut-capture` for authorized friction intake and `$skill-retro` for mature
-reusable conclusions; do not duplicate those external records into tracked
-plans. See
-[workflow-retrospective-notes.md](references/workflow-retrospective-notes.md)
-for the boundary and examples.
-
-## Handoffs
-
-Use a fresh-agent handoff when ending a meaningful phase, stopping with
-unfinished work, completing debugging or smoke-test follow-up, or when the user
-is likely to continue in a new session. Skip handoffs for ordinary Q&A, minor
-clarifications, and trivial edits unless the user asks.
-
-See [handoffs.md](references/handoffs.md) for placement, durable-state pointers,
-environment assumptions, path validation, and the full template.
-
-## Location, Visibility, And Cleanup
-
-Respect the repo's existing plan location and keep repo instructions short and
-repo-specific. Use
-[plan-file-visibility.md](references/plan-file-visibility.md) when plans may be
-ignored, untracked, noisy for package checks, or subject to cleanup.
-
-## Resume And Recovery
-
-When resuming after compaction, interruption, or a fresh-agent handoff:
-
-1. Re-read repo instructions, this skill, the active plan, and the latest
-   handoff.
-2. Re-check worktree status and inspect touched files before editing.
-3. Verify the plan against the code. If they disagree, record the discrepancy
-   as a discovery and update the current state before continuing.
-4. Continue with the next coherent step, not with stale chat memory.
-
-## Completion Bar
-
-A plan is good enough when a future agent can identify:
-
-the goal and current state; what changed or was ruled out; decisions made and
-why; relevant files, commands, and expected observations; validation already run
-and remaining gaps; the exact next action and guardrails; and any reusable
-workflow-retrospective notes gathered during the work.
-
-For a handoff, verify every `Read first` path exists in the recipient's context.
-Name an inline substitute explicitly, and keep independent required reads
-separable so one missing or substituted path cannot suppress the rest.
-
-If any of those are missing at a stopping point, update the plan or include a
-handoff before ending the turn.
+Close when the accepted contract is satisfied and in-scope blockers are
+resolved or explicitly dispositioned. A future agent must be able to identify
+the goal, current state, decisions and rationale, relevant files and commands,
+validation and gaps, next action, and guardrails without chat history.

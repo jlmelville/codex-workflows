@@ -235,24 +235,24 @@ Review skill trigger and metadata shape with:
 ./scripts/list-skills.rb
 ```
 
-Run the advisory bloat and drift audit with:
+Run the drift and instructional-payload audit with:
 
 ```sh
 ./scripts/audit-skill-drift.rb
 ```
 
-The audit reports always-loaded description budget, long or overlapping skill
-descriptions, repeated helper names, repeated command guidance, machine-specific
-paths, and repo-relative skill-script references that may break after
-installation. Findings are grouped as hard, review, or informational. Accepted
-advisory findings live in
+The audit reports description and instructional payloads, overlap, repeated
+helpers or commands, machine paths, and installed-path risks. Payload growth
+and broken runtime guidance are hard; semantic findings remain advisory.
+Accepted advisory findings live in
 [`scripts/audit-skill-drift-triage.tsv`](../scripts/audit-skill-drift-triage.tsv);
 each row records the audit section, a row substring to match, and the rationale
 for accepting that finding.
 
-Use `--strict-hard --hard-only` for validation that should fail only on hard
-installed-runtime problems. Use `--strict` when a cleanup branch should fail if
-any untriaged findings remain.
+Use `--strict-hard --hard-only` for repository validation and `--strict` when a
+cleanup branch should fail on every untriaged finding. Payload limits live in
+[`scripts/audit-skill-drift-payload-baseline.tsv`](../scripts/audit-skill-drift-payload-baseline.tsv)
+and may move down, not up, during ordinary maintenance.
 
 For new or substantially changed skills, also run the system skill quick
 validator when its dependencies are available. If it needs Python packages such

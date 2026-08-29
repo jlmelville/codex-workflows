@@ -41,9 +41,8 @@ Before proposing edits:
    cadence. Start with the helper's `review-queue` command on every triage run
    and do not load unrelated history. For an `accepted-publication` row,
    reconcile whether public source, accepted metadata, or both are missing.
-6. Run `./scripts/audit-skill-drift.rb` when bloat, trigger overlap, duplicate
-   helpers, command repetition, machine paths, or installed-path drift may be
-   relevant.
+6. Run `./scripts/audit-skill-drift.rb` before proposing public prose. Its hard
+   payload limits are admission constraints, not evidence that guidance is good.
 7. Run `./scripts/list-skills.rb` when frontmatter descriptions, trigger
    boundaries, or `agents/openai.yaml` may change.
 
@@ -66,25 +65,26 @@ For every candidate, choose one verdict: `accept`, `defer`, `reject`, `split`,
 - the smallest natural destination;
 - whether deterministic behavior belongs in code rather than prose.
 
-Before choosing a destination for an accepted candidate, apply a semantic
-admission gate. A decision includes the action to take, an authority boundary,
-the evidence or observation required, or the condition for claiming success.
-State the decision the candidate changes, then:
+Use `reject` or `no-change` when a candidate changes no decision an agent would
+otherwise miss, or its likely instruction and execution cost exceeds the harm
+it prevents. Do not manufacture verdict diversity or a rejection quota.
 
-1. Split independently routed default judgment, exact mechanics, optional
-   cases, and verification evidence.
-2. Assign each surviving unit one role:
-   - a new distinguishable decision branch becomes compact default judgment;
-   - an exact command, API, tool recipe, ordering constraint, or file format
-     becomes routed mechanics or a deterministic script;
-   - a distinct plausible wrong implementation or observation boundary may
-     become an optional case;
-   - recurrence of an existing decision and witness updates verification only
-     and creates no public clause.
-3. Check whether an existing principle can absorb the unit without losing a
-   distinguishable action, constraint, witness, or success condition.
-4. Treat the smallest change as the smallest change to the decision model, not
-   the fewest edited lines.
+Treat lessons from owner-rejected, abandoned, severely over-built, or causally
+disproved work as tainted evidence. Until independent successful use clears the
+taint, they may support narrowing, removal, a diagnostic warning, or a bounded
+evaluation—not positive craft guidance extracted from the rejected mechanism.
+
+Before choosing a destination, state the changed decision, authority boundary,
+observation, or success condition. Split default judgment, exact mechanics,
+optional cases, and verification evidence. Prefer an existing principle;
+recurrence of the same decision and witness updates verification only. A new
+clause must introduce a distinguishable branch, while exact recipes belong in
+routed mechanics or code.
+
+Public additions must fit the checked payload baselines. For a skill already at
+its limit, accept an addition only with a larger removal or demotion from that
+same skill; repository instructional prose must not grow. Never advance a
+baseline in the implementation batch to make an addition pass.
 
 If verification-only evidence has arrived through the candidate inbox, reject
 or mark that candidate `no-change` and ask the producer to use the typed
@@ -97,10 +97,8 @@ while retaining the source repair in the implementation batch. After
 publication, update the original accepted identity's destinations and commits;
 do not change behavioral verification or create another accepted identity.
 
-Unconditional privacy, authority, evidence, and completion contracts may need
-to stay on the default path even though they are not conditional branches. The
-semantic gate supplements the evidence, durability, scope, cost, and
-destination checks above; it does not replace them.
+Privacy, authority, evidence, and completion contracts may remain on the
+default path even when unconditional.
 
 For `defer`, first name the decision that current evidence cannot justify and
 the missing evidence. Later behavioral uncertainty after a justified,
@@ -128,9 +126,10 @@ Do not create another accepted identity merely to store later evidence; a new
 identity is justified only when a corrected decision is itself accepted.
 
 After a completed session, `verification-opportunities --destination TEXT` may
-pull unverified outcomes only for the skills or destinations involved. Treat a
-hit as an optional observation opportunity, never as work, quota, or a new
-candidate.
+pull relevant unverified outcomes. A hit is an optional observation, never a
+quota or new task. Unverified status does not itself require deletion, but it
+confers no permanent claim to hot-path placement; downstream value and cost
+govern retention, routing, demotion, or removal.
 
 For every pending verification proposal, choose `apply` or `reject`. Apply only
 when the proposal targets an existing `accepted` or `implemented` record, its
@@ -161,8 +160,8 @@ and create commit-linked accepted metadata only after the public commit exists.
 Source commits must stand on their own without private evidence or opaque state
 identifiers.
 
-Do not add maintained prompt corpora, synthetic model fixtures, repeated model
-runs, raw trace archives, or model-backed CI merely to verify skill prose.
+Do not add maintained prompt corpora, repeated model runs, raw trace archives,
+or model-backed CI merely to verify skill prose.
 
 ## Output
 
