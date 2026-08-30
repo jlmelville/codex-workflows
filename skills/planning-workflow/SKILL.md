@@ -61,8 +61,8 @@ through durable state, a public API, schema or configuration surface, compatibil
 persistence machinery, a new subsystem, or wider semantics, stop with `scope-reopen`. Re-present the in-contract
 correction and proposed expansion separately; do not decompose or schedule the expansion before acceptance.
 
-Before owner acceptance, summarize on one screen the objective, already-working capabilities, explicit non-goals,
-and the three costliest or most novel decisions; name a nearby precedent only when readily known.
+Before owner acceptance, summarize on one screen the objective, already-working capabilities, explicit non-goals, work-package count when named packages are used,
+and the three costliest or most novel decisions; name a nearby precedent only when readily known. The count informs judgment, not acceptance or `scope-reopen`.
 
 ## Artifact And State Boundaries
 
