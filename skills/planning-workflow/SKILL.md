@@ -55,15 +55,14 @@ evidence, not a prose outline.
 
 ## Proportionality And Acceptance
 
-Record total lines, scope-bearing lines, and work-package counts for the first reviewable plan. Before owner
-acceptance, summarize objective, solved capabilities, non-goals, counts, and the three costliest or most novel
-decisions on one screen; name a nearby precedent only when readily known.
+A plan records accepted obligations; it does not create them. Classify the smallest honest remedy separately from
+the defect; a confirmed defect does not expand the accepted contract. If that remedy would extend the contract
+through durable state, a public API, schema or configuration surface, compatibility, background, retry or
+persistence machinery, a new subsystem, or wider semantics, stop with `scope-reopen`. Re-present the in-contract
+correction and proposed expansion separately; do not decompose or schedule the expansion before acceptance.
 
-After review, stop with `scope-reopen` when scope-bearing lines grow by more than 50% and at least 50 lines, or
-work packages grow by more than 50% and at least three packages. Compare scope-bearing sections first: progress, validation,
-target identities, reviews, and handoffs count only when they change planned work, mechanisms, obligations,
-semantics, acceptance, cost, or authority. Do not resolve the stop by splitting or reorganizing added machinery;
-re-present the scope decision and simpler proven alternative.
+Before owner acceptance, summarize on one screen the objective, already-working capabilities, explicit non-goals,
+and the three costliest or most novel decisions; name a nearby precedent only when readily known.
 
 ## Artifact And State Boundaries
 

@@ -87,13 +87,14 @@ operator requests a bounded loop without another limit—and stop on a pass.
 Separate blocking findings from optional suggestions. The coordinator verifies them against the frozen target and
 contract and owns corrections, plan updates, and consolidated learning-state writes; the reviewer stays read-only.
 
-Recorded mechanisms are never frozen against challenge. A reviewer may require
-`scope-reopen` when a proven path plus a capacity or scope adjustment satisfies
-the objective; splitting or repairing the replacement does not resolve that
-finding. Also stop for disputed goals, low-value proof requests, repeated
-concerns, or review growth comparable to the work. Compaction before a passing
-verdict ends the live cycle; no later session may infer acceptance. Record in the handoff the frozen target, latest
-verdict and findings, coordinator disposition, remediation, and outstanding validation or re-review.
+Recorded mechanisms are never frozen against challenge. A reviewer may require `scope-reopen` when a proven path
+plus a capacity or scope adjustment satisfies the objective; splitting or repairing the replacement does not resolve
+that finding. If rereview finds defects in correction-introduced machinery that exceeded the accepted remedy, report
+one `scope-reopen` recommending reversion or simplification to the minimal correction within the accepted contract;
+do not file further repairs against that machinery. Also stop for disputed goals, low-value proof requests, repeated
+concerns, or review growth comparable to the work. Compaction before a passing verdict ends the live cycle; no later
+session may infer acceptance. Record the frozen target, latest verdict and findings, coordinator disposition,
+remediation, and outstanding validation or re-review in the handoff.
 
 When the operator requests several reviewers, give each a distinct contract
 against one immutable target and collect the full panel before editing.
