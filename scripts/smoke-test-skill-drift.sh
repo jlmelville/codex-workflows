@@ -156,6 +156,12 @@ if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
   echo "payload baseline increase did not produce the expected hard finding" >&2
   exit 1
 fi
+if ! grep -Fq "Strict-hard mode is active; hard findings cause failure." "${output_file}" ||
+  grep -Fq "Re-run with --strict-hard" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "strict-hard failure did not report its active mode accurately" >&2
+  exit 1
+fi
 cp "${fixture_dir}/scripts/payload-baseline.clean" \
   "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
 

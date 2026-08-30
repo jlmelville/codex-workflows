@@ -739,8 +739,18 @@ else
   puts "Hard findings: #{hard_count}"
   puts "Review findings: #{review_count}"
   puts "Informational findings: #{info_count}"
-  puts "Default mode is advisory. Re-run with --strict-hard to fail on hard findings."
-  puts "Use --strict when a cleanup branch should fail on any untriaged finding."
+  if options[:strict]
+    puts "Strict mode is active; untriaged findings cause failure."
+  elsif options[:strict_hard]
+    if hard_count.positive?
+      puts "Strict-hard mode is active; hard findings cause failure."
+    else
+      puts "Strict-hard mode is active; non-hard findings remain advisory."
+    end
+  else
+    puts "Default mode is advisory. Re-run with --strict-hard to fail on hard findings."
+    puts "Use --strict when a cleanup branch should fail on any untriaged finding."
+  end
 end
 
 exit(1) if options[:strict_hard] && hard_count.positive?
