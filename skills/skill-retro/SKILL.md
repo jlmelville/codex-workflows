@@ -72,15 +72,15 @@ checkout.
   descendant reports do not establish recurrence or transfer.
 - Prefer refinements over new skills. Before proposing a new skill, explain why
   no existing skill, reference, prompt, or script is a natural home.
-- Consolidate same-task evidence for one missing delta, destination, and
-  decision. Split materially distinct deltas into independently judgeable
-  files.
-- Preserve evidence at intake rather than forcing the producer to perform
-  aggressive semantic compression. Triage and corpus review own distillation.
-- When a corrected decision supersedes an earlier accepted outcome, add
-  `supersedes_accepted_id` and state `now_false`. When later evidence merely
-  supports or contradicts the same outcome and witness, route a verification
-  proposal for that accepted identity instead of another candidate.
+- Consolidate same-task evidence for one missing delta, destination, and decision; split materially distinct
+  deltas into independently judgeable files.
+- Preserve evidence before triage distills it. For material explicit human feedback, keep a bounded sanitized
+  pairing of judged behavior, the judgment and any stated rationale or constraints, and any alternative or
+  observed outcome. Leave unstated rationale absent, separate producer inference and lesson, and never treat a
+  selected alternative as proof of success or comparative improvement.
+- When a corrected decision supersedes an accepted outcome, add `supersedes_accepted_id` and state `now_false`;
+  when evidence instead supports or contradicts the same outcome and witness, route a verification proposal for
+  that identity rather than another candidate.
 - Distinguish three same-topic outcomes before routing: later behavioral
   evidence updates verification without source work; implementation drift may
   require a public repair under the existing accepted identity; a changed

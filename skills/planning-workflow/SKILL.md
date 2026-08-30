@@ -40,6 +40,9 @@ work itself.
    chosen mechanisms challengeable. Classify discoveries against that contract.
    Admit only work required for safe, correct delivery, and seek direction for
    material expansion of goals, semantics, acceptance, or authority.
+   Before an inherited safeguard forces replacement or a parallel path, name
+   its enforcement and scope. Either increase is a new, proportionally evidenced
+   decision; a lower or narrower safeguard cannot authorize its own escalation.
 5. Before a long unattended loop, define an observation that distinguishes
    progress, success, regression, and failure, plus its stop boundary. End at a
    human-judgment boundary; the witness does not expand authority or cost.
@@ -52,15 +55,15 @@ evidence, not a prose outline.
 
 ## Proportionality And Acceptance
 
-Record line and work-package counts for the first reviewable plan. Name a
-nearby precedent only when one is readily known. Before owner acceptance,
-summarize on one screen: objective, solved capabilities, non-goals, counts, and
-the three costliest or most novel decisions.
+Record total lines, scope-bearing lines, and work-package counts for the first reviewable plan. Before owner
+acceptance, summarize objective, solved capabilities, non-goals, counts, and the three costliest or most novel
+decisions on one screen; name a nearby precedent only when readily known.
 
-After review, stop with `scope-reopen` when either count grows by more than 50%
-and the increase is at least three work packages or 50 lines. Do not resolve the
-stop by splitting or reorganizing the added machinery. Re-present the scope
-decision and the simpler proven alternative to the owner.
+After review, stop with `scope-reopen` when scope-bearing lines grow by more than 50% and at least 50 lines, or
+work packages grow by more than 50% and at least three packages. Compare scope-bearing sections first: progress, validation,
+target identities, reviews, and handoffs count only when they change planned work, mechanisms, obligations,
+semantics, acceptance, cost, or authority. Do not resolve the stop by splitting or reorganizing added machinery;
+re-present the scope decision and simpler proven alternative.
 
 ## Artifact And State Boundaries
 

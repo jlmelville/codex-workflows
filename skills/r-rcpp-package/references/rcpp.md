@@ -156,14 +156,15 @@ guard makes the call safe.
 
 ## Vendored Third-Party Code
 
-For vendored C or C++, record upstream project, version, source, and license;
-compare the tree with that source, identify local changes, and add notices when
-required. Treat NOTICE and similar obligations as artifact- and license-specific.
+For vendored C or C++, record upstream project, version, source, and license; compare the tree, identify local
+changes, and add artifact- and license-specific notices. Build and inspect the source tarball after
+`.Rbuildignore`; require vendored files and applicable license, attribution, notice, and provenance to survive.
+Compilation and package checks do not prove redistribution compliance; escalate ambiguous interpretation.
 
-Build and inspect the source tarball after `.Rbuildignore`. Require distributed
-vendored files and applicable license, attribution, notice, and provenance
-artifacts to survive. Compilation and package checks do not establish
-redistribution compliance; escalate ambiguous interpretation to its owner.
+For small downstream changes, keep materialized compiled sources in the repository and apply ordered patches only
+in maintainer refresh tooling. Pin the upstream archive and expected file identities; installation performs no
+transformation. Reconstruct byte-for-byte and compare the complete namespace, rejecting missing or unexpected
+ordinary and hidden files, directories, symlinks, and unsupported entries.
 
 ## Tests
 

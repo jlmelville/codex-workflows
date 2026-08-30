@@ -1,57 +1,45 @@
 # Reverse-Dependency Preparation
 
-Use this before `revdepcheck` when dependency setup can dominate the result:
-the direct reverse-dependency set is large, much of its closure is compiled,
-the run spans CRAN and Bioconductor, or packages fail before the package under
-test is installed. A small reverse-dependency set whose ordinary setup succeeds
-does not need this full preflight.
-
-Dependency acquisition and repository queries may need network access, while a
-large isolated library may write beyond the package worktree. Establish the
-required authority and available capacity before starting a long preparation
-run.
+Use this before `revdepcheck` when setup can dominate the result: a large direct set, compiled closure, mixed CRAN
+and Bioconductor run, or failure before the package under test installs. A small set with ordinary successful setup
+does not need this preflight. Repository queries may need network access and isolated libraries may write beyond
+the worktree, so establish authority and capacity before a long run.
 
 ## Choose The Direct Cohort
 
-For a routine CRAN update, default the release gate to direct CRAN reverse
-dependencies. Opt direct Bioconductor reverse dependencies into a separate
-lane when the change carries behavioral or API compatibility risk, or when the
-maintainer explicitly wants Bioconductor compatibility evidence. This is
-release-preparation judgment, not a claim that CRAN formally requires or
-forbids either cohort.
+For routine CRAN updates, default to direct CRAN reverse dependencies. Put direct Bioconductor targets in a
+separate lane when behavioral or API risk, or the maintainer, warrants that evidence; this is release judgment,
+not a claim about CRAN requirements. Still resolve Bioconductor dependencies reached from selected CRAN targets.
 
-A CRAN target may still depend on Bioconductor packages. Keep repository,
-cache, and dependency preparation able to resolve every dependency reached
-from the selected cohort even when direct Bioconductor targets are out of
-scope.
+Freeze direct and broader cohorts from one unfiltered inventory such as `DB <- utils::available.packages(filters =
+list())`. Record direct relationship types with `recursive = FALSE`; when feasible, also evaluate
+`tools::package_dependencies(PACKAGE, db = DB, reverse = TRUE, which = "most", recursive = "strong")` and classify
+the additions. A package page or direct-only run proves no broader coverage; completion names the checked cohort.
 
 ## Establish The Dependency Universe
 
-1. Fix the repository set and metadata snapshot that the later comparison will
-   use. Enumerate the exact direct reverse dependencies and their hard
-   dependency closure from that same universe; classify archived or unavailable
-   packages separately.
-2. Before dependency installation or worker launch, resolve and download the
-   source tarball for every direct target. Record its selected repository or
-   official-archive URL and checksum. For an archive fallback, verify the
-   tarball's package and version identity; stop before comparison if any direct
-   source remains unresolved.
-3. Inventory packages requiring compilation and their system requirements
-   before scheduling installs. Estimate library, cache, download, quarantine,
-   and build-temporary capacity independently.
-4. Install into an isolated, resumable library in hard-dependency order with
-   bounded per-package timeouts. Preserve completed layers so an external
-   repository or compiler failure does not restart the entire closure.
-5. Verify the selected version of every closure member, then load each direct
-   reverse-dependency namespace in a separate process. Classify repository API
-   drift, toolchain incompatibility, missing system requirements, and archived
-   hard dependencies as preparation failures rather than failures caused by
-   the package under test.
+1. Fix the repository set and snapshot; enumerate direct targets and their hard closure, classifying archived or
+   unavailable packages. Record the runner version and inspect its resolver. Current stock `revdepcheck` seeds each
+   target with `Depends`, `Imports`, `LinkingTo`, and `Suggests`, then recurses through the first three; preserve
+   unavailable names before its available-package intersection.
+2. Before installation or workers, resolve every direct source tarball and record repository or official-archive
+   URL and checksum. Verify archive fallback package/version identity; stop if any direct source is unresolved.
+3. Inventory compiled packages and system requirements; estimate library, cache, download, quarantine, and build
+   temporary capacity independently.
+4. Install into an isolated resumable library in hard-dependency order with bounded timeouts, preserving completed
+   layers across external repository or compiler failures.
+5. Verify every closure version, then load each direct target namespace separately. Attribute repository API drift,
+   toolchain incompatibility, system requirements, and archived hard dependencies to preparation.
 
-Do not call a baseline-versus-candidate result clean merely because both sides
-share an unresolved dependency failure. Begin the comparison only after its
-common dependency universe is available or every remaining exclusion has a
-bounded external attribution.
+Custom DESCRIPTION dependency parsers validate each complete comma-separated entry before extracting its name.
+During development, differential-test against R's strict checker across operators and versions, repeated constraints,
+trailing tokens, empty entries, and boundary whitespace; do not depend on an unexported checker at runtime.
+
+Use radix ordering for every identity-bearing character field in content-addressed manifests. Mixed-case rows and
+columns must produce identical identities and cross-validate under two collations; display ordering is exempt.
+
+A shared unresolved dependency failure is not a clean comparison. Start only when the common universe is available
+or every exclusion has bounded external attribution.
 
 ## Keep Preparation Outside The Package Source
 
@@ -107,6 +95,12 @@ stage before launch. Update-disable flags are not integrity boundaries: expose
 artifacts read-only and isolate required metadata writes, using filesystem
 enforcement for frozen evidence. Compare manifests before and after and retain
 platform mount or namespace recipes in the handoff.
+
+Treat every field used as positive compatibility evidence as an asserted lane
+boundary. Generic values such as `unknown`, `unspecified`, or `default` must
+not establish a shared reuse identity. Apply the rule uniformly across the
+identity-field registry and test each dimension with both specific and generic
+values; quarantine missing provenance or assign it a non-shared identity.
 
 ## Scale Across CI
 

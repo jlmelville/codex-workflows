@@ -8,34 +8,28 @@ external review into executable repository work.
 When converting an external audit or model review into a chunk plan:
 
 1. Preserve the source audit.
-2. Re-check the available toolchain before inheriting limitations from the
-   audit environment. Confirm consequential findings with the smallest
-   deterministic public probe, focused test, dependency-source inspection, or
-   equivalent executable evidence available; fall back to static confirmation
-   only when execution remains unavailable. Treat a green general suite as
-   baseline evidence, not as disproof of a claim about an input it never
-   exercises.
+2. Re-check the toolchain before inheriting audit-environment limits. Confirm consequential findings with the
+   smallest public probe, focused test, dependency-source inspection, or equivalent executable evidence; use
+   static confirmation only when execution is unavailable. A green general suite is baseline evidence, not
+   disproof of a claim about an unexercised input.
 3. Separate the factual observation, defect classification, and proposed
    remedy. Reproduce the observation, then name the violated contract or
    intended semantics before treating it as a defect. A true observation can
    still receive a no-change disposition when it violates no contract or the
    remedy would create an unjustified compatibility change.
-4. When a recommendation would remove or normalize public behavior in
-   multi-author code, inspect its introduction and evolution plus current
-   consumers. Record contributor ownership when known, and put unresolved
-   compatibility intent behind a separate user decision gate rather than
-   bundling it into unrelated correctness work.
+   Before requiring a security boundary, name the protected asset, bound actor, whether third-party code is
+   trusted, buggy, or adversarial, and the realistic consequence. Capability is blocking only when it violates
+   the accepted threat model; if hostile code is in scope, assess the complete threat.
+4. Before removing or normalizing public behavior in multi-author code, inspect its introduction, evolution, and
+   consumers. Record known ownership and gate unresolved compatibility intent separately from correctness work.
 5. Label claims as confirmed, disproved, or still unverified and retain the
    decisive evidence for each disposition.
 6. Resolve open questions into explicit decisions where possible.
 7. Include the source audit pointer, confirmed findings, guardrails, a decision
    log, open questions, and which claims still need test evidence.
-8. Surface recommendations that consume paid services or quotas before
-   accepting them into scope, especially model or API evals, paid CI, and
-   hosted runners. Separate free static or local validation from cost-bearing
-   execution, state whether the cost is one-time or recurring, and obtain
-   explicit user acceptance before adding model-backed evals or recurring paid
-   infrastructure.
+8. Surface paid services or quotas before scope acceptance, especially model or API evals, paid CI, and hosted
+   runners. Separate free local validation from one-time or recurring cost-bearing execution, and obtain explicit
+   user acceptance before adding model-backed evals or recurring paid infrastructure.
 9. Give every substantive recommendation one disposition in an itemized
    crosswalk: resolved with evidence, accepted into a named chunk, deferred
    with a review trigger, or declined with rationale.
@@ -85,13 +79,16 @@ Capture the scoped baseline before implementation, run focused validation, then
 freeze the exact review target. Ask for a read-only bounded verdict. Permit at
 most the agreed small correction and re-review allowance—one of each when the
 operator requests a bounded loop without another limit—and stop on a pass.
+Separate blocking findings from optional suggestions. The coordinator verifies them against the frozen target and
+contract and owns corrections, plan updates, and consolidated learning-state writes; the reviewer stays read-only.
 
 Recorded mechanisms are never frozen against challenge. A reviewer may require
 `scope-reopen` when a proven path plus a capacity or scope adjustment satisfies
 the objective; splitting or repairing the replacement does not resolve that
 finding. Also stop for disputed goals, low-value proof requests, repeated
 concerns, or review growth comparable to the work. Compaction before a passing
-verdict ends the live cycle; a later session must not infer acceptance.
+verdict ends the live cycle; no later session may infer acceptance. Record in the handoff the frozen target, latest
+verdict and findings, coordinator disposition, remediation, and outstanding validation or re-review.
 
 When the operator requests several reviewers, give each a distinct contract
 against one immutable target and collect the full panel before editing.
