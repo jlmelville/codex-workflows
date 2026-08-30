@@ -12,6 +12,8 @@ end
 
 require "yaml"
 
+INTERNAL_SCRIPT_MARKER = /\A[ \t]*#[ \t]*codex-workflows:[ \t]*internal-skill-script:[ \t]+\S.*\z/
+
 repo_dir = File.expand_path(ARGV.fetch(0, File.expand_path("..", __dir__)))
 skills_dir = File.join(repo_dir, "skills")
 max_description = 420
@@ -29,6 +31,14 @@ def read_yaml_mapping(path, label, errors)
 rescue Psych::SyntaxError => e
   errors << "#{label}: invalid YAML: #{e.message.lines.first.strip}"
   nil
+end
+
+def internal_script_exception?(path)
+  File.binread(path, 4_096)
+    .force_encoding("UTF-8")
+    .scrub
+    .lines
+    .any? { |line| line.chomp.match?(INTERNAL_SCRIPT_MARKER) }
 end
 
 skill_dirs = if Dir.exist?(skills_dir)
@@ -79,6 +89,18 @@ skill_dirs.each do |skill_dir|
         errors << "#{skill_name}: missing frontmatter description"
       end
     end
+  end
+
+  markdown_paths = [skill_path] + Dir.glob(File.join(skill_dir, "references", "**", "*.md"))
+  markdown_text = markdown_paths.sort.map { |path| File.read(path, encoding: "UTF-8") }.join("\n")
+  script_paths = Dir.glob(File.join(skill_dir, "scripts", "*")).select { |path| File.file?(path) }.sort
+  script_paths.each do |script_path|
+    relative_script = "scripts/#{File.basename(script_path)}"
+    next if markdown_text.include?(relative_script)
+    next if internal_script_exception?(script_path)
+
+    errors << "#{skill_name}: bundled script is not discoverable from owning Markdown: #{relative_script}; " \
+      "reference it or add '# codex-workflows: internal-skill-script: REASON' to an intentionally internal helper"
   end
 
   unless File.file?(agents_path)

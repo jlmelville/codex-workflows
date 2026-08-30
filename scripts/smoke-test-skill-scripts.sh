@@ -956,8 +956,10 @@ run_skill_metadata_smoke() {
   local script="${repo_dir}/scripts/validate-skill-metadata.rb"
   local fixture="${tmp_root}/skill-metadata"
   local agents="${fixture}/skills/example/agents/openai.yaml"
+  local scripts="${fixture}/skills/example/scripts"
+  local stderr_file="${fixture}/metadata.stderr"
 
-  mkdir -p "${fixture}/skills/example/agents"
+  mkdir -p "${fixture}/skills/example/agents" "${scripts}"
   cat >"${fixture}/skills/example/SKILL.md" <<'EOF_SKILL'
 ---
 name: example
@@ -965,6 +967,8 @@ description: Validate metadata fixture behavior.
 ---
 
 # Example
+
+Use `scripts/referenced.rb` for the public helper.
 EOF_SKILL
   cat >"${agents}" <<'EOF_AGENTS'
 interface:
@@ -972,8 +976,22 @@ interface:
   short_description: "Validate a metadata fixture"
   default_prompt: "Use $example to exercise metadata validation."
 EOF_AGENTS
+  printf '%s\n' '# referenced helper' >"${scripts}/referenced.rb"
 
   ruby "${script}" "${fixture}" >/dev/null
+  printf '%s\n' '# orphaned helper' >"${scripts}/orphaned.rb"
+  if ruby "${script}" "${fixture}" >/dev/null 2>"${stderr_file}"; then
+    echo "skill metadata validator should reject an undiscoverable bundled script" >&2
+    return 1
+  fi
+  grep -Fq \
+    'bundled script is not discoverable from owning Markdown: scripts/orphaned.rb' \
+    "${stderr_file}"
+  printf '%s\n' \
+    '# codex-workflows: internal-skill-script: invoked only by the public helper' \
+    >"${scripts}/orphaned.rb"
+  ruby "${script}" "${fixture}" >/dev/null
+
   mv "${agents}" "${agents}.missing"
   if ruby "${script}" "${fixture}" >/dev/null 2>&1; then
     echo "skill metadata validator should require agents/openai.yaml" >&2

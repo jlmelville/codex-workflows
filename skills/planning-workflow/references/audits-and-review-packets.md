@@ -57,6 +57,11 @@ immutable identity, and the response should echo both. Use a commit or tree for
 clean tracked content; use a frozen packet copy or content digest for dirty,
 ignored, untracked, or otherwise mutable artifacts.
 
+For an unstaged patch identity that includes untracked files, keep the index clean and run
+`${HOME}/.agents/skills/planning-workflow/scripts/patch-identity.rb`, repeating `--include-untracked PATH` or
+`--exclude-untracked PATH` for every untracked file. It rejects unclassified files and prints the identity of the
+tracked patch plus included untracked content on standard output.
+
 Review-target identity covers the files or patch the reviewer saw; it does not
 automatically make every scientific input or in-memory object content-addressed.
 Keep run provenance separate with fixed inputs, settings, seeds, versions,
