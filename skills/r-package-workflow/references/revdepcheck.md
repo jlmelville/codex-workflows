@@ -76,6 +76,7 @@ dependency reinstall fails but a prepared copy has already been validated,
 map only that dependency to the affected private libraries and retain or seed
 that exact copy. Keep repository-specific compatibility patches outside this
 skill and record the package-to-private-library mapping in the run handoff.
+For an exact local R repository, validate every published `PACKAGES`, `PACKAGES.gz`, and `PACKAGES.rds` variant against the same manifest, or publish one validated variant and reject alternates during reuse; exercise stock `available.packages()` or `install.packages()` against the result so validation covers the index R consumes.
 
 Before the full comparison, exercise the runner's exact local development
 install with the final library layout and disk-backed `TMPDIR`. Proceed only

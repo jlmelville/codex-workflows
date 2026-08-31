@@ -47,6 +47,7 @@ quit(
 
 The reporter controls test progress, not arbitrary package messages. Report
 skips separately from failures and warnings.
+When a passing suite is slow, group structured results by file and compare elapsed `real` time with summed `nb` before pruning cases; if repeated inner-loop expectations dominate, preserve semantic case identities but collect field results into a stable keyed object and compare once per case or contract.
 
 Before calling the totals exact, inspect the suite for legacy top-level
 expectations. Those may appear in reporter output without a corresponding row

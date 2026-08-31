@@ -53,6 +53,7 @@ permissions:
 Use this skill's bundled audit script as the canonical workflow check. It runs
 `actionlint`, `zizmor` with its supported fallback, the action-pin comment
 check, and the checkout-credential check:
+The checkout check covers only direct workflow steps; when a pinned composite action performs or may perform checkout, inspect its pinned source or replace the wrapper with an explicit checkout before claiming the credential boundary is satisfied.
 
 ```sh
 ${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows

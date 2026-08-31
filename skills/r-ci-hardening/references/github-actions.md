@@ -192,6 +192,7 @@ HTTP response without failing the R step. When a badge disagrees with a recent
 job, inspect the job's computed package coverage and terminal upload diagnostic,
 then use a local `covr` line map for gap triage while allowing for platform and
 compiler instrumentation differences.
+When `codecov.yml` filters define a source-ownership boundary, validate the exact file with Codecov's official validator, inspect the normalized filter rather than syntax acceptance alone, and after upload confirm the hosted processed file list or totals exclude the intended paths.
 
 When reliable Codecov publication matters, generate a portable report with
 `covr`, then upload it through a maintained SHA-pinned action that receives its

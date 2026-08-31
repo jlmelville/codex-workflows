@@ -74,6 +74,7 @@ and rollback checks have run. Preserve the inner provenance, then classify the
 outer result from the realized composite change. Pair a local no-op followed by
 nonzero later-stage progress with a zero-total-transition or whole-step rollback
 control so stage-local status is not mistaken for aggregate failure.
+For resumable runners, table-cross outer process state, persisted completeness, and domain status so a failed execution cannot appear successful; separately inventory every execution-determining input consumed after resume, mutate one representative per input class after serialization, and require rejection before workers start.
 
 ## Tagged Cache Entries
 

@@ -32,10 +32,9 @@ work itself.
    Replacement mechanism: none, or owner-approved proposal
    ```
 
-   Treat inherited handoff mechanisms as proposals unless the owner accepted
-   them. If the insufficiency field has no concrete answer, use the proven path.
-   Replacing working code, even for a more bounded or elegant mechanism, is an
-   owner question that must include the capacity-or-scope counterfactual.
+   Treat inherited handoff mechanisms as proposals unless the owner accepted them. If insufficiency has no concrete answer, use the proven path.
+   Replacing working code, even for a more bounded or elegant mechanism, is an owner question that must include the capacity-or-scope counterfactual. For workflow-heavy, human-operated work without a fixed external interface, sketch the shortest operator question-to-payoff path before stabilizing public APIs, schemas, persistent records, or large contract layers.
+   Use unexplained concepts, expert defaults, manual choreography, or machinery with no visible consumer to narrow the design; skip this probe for small local changes or externally fixed contracts.
 4. Freeze the owner's objective, constraints, and non-goals for review; keep
    chosen mechanisms challengeable. Classify discoveries against that contract.
    Admit only work required for safe, correct delivery, and seek direction for
