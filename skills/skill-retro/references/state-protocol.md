@@ -120,20 +120,22 @@ review-queue
 validate
 ```
 
-The helper performs deterministic mechanics only. The agent remains
-responsible for evidence selection, sanitization, verdict judgment, destination
-choice, implementation, and verification interpretation.
+The helper performs deterministic mechanics only. The agent owns evidence selection,
+sanitization, judgment, destination choice, implementation, and interpretation.
 
-When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work, while `route`,
-`route-verification`, and `record-papercut` print the validated input as a
-paste-ready fallback without writing anything. Do not silently invent a default
-state location.
+For producer writes, generate the current template, complete it in a temporary
+file when practical, and submit it with the matching `--file` operation. These
+operations accept `--file -` for standard input. Remove temporary input when
+practical, and use the installed helper rather than locating this source checkout.
 
-When a configured root is blocked only by the sandbox, retry an authorized
-write through the platform's narrowly scoped approval path or explain the
-durable writable-root configuration. Neither action broadens intake authority;
-keep the paste-ready record as the fallback when approval is unavailable or
-denied.
+When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work; `route`,
+`route-verification`, and `record-papercut` print validated paste-ready input
+without writing. Do not silently invent a default state location.
+
+When a configured root is blocked only by the sandbox, retry an authorized write
+through the narrowly scoped approval path or explain the durable writable-root
+configuration. This does not broaden authority; preserve the paste-ready record
+when approval is unavailable or denied.
 
 ## Papercut Intake And Closure
 

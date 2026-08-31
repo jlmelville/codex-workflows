@@ -52,24 +52,12 @@ not.
 ## Capture
 
 Record a qualifying observation near the event, then continue the task without
-asking the user to classify, close, or promote it. Generate the current schema
-and submit the completed document with the installed helper:
-
-```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template papercut
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" record-papercut --file PAPERCUT_FILE
-```
-
-Create input in a temporary file and remove it when practical.
-`record-papercut --file -` also accepts a complete papercut document on
-standard input. Do not discover or depend on the location of the
-`codex-workflows` source checkout.
-
-If `CODEX_WORKFLOWS_STATE_DIR` is unset or invalid, the helper prints a
-validated paste-ready record and writes no state. Preserve that record for the
-final response. If the configured root is blocked only by the sandbox, retry
-through the platform's narrowly scoped approval path when available; otherwise
-return the paste-ready record. Neither fallback broadens capture authority.
+asking the user to classify, close, or promote it. Only after an observation
+qualifies, read the state protocol's [Installed Helper](../skill-retro/references/state-protocol.md#installed-helper)
+and [Papercut Intake And Closure](../skill-retro/references/state-protocol.md#papercut-intake-and-closure)
+sections. They own current templates, submission, temporary input, source-
+checkout independence, unset-state fallback, and sandbox recovery. Neither a
+helper nor a fallback broadens capture authority.
 
 ## Privacy
 
