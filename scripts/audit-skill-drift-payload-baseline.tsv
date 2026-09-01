@@ -20,7 +20,7 @@ skill	repo-bootstrap	160	800
 skill	repo-update-preflight	160	800
 skill	ruby-script-quality	160	800
 skill	shell-script-quality	160	800
-skill	skill-retro	177	821
+skill	skill-retro	160	821
 skill	skill-retro-triage	177	800
 skill	uv-sandbox-workflow	160	800
 repository	instructional-markdown	-	8595
