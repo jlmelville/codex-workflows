@@ -11,6 +11,8 @@ changes, validation, decisions, and the next packet. Each agent completes one
 coherent chunk, validates it, updates the log, and stops with a handoff when
 work remains. Do not combine unrelated chunks because context remains.
 
+Create a separate packet only when it enables independently useful progress or isolates a genuinely distinct ownership, dependency, change-set, validation, or recovery boundary. Files, components, layers, phases, and available agents alone do not justify separation; keep tightly coupled implementation and validation together.
+
 If an active chunk proves oversized but is making coherent progress, finish its
 current contract and apply smaller boundaries prospectively. When independent
 review is required, use the bounded loop in

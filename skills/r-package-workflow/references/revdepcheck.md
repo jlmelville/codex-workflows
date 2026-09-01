@@ -78,6 +78,10 @@ that exact copy. Keep repository-specific compatibility patches outside this
 skill and record the package-to-private-library mapping in the run handoff.
 For an exact local R repository, validate every published `PACKAGES`, `PACKAGES.gz`, and `PACKAGES.rds` variant against the same manifest, or publish one validated variant and reject alternates during reuse; exercise stock `available.packages()` or `install.packages()` against the result so validation covers the index R consumes.
 
+When exact installed package/version text is part of an artifact or manifest identity, read `Package` and `Version` from the installed `DESCRIPTION` at the already-verified package path. `packageVersion()` and `getNamespaceVersion()` are suitable for version semantics, not literal evidence, because R version objects normalize separators. Exercise this boundary with a hyphenated revision.
+
+Before launching workers, compare each per-target check limit with retained successful preparation-build timings for that target and report the basis. Do not silently replace an explicit operator limit. After a timeout, preserve the incomplete result and rerun only affected targets in fresh writable state against the same prepared artifacts.
+
 Before the full comparison, exercise the runner's exact local development
 install with the final library layout and disk-backed `TMPDIR`. Proceed only
 after that smoke check builds and loads the development package and the runner

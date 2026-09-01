@@ -37,8 +37,7 @@ work itself.
    Use unexplained concepts, expert defaults, manual choreography, or machinery with no visible consumer to narrow the design; skip this probe for small local changes or externally fixed contracts.
 4. Freeze the owner's objective, constraints, and non-goals for review; keep
    chosen mechanisms challengeable. Classify discoveries against that contract.
-   Admit only work required for safe, correct delivery, and seek direction for
-   material expansion of goals, semantics, acceptance, or authority.
+   Admit a plan item only when omitting it would leave the accepted contract unmet or required evidence missing. Treat retained behavior and applicable, named safety and authority boundaries as part of that contract; usefulness, reviewer origin, and imagined future value are not enough. Admit only the smallest probe that can settle a concrete uncertainty material to in-scope implementation or acceptance, and seek direction for material expansion of goals, semantics, acceptance, or authority.
    Before an inherited safeguard forces replacement or a parallel path, name
    its enforcement and scope. Either increase is a new, proportionally evidenced
    decision; a lower or narrower safeguard cannot authorize its own escalation.

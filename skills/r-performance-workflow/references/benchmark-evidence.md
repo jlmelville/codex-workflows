@@ -33,6 +33,8 @@ policy when deciding whether to retain them.
 
 ## Gate And Probe Design
 
+Before treating a selector as one benchmark factor, resolve its effective policy, including conditional defaults. If it changes multiple controls, compare and label the coherent public profile separately from fixed-policy component variants; use the controlled variants, not the bundled profile alone, for component-level causal claims.
+
 Scope relative performance gates before observing results. Name the workload
 class each gate governs and report absolute medians beside ratios. For an
 abstraction boundary, pair low-operation and scaling-heavy cases, then classify
