@@ -5,17 +5,17 @@ needs bounded packets instead of one monolithic instruction list.
 
 ## Minimum Shape
 
-Include the goal and guardrails, source audit or review when applicable,
-chunking rules, a queue with scope and exit criteria, and a progress log of
-changes, validation, decisions, and the next packet. Each agent completes one
-coherent chunk, validates it, updates the log, and stops with a handoff when
-work remains. Do not combine unrelated chunks because context remains.
+Include the goal, guardrails, applicable source audit or review, chunking rules, scoped queue, and progress log of changes,
+validation, decisions, and the next packet. Complete one coherent chunk per agent; do not combine unrelated work for context.
 
-Create a separate packet only when it enables independently useful progress or isolates a genuinely distinct ownership, dependency, change-set, validation, or recovery boundary. Files, components, layers, phases, and available agents alone do not justify separation; keep tightly coupled implementation and validation together.
+Create a separate packet only for independently useful progress or a distinct ownership, dependency, change-set,
+validation, or recovery boundary. Files, phases, and available agents alone do not justify separation.
 
-If an active chunk proves oversized but is making coherent progress, finish its
-current contract and apply smaller boundaries prospectively. When independent
-review is required, use the bounded loop in
+Before broad fan-out across similar units, use an existing proven mechanism or complete one representative unit end to
+end. Verify any common deterministic mechanism against that result; reserve packets for exceptions and judgment.
+
+If a chunk proves oversized but is making coherent progress, finish its contract and shrink later boundaries. For
+independent review, use the bounded loop in
 [audits-and-review-packets.md](audits-and-review-packets.md#bounded-independent-review).
 
 ## Durable Source Boundary
@@ -39,12 +39,9 @@ changes; do not hide or overwrite another worker's edits.
 
 ## Accepted Mapping Crosswalk
 
-When a packet accepts an itemized mapping, preserve it as the completion
-checklist. Compare any inline subset before editing and resolve contradictory
-limiting language. Crosswalk every row against final source; for renames, check
-declarations, definitions, call sites, and remaining old executable names.
-Passing behavioral tests does not establish item-set completeness. Append later
-corrections and evidence instead of rewriting earlier progress claims.
+Preserve an accepted itemized mapping as the completion checklist and reconcile contradictory inline subsets before
+editing. Crosswalk every row against final source; passing tests does not prove item-set completeness. Append later
+corrections rather than rewriting earlier claims. For renames, check declarations, definitions, calls, and stale names.
 
 ## Warning Ownership
 

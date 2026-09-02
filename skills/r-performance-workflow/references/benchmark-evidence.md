@@ -33,52 +33,46 @@ policy when deciding whether to retain them.
 
 ## Gate And Probe Design
 
-Before treating a selector as one benchmark factor, resolve its effective policy, including conditional defaults. If it changes multiple controls, compare and label the coherent public profile separately from fixed-policy component variants; use the controlled variants, not the bundled profile alone, for component-level causal claims.
+Before treating a selector as one factor, resolve conditional defaults. Compare a coherent public profile separately
+from fixed-policy variants, and use controlled variants for component-level causal claims.
 
-Scope relative performance gates before observing results. Name the workload
-class each gate governs and report absolute medians beside ratios. For an
-abstraction boundary, pair low-operation and scaling-heavy cases, then classify
-a repeated regression as fixed per-call cost or scaling cost. Do not waive a
-crossed unconditional gate after the fact merely because its absolute cost is
-small; retain it as an explicit review decision.
+Scope relative gates before observing results, name their workload class, and report absolute medians beside ratios.
+Retain crossed unconditional gates as explicit review decisions even when their absolute cost is small.
 
-Before optimizing abstraction overhead, use bounded component probes to
-separate causes: compare direct and wrapped operations for marginal overhead,
-zero- and one-operation end-to-end paths for fixed versus marginal work, and
-rich versus minimal result construction when discarded diagnostics may be
-costly. Profiles and component microbenchmarks choose targets; representative
-whole-operation benchmarks plus the semantic oracle decide whether to keep or
-revert the change.
+When pilot responses select a reduced panel, apply the final feature transform and numerical-invariance rule first.
+Derive feasible capacity after structural caps and require every selected unit to retain a downstream feature.
 
-For expensive exploratory benchmark grids, define the evidence threshold and
-stop rule before running the full grid. Start with rows likely to distinguish
-hypotheses, summarize after each tranche, and skip expensive remaining rows when
-they are unlikely to change the decision. Record the stop rationale in the plan
-or handoff.
+Freeze each case's evaluative or diagnostic role before the grid. Retain raw diagnostic outcomes, but report
+role-specific denominators so universally solved or unsolved probes do not silently control an aggregate ranking.
+
+Use bounded direct/wrapped, zero/one-operation, scaling-heavy, and rich/minimal-result probes to separate costs.
+Profiles choose targets; representative whole-operation benchmarks plus the semantic oracle decide what to keep.
+
+For expensive grids, predeclare the evidence threshold and stop rule, start with distinguishing rows, and summarize
+each tranche. Skip rows unlikely to change the decision and record the stop rationale in the plan or handoff.
 
 ## Callback Work Accounting
 
-For callback-based algorithm benchmarks, define the measured workload boundary
-and install fresh external wrappers for each run. Count every physical provider
-entry point independently, including standalone, composite, and derivative
-callbacks, and increment attempted calls before provider execution. A composite
-call remains one composite invocation even when it computes several values;
-retain any real standalone calls made in the same mode.
+Define the measured workload boundary and install fresh wrappers for each run. Count attempted physical provider
+entries before execution; a composite invocation remains one call while real standalone calls remain visible.
 
-When the logical numerical operation differs from the provider callback that
-implements it, record both axes plus the owning phase so setup and
-reporting-oracle work cannot be mistaken for algorithm cost. Keep
-framework-native counters as a separate consistency witness rather than
-replacing either observed view.
+When logical numerical work differs from its provider callback, record both axes and the owning phase. Keep native
+counters as a separate consistency witness so setup and reporting work cannot be mistaken for algorithm cost.
 
-Cumulative callback counts are resource totals, not selected-point identities.
-When the timed optimizer does not retain the values needed for target histories,
-keep tracing out of the measured run and perform an unmeasured deterministic
-replay. Match the measured result and physical callback counts exactly, then
-identify selected points from final parameter, objective, and realized-step
-identity rather than the last callback. Carry selected state across zero steps,
-handle improving fallbacks explicitly, and fail closed when the replay
-projection does not match the measured run.
+Callback totals do not identify selected points. Keep tracing outside the timed run, replay deterministically, and
+require exact result and callback-count agreement; identify selected state from parameters, objective, and realized step.
+Carry state across zero steps, handle improving fallbacks explicitly, and fail closed on projection mismatch.
+
+Inventory available last/best fields. When termination can restore, average, project, or replace the final iterate,
+preserve both points; bind the reason and tolerance to the terminating one, audit the return, and name which owns `solved`.
+
+## Search-Budget Exit Diagnosis
+
+Treat a local evaluation cap as a hypothesis, not a diagnosis. Replay beyond it before recommending more budget, then
+trace objectives, directional derivatives, parameter displacement, and initial-step choices through the changed exit.
+
+Compare expected objective and parameter changes with their floating-point spacing. Distinguish an uninformative
+interpolation initializer from an acceptance condition that no representable step can satisfy.
 
 ## Resumable Evidence Checkpoints
 

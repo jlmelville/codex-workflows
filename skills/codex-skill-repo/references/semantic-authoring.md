@@ -6,28 +6,23 @@ incident-shaped decisions.
 
 ## Admission
 
-State what the proposed material changes: an action, authority boundary,
-required observation, or success condition. Check whether an existing
-principle already produces that result. A new repository, package, or narrative
-is further evidence rather than a new public rule when the decision and witness
-shape are unchanged.
+State the changed action, authority, observation, or success condition and check whether an existing principle already
+produces it. A new narrative is further evidence, not a new rule, when the decision and witness are unchanged.
+
+A skill may be relevant enough to consult without entering its operational workflow. Enter only when the task requires
+that outcome and authority permits it; a terminal predecessor prunes dependent stages but not independent closure duties.
 
 Use these destinations:
 
-- **Default judgment:** a compact principle or procedure needed when the skill
-  triggers. State the distinguishing condition and resulting action, not the
-  source incident. Keep unconditional privacy, authority, evidence, and
-  completion contracts here when they must always govern the work.
+- **Default judgment:** a compact principle needed when the skill triggers. State the distinguishing condition and
+  action, not the incident; keep unconditional privacy, authority, evidence, and completion contracts here.
 - **Routed mechanics:** exact commands, APIs, tool behavior, environment
-  requirements, file formats, ordering constraints, and fail-closed recipes.
-  Prefer a script or validator when behavior is deterministic or quoting is
-  fragile. Do not compress exact mechanics into vague advice.
-- **Optional cases:** short analogies for a distinct plausible wrong
-  implementation or observation boundary when judgment and mechanics do not
-  make the next move clear.
-- **Verification only:** recurrence that supports or contradicts an existing
-  decision and witness. Keep it in external accepted state; it is not public
-  skill content.
+  requirements, file formats, ordering, and fail-closed recipes. Prefer scripts
+  for deterministic or quoting-sensitive behavior; do not turn mechanics vague.
+- **Optional cases:** short analogies for a distinct plausible wrong implementation
+  or observation boundary that judgment and mechanics do not resolve.
+- **Verification only:** recurrence supporting or contradicting an existing decision
+  and witness. Keep it in external accepted state, not public skill content.
 
 Split material when its parts need different roles or loading conditions. The
 smallest change is the smallest truthful change to the decision model, not the

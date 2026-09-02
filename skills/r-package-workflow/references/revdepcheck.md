@@ -7,14 +7,13 @@ the worktree, so establish authority and capacity before a long run.
 
 ## Choose The Direct Cohort
 
-For routine CRAN updates, default to direct CRAN reverse dependencies. Put direct Bioconductor targets in a
-separate lane when behavioral or API risk, or the maintainer, warrants that evidence; this is release judgment,
-not a claim about CRAN requirements. Still resolve Bioconductor dependencies reached from selected CRAN targets.
+For routine CRAN updates, default to direct CRAN reverse dependencies. Use a separate direct Bioconductor lane when
+risk or the maintainer warrants it, while still resolving Bioconductor dependencies reached from selected CRAN targets.
 
-Freeze direct and broader cohorts from one unfiltered inventory such as `DB <- utils::available.packages(filters =
-list())`. Record direct relationship types with `recursive = FALSE`; when feasible, also evaluate
-`tools::package_dependencies(PACKAGE, db = DB, reverse = TRUE, which = "most", recursive = "strong")` and classify
-the additions. A package page or direct-only run proves no broader coverage; completion names the checked cohort.
+Freeze direct and broader cohorts from one unfiltered inventory. Record direct relationship types and, for each
+recursive-only target, the direct root or roots through which it was reached. Prefer this bounded provenance to full
+paths or a graph absent a concrete graph question; a package page or direct-only run proves no broader coverage.
+Suitable primitives are unfiltered `available.packages()` and reverse `tools::package_dependencies(..., recursive = "strong")`.
 
 ## Establish The Dependency Universe
 
