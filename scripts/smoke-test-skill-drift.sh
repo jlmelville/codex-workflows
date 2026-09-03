@@ -32,9 +32,9 @@ Repeated Helper Names	fixture_helper:	The duplicate helper is an intentional adv
 EOF
 
 cat >"${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv" <<'EOF'
-# scope	name	hot-lines	total-lines
-skill	example	1000	1000
-repository	instructional-markdown	-	10000
+# scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
+skill	example	1000	1000	100000	100000
+repository	instructional-markdown	-	10000	-	100000
 EOF
 
 cat >"${fixture_dir}/scripts/one.sh" <<'EOF'
@@ -165,10 +165,60 @@ fi
 cp "${fixture_dir}/scripts/payload-baseline.clean" \
   "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
 
+ruby -pi -e \
+  'sub("skill\texample\t1000\t1000\t100000\t100000", "skill\texample\t1000\t1000\t100001\t100000")' \
+  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "increased character baseline unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
+  ! grep -Fq "hot-path limit 100000 -> 100001 normalized characters" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "character baseline increase did not produce the expected hard finding" >&2
+  exit 1
+fi
+cp "${fixture_dir}/scripts/payload-baseline.clean" \
+  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
+
+fixture_characters="$(ruby -e 'print File.read(ARGV.fetch(0)).gsub(/\s+/, " ").strip.length' "${skill_file}")"
+{
+  printf '%s\n' $'# scope\tname\thot-lines\ttotal-lines\thot-normalized-characters\ttotal-normalized-characters'
+  printf 'skill\texample\t1000\t1000\t%s\t%s\n' "${fixture_characters}" "${fixture_characters}"
+  printf 'repository\tinstructional-markdown\t-\t10000\t-\t%s\n' "${fixture_characters}"
+} >"${fixture_dir}/tight-character-baseline.tsv"
+ruby -0777 -pi -e \
+  'sub("From this source\nrepository root", "From this source repository\nroot")' \
+  "${skill_file}"
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/tight-character-baseline.tsv" \
+  --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "whitespace-only reflow changed the normalized-character payload" >&2
+  exit 1
+fi
+ruby -pi -e \
+  'sub("deterministic drift-audit", "deterministic expanded drift-audit")' \
+  "${skill_file}"
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/tight-character-baseline.tsv" \
+  --strict-hard --hard-only >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "same-line character growth unexpectedly passed" >&2
+  exit 1
+fi
+if ! grep -Fq "normalized characters" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "same-line character growth did not produce the expected hard finding" >&2
+  exit 1
+fi
+cp "${fixture_dir}/good-skill.md" "${skill_file}"
+
 cat >"${fixture_dir}/low-payload-baseline.tsv" <<'EOF'
-# scope	name	hot-lines	total-lines
-skill	example	1	1
-repository	instructional-markdown	-	1
+# scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
+skill	example	1	1	1	1
+repository	instructional-markdown	-	1	-	1
 EOF
 if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
   --payload-baseline "${fixture_dir}/low-payload-baseline.tsv" \

@@ -143,6 +143,10 @@ def read_text(path)
   File.read(path, encoding: "UTF-8", invalid: :replace, undef: :replace)
 end
 
+def normalized_character_count(text)
+  text.gsub(/\s+/, " ").strip.length
+end
+
 def relative_path(repo_dir, path)
   path.delete_prefix("#{repo_dir}/")
 end
@@ -222,16 +226,20 @@ def load_command_baselines(path, known_labels)
   baselines
 end
 
-def parse_payload_baselines(text, label)
-  baselines = {skills: {}, repository_total: nil}
+def parse_payload_baselines(text, label, allow_legacy: false)
+  baselines = {skills: {}, repository_total: nil, repository_characters: nil}
   text.each_line.with_index(1) do |line, line_no|
     row = line.chomp
     next if row.empty? || row.start_with?("#")
 
-    scope, name, hot_text, total_text = row.split("\t", -1)
-    if [scope, name, hot_text, total_text].any? { |field| field.nil? || field.empty? }
-      raise ArgumentError, "#{label}:#{line_no}: expected scope<TAB>name<TAB>hot-lines<TAB>total-lines"
+    fields = row.split("\t", -1)
+    valid_field_counts = allow_legacy ? [4, 6] : [6]
+    unless valid_field_counts.include?(fields.length) && fields.none?(&:empty?)
+      raise ArgumentError,
+        "#{label}:#{line_no}: expected scope<TAB>name<TAB>hot-lines<TAB>total-lines" \
+        "<TAB>hot-normalized-characters<TAB>total-normalized-characters"
     end
+    scope, name, hot_text, total_text, hot_characters_text, total_characters_text = fields
     unless name.match?(/\A[A-Za-z0-9._-]+\z/)
       raise ArgumentError, "#{label}:#{line_no}: invalid payload name: #{name}"
     end
@@ -240,29 +248,41 @@ def parse_payload_baselines(text, label)
       begin
         hot_lines = Integer(hot_text, 10)
         total_lines = Integer(total_text, 10)
+        hot_characters = Integer(hot_characters_text, 10) if hot_characters_text
+        total_characters = Integer(total_characters_text, 10) if total_characters_text
       rescue ArgumentError
         raise ArgumentError, "#{label}:#{line_no}: skill limits must be positive integers"
       end
-      if hot_lines <= 0 || total_lines <= 0
+      if hot_lines <= 0 || total_lines <= 0 ||
+          (hot_characters && hot_characters <= 0) ||
+          (total_characters && total_characters <= 0)
         raise ArgumentError, "#{label}:#{line_no}: skill limits must be positive integers"
       end
       if baselines[:skills].key?(name)
         raise ArgumentError, "#{label}:#{line_no}: duplicate skill payload baseline: #{name}"
       end
-      baselines[:skills][name] = {hot: hot_lines, total: total_lines}
-    elsif scope == "repository" && name == "instructional-markdown" && hot_text == "-"
+      baselines[:skills][name] = {
+        hot: hot_lines,
+        total: total_lines,
+        hot_characters: hot_characters,
+        total_characters: total_characters
+      }
+    elsif scope == "repository" && name == "instructional-markdown" && hot_text == "-" &&
+        (!hot_characters_text || hot_characters_text == "-")
       begin
         total_lines = Integer(total_text, 10)
+        total_characters = Integer(total_characters_text, 10) if total_characters_text
       rescue ArgumentError
-        raise ArgumentError, "#{label}:#{line_no}: repository total must be a positive integer"
+        raise ArgumentError, "#{label}:#{line_no}: repository limits must be positive integers"
       end
-      if total_lines <= 0
-        raise ArgumentError, "#{label}:#{line_no}: repository total must be a positive integer"
+      if total_lines <= 0 || (total_characters && total_characters <= 0)
+        raise ArgumentError, "#{label}:#{line_no}: repository limits must be positive integers"
       end
       if baselines[:repository_total]
         raise ArgumentError, "#{label}:#{line_no}: duplicate repository payload baseline"
       end
       baselines[:repository_total] = total_lines
+      baselines[:repository_characters] = total_characters
     else
       raise ArgumentError, "#{label}:#{line_no}: unknown payload scope or name"
     end
@@ -301,7 +321,7 @@ def previous_payload_baselines(repo_dir, path)
   end
   return nil unless previous_text
 
-  parse_payload_baselines(previous_text, "git:previous:#{relative}")
+  parse_payload_baselines(previous_text, "git:previous:#{relative}", allow_legacy: true)
 end
 
 def payload_baseline_increase_rows(current, previous)
@@ -311,6 +331,11 @@ def payload_baseline_increase_rows(current, previous)
   if current[:repository_total] > previous[:repository_total]
     rows << "repository instructional Markdown: #{previous[:repository_total]} -> #{current[:repository_total]} lines"
   end
+  if previous[:repository_characters] &&
+      current[:repository_characters] > previous[:repository_characters]
+    rows << "repository instructional Markdown: #{previous[:repository_characters]} -> " \
+      "#{current[:repository_characters]} normalized characters"
+  end
   current[:skills].sort.each do |name, limits|
     prior = previous[:skills][name]
     unless prior
@@ -319,11 +344,19 @@ def payload_baseline_increase_rows(current, previous)
     end
     rows << "#{name}: hot-path limit #{prior[:hot]} -> #{limits[:hot]} lines" if limits[:hot] > prior[:hot]
     rows << "#{name}: total limit #{prior[:total]} -> #{limits[:total]} lines" if limits[:total] > prior[:total]
+    if prior[:hot_characters] && limits[:hot_characters] > prior[:hot_characters]
+      rows << "#{name}: hot-path limit #{prior[:hot_characters]} -> " \
+        "#{limits[:hot_characters]} normalized characters"
+    end
+    if prior[:total_characters] && limits[:total_characters] > prior[:total_characters]
+      rows << "#{name}: total limit #{prior[:total_characters]} -> " \
+        "#{limits[:total_characters]} normalized characters"
+    end
   end
   rows
 end
 
-def payload_growth_rows(skills, baselines, repository_total)
+def payload_growth_rows(skills, baselines, repository_total, repository_characters)
   rows = []
   current_names = skills.map { |skill| skill[:name] }.to_set
   baseline_names = baselines[:skills].keys.to_set
@@ -340,9 +373,21 @@ def payload_growth_rows(skills, baselines, repository_total)
     if skill[:payload_lines] > limits[:total]
       rows << "#{skill[:name]}: instructional Markdown #{skill[:payload_lines]} > #{limits[:total]} lines"
     end
+    if skill[:skill_characters] > limits[:hot_characters]
+      rows << "#{skill[:name]}: SKILL.md #{skill[:skill_characters]} > " \
+        "#{limits[:hot_characters]} normalized characters"
+    end
+    if skill[:payload_characters] > limits[:total_characters]
+      rows << "#{skill[:name]}: instructional Markdown #{skill[:payload_characters]} > " \
+        "#{limits[:total_characters]} normalized characters"
+    end
   end
   if repository_total > baselines[:repository_total]
     rows << "repository instructional Markdown: #{repository_total} > #{baselines[:repository_total]} lines"
+  end
+  if repository_characters > baselines[:repository_characters]
+    rows << "repository instructional Markdown: #{repository_characters} > " \
+      "#{baselines[:repository_characters]} normalized characters"
   end
   rows
 end
@@ -521,14 +566,19 @@ skills = skill_dirs.map do |skill_dir|
   skill_file = File.join(skill_dir, "SKILL.md")
   frontmatter_data = frontmatter(skill_file)
   skill_body = read_text(skill_file)
+  skill_markdown_paths = Dir.glob(File.join(skill_dir, "**", "*.md")).select { |path|
+    File.file?(path)
+  }
 
   {
     name: skill_name,
     description: frontmatter_data.fetch("description", ""),
     skill_lines: skill_body.lines.length,
-    payload_lines: Dir.glob(File.join(skill_dir, "**", "*.md")).select { |path|
-      File.file?(path)
-    }.sum { |path| read_text(path).lines.length },
+    skill_characters: normalized_character_count(skill_body),
+    payload_lines: skill_markdown_paths.sum { |path| read_text(path).lines.length },
+    payload_characters: skill_markdown_paths.sum { |path|
+      normalized_character_count(read_text(path))
+    },
     token_set: description_tokens(frontmatter_data.fetch("description", ""))
   }
 end
@@ -583,7 +633,11 @@ reference_lines = reference_files.sum { |path| read_text(path).lines.length }
 reference_words = reference_files.sum { |path| read_text(path).scan(/\S+/).length }
 puts "Routed references: #{reference_files.length} files, #{reference_lines} lines, ~#{reference_words} words"
 instructional_lines = instructional_markdown_files.sum { |path| read_text(path).lines.length }
-puts "Instructional Markdown: #{instructional_lines} lines"
+instructional_characters = instructional_markdown_files.sum { |path|
+  normalized_character_count(read_text(path))
+}
+puts "Instructional Markdown: #{instructional_lines} lines, " \
+  "#{instructional_characters} normalized characters"
 
 command_hits = COMMAND_PATTERNS.transform_values do |pattern|
   line_hits(repo_dir, markdown_files, pattern)
@@ -593,7 +647,7 @@ stable_command_baselines = command_baselines.length - command_growth_rows.length
 puts "Repeated command baselines: #{stable_command_baselines} stable, #{command_growth_rows.length} expanded"
 
 findings.fetch(:hard)["Instructional Payload Growth"].concat(
-  payload_growth_rows(skills, payload_baselines, instructional_lines)
+  payload_growth_rows(skills, payload_baselines, instructional_lines, instructional_characters)
 )
 findings.fetch(:hard)["Payload Baseline Increase"].concat(
   payload_baseline_increase_rows(payload_baselines, previous_payload)

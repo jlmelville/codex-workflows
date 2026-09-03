@@ -125,14 +125,10 @@ may mix roles and need restructuring. Read
 [semantic-authoring.md](references/semantic-authoring.md) when adding or
 restructuring guidance, mechanics, examples, or casebooks.
 
-Classify external tools by owner before prescribing installation or parity:
-repository-maintainer tools run this source repository's checks; downstream
-skill dependencies run only when an installed skill handles another project;
-optional enhancements strengthen but do not define either workflow. Check
-required availability before dependent work and name only supported fallbacks.
-If a required tool cannot run and no fallback preserves the check, make the
-validation gap prominent and do not claim complete validation. Route maintainer
-acquisition and executable-resolution mechanics to
+Classify external tools by owner before prescribing installation or parity,
+and do not claim complete validation when a required check has no supported
+fallback. For maintainer acquisition, executable resolution, and runtime
+selection mechanics, read
 [repository-validation.md](references/repository-validation.md).
 
 Create a new skill only for repeated work with clear triggers and decisions;
@@ -177,7 +173,5 @@ drift changes, read
 [repository-validation.md](references/repository-validation.md) for the quick
 validator, temporary state, mirrors, advisory audits, and pre-commit review.
 
-Repository-specific candidate consumers belong in that repository's local
-skill scope. In the `codex-workflows` source checkout, use
-`$skill-retro-triage` for accepted Skill Candidate Reports after re-reading
-cited destination files.
+Keep repository-specific candidate consumers in that repository's local skill
+scope.

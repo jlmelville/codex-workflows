@@ -112,11 +112,13 @@ unchanged and reduced repetition do not. Review the named delta before updating
 the baseline. Never regenerate or advance it automatically merely to make the
 audit green.
 
-`scripts/audit-skill-drift-payload-baseline.tsv` caps each `SKILL.md`, each
-skill's instructional Markdown, and repository instructional Markdown. Growth
-is hard; lowering a cap is allowed. Validation also compares a changed baseline
-with `HEAD` or `HEAD^`, so ordinary maintenance cannot raise a cap or add a
-skill entry. A separately accepted policy change must own any future exception.
+`scripts/audit-skill-drift-payload-baseline.tsv` caps the physical lines and
+whitespace-normalized characters in each `SKILL.md`, each skill's instructional
+Markdown, and repository instructional Markdown. The character ceiling prevents
+line reflow from concealing payload growth; neither measure is a semantic score.
+Growth is hard, and lowering a cap is allowed. Validation also compares a changed
+baseline with `HEAD` or `HEAD^`, so ordinary maintenance cannot raise a cap or
+add a skill entry. A separately accepted policy change must own any exception.
 
 ## Pre-Commit Review
 

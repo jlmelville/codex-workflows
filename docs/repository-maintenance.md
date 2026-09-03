@@ -242,8 +242,10 @@ Run the drift and instructional-payload audit with:
 ```
 
 The audit reports description and instructional payloads, overlap, repeated
-helpers or commands, machine paths, and installed-path risks. Payload growth
-and broken runtime guidance are hard; semantic findings remain advisory.
+helpers or commands, machine paths, and installed-path risks. Payload ceilings
+cover physical lines and whitespace-normalized characters so line reflow cannot
+conceal growth. Neither measure is a semantic score. Payload growth and broken
+runtime guidance are hard; semantic findings remain advisory.
 Accepted advisory findings live in
 [`scripts/audit-skill-drift-triage.tsv`](../scripts/audit-skill-drift-triage.tsv);
 each row records the audit section, a row substring to match, and the rationale
@@ -252,7 +254,9 @@ for accepting that finding.
 Use `--strict-hard --hard-only` for repository validation and `--strict` when a
 cleanup branch should fail on every untriaged finding. Payload limits live in
 [`scripts/audit-skill-drift-payload-baseline.tsv`](../scripts/audit-skill-drift-payload-baseline.tsv)
-and may move down, not up, during ordinary maintenance.
+and may move down, not up, during ordinary maintenance. The initial character
+limits preserve accepted content plus 100 characters per unused line in the
+corresponding line ceiling; do not regenerate them automatically.
 
 For new or substantially changed skills, also run the system skill quick
 validator when its dependencies are available. If it needs Python packages such
