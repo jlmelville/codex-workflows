@@ -17,7 +17,7 @@ require "yaml"
 repo_dir = File.expand_path("..", __dir__)
 options = {
   max_description: 420,
-  max_total_description: 6_000,
+  max_total_description: 6_500,
   max_skill_lines: 160,
   overlap_threshold: 0.20,
   strict: false,

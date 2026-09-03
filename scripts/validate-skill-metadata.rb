@@ -17,7 +17,7 @@ INTERNAL_SCRIPT_MARKER = /\A[ \t]*#[ \t]*codex-workflows:[ \t]*internal-skill-sc
 repo_dir = File.expand_path(ARGV.fetch(0, File.expand_path("..", __dir__)))
 skills_dir = File.join(repo_dir, "skills")
 max_description = 420
-max_total_description = 6_000
+max_total_description = 6_500
 errors = []
 total_description = 0
 

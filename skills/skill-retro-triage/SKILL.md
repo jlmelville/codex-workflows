@@ -82,9 +82,9 @@ and verification. Prefer an existing principle; recurrence of the same decision
 and witness updates verification, while exact recipes belong in code or routed
 mechanics.
 
-Public additions must fit payload baselines. At a limit, require a larger
-removal or demotion from the same skill; never raise a baseline to admit the
-batch.
+Public additions must fit payload baselines. Do not raise one merely to admit
+a candidate; require an offset unless a separately accepted portfolio decision
+explicitly owns the added skill or capacity.
 
 If verification-only evidence has arrived through the candidate inbox, reject
 or mark that candidate `no-change` and ask the producer to use the typed

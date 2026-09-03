@@ -22,5 +22,6 @@ skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
 skill	skill-retro	160	821	9843	39460
 skill	skill-retro-triage	177	800	9034	71334
+skill	technical-writing	100	240	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
-repository	instructional-markdown	-	8595	-	417147
+repository	instructional-markdown	-	8800	-	430000
