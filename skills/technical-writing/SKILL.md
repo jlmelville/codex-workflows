@@ -29,6 +29,9 @@ contract, or prevent a plausible mistake.
   not safely infer.
 - Delete facts already evident to the intended reader when they do not affect
   the task. Prefer deletion to polishing a sentence with no useful function.
+- Do not narrate code syntax or control flow. Retain a concise bridge when
+  incidental or out-of-domain setup creates an object or condition needed by
+  the document's actual task.
 - Match detail to the surface. Keep internal history, experiment reports,
   maintainer procedures, and exhaustive edge cases out of a task-oriented
   document unless they change what its reader should do.
@@ -48,6 +51,8 @@ explain the supported reason someone would need it.
 - Lead with the outcome or task, then supply the minimum context needed to act.
 - Follow the reader's workflow rather than the author's implementation or
   discovery chronology.
+- Keep examples focused on the concept being taught and explain incidental
+  setup only where it bridges into that concept.
 - Move specialized detail to a better-matched surface when it remains useful.
 
 ## Run A Deletion Pass
@@ -56,3 +61,6 @@ For each sentence, ask whether it adds non-inferable value, is supported by the
 available evidence, belongs on this surface, and advances the reader's task.
 For each negative clause, identify the source of the alternative it rejects.
 Delete or rewrite anything that fails those checks.
+
+When the boundary remains unclear, read
+[sentence-admission cases](references/sentence-admission-cases.md).
