@@ -519,6 +519,58 @@ run_shell_script_smoke() {
   "${repo_dir}/skills/github-actions-hardening/scripts/check-action-tag-comments.sh" --help >/dev/null
 }
 
+run_long_process_observer_smoke() {
+  local script="${repo_dir}/skills/r-package-workflow/scripts/observe-long-r-process.sh"
+  local state_dir="${tmp_root}/long-process-state"
+  local output="${tmp_root}/long-process.stdout"
+  local stderr_file="${tmp_root}/long-process.stderr"
+  local sleep_pid
+  local command_status
+
+  mkdir -p "${state_dir}"
+  printf '%s\n' old >"${state_dir}/old-checkpoint.rds"
+  printf '%s\n' new >"${state_dir}/new-checkpoint.rds"
+
+  "${script}" --help >/dev/null
+  assert_usage_error \
+    "long-process-invalid-pid" \
+    "PID must be a positive integer" \
+    "${script}" 0
+  assert_usage_error \
+    "long-process-missing-root" \
+    "state root is not a directory" \
+    "${script}" "$$" --state-root "${state_dir}/missing"
+
+  sleep 30 &
+  sleep_pid=$!
+  if ! "${script}" "${sleep_pid}" --state-root "${state_dir}" >"${output}"; then
+    kill "${sleep_pid}" 2>/dev/null || true
+    wait "${sleep_pid}" 2>/dev/null || true
+    return 1
+  fi
+  kill "${sleep_pid}" 2>/dev/null || true
+  wait "${sleep_pid}" 2>/dev/null || true
+  grep -Eq $'^snapshot_utc\t[0-9]{4}-[0-9]{2}-[0-9]{2}T' "${output}"
+  grep -Fq $'parent\t'"${sleep_pid}"$'\t' "${output}"
+  grep -Fq $'descendant_count\t0' "${output}"
+  grep -Fq $'state_root\t'"${state_dir}" "${output}"
+  grep -Fq $'filesystem_kib\t' "${output}"
+  grep -Fq 'new-checkpoint.rds' "${output}"
+
+  "${script}" "$$" >"${output}"
+  grep -Eq $'^descendant_count\t[1-9][0-9]*$' "${output}"
+
+  if "${script}" 999999999 >"${output}" 2>"${stderr_file}"; then
+    echo "observe-long-r-process.sh should reject an unavailable process" >&2
+    return 1
+  else
+    command_status=$?
+  fi
+  [[ "${command_status}" -eq 1 ]]
+  [[ ! -s "${output}" ]]
+  grep -Fq 'process is not running or not visible: 999999999' "${stderr_file}"
+}
+
 run_r_package_check_smoke() {
   local script="${repo_dir}/skills/r-package-workflow/scripts/check-r-package.sh"
   local pkg_dir="${tmp_root}/r-package-check"
@@ -1350,6 +1402,7 @@ run_manifest_smoke
 run_roxygen_smoke
 run_document_validation_smoke
 run_shell_script_smoke
+run_long_process_observer_smoke
 run_r_package_check_smoke
 run_audit_actions_smoke
 run_action_tag_comment_smoke

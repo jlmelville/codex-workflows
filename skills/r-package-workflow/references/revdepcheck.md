@@ -47,11 +47,12 @@ build-temporary directories to absolute paths and require them to be outside
 the package root. An `.Rbuildignore` rule is not sufficient: a local installer
 may stage the source tree before `R CMD build` applies package exclusions.
 
-Keep only runner-owned state and the smallest required private-library seeds in
-the source-tree reverse-dependency directory. Record its size before the run so
-an accidental cache or preparation-library copy is visible. Launch the parent
-R process, not only its children, with a spacious disk-backed `TMPDIR`; source
-staging can occur before a compiler or installer subprocess exists.
+Keep only runner-owned state and the smallest required private-library seeds in the source-tree reverse-dependency
+directory, and record its size so an accidental cache or preparation-library copy is visible. Launch the parent R
+process, not only its children, with a spacious disk-backed `TMPDIR`; source staging can precede compiler subprocesses.
+For an unattended Linux run, use `${HOME}/.agents/skills/r-package-workflow/scripts/observe-long-r-process.sh PID
+--state-root PATH` with narrow checkpoint roots to snapshot parent and descendant activity, freshness, and capacity.
+Its output diagnoses only; it neither accepts results nor authorizes a kill, restart, or broader run.
 
 ## Isolate Writable Comparison State
 
@@ -75,6 +76,10 @@ dependency reinstall fails but a prepared copy has already been validated,
 map only that dependency to the affected private libraries and retain or seed
 that exact copy. Keep repository-specific compatibility patches outside this
 skill and record the package-to-private-library mapping in the run handoff.
+When downstream preparation needs both a reusable binary and a companion source
+archive, freeze and fulfill those roles independently. Search every admitted
+frozen inventory for an exact source before acquisition; do not bind companion
+lookup to the root that supplied the selected binary.
 For an exact local R repository, validate every published `PACKAGES`, `PACKAGES.gz`, and `PACKAGES.rds` variant against the same manifest, or publish one validated variant and reject alternates during reuse; exercise stock `available.packages()` or `install.packages()` against the result so validation covers the index R consumes.
 
 When exact installed package/version text is part of an artifact or manifest identity, read `Package` and `Version` from the installed `DESCRIPTION` at the already-verified package path. `packageVersion()` and `getNamespaceVersion()` are suitable for version semantics, not literal evidence, because R version objects normalize separators. Exercise this boundary with a hyphenated revision.

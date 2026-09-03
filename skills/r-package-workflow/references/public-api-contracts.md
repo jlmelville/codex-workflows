@@ -90,14 +90,15 @@ classification or precedence, and run them from equivalent state in paired
 public regressions. Any intentional divergence needs its own user-facing
 contract rather than being left as an implementation accident.
 
-## Public Diagnostic Value
+## Result Identity And Diagnostic Value
 
-Before retaining a public diagnostic or detailed result field, require a
-recognizable user problem, a concrete action or decision, and a credible
-interpretation rule such as a threshold, comparison, example, or precedent.
-Default uncertain unreleased diagnostics to removal or internalization. Move
-route-only or maintainer-only algebra checks into focused invariants rather than
-expanding the supported result schema.
+When an optimizer tracks the best objective independently of the termination witness, do not assume status must redefine
+the primary result. Preserve the established contract, expose explicit best and terminal identities when users need both,
+and bind every value, gradient, criterion, and reason to its point. Reuse fields rather than replaying callbacks for
+redundant summaries; prefer `terminal` to `convergence` when the same path represents budgets or failures.
+
+Before retaining any public diagnostic, require a recognizable user problem, action, and interpretation rule. Default
+uncertain unreleased fields to removal or internalization, and keep route-only algebra checks in focused invariants.
 
 ## Runtime Conditions
 

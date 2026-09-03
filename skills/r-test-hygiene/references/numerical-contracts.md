@@ -263,15 +263,18 @@ absolute error before editing production code.
 
 Large absolute error alone is weak evidence for ill-scaled objectives. Require
 persistent multi-scale or relative error, shape or symmetry violations, or a
-localized branch failure before editing analytic code. For staged weights,
-penalties, normalization, exaggeration, or continuation controls, enumerate the
-objective phases and validate each scalar objective and gradient pair at
-representative points before using Armijo or Wolfe searches. Treat a newly
-strict line-search failure as possible caller inconsistency before weakening
-backend termination.
+localized branch failure before editing analytic code. When an optimizer's
+step policy may be scale-sensitive, pair the transform `f_c = c f`, `g_c = c g`
+for positive `c` with a predeclared expectation: fixed-control invariance or
+equivariance under an analytically required control transform such as
+`alpha_c = alpha/c`. Compare trajectories or endpoints exactly when justified,
+otherwise with a stated tolerance, before attributing sensitivity to a defect.
 
-Explain any committed non-default finite-difference scale beside the test and
-keep detailed probe results in the plan or review record.
+For staged weights, penalties, normalization, exaggeration, or continuation,
+validate each objective-gradient phase before Armijo or Wolfe searches. Treat a
+new strict-search failure as possible caller inconsistency before weakening the
+backend. Explain non-default finite-difference scales beside the test and keep
+detailed probes in the plan or review record.
 
 ## External AD Oracles
 

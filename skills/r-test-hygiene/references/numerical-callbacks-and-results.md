@@ -97,27 +97,27 @@ finalization. See
 ## Proposal Generation And Search Liveness
 
 Treat interpolation, extrapolation, and other iterative proposal formulas as
-fallible before evaluation, even when every input is finite. Check required
-algebraic domains such as nonzero denominators or admissible discriminants,
-then require the proposed scalar to be finite, inside the permitted region,
-and representably different from the current state or relevant endpoint in the
-direction the algorithm needs. Never pass an invalid or nonprogressing proposal
-to a callback.
+fallible before evaluation. Check algebraic domains directly; do not guard a signed or dimensioned ratio by adding an
+absolute epsilon unless a mathematically derived regularizer preserves scale, units, and sign. Require every proposal
+to be finite, inside its permitted region, and representably progressive before a callback.
+
+When a separately selected scale such as line-search alpha multiplies a direction, do not infer no progress from its
+unscaled norm. Reserve a pre-search shortcut for exact vector zero; let the scaled parameter map decide representability.
 
 Keep invalid public controls distinct from proposals derived from otherwise
 valid runtime state. Reject the former at the public boundary; route the latter
 through the algorithm's established numerical-failure or recovery policy. A
-recovery update must itself be finite, distinct, and strictly contract its
-bracket or otherwise advance the search state. If no representable progress is
-available, terminate through the safe fallback rather than looping, even when
-the evaluation allowance is unbounded.
+recovery update must be finite, distinct, and contract its bracket or otherwise advance state. If no representable
+progress remains, terminate through the safe fallback rather than looping, even with an unbounded allowance.
+
+In bracketed recovery, keep evaluated condition and fallback endpoints distinct from evolving resolution boundaries.
+A failed non-finite trial may block a callback at the same parameter vector, but cannot supply conditions or fallback state.
 
 Regress the owning algorithm rather than only the algebraic helper. Cover the
-decisive algebraic degeneracies, overflow-derived proposals, endpoint rounding
-with no representable interior, and a supported unbounded allowance when one
-exists. Assert termination, absence of invalid callback parameters, exact
-callback counts, and the final safe result. Trace the effective allowance from
-the exported path instead of inferring it from private defaults.
+decisive algebraic degeneracies, signed denominators around zero, exact-zero and
+sub-threshold nonzero directions, repeated projected non-finite parameters,
+endpoint rounding, and supported unbounded allowance. Assert termination, valid callback parameters, exact counts,
+and the final safe result through the exported allowance path.
 
 ## Default-Preserving Repair Experiments
 

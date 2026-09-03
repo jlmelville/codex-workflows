@@ -14,16 +14,13 @@ package repos and are local filesystem state, not package source.
 - Manifest: `/mnt/e/dev/R/datasets/R-datasets-manifest.tsv`
 - Helper definitions: targeted lines in `/home/james/.Rprofile`
 
-These paths are WSL-local. On non-WSL machines, report that the dataset root is
-absent instead of trying to recreate it.
+These paths are WSL-local. On non-WSL machines, report an absent dataset root instead of recreating it.
 
 When the manifest is absent but the task still needs benchmark data, check
 known R-native dataset packages and relevant sibling repositories for a
-canonical structured loader before parsing raw artifacts or adding a
-cross-language bridge. Validate explicit split and metadata fields, and record
-the provider version or commit, acquisition URL, and stable content digests.
-Use raw files or a foreign-language loader only when no suitable R-native
-provider exists.
+canonical structured loader before parsing raw artifacts or adding a bridge.
+Validate split and metadata fields, provider version or commit, acquisition URL,
+and stable digests; use raw files or a foreign-language loader only as fallback.
 
 ## Manifest Contract
 
@@ -39,6 +36,13 @@ Each manifest row names a curated bundle:
 Treat broad inventories of every `.Rda`/`.Rds` file as discovery aids only. The
 manifest is the curated source of truth for agents choosing benchmark data.
 
+## Derived Feature Caches
+
+For reusable unsupervised features, fit the declared transform on the full source and cache its scores before deterministic
+benchmark row selection. Record source and cache digests, transform settings and order, seed, and dependency version;
+validate one finite, dimensioned object in isolation. Keep an incomplete bundle out of the manifest, and fit on training
+rows when evaluation roles make full-data fitting leakage.
+
 ## Workflow
 
 1. Read the current manifest first:
@@ -47,8 +51,7 @@ manifest is the curated source of truth for agents choosing benchmark data.
    column -t -s $'\t' /mnt/e/dev/R/datasets/R-datasets-manifest.tsv
    ```
 
-2. If helper behavior matters, inspect only relevant `/home/james/.Rprofile`
-   definitions such as `loadj()`, `savej()`, `nng()`, or `nngi()`.
+2. If helper behavior matters, inspect only relevant `/home/james/.Rprofile` definitions such as `loadj()`, `savej()`, `nng()`, or `nngi()`.
 3. Validate all rows before changing the live manifest:
 
    ```sh
@@ -56,10 +59,7 @@ manifest is the curated source of truth for agents choosing benchmark data.
    ```
 
 4. Write proposed changes to `/tmp` first. Review the draft and failure report.
-5. Replace the live manifest only after zero validation errors. Because this
-   writes outside the repo, request sandbox approval before using `--replace`.
-   Full replacement is atomic and cannot be combined with the inspection-only
-   `--max-rows` option.
+5. Replace the live manifest only after zero validation errors. Request sandbox approval for `--replace`; replacement is atomic and cannot use `--max-rows`.
 
    ```sh
    Rscript --vanilla "${HOME}/.agents/skills/local-r-dataset-manifest/scripts/validate_manifest.R" --replace

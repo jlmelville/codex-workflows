@@ -130,12 +130,14 @@ Review packets should be self-contained and should ask the reviewer to
 challenge assumptions, gaps, and risks, not merely summarize the plan. Include
 the narrow evidence needed for review and the specific questions to answer.
 
+For blinded comparisons, keep scoring categories and evaluator terminology out
+of writer-facing cards; express reader actions and choices in ordinary domain
+language. Before assigning labels, apply one recorded transform to every arm to
+remove condition-linked non-semantic presentation differences, retain the raw
+outputs, and inspect the exact rendered packet.
+
 For planned reader-facing documentation, treat the plan as a coverage ledger,
-not a prose outline. Let the applicable documentation guidance control visible
-order, terminology, and explanatory depth. When that guidance calls for a cold
-reader stage, limit the first packet to the rendered artifact, audience, reader
-task, the document's reader-facing role, nearby-guide responsibilities, and an
-explicit scope boundary; withhold implementation sources, plan or coverage
-obligations, and prior reviews. Then use a later plan-aware packet for technical
-reconciliation. For R package articles, follow
-[the staged article review](../../r-docs-pkgdown/references/validation.md#review-planned-articles-in-two-stages).
+not a prose outline. Let applicable documentation guidance control visible order, terminology, and depth. A cold-reader
+packet contains only the rendered artifact, audience, task, reader-facing role, nearby-guide responsibilities, and scope;
+withhold implementation sources, plan obligations, and prior reviews, then reconcile technically. For R package articles,
+follow [the staged article review](../../r-docs-pkgdown/references/validation.md#review-planned-articles-in-two-stages).

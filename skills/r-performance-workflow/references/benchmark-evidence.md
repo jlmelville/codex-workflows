@@ -63,8 +63,8 @@ Callback totals do not identify selected points. Keep tracing outside the timed 
 require exact result and callback-count agreement; identify selected state from parameters, objective, and realized step.
 Carry state across zero steps, handle improving fallbacks explicitly, and fail closed on projection mismatch.
 
-Inventory available last/best fields. When termination can restore, average, project, or replace the final iterate,
-preserve both points; bind the reason and tolerance to the terminating one, audit the return, and name which owns `solved`.
+When termination can restore, average, project, or replace the final iterate, apply the
+[result-identity contract](../../r-package-workflow/references/public-api-contracts.md#result-identity-and-diagnostic-value), audit the return, and name which point owns `solved`.
 
 ## Search-Budget Exit Diagnosis
 
@@ -160,8 +160,11 @@ Treat a human report as a tested projection of the frozen evaluation contract.
 Before a decision gate, crosswalk every required evidence field to the artifact
 schema and either a rendered summary or an explicit raw-artifact location. Keep
 decision-critical disaggregations visible, and compare rendered counts and
-values with their stored source using local deterministic assertions where
-practical.
+values with their stored source using local deterministic assertions. For
+comparable coordinate panels, remove only accepted invariances such as translation
+or orientation; preserve common scale or show a scale witness when movement,
+collapse, expansion, or outliers matter. Do not let independent auto-scaling
+make a nearly unchanged result fill its panel.
 
 Audit every total, peak, and memory label against the exact measured code region
 and allocator. Name material exclusions such as result construction,
