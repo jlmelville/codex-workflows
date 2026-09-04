@@ -29,6 +29,14 @@ smallest change is the smallest truthful change to the decision model, not the
 fewest edited lines. Do not merge distinguishable conditions that require
 different actions.
 
+Capacity metrics reveal review pressure; they do not prove that text is
+dispensable. Do not pay for a justified addition by rewriting an unrelated
+skill, flattening distinct advice into generic prose, or deleting evidence
+needed to apply a rule. If a limit is crossed, review the affected addition and
+its local destination first. Any offsetting reduction must independently
+improve that same material or another explicitly reviewed target, not serve as
+an invisible cross-skill subsidy.
+
 ## Promoting Local Guidance
 
 When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,

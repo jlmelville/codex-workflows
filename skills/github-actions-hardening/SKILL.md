@@ -99,7 +99,7 @@ check. A silent exit status of 1 is expected when the file differs from
 
 Treat tool failures from network or missing dependencies separately from
 workflow findings, and rerun after installing or approving the needed tool.
-Prefer an installed `zizmor` when present; use `uvx zizmor` as the fallback.
+Prefer an installed `zizmor` when present; use `uvx --quiet --no-progress zizmor` as the fallback.
 
 ## CI Triage Fallback
 

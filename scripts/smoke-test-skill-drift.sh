@@ -145,21 +145,26 @@ cp "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv" \
   "${fixture_dir}/scripts/payload-baseline.clean"
 ruby -pi -e 'sub("skill\texample\t1000\t1000", "skill\texample\t1001\t1000")' \
   "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
-if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
-  echo "increased payload baseline unexpectedly passed" >&2
+  echo "payload baseline review unexpectedly remained hard" >&2
+  exit 1
+fi
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "increased payload baseline unexpectedly passed strict review" >&2
   exit 1
 fi
 if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
   ! grep -Fq "hot-path limit 1000 -> 1001 lines" "${output_file}"; then
   cat "${output_file}" >&2
-  echo "payload baseline increase did not produce the expected hard finding" >&2
+  echo "payload baseline increase did not produce the expected review finding" >&2
   exit 1
 fi
-if ! grep -Fq "Strict-hard mode is active; hard findings cause failure." "${output_file}" ||
+if ! grep -Fq "Strict mode is active; untriaged findings cause failure." "${output_file}" ||
   grep -Fq "Re-run with --strict-hard" "${output_file}"; then
   cat "${output_file}" >&2
-  echo "strict-hard failure did not report its active mode accurately" >&2
+  echo "strict review failure did not report its active mode accurately" >&2
   exit 1
 fi
 cp "${fixture_dir}/scripts/payload-baseline.clean" \
@@ -168,15 +173,15 @@ cp "${fixture_dir}/scripts/payload-baseline.clean" \
 ruby -pi -e \
   'sub("skill\texample\t1000\t1000\t100000\t100000", "skill\texample\t1000\t1000\t100001\t100000")' \
   "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
-if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
-  echo "increased character baseline unexpectedly passed" >&2
+  echo "increased character baseline unexpectedly passed strict review" >&2
   exit 1
 fi
 if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
   ! grep -Fq "hot-path limit 100000 -> 100001 normalized characters" "${output_file}"; then
   cat "${output_file}" >&2
-  echo "character baseline increase did not produce the expected hard finding" >&2
+  echo "character baseline increase did not produce the expected review finding" >&2
   exit 1
 fi
 cp "${fixture_dir}/scripts/payload-baseline.clean" \
@@ -203,14 +208,14 @@ ruby -pi -e \
   "${skill_file}"
 if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
   --payload-baseline "${fixture_dir}/tight-character-baseline.tsv" \
-  --strict-hard --hard-only >"${output_file}" 2>&1; then
+  --strict >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
-  echo "same-line character growth unexpectedly passed" >&2
+  echo "same-line character growth unexpectedly passed strict review" >&2
   exit 1
 fi
 if ! grep -Fq "normalized characters" "${output_file}"; then
   cat "${output_file}" >&2
-  echo "same-line character growth did not produce the expected hard finding" >&2
+  echo "same-line character growth did not produce the expected review finding" >&2
   exit 1
 fi
 cp "${fixture_dir}/good-skill.md" "${skill_file}"
@@ -220,17 +225,24 @@ cat >"${fixture_dir}/low-payload-baseline.tsv" <<'EOF'
 skill	example	1	1	1	1
 repository	instructional-markdown	-	1	-	1
 EOF
-if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
   --payload-baseline "${fixture_dir}/low-payload-baseline.tsv" \
   --strict-hard --hard-only >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
-  echo "payload growth unexpectedly passed" >&2
+  echo "payload growth review unexpectedly remained hard" >&2
+  exit 1
+fi
+if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/low-payload-baseline.tsv" \
+  --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "payload growth unexpectedly passed strict review" >&2
   exit 1
 fi
 if ! grep -Fq "Instructional Payload Growth" "${output_file}" ||
   ! grep -Fq "repository instructional Markdown" "${output_file}"; then
   cat "${output_file}" >&2
-  echo "payload growth did not produce the expected hard finding" >&2
+  echo "payload growth did not produce the expected review finding" >&2
   exit 1
 fi
 

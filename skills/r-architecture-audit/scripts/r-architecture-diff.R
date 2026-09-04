@@ -15,6 +15,19 @@ abort <- function(...) {
   stop(..., call. = FALSE)
 }
 
+metadata_contract <- c(
+  "format_version",
+  "producer",
+  "producer_version",
+  "reference_method"
+)
+
+supported_map_metadata <- c(
+  format_version = "1",
+  producer = "r-architecture-map.R",
+  producer_version = "1"
+)
+
 parse_args <- function(args) {
   opts <- list(
     before = NULL,
@@ -139,11 +152,65 @@ read_table <- function(report_dir, table_name, required_columns) {
 
 read_map <- function(report_dir) {
   normalized <- normalizePath(report_dir, winslash = "/", mustWork = TRUE)
+  metadata <- read_table(normalized, "metadata", metadata_contract)
+  if (nrow(metadata) != 1L) {
+    abort("metadata.tsv must contain exactly one data row: ", normalized)
+  }
+  for (field in metadata_contract) {
+    value <- as.character(metadata[[field]][[1L]])
+    if (is.na(value) || !nzchar(value)) {
+      abort("metadata.tsv contains an empty ", field, ": ", normalized)
+    }
+  }
+  for (field in names(supported_map_metadata)) {
+    value <- as.character(metadata[[field]][[1L]])
+    expected <- supported_map_metadata[[field]]
+    if (value != expected) {
+      abort(
+        "metadata.tsv uses unsupported ",
+        field,
+        " ",
+        value,
+        "; expected ",
+        expected,
+        ": ",
+        normalized
+      )
+    }
+  }
+  reference_method <- as.character(metadata$reference_method[[1L]])
+  if (!reference_method %in% c("codetools", "syntax-fallback")) {
+    abort(
+      "metadata.tsv uses unsupported reference_method ",
+      reference_method,
+      ": ",
+      normalized
+    )
+  }
   result <- lapply(names(table_contracts), function(table_name) {
     read_table(normalized, table_name, table_contracts[[table_name]])
   })
   names(result) <- names(table_contracts)
-  result
+  c(list(metadata = metadata), result)
+}
+
+require_compatible_metadata <- function(before, after) {
+  for (field in metadata_contract) {
+    before_value <- as.character(before[[field]][[1L]])
+    after_value <- as.character(after[[field]][[1L]])
+    if (before_value != after_value) {
+      abort(
+        "incompatible map metadata: ",
+        field,
+        " differs (before=",
+        before_value,
+        ", after=",
+        after_value,
+        ")"
+      )
+    }
+  }
+  invisible(NULL)
 }
 
 require_unique_key <- function(data, columns, label) {
@@ -512,6 +579,7 @@ metric_values <- function(map) {
 }
 
 compare_maps <- function(before, after) {
+  require_compatible_metadata(before$metadata, after$metadata)
   before_metrics <- metric_values(before)
   after_metrics <- metric_values(after)
   metrics <- data.frame(
@@ -707,8 +775,28 @@ write_report <- function(result, out, top) {
   normalizePath(destination, winslash = "/", mustWork = TRUE)
 }
 
-write_fixture_map <- function(root, functions, edges, coupling, sccs, tests) {
+write_fixture_map <- function(
+  root,
+  functions,
+  edges,
+  coupling,
+  sccs,
+  tests,
+  reference_method = "codetools"
+) {
   dir.create(root)
+  write.table(
+    data.frame(
+      format_version = "1",
+      producer = "r-architecture-map.R",
+      producer_version = "1",
+      reference_method = reference_method
+    ),
+    file.path(root, "metadata.tsv"),
+    sep = "\t",
+    row.names = FALSE,
+    quote = TRUE
+  )
   write.table(
     functions,
     file.path(root, "functions.tsv"),
@@ -847,6 +935,21 @@ run_self_test <- function() {
   )
   before_map <- read_map(before_root)
   after_map <- read_map(after_root)
+  incompatible_map <- after_map
+  incompatible_map$metadata$reference_method <- "syntax-fallback"
+  compatibility_error <- tryCatch(
+    {
+      compare_maps(before_map, incompatible_map)
+      NA_character_
+    },
+    error = function(error) conditionMessage(error)
+  )
+  stopifnot(!is.na(compatibility_error))
+  stopifnot(grepl(
+    "reference_method differs",
+    compatibility_error,
+    fixed = TRUE
+  ))
   result <- compare_maps(before_map, after_map)
   stopifnot(identical(result, compare_maps(before_map, after_map)))
   stopifnot(

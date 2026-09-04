@@ -20,7 +20,7 @@ git stash list
 git branch -vv
 git remote -v
 git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'
-git fetch
+git fetch --quiet
 git rev-list --left-right --count 'HEAD...@{upstream}'
 git log --oneline --decorate --graph 'HEAD..@{upstream}'
 git diff --stat 'HEAD..@{upstream}'

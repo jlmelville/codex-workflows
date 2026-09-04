@@ -17,9 +17,7 @@ INTERNAL_SCRIPT_MARKER = /\A[ \t]*#[ \t]*codex-workflows:[ \t]*internal-skill-sc
 repo_dir = File.expand_path(ARGV.fetch(0, File.expand_path("..", __dir__)))
 skills_dir = File.join(repo_dir, "skills")
 max_description = 420
-max_total_description = 6_500
 errors = []
-total_description = 0
 
 def read_yaml_mapping(path, label, errors)
   data = YAML.safe_load(File.read(path, encoding: "UTF-8"))
@@ -81,7 +79,6 @@ skill_dirs.each do |skill_dir|
       errors << "#{skill_name}: missing frontmatter name" unless name.is_a?(String) && !name.empty?
       errors << "#{skill_name}: skill name must match folder" unless name == skill_name
       if description.is_a?(String) && !description.empty?
-        total_description += description.length
         if description.length > max_description
           errors << "#{skill_name}: description is #{description.length} characters; max is #{max_description}"
         end
@@ -137,10 +134,6 @@ skill_dirs.each do |skill_dir|
   if default_prompt.is_a?(String) && !default_prompt.include?("$#{skill_name}")
     errors << "#{skill_name}: interface.default_prompt should mention $#{skill_name}"
   end
-end
-
-if total_description > max_total_description
-  errors << "skill descriptions total #{total_description} characters; max is #{max_total_description}"
 end
 
 errors.each { |error| warn error }

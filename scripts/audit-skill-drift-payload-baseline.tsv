@@ -1,7 +1,7 @@
 # scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
 skill	agent-instructions-maintenance	160	800	9576	73576
 skill	codex-approval-rules-audit	160	800	13130	77130
-skill	codex-skill-repo	183	800	8196	56927
+skill	codex-skill-repo	192	800	8571	56927
 skill	dependabot-pr-maintenance	160	800	9547	65161
 skill	github-actions-hardening	160	800	8299	72299
 skill	learning-process-review	160	800	12936	67720
@@ -22,7 +22,7 @@ skill	repo-update-preflight	160	800	12990	76990
 skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
 skill	skill-retro	160	821	9843	39460
-skill	skill-retro-triage	177	800	9034	71334
+skill	skill-retro-triage	178	800	9139	71334
 skill	technical-writing	100	240	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
-repository	instructional-markdown	-	9000	-	450000
+repository	instructional-markdown	-	9017	-	450000

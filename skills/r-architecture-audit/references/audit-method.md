@@ -18,7 +18,9 @@ package load hooks. Its report contains:
 - `file-coupling.tsv`: cross-file edges aggregated by source and target file;
 - `sccs.tsv`: recursive components, including the files they cross;
 - `private-test-coupling.tsv`: direct parsed references from tests to
-  non-exported functions; and
+  non-exported functions;
+- `metadata.tsv`: map format, producer and producer version, and reference
+  analysis method used for compatibility checks; and
 - `diagnostics.tsv`: duplicate definitions and dynamic constructs requiring
   manual review.
 
@@ -28,8 +30,12 @@ stranded subsystem that a definition-only search misses.
 
 ## Compare Frozen Maps
 
-Freeze the first mapper output before cleanup, then compare it with a later map
-produced by the same mapper version:
+Freeze the first mapper output before cleanup, then compare it with a later map.
+The comparator reads `metadata.tsv` and fails closed unless both reports use its
+supported map format and producer version and have the same reference-analysis
+method. When maintaining the helpers, increment the producer version for a
+semantic mapping change and the format version for an incompatible table
+contract, keeping the mapper and comparator constants aligned:
 
 ```sh
 Rscript "${HOME}/.agents/skills/r-architecture-audit/scripts/r-architecture-diff.R" \

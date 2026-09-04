@@ -15,6 +15,16 @@ abort <- function(...) {
   stop(..., call. = FALSE)
 }
 
+map_metadata <- function(reference_method) {
+  data.frame(
+    format_version = "1",
+    producer = "r-architecture-map.R",
+    producer_version = "1",
+    reference_method = reference_method,
+    stringsAsFactors = FALSE
+  )
+}
+
 parse_args <- function(args) {
   opts <- list(package = NULL, out = NULL, top = 20L, self_test = FALSE)
   i <- 1L
@@ -861,6 +871,7 @@ analyze_package <- function(package) {
   list(
     package_root = package_root,
     definition_count = length(inventory$definitions),
+    metadata = map_metadata(edge_result$method),
     functions = functions,
     edges = edge_files,
     file_coupling = file_coupling(edges, source_files),
@@ -926,6 +937,7 @@ write_report <- function(result, out, top) {
     file.path(stage, "summary.md"),
     function(path) writeLines(summary, path, useBytes = TRUE)
   )
+  write_tsv(result$metadata, file.path(stage, "metadata.tsv"))
   write_tsv(result$functions, file.path(stage, "functions.tsv"))
   write_tsv(result$edges, file.path(stage, "edges.tsv"))
   write_tsv(result$file_coupling, file.path(stage, "file-coupling.tsv"))
@@ -986,8 +998,15 @@ run_self_test <- function() {
   write_report(result, out, 10L)
   stopifnot(all(file.exists(file.path(
     out,
-    c("summary.md", "functions.tsv", "sccs.tsv")
+    c("summary.md", "metadata.tsv", "functions.tsv", "sccs.tsv")
   ))))
+  metadata <- read.delim(
+    file.path(out, "metadata.tsv"),
+    stringsAsFactors = FALSE
+  )
+  stopifnot(nrow(metadata) == 1L)
+  stopifnot(metadata$producer[[1L]] == "r-architecture-map.R")
+  stopifnot(metadata$reference_method[[1L]] == result$reference_method)
   invisible(TRUE)
 }
 

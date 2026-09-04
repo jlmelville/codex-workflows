@@ -117,3 +117,5 @@ available:
   `$r-rcpp-package`; select its binding-specific branch before generation.
 - Performance benchmarks, phased optimization, before/after evidence:
   `$r-performance-workflow`.
+- Package-wide modularity, reachability, coupling, or structural cleanup review:
+  `$r-architecture-audit`.

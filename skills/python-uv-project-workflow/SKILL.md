@@ -35,11 +35,11 @@ sandbox cache directories, network approval, and `uv run --with` mechanics.
 Prefer project-managed commands:
 
 ```sh
-uv sync --locked
-uv run --locked pytest
-uv run --locked pytest tests/<area>
-uv run --locked ruff format <paths>
-uv run --locked ruff check <paths>
+uv --quiet --no-progress sync --locked
+uv --quiet --no-progress run --locked pytest -q
+uv --quiet --no-progress run --locked pytest -q tests/<area>
+uv --quiet --no-progress run --locked ruff format --quiet <paths>
+uv --quiet --no-progress run --locked ruff check --quiet <paths>
 ```
 
 Before changing dependencies, inspect dependency groups and lock policy in
@@ -61,14 +61,15 @@ when needed.
 Choose validation based on blast radius:
 
 - Focused unit test for one module or bug:
-  `uv run --locked pytest tests/test_<area>.py -q`.
+  `uv --quiet --no-progress run --locked pytest -q tests/test_<area>.py`.
 - Public behavior or integration change:
   run the focused test plus the nearest integration test.
 - Formatting-only Python change:
-  `uv run --locked ruff format <paths>` and
-  `uv run --locked ruff check <paths>`.
+  `uv --quiet --no-progress run --locked ruff format --quiet <paths>` and
+  `uv --quiet --no-progress run --locked ruff check --quiet <paths>`.
 - API, dependency, or broad package change:
-  run focused tests first, then `uv run --locked pytest` when feasible; omit
+  run focused tests first, then
+  `uv --quiet --no-progress run --locked pytest -q` when feasible; omit
   `--locked` only when an intended dependency change requires lock resolution.
 
 When auditing Ruff config, check whether `select` is replacing Ruff's default

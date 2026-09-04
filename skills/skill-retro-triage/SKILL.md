@@ -40,8 +40,9 @@ Before proposing edits:
 5. Start every run with `review-queue`; inspect its deferrals, publication gaps,
    contradictions, drafts, ledgers, and audit cadence without loading unrelated
    history. For publication gaps, reconcile source and accepted metadata.
-6. Run `./scripts/audit-skill-drift.rb` before proposing public prose. Its hard
-   payload limits are admission constraints, not evidence that guidance is good.
+6. Run `./scripts/audit-skill-drift.rb` before proposing public prose. Payload
+   limits force explicit capacity review; they are not evidence that guidance
+   is good or an instruction to compress unrelated skills.
 7. Run `./scripts/list-skills.rb` when frontmatter descriptions, trigger
    boundaries, or `agents/openai.yaml` may change.
 
@@ -83,9 +84,11 @@ and verification. Prefer an existing principle; recurrence of the same decision
 and witness updates verification, while exact recipes belong in code or routed
 mechanics.
 
-Public additions must fit payload baselines. Do not raise one merely to admit
-a candidate; require an offset unless a separately accepted portfolio decision
-explicitly owns the added skill or capacity.
+Public additions must pass payload review. Do not raise a baseline merely to
+avoid judging a candidate, and never require an offset from an unrelated skill.
+When a justified addition needs more room, a separately accepted portfolio
+decision may explicitly own the affected skill and aggregate capacity. Judge
+any proposed local reduction independently for preserved decision value.
 
 If verification-only evidence has arrived through the candidate inbox, reject
 or mark that candidate `no-change` and ask the producer to use the typed

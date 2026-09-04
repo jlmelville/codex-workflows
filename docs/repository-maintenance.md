@@ -24,6 +24,11 @@ needs them. Prefer concise skills with narrow trigger descriptions. Put
 human-facing repository documentation in the README or `docs/`, not inside
 individual skill folders.
 
+Line, character, word, and aggregate-description thresholds are review signals,
+not semantic quality scores. Never rewrite an unrelated skill to create room
+for an addition elsewhere. Review the affected addition locally; reductions
+must independently preserve or improve the decisions that skill supports.
+
 Before adding or restructuring learned guidance, follow the semantic admission
 and casebook policy in
 [`semantic-authoring.md`](../skills/codex-skill-repo/references/semantic-authoring.md).
@@ -191,7 +196,7 @@ Run the repository validator before committing:
 
 ```sh
 rbenv install -s "$(cat .ruby-version)"
-bundle install
+bundle install --quiet
 ./scripts/validate-skills.sh
 ```
 
@@ -212,14 +217,14 @@ directory containing a deliberately conflicting `.ruby-version`.
 Bundler installs only the repository-development formatter/linter pinned in
 `Gemfile.lock`; installed helpers use the Ruby standard library and do not run
 through Bundler. The validator never installs dependencies implicitly. Run
-`bundle install` under the selected repository Ruby.
+`bundle install --quiet` under the selected repository Ruby.
 
 The validator reports local `actionlint` and `zizmor` versions that do not
 match the versions pinned for CI. Treat the report as advisory locally and run
 the parity check explicitly before claiming CI-equivalent results:
 
 ```sh
-./scripts/check-ci-tool-parity.sh --strict
+./scripts/check-ci-tool-parity.sh --strict --quiet
 ```
 
 Under `CI=true`, the parity check is strict automatically.
@@ -230,6 +235,10 @@ skill references, mirrored files, executable modes for bundled shell scripts,
 hard drift findings, installer behavior, and substantial bundled-script
 interfaces. The retro-state smoke test uses temporary fixtures; repository
 validation never reads the live `CODEX_WORKFLOWS_STATE_DIR`.
+
+Successful validation emits one stable summary line. Subordinate pass/fail
+output is captured and replayed on failure; actionable CI-tool parity mismatches
+remain visible even in quiet mode.
 
 Review skill trigger and metadata shape with:
 
@@ -246,8 +255,9 @@ Run the drift and instructional-payload audit with:
 The audit reports description and instructional payloads, overlap, repeated
 helpers or commands, machine paths, and installed-path risks. Payload ceilings
 cover physical lines and whitespace-normalized characters so line reflow cannot
-conceal growth. Neither measure is a semantic score. Payload growth and broken
-runtime guidance are hard; semantic findings remain advisory.
+conceal growth. Neither measure is a semantic score. Payload growth is an
+explicit review finding; broken runtime guidance remains hard and other
+semantic findings remain advisory.
 Accepted advisory findings live in
 [`scripts/audit-skill-drift-triage.tsv`](../scripts/audit-skill-drift-triage.tsv);
 each row records the audit section, a row substring to match, and the rationale
@@ -258,7 +268,9 @@ cleanup branch should fail on every untriaged finding. Payload limits live in
 [`scripts/audit-skill-drift-payload-baseline.tsv`](../scripts/audit-skill-drift-payload-baseline.tsv)
 and may move down, not up, during ordinary maintenance. The initial character
 limits preserve accepted content plus 100 characters per unused line in the
-corresponding line ceiling; do not regenerate them automatically.
+corresponding line ceiling; do not regenerate them automatically or rewrite an
+unrelated skill to create aggregate room. A separately accepted capacity
+decision may own a narrowly scoped increase.
 
 For new or substantially changed skills, also run the system skill quick
 validator when its dependencies are available. If it needs Python packages such
@@ -338,7 +350,7 @@ skills may use later inside other project repositories.
 | --- | --- | --- | --- |
 | Git and Bash | Cloning, installing, validating, and publishing | Host package manager; shell scripts remain compatible with macOS Bash 3.2 | Use the platform package manager or operating-system copy. |
 | CRuby | Installing, validating, and running bundled Ruby helpers | `.ruby-version` is the exact source, CI, and installed-helper version | Use rbenv as the supported user selector and install the exact repository version. Another provider is acceptable only when `ruby` resolves to that exact CRuby. |
-| Bundler and StandardRB | Repository development and validation only | `Gemfile` binds Ruby to `.ruby-version`; `Gemfile.lock` records the Ruby and gem dependency graph | Run `bundle install` in the repository under its selected Ruby. Installed helpers do not depend on Bundler. |
+| Bundler and StandardRB | Repository development and validation only | `Gemfile` binds Ruby to `.ruby-version`; `Gemfile.lock` records the Ruby and gem dependency graph | Run `bundle install --quiet` in the repository under its selected Ruby. Installed helpers do not depend on Bundler. |
 | ShellCheck | All repository validation | Host package manager and CI runner | Use Homebrew or the distribution package. |
 | Python 3 | Syntax-checking bundled Python scripts | Host package manager and CI runner | Use Homebrew, apt, or the operating-system package. No project virtual environment is required. |
 | R / `Rscript` | Syntax-checking bundled R scripts | Host package manager and CI runner | Use Homebrew or the distribution package. |
@@ -358,7 +370,7 @@ brew install git rbenv ruby-build openssl@3 readline libyaml gmp autoconf
 brew install python shellcheck ripgrep r actionlint zizmor gh
 rbenv install -s "$(cat .ruby-version)"
 ./scripts/check-ruby-runtime.sh
-bundle install
+bundle install --quiet
 ```
 
 On Debian-like Linux, install the host tools and ruby-build's
@@ -386,16 +398,17 @@ this repository and run:
 ```sh
 rbenv install -s "$(cat .ruby-version)"
 ./scripts/check-ruby-runtime.sh
-bundle install
+bundle install --quiet
 ```
 
 Use supported upstream package routes for actionlint and zizmor when the
 distribution does not provide suitable packages.
 
 Local package-manager versions may be newer than CI. That is acceptable for
-ordinary validation; use `./scripts/check-ci-tool-parity.sh --strict` only when
-claiming exact actionlint and zizmor parity with CI. The check reports the
-resolved executable path and never prepends an ignored repository environment.
+ordinary validation; use
+`./scripts/check-ci-tool-parity.sh --strict --quiet` only when claiming exact
+actionlint and zizmor parity with CI. The check reports the resolved executable
+path on mismatch and never prepends an ignored repository environment.
 
 ### Update ownership
 

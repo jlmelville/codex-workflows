@@ -114,11 +114,13 @@ Capture enough metadata for a future agent to interpret the result:
 - baseline/current labels and result table.
 
 Use base R `system.time()` when adding benchmark dependencies is undesirable.
-For the bundled evidence script, callback selected-point traces, resumable
+For the bundled evidence script, callback selected-point traces,
+allocation-evidence limits, workload-scoped gates, abstraction probes, or
+bounded exploratory grids, follow the
+[benchmark evidence guidance](references/benchmark-evidence.md). For resumable
 checkpoint contracts, heterogeneous artifact-assembly smokes, derived decision
-projections, human-review projections, allocation-evidence limits,
-workload-scoped gates, abstraction probes, or bounded exploratory grids, follow
-the [benchmark evidence guidance](references/benchmark-evidence.md).
+artifacts, or human-review projections, follow the
+[evidence artifact contracts](references/evidence-artifact-contracts.md).
 If results are noisy, say so and record what stronger workload is needed.
 
 ## Plan And Handoff Updates

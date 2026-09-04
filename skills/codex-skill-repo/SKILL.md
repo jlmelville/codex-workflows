@@ -119,6 +119,20 @@ narration, and duplicated tool documentation do not belong on the default
 path. Prescribe an exact sequence only when ordering prevents a known
 correctness, safety, state, or tooling failure.
 
+Treat line, character, word, and aggregate-description thresholds as capacity
+signals and review gates, not optimization targets or semantic quality scores.
+Never shorten an unrelated skill to admit an addition elsewhere. A reduction
+must be locally justified, preserve the distinctions that change action, and be
+reviewed on its own merits. When a necessary accepted addition crosses a
+baseline, prefer an explicit, narrowly scoped capacity decision over hidden
+collateral compression.
+
+For pass/fail tools that a skill runs or recommends, use native quiet and
+no-progress modes when they preserve diagnostics. If no suitable quiet mode
+exists, capture output and replay it on failure. Keep requested payloads,
+evidence needed for a decision, and actionable warnings visible; suppress only
+routine progress and successful-check chatter.
+
 Classify learned additions before placing them: compact default judgment,
 routed exact mechanics, optional sanitized cases, or external verification
 only. A reference is a loading mechanism rather than a semantic category; it

@@ -1141,6 +1141,17 @@ EOF_PARITY_STALE_ZIZMOR
   PATH="${system_bin}:/usr/bin:/bin" "${script}" --strict >"${output}"
   grep -Fq "actionlint 1.7.12 matches CI (${system_bin}/actionlint)" "${output}"
   grep -Fq "zizmor 1.29.0 matches CI (${system_bin}/zizmor)" "${output}"
+
+  PATH="${system_bin}:/usr/bin:/bin" "${script}" --strict --quiet >"${output}"
+  [[ ! -s "${output}" ]]
+
+  if PATH="${stale_venv_bin}:/usr/bin:/bin" \
+    "${script}" --strict --quiet >"${output}" 2>&1; then
+    echo "quiet CI tool parity should preserve mismatch failure" >&2
+    return 1
+  fi
+  grep -Fq "actionlint 0.0.0 is installed at ${stale_venv_bin}/actionlint" "${output}"
+  grep -Fq "zizmor 0.0.0 is installed at ${stale_venv_bin}/zizmor" "${output}"
 }
 
 run_retro_state_smoke() {

@@ -10,9 +10,9 @@ For multi-workspace repositories or nested uv projects, enumerate every
 `exclude-newer`. Root settings may not apply when a nested project is run from
 its own directory.
 
-After changing resolver settings, run `uv lock` and then `uv lock --check` in
-each affected workspace. Lockfile metadata can change even when package
-versions do not.
+After changing resolver settings, run `uv --quiet --no-progress lock` and then
+`uv --quiet --no-progress lock --check` in each affected workspace. Lockfile
+metadata can change even when package versions do not.
 
 ## Invalid Remote Metadata
 

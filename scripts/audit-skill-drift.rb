@@ -646,10 +646,20 @@ command_growth_rows = repeated_command_growth_rows(command_hits, command_baselin
 stable_command_baselines = command_baselines.length - command_growth_rows.length
 puts "Repeated command baselines: #{stable_command_baselines} stable, #{command_growth_rows.length} expanded"
 
-findings.fetch(:hard)["Instructional Payload Growth"].concat(
+record_findings(
+  findings,
+  triaged_findings,
+  triage_entries,
+  :review,
+  "Instructional Payload Growth",
   payload_growth_rows(skills, payload_baselines, instructional_lines, instructional_characters)
 )
-findings.fetch(:hard)["Payload Baseline Increase"].concat(
+record_findings(
+  findings,
+  triaged_findings,
+  triage_entries,
+  :review,
+  "Payload Baseline Increase",
   payload_baseline_increase_rows(payload_baselines, previous_payload)
 )
 

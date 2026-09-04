@@ -21,8 +21,9 @@ Prefer the bundled script:
 python3 "${HOME}/.agents/skills/notebook-inspection/scripts/notebook_inspect.py" <command> ...
 ```
 
-If the repository uses `uv`, run it through `uv run python` and follow
-`$uv-sandbox-workflow` for Codex sandbox cache setup.
+If the repository uses `uv`, run it through
+`uv --quiet --no-progress run python` and follow `$uv-sandbox-workflow` for
+Codex sandbox cache setup.
 
 ## First Pass
 

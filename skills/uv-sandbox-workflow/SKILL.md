@@ -26,7 +26,7 @@ persist:
 UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
 UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
 UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
-uv run --with pyyaml python script.py
+uv --quiet --no-progress run --with pyyaml python script.py
 ```
 
 ## Network Decision
@@ -35,12 +35,13 @@ If the command is likely to download packages, tools, lock metadata, or Python
 distributions, request network approval up front instead of trying once and
 rerunning after DNS failure. This commonly includes:
 
-- `uv run --with <package> ...`
-- `uvx <tool>` or `uv tool run <tool>`
-- `uv sync`
-- `uv lock`
-- `uv add`
-- `uv python install`
+- `uv --quiet --no-progress run --with <package> ...`
+- `uvx --quiet --no-progress <tool>` or
+  `uv --quiet --no-progress tool run <tool>`
+- `uv --quiet --no-progress sync`
+- `uv --quiet --no-progress lock`
+- `uv --quiet --no-progress add`
+- `uv --quiet --no-progress python install`
 - first use of a tool or dependency in a clean `/tmp` cache
 
 If the project already has dependencies and a populated cache, a normal sandbox
@@ -69,32 +70,33 @@ The commands below assume those directories are already set.
 
 If a one-off tool is already installed and acceptable for the repository,
 prefer it before `uvx` to avoid avoidable downloads. For example, run `zizmor`
-directly when present and use `uvx zizmor` only as the fallback.
+directly when present and use `uvx --quiet --no-progress zizmor` only as the
+fallback.
 
 For one-off tool execution:
 
 ```sh
-uvx tool-name ...
+uvx --quiet --no-progress tool-name ...
 ```
 
 For one-off Python dependencies:
 
 ```sh
-uv run --with package-name python -c '...'
+uv --quiet --no-progress run --with package-name python -c '...'
 ```
 
 For helper scripts with undeclared Python dependencies, use `uv run --with`
 instead of installing into the system Python:
 
 ```sh
-uv run --with pyyaml python path/to/helper.py args...
+uv --quiet --no-progress run --with pyyaml python path/to/helper.py args...
 ```
 
 For project commands, keep the project as the working directory and still set
 the writable uv directories:
 
 ```sh
-uv sync
+uv --quiet --no-progress sync
 ```
 
 For agent-driven commands whose result is primarily success or failure, suppress
@@ -114,6 +116,7 @@ Report whether the command required network approval, changed project files, or
 used temporary uv state. If a command used `/tmp` caches, do not imply the result
 will remain available across sessions.
 
-If `uvx <tool>` fails with DNS, registry, or package-download errors, classify
+If `uvx --quiet --no-progress <tool>` fails with DNS, registry, or
+package-download errors, classify
 that as environment/tool acquisition failure, not as a finding from the tool
 itself. Retry with network approval or use an installed binary when available.

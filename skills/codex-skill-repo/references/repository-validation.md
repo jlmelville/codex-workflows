@@ -53,6 +53,11 @@ locked gem tool. Keep installed helpers on the standard library when that is
 their contract, and document Bundler as development-only unless runtime code
 actually invokes it.
 
+Use `bundle install --quiet` for routine dependency setup. Bundler's `exec`
+subcommand has no native quiet switch; do not invent one. For pass/fail checks
+run through `bundle exec`, capture both streams and discard them only on
+success, replaying the complete captured output when the command fails.
+
 Treat a locked Ruby gem and its generated executable wrapper as separate
 availability surfaces. When `bundle check` succeeds but host packaging omits
 the wrapper from `PATH`, invoke the locked entry point through RubyGems under
@@ -60,7 +65,8 @@ the selected Bundler instead of adding a persistent gem directory to `PATH`:
 
 ```sh
 bundle exec ruby -rrubygems \
-  -e 'load Gem.activate_bin_path("standard", "standardrb")' -- path/to/script.rb
+  -e 'load Gem.activate_bin_path("standard", "standardrb")' -- \
+  --format quiet path/to/script.rb
 ```
 
 Use the repository's versioned Bundler command when required. Reserve this
@@ -93,10 +99,11 @@ Run the advisory drift and bloat audit before or after consolidation work:
 ./scripts/audit-skill-drift.rb
 ```
 
-Use `--strict-hard --hard-only` for hard installed-runtime and instructional-
-payload failures. Use `--strict` only when the branch should remove every
-untriaged finding. Other findings cover long descriptions, trigger overlap,
-repeated helpers or commands, machine paths, and repo-relative script paths.
+Use `--strict-hard --hard-only` for hard installed-runtime failures. Use
+`--strict` only when the branch should remove every untriaged finding. Review
+findings cover instructional-payload growth, long descriptions, trigger
+overlap, repeated helpers or commands, machine paths, and repo-relative script
+paths.
 
 Accepted advisory findings live in `scripts/audit-skill-drift-triage.tsv`;
 each row records the audit section, a row substring to match, and the rationale
@@ -116,9 +123,12 @@ audit green.
 whitespace-normalized characters in each `SKILL.md`, each skill's instructional
 Markdown, and repository instructional Markdown. The character ceiling prevents
 line reflow from concealing payload growth; neither measure is a semantic score.
-Growth is hard, and lowering a cap is allowed. Validation also compares a changed
-baseline with `HEAD` or `HEAD^`, so ordinary maintenance cannot raise a cap or
-add a skill entry. A separately accepted policy change must own any exception.
+Growth is reported for explicit review, and lowering a cap is allowed. The
+audit also compares a changed baseline with `HEAD` or `HEAD^`, so an increase or
+new skill entry remains visible during ordinary maintenance. A separately
+accepted policy or portfolio decision must own that change. Never rewrite
+unrelated skills to manufacture room beneath an aggregate ceiling; review the
+affected addition and any proposed local reduction independently.
 
 ## Pre-Commit Review
 

@@ -90,9 +90,14 @@ Run the repository's pinned commands. Common checks are:
 
 ```sh
 ruby -c path/to/script.rb
-bundle exec standardrb path/to/script.rb
+bundle exec standardrb --format quiet path/to/script.rb
 path/to/script.rb --help
 ```
+
+`bundle exec` has no native quiet option. For a pass/fail validation wrapper,
+capture its output and replay it on failure instead of appending a nonexistent
+quiet flag. Keep direct invocations visible when their diagnostics are the
+requested result.
 
 If StandardRB or RuboCop fails before reporting source diagnostics because its
 cache is not writable, treat that as restricted-environment evidence. Use the

@@ -5,6 +5,7 @@ repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 workflow_file="${repo_dir}/.github/workflows/validate.yml"
 requirements_file="${repo_dir}/.github/requirements.txt"
 strict=false
+quiet=false
 status=0
 
 if [[ "${CI:-false}" == "true" ]]; then
@@ -12,18 +13,21 @@ if [[ "${CI:-false}" == "true" ]]; then
 fi
 
 usage() {
-  echo "Usage: $0 [--strict|--advisory]" >&2
+  echo "Usage: $0 [--strict|--advisory] [--quiet]" >&2
 }
 
-case "${1:-}" in
-  "") ;;
-  --strict) strict=true ;;
-  --advisory) strict=false ;;
-  *)
-    usage
-    exit 2
-    ;;
-esac
+while (($# > 0)); do
+  case "$1" in
+    --strict) strict=true ;;
+    --advisory) strict=false ;;
+    --quiet) quiet=true ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+  shift
+done
 
 expected_actionlint="$(
   sed -nE 's/^[[:space:]]*ACTIONLINT_VERSION:[[:space:]]*v?([^[:space:]#]+).*$/\1/p' "${workflow_file}" |
@@ -80,7 +84,7 @@ check_tool() {
   elif [[ "${actual}" != "${expected#v}" ]]; then
     echo "CI tool parity: ${tool} ${actual} is installed at ${resolved_tool}; CI expects ${expected#v}." >&2
     status=1
-  else
+  elif [[ "${quiet}" == false ]]; then
     echo "CI tool parity: ${tool} ${actual} matches CI (${resolved_tool})."
   fi
 }

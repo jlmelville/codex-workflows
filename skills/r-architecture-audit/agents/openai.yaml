@@ -1,4 +1,4 @@
 interface:
   display_name: "R Architecture Audit"
-  short_description: "Map R package structure before refactoring"
-  default_prompt: "Use $r-architecture-audit to map this R package and identify evidence-backed architecture decisions."
+  short_description: "Map, compare, and trace R package architecture"
+  default_prompt: "Use $r-architecture-audit to map or compare this R package and trace structural consumers before cleanup."
