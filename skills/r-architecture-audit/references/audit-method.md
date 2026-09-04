@@ -26,6 +26,26 @@ Review both extremes: large reachable components may expose responsibility
 coupling, while mutually referring unreachable functions may expose an entire
 stranded subsystem that a definition-only search misses.
 
+## Compare Frozen Maps
+
+Freeze the first mapper output before cleanup, then compare it with a later map
+produced by the same mapper version:
+
+```sh
+Rscript "${HOME}/.agents/skills/r-architecture-audit/scripts/r-architecture-diff.R" \
+  --before /tmp/r-architecture-baseline \
+  --after /tmp/r-architecture-current \
+  --out /tmp/r-architecture-diff
+```
+
+The comparison reports aggregate deltas and machine-readable changes in
+functions, reachability, complexity, edges, cross-file coupling, strongly
+connected components, and direct private-test references. Component identity is
+based on its member set rather than the mapper's run-local component number.
+Treat every delta as a reading guide: source reduction or a smaller component
+does not establish better architecture without the corresponding responsibility,
+consumer, and behavior evidence.
+
 ## Confirm Reachability Claims
 
 For each deletion candidate, search its exact definition and references across
@@ -67,6 +87,26 @@ Repeated validation or hashing of package-owned immutable values is a possible
 trust-boundary smell, not automatically wasted work. First establish whether
 the value can change, whether corruption must be detected at that boundary, and
 whether the consumer is independently supported.
+
+For a field, mode, or related evidence family that function reachability cannot
+represent, build a reproducible lexical reading set with named patterns:
+
+```sh
+Rscript "${HOME}/.agents/skills/r-architecture-audit/scripts/r-value-family-trace.R" \
+  --package . \
+  --family diagnostics \
+  --pattern 'field=diagnostic_mode' \
+  --pattern 'mode=trace' \
+  --out /tmp/diagnostic-family.tsv
+```
+
+The trace scans conventional source, test, and documentation roots and emits one
+row per matching file and line, with all matching pattern names, enclosing
+top-level R function when available, and source text. Manually classify each row
+as construction, behavioral consumption, validation or identity-only use,
+persistence, public output, or operator decision. Lexical absence does not rule
+out computed names, dynamic dispatch, generated code, native consumers, or
+external use, and a lexical match does not establish semantic reachability.
 
 ## Interpret Structure Proportionally
 

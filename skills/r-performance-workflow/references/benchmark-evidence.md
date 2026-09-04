@@ -40,6 +40,10 @@ For a causal size-sensitivity claim, vary size inside a self-similar objective f
 witness, and include an analytically scaled-rate trajectory oracle. Use heterogeneous suites to test transfer only
 after the within-family mechanism is identified; changing geometry, units, and size together cannot identify size.
 
+For an anisotropic synthetic objective with a known minimizer or meaningful residual partition, pair relative objective
+reduction with normalized parameter distance or per-component residual progress. Reconcile disagreements before ranking
+methods; stiff directions can dominate the objective gap while other directions remain effectively unchanged.
+
 For an adaptive method, report configured-rate transfer separately from fixed-budget performance. Measure internal
 compensation at matched progress and the iterations required to acquire it. An effective rate that stabilizes only
 after proportionally more iterations demonstrates self-calibration, not iteration-count invariance.
@@ -48,6 +52,15 @@ For component ablations whose methods transform gradient magnitude differently, 
 displacement at a declared reference input and freeze that calibration across the scaling study. Prove claimed
 limiting-case identities and run objective-scale and relevant symmetry trajectory oracles before attributing paired
 outcomes to the changed component.
+
+When compared variants use different momentum recurrences, control sustained coherent-gradient response as well as the
+first step. Normalize the recurrence, compensate the configured rate for its momentum-dependent gain, or report both
+responses; otherwise an apparent memory effect may be an implicit update-scale change.
+
+When a strict bridge requires full-trajectory identity, reuse the exact implementation and arithmetic operation order;
+algebraically equivalent rewrites can amplify roundoff over long nonlinear trajectories. Pair a short prefix smoke with
+a full baseline checkpoint. If only invariant outcomes matter, predeclare tolerant witnesses instead of requiring exact
+trajectory reproduction.
 
 Scope relative gates before observing results, name their workload class, and report absolute medians beside ratios.
 Retain crossed unconditional gates as explicit review decisions even when their absolute cost is small.

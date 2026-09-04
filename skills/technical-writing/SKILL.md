@@ -58,7 +58,14 @@ explain the supported reason someone would need it.
   setup only where it bridges into that concept.
 - Move specialized detail to a better-matched surface when it remains useful.
 
-## Run A Deletion Pass
+## Run A Reader Pass
+
+Treat an explanation as a dependency chain. During drafting and review, check
+that each premise, term, object role, and relationship is established before the
+next step relies on it; restore or reorder the earliest missing dependency. If a
+reader says the explanation did not land, use that feedback to localize the
+break and rebuild from there rather than merely shortening or paraphrasing the
+same path.
 
 For each sentence, ask whether it adds non-inferable value, is supported by the
 available evidence, belongs on this surface, and advances the reader's task.

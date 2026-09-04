@@ -171,6 +171,20 @@ RS
   grep -Fq -- "--out must be a non-empty path prefix" "${stderr_file}"
 }
 
+run_architecture_audit_smoke() {
+  local map_script="${repo_dir}/skills/r-architecture-audit/scripts/r-architecture-map.R"
+  local diff_script="${repo_dir}/skills/r-architecture-audit/scripts/r-architecture-diff.R"
+  local trace_script="${repo_dir}/skills/r-architecture-audit/scripts/r-value-family-trace.R"
+
+  require_command Rscript
+  Rscript --vanilla "${map_script}" --help >/dev/null
+  Rscript --vanilla "${map_script}" --self-test >/dev/null
+  Rscript --vanilla "${diff_script}" --help >/dev/null
+  Rscript --vanilla "${diff_script}" --self-test >/dev/null
+  Rscript --vanilla "${trace_script}" --help >/dev/null
+  Rscript --vanilla "${trace_script}" --self-test >/dev/null
+}
+
 run_manifest_smoke() {
   local script="${repo_dir}/skills/local-r-dataset-manifest/scripts/validate_manifest.R"
   local smoke_dir="${tmp_root}/manifest"
@@ -1398,6 +1412,7 @@ run_patch_identity_smoke() {
 
 run_notebook_smoke
 run_benchmark_smoke
+run_architecture_audit_smoke
 run_manifest_smoke
 run_roxygen_smoke
 run_document_validation_smoke

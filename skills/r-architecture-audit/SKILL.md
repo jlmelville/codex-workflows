@@ -28,9 +28,10 @@ The output inventories top-level functions, conservative internal references,
 public-root reachability, file coupling, strongly connected components,
 complexity, and direct private-test coupling. Read
 [audit-method.md](references/audit-method.md) before interpreting the map or
-auditing mode and field consumers. For nonstandard assignment, generated
-registration, heavy reflection, or runtime plugin systems, use the mapper only
-as a high-recall starting point and trace those mechanisms manually.
+comparing snapshots, or auditing mode and field consumers. For nonstandard
+assignment, generated registration, heavy reflection, or runtime plugin systems,
+use the mapper only as a high-recall starting point and trace those mechanisms
+manually.
 
 ## Judgment
 
