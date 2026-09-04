@@ -1737,6 +1737,42 @@ module RetroState
       path
     end
 
+    def accepted_records_query(destination: nil, text: nil)
+      ensure_initialized
+      if RetroState.blank?(destination) && RetroState.blank?(text)
+        raise Error, "accepted-records requires --destination TEXT or --text TEXT"
+      end
+
+      destination_query = destination&.downcase
+      text_query = text&.downcase
+      accepted_records.each_with_object([]) do |(path, data), rows|
+        recorded_destination = data.fetch("destination")
+        next if destination_query && !recorded_destination.downcase.include?(destination_query)
+
+        searchable = [
+          data.fetch("accepted_id"),
+          data.fetch("source_report_summary"),
+          data.fetch("expected_behavior"),
+          data.fetch("observed_behavior"),
+          *data.fetch("decisive_evidence"),
+          data.fetch("trigger"),
+          data.fetch("non_trigger"),
+          recorded_destination,
+          data.fetch("verification_opportunity")
+        ].join("\n").downcase
+        next if text_query && !searchable.include?(text_query)
+
+        rows << [
+          data.fetch("accepted_id"),
+          data.fetch("disposition"),
+          data.fetch("verification"),
+          recorded_destination.gsub(/\s+/, " ").strip,
+          data.fetch("expected_behavior").gsub(/\s+/, " ").strip,
+          path
+        ]
+      end
+    end
+
     def record_draft(input_path)
       record_auxiliary(input_path, "draft", "drafts", "draft_id", "SD") do |data, body, label, assigned|
         RetroState.validate_draft(data, body, label: label, assigned: assigned)
@@ -3163,6 +3199,21 @@ module RetroState
       accepted_id = File.basename(accepted_path, ".md")
       accepted_data, = read_document(accepted_path)
       original_accepted_at = accepted_data.fetch("accepted_at")
+      destination_rows = store.accepted_records_query(destination: "PUBLIC SOURCE")
+      unless destination_rows.map(&:first) == [accepted_id] &&
+          destination_rows.first.fetch(2) == "unverified"
+        raise "unverified accepted record was not discoverable by destination"
+      end
+      text_rows = store.accepted_records_query(text: "SANITIZED SUMMARY")
+      unless text_rows.map(&:first) == [accepted_id]
+        raise "accepted record was not discoverable by semantic text"
+      end
+      begin
+        store.accepted_records_query
+        raise "unfiltered accepted-record lookup was allowed"
+      rescue Error => e
+        raise unless e.message.include?("requires --destination TEXT or --text TEXT")
+      end
 
       supported_proposal_text = verification_proposal_template
         .sub("SCR-YYYYMMDD-abcdef", accepted_id)
@@ -3198,6 +3249,11 @@ module RetroState
       end
       unless supported_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id]
         raise "accepted record did not retain applied verification proposal identity"
+      end
+      supported_rows = store.accepted_records_query(text: "sanitized summary")
+      unless supported_rows.map(&:first) == [accepted_id] &&
+          supported_rows.first.fetch(2) == "supported"
+        raise "supported accepted record was not discoverable by semantic text"
       end
 
       contradicted_proposal_text = verification_proposal_template
@@ -3716,6 +3772,8 @@ def usage
       record-accepted --file PATH       Store a curated accepted record
       update-accepted --id ID --file PATH
                                         Replace a curated record while preserving identity
+      accepted-records [--destination TEXT] [--text TEXT]
+                                        Find accepted identities across all states
       verification-opportunities [--destination TEXT]
                                         List relevant unverified accepted outcomes
       record-draft --file PATH          Store an uninstalled draft
@@ -3763,6 +3821,7 @@ def reject_inapplicable_options!(command, provided)
     "reconsider" => %w[--root --id --decision],
     "record-accepted" => %w[--root --file],
     "update-accepted" => %w[--root --id --file],
+    "accepted-records" => %w[--root --destination --text],
     "verification-opportunities" => %w[--root --destination],
     "record-draft" => %w[--root --file],
     "record-ledger" => %w[--root --file],
@@ -3791,7 +3850,7 @@ commands = %w[
   close-papercut route pending process
   route-verification pending-verifications process-verification
   reconsider record-accepted update-accepted record-draft record-ledger close-ledger
-  verification-opportunities record-audit audits artifact-audit-status
+  accepted-records verification-opportunities record-audit audits artifact-audit-status
   review-queue validate self-test
 ]
 unless commands.include?(command)
@@ -3810,6 +3869,7 @@ rationale = nil
 related_papercut_id = nil
 related_candidate_id = nil
 destination_filter = nil
+text_filter = nil
 archive_threshold = RetroState::ARTIFACT_AUDIT_ARCHIVE_THRESHOLD
 archive_threshold_explicit = false
 parser = OptionParser.new do |opts|
@@ -3823,6 +3883,7 @@ parser = OptionParser.new do |opts|
   opts.on("--related-papercut-id ID") { |value| related_papercut_id = value }
   opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
   opts.on("--destination TEXT") { |value| destination_filter = value }
+  opts.on("--text TEXT") { |value| text_filter = value }
   opts.on("--archive-threshold N", Integer) do |value|
     archive_threshold = value
     archive_threshold_explicit = true
@@ -3849,6 +3910,7 @@ begin
       "--related-papercut-id" => !related_papercut_id.nil?,
       "--related-candidate-id" => !related_candidate_id.nil?,
       "--destination" => !destination_filter.nil?,
+      "--text" => !text_filter.nil?,
       "--archive-threshold" => archive_threshold_explicit
     }
   )
@@ -3988,6 +4050,10 @@ begin
       raise RetroState::Error, "update-accepted requires --file PATH" unless input_path
 
       puts store.update_accepted(record_id, input_path)
+    when "accepted-records"
+      store.accepted_records_query(destination: destination_filter, text: text_filter).each do |row|
+        puts row.join("\t")
+      end
     when "verification-opportunities"
       store.verification_opportunities(destination: destination_filter).each do |row|
         puts row.join("\t")

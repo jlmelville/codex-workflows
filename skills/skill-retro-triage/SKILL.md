@@ -35,7 +35,8 @@ Before proposing edits:
    Outside the source checkout, use the installed helper. Do not use a stale
    installed helper to reject or mutate records that the source helper reports
    as incompatible; resolve the documented compatibility path first.
-4. Read every cited destination skill, reference, prompt, or script.
+4. Read every cited destination skill, reference, prompt, or script. Before a
+   possible repeat or destination-repair verdict, run a bounded `accepted-records` query.
 5. Start every run with `review-queue`; inspect its deferrals, publication gaps,
    contradictions, drafts, ledgers, and audit cadence without loading unrelated
    history. For publication gaps, reconcile source and accepted metadata.
@@ -91,11 +92,9 @@ or mark that candidate `no-change` and ask the producer to use the typed
 verification route. Do not manually translate ambiguous candidate intake into
 accepted-state evidence.
 
-When the accepted decision remains true but source implementation is missing
-or has drifted on one public surface, use `no-change` for the semantic verdict
-while retaining the source repair in the implementation batch. After
-publication, update the original accepted identity's destinations and commits;
-do not change behavioral verification or create another accepted identity.
+For same-decision source drift, use `no-change`, retain the source repair, then
+update the original identity's destinations and commits. Preserve its behavioral
+verification instead of creating another identity.
 
 Privacy, authority, evidence, and completion contracts may remain on the
 default path even when unconditional.

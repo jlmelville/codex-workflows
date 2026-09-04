@@ -36,6 +36,19 @@ policy when deciding whether to retain them.
 Before treating a selector as one factor, resolve conditional defaults. Compare a coherent public profile separately
 from fixed-policy variants, and use controlled variants for component-level causal claims.
 
+For a causal size-sensitivity claim, vary size inside a self-similar objective family, evaluate with a size-invariant
+witness, and include an analytically scaled-rate trajectory oracle. Use heterogeneous suites to test transfer only
+after the within-family mechanism is identified; changing geometry, units, and size together cannot identify size.
+
+For an adaptive method, report configured-rate transfer separately from fixed-budget performance. Measure internal
+compensation at matched progress and the iterations required to acquire it. An effective rate that stabilizes only
+after proportionally more iterations demonstrates self-calibration, not iteration-count invariance.
+
+For component ablations whose methods transform gradient magnitude differently, match realized first-step
+displacement at a declared reference input and freeze that calibration across the scaling study. Prove claimed
+limiting-case identities and run objective-scale and relevant symmetry trajectory oracles before attributing paired
+outcomes to the changed component.
+
 Scope relative gates before observing results, name their workload class, and report absolute medians beside ratios.
 Retain crossed unconditional gates as explicit review decisions even when their absolute cost is small.
 

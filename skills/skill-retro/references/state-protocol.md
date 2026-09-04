@@ -106,6 +106,7 @@ process-verification --id ID --decision PATH
 template accepted
 record-accepted --file PATH
 update-accepted --id ID --file PATH
+accepted-records [--destination TEXT] [--text TEXT]
 verification-opportunities [--destination TEXT]
 template draft
 record-draft --file PATH
@@ -253,6 +254,9 @@ Triage reads `pending`, re-reads the named destination, and judges every
 candidate independently. Verdicts are `accept`, `defer`, `reject`, `split`,
 `merge`, or `no-change`. By default, present verdicts and the proposed public
 implementation batch before editing source.
+
+Query `accepted-records` before a possible repeat or destination-repair verdict.
+It searches all dispositions and states by destination or semantic text, unlike the unverified-only evidence queue.
 
 Use `template decision`, fill the verdict and rationale, then use `process` to
 attach the decision and move the record from inbox to archive. The intake
@@ -423,11 +427,7 @@ remains unresolved. Preserve `verification: contradicted` on the old identity
 after either terminal disposition.
 
 When archived correction candidates name earlier outcomes, `record-accepted`
-derives and preserves `supersedes_accepted_ids`. Use
-`verification-opportunities --destination TEXT` only as a pull query for the
-skills or destinations involved in the completed session. The filter is a
-case-insensitive substring match against the recorded destination. A query hit
-creates no candidate, quota, or obligation.
+derives and preserves `supersedes_accepted_ids`.
 
 Do not create maintained prompt corpora, synthetic model fixtures, repeated
 model runs, raw trace archives, paid model-backed CI, or public evidence records

@@ -6,14 +6,15 @@ regularization, estimated intermediate fields, or the published finite model.
 
 ## Map The Implemented Method Boundary
 
-Before comparing code with a publication, trace the public method profile
-through default and alias resolution, first and later initialization,
-callback-budget ownership, transition engines, recovery, finalization, caches,
-and returned state. Mark every phase that owns a defining formula or callback,
-then apply equation and resource oracles to the implementation actually
-selected by the public path. Treat computed-but-unused mathematical terms and
-unexplained norm or scaling substitutions as transcription signals. Do not
-claim the method is audited while an owning lifecycle phase remains unmapped.
+Trace the selected public method through resolution, initialization, callback
+budgets, transitions, recovery, finalization, caches, and returned state. Mark
+each phase owning a formula or callback and apply equation and resource oracles
+there. Treat unused mathematical terms and unexplained norm or scale changes as
+transcription signals; an unmapped owning phase leaves the audit incomplete.
+When a harness adds an external convergence witness while preserving
+criterion-owned best-point restoration, use that witness to select a compatible
+restored point. Keep endpoints optimized for another property separately named
+for continuation or audit rather than silently returning them as solved.
 
 ## Separate Numerical Policy Layers
 
