@@ -36,6 +36,12 @@ permissions:
 7. Keep pull request workflows build-only; do not deploy or publish from
    untrusted PR code.
 8. Keep Dependabot configured for `github-actions`.
+9. For privileged triggers such as `issue_comment`, `pull_request_target`, or
+   `workflow_run`, treat PR heads and their artifacts as untrusted. Do not
+   execute them with secrets, write permissions, or persisted credentials. If a
+   trusted same-repository branch must be updated, verify its provenance, bind
+   analysis to the approved immutable head SHA, and use a separate privileged
+   write-back job with an expected-head guard.
 
 ## Review Procedure
 
@@ -46,7 +52,9 @@ permissions:
    file.
 5. Confirm PR events cannot write to protected branches, publish artifacts as
    releases, or deploy sites.
-6. Run the checks below.
+6. For privileged events acting on a PR, trace the checked-out revision, code
+   execution, credentials, artifacts, and write-back boundary as one path.
+7. Run the checks below.
 
 ## Checks
 

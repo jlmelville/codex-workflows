@@ -51,6 +51,9 @@ explain the supported reason someone would need it.
 - Lead with the outcome or task, then supply the minimum context needed to act.
 - Follow the reader's workflow rather than the author's implementation or
   discovery chronology.
+- Choose the form as well as the wording. When prose obscures order, shape,
+  ownership, or change, use the smallest structural representation that exposes
+  the relationship; keep prose for interpretation.
 - Keep examples focused on the concept being taught and explain incidental
   setup only where it bridges into that concept.
 - Move specialized detail to a better-matched surface when it remains useful.

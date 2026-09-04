@@ -35,6 +35,10 @@ When a managed manifest exists in the legacy Codex-home location, a normal
 install migrates only the skills named by that manifest and preserves all
 unrelated installed skills.
 
+A source skill absent from the prior manifest adopts an existing user-scoped
+directory only when it exactly matches source. A different existing target is
+an unowned collision and stops the install before runtime changes.
+
 Options:
   --check    Validate skill scopes, manifests, modes, and global instructions.
   --dry-run  Report planned skill and global-instruction changes.
@@ -339,6 +343,35 @@ compare_trees() {
   return 0
 }
 
+classify_unowned_targets() {
+  local name target_path
+
+  adopted_source_names=()
+  if ((${#source_names[@]} == 0)); then
+    return 0
+  fi
+
+  for name in "${source_names[@]}"; do
+    if ((${#old_manifest_names[@]} > 0)) && \
+      contains_name "${name}" "${old_manifest_names[@]}"; then
+      continue
+    fi
+
+    target_path="${target_dir}/${name}"
+    if [[ ! -e "${target_path}" && ! -L "${target_path}" ]]; then
+      continue
+    fi
+
+    if [[ -d "${target_path}" && ! -L "${target_path}" ]] && \
+      compare_trees "${source_dir}/${name}" "${target_path}" "${name}" >/dev/null 2>&1; then
+      adopted_source_names+=("${name}")
+      continue
+    fi
+
+    die "refusing to replace unowned user-scoped skill: ${target_path}; source skill '${name}' is absent from the prior managed manifest and the existing target differs. Move or remove the existing target, then rerun ./install.sh"
+  done
+}
+
 write_manifest() {
   local output="$1"
   local name
@@ -476,17 +509,22 @@ dry_run_install() {
   fi
   read_old_manifest_names
   read_legacy_manifest_names
+  classify_unowned_targets
 
   if [[ ! -f "${manifest_path}" ]]; then
     echo "Would create first managed-skill manifest at ${manifest_path}"
-    echo "Would replace current user-scoped skills only; unrelated installed skills would be preserved."
+    echo "Would claim only absent or identical user-scoped skill names; unrelated installed skills would be preserved."
   else
     echo "Would update managed-skill manifest at ${manifest_path}"
   fi
 
   if ((${#source_names[@]} > 0)); then
     for name in "${source_names[@]}"; do
-      if [[ -d "${target_dir}/${name}" ]]; then
+      if ((${#adopted_source_names[@]} > 0)) && \
+        contains_name "${name}" "${adopted_source_names[@]}"; then
+        echo "Would adopt identical user-scoped skill: ${name}"
+      elif ((${#old_manifest_names[@]} > 0)) && \
+        contains_name "${name}" "${old_manifest_names[@]}"; then
         echo "Would replace managed skill: ${name}"
       else
         echo "Would install managed skill: ${name}"
@@ -536,6 +574,7 @@ install_skills() {
   manage_global_learning dry-run >/dev/null
   stage_source
   acquire_lock
+  classify_unowned_targets
   mkdir -p "${target_dir}"
 
   if [[ -f "${manifest_path}" ]] && ((${#old_manifest_names[@]} > 0)); then
@@ -548,6 +587,10 @@ install_skills() {
 
   if ((${#source_names[@]} > 0)); then
     for name in "${source_names[@]}"; do
+      if ((${#adopted_source_names[@]} > 0)) && \
+        contains_name "${name}" "${adopted_source_names[@]}"; then
+        continue
+      fi
       rm -rf "${target_dir:?}/${name}"
       cp -a "${stage_root}/skills/${name}" "${target_dir}/"
       replaced_count=$((replaced_count + 1))

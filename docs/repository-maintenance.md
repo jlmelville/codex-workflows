@@ -48,11 +48,13 @@ and excludes their targets from the user-wide installation.
 All remaining skills are synced into `$HOME/.agents/skills`, the current Codex
 `USER` skill location. The installer writes a managed-skill manifest at
 `$HOME/.agents/codex-workflows-managed-skills.tsv`. On the first run without a
-manifest, the current user-scoped source skill names become the ownership set;
-later runs remove only stale skills named in the previous manifest. Unrelated
-installed skills are preserved. When a formerly user-scoped skill becomes
-repository-local, the next install removes its old user-wide copy only when the
-previous manifest proves this repository owned it.
+manifest, the current user-scoped source skill names become the ownership set.
+For each source name absent from the previous manifest, an existing target is
+adopted only when its complete tree matches source; a different target is
+preserved and stops the install as an unowned collision. Later runs remove only
+stale skills named in the previous manifest. When a formerly user-scoped skill
+becomes repository-local, the next install removes its old user-wide copy only
+when the previous manifest proves this repository owned it.
 
 Earlier versions installed into `${CODEX_HOME:-$HOME/.codex}/skills`. When the
 old Codex home contains this repository's managed-skill manifest, a normal

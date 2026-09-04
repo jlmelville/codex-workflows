@@ -28,10 +28,11 @@ Codex runtime directory.
   `./install.sh --check`; ignore unrelated installed skills.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
-- When moving a skill from user scope to repository scope, remove the old
-  user-scoped copy only when the prior managed manifest proves this repository
-  owns it. Preserve and report an unowned collision instead of overwriting or
-  deleting it.
+- Treat the prior managed manifest as ownership proof. For a source skill absent
+  from it, adopt an existing user-scoped directory only when its tree exactly
+  matches source; otherwise preserve it and report an unowned collision. When
+  moving a skill from user scope to repository scope, remove the old user-scoped
+  copy only when the prior manifest proves this repository owns it.
 - Before source-changing work in a checkout shared across machines, apply
   `$repo-update-preflight`. After it completes, re-read instructions and relevant
   skills because their structure or policy may have changed. Then use

@@ -178,13 +178,38 @@ EOF_OLD
 chmod 700 "${agents_home}/skills/unrelated"
 chmod 600 "${agents_home}/skills/unrelated/data.txt"
 
+before_unowned_collision="$(snapshot_tree "${user_home}")"
+if HOME="${user_home}" CODEX_HOME="${codex_home}" \
+  "${fixture}/install.sh" --dry-run >"${tmp_root}/unowned-dry.out" 2>&1; then
+  fail "installer dry-run accepted a differing unowned skill collision"
+fi
+after_unowned_collision="$(snapshot_tree "${user_home}")"
+[[ "${before_unowned_collision}" == "${after_unowned_collision}" ]] || \
+  fail "unowned collision dry-run changed the target home"
+assert_file_contains "${tmp_root}/unowned-dry.out" "refusing to replace unowned user-scoped skill"
+
+if HOME="${user_home}" CODEX_HOME="${codex_home}" \
+  "${fixture}/install.sh" >"${tmp_root}/unowned-install.out" 2>&1; then
+  fail "installer accepted a differing unowned skill collision"
+fi
+after_unowned_collision="$(snapshot_tree "${user_home}")"
+[[ "${before_unowned_collision}" == "${after_unowned_collision}" ]] || \
+  fail "unowned collision install changed the target home"
+assert_file_contains "${tmp_root}/unowned-install.out" "source skill 'alpha' is absent from the prior managed manifest"
+
+rm -rf "${agents_home}/skills/alpha"
+cp -a "${fixture}/skills/alpha" "${agents_home}/skills/"
+HOME="${user_home}" CODEX_HOME="${codex_home}" \
+  "${fixture}/install.sh" --dry-run >"${tmp_root}/identical-adoption.out"
+assert_file_contains "${tmp_root}/identical-adoption.out" "Would adopt identical user-scoped skill: alpha"
+
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
 [[ -f "${manifest}" ]] || fail "first run did not write manifest"
 assert_file_contains "${manifest}" "# codex-workflows-managed-skills v1"
 assert_file_contains "${manifest}" "alpha"
 assert_file_contains "${manifest}" "beta"
 assert_file_not_contains "${manifest}" "repo-only"
-[[ -f "${agents_home}/skills/alpha/SKILL.md" ]] || fail "first run did not replace alpha"
+[[ -f "${agents_home}/skills/alpha/SKILL.md" ]] || fail "first run did not adopt identical alpha"
 [[ -f "${agents_home}/skills/beta/SKILL.md" ]] || fail "first run did not install beta"
 [[ ! -e "${agents_home}/skills/repo-only" ]] || fail "first run installed a repository-local skill globally"
 [[ -L "${fixture}/.agents/skills/repo-only" ]] || fail "repository-local skill is not a symlink"
@@ -221,6 +246,26 @@ before_idempotence="$(snapshot_tree "${user_home}")"
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
 after_idempotence="$(snapshot_tree "${user_home}")"
 [[ "${before_idempotence}" == "${after_idempotence}" ]] || fail "second install changed paths, types, modes, or content"
+
+create_skill "${fixture}" gamma "gamma v1"
+mkdir -p "${agents_home}/skills/gamma"
+printf '%s\n' "third-party gamma" >"${agents_home}/skills/gamma/SKILL.md"
+before_unowned_collision="$(snapshot_tree "${user_home}")"
+if HOME="${user_home}" CODEX_HOME="${codex_home}" \
+  "${fixture}/install.sh" >"${tmp_root}/new-name-collision.out" 2>&1; then
+  fail "installer replaced an unowned collision for a new source name"
+fi
+after_unowned_collision="$(snapshot_tree "${user_home}")"
+[[ "${before_unowned_collision}" == "${after_unowned_collision}" ]] || \
+  fail "new-name collision changed the target home"
+assert_file_contains "${tmp_root}/new-name-collision.out" "source skill 'gamma' is absent from the prior managed manifest"
+assert_file_not_contains "${manifest}" "gamma"
+
+rm -rf "${agents_home}/skills/gamma"
+cp -a "${fixture}/skills/gamma" "${agents_home}/skills/"
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" >/dev/null
+assert_file_contains "${manifest}" "gamma"
+HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
 
 legacy_learning_fixture="${tmp_root}/legacy-learning-fixture"
 legacy_learning_user_home="${tmp_root}/legacy-learning-user-home"
