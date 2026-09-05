@@ -34,6 +34,7 @@ module RetroState
   AUDIT_KINDS = %w[learning-process skill-repository].freeze
   ARTIFACT_AUDIT_ARCHIVE_THRESHOLD = 10
   ARTIFACT_CADENCE_RECORD_TYPE = "artifact-audit-cadence"
+  COUNTED_CANDIDATE_IDS_FIELD = "counted_candidate_ids"
   CONFIDENCES = %w[high medium low].freeze
   EVIDENCE_LINEAGES = %w[independent descendant mixed unknown not-applicable].freeze
   RECOMMENDATIONS = %w[
@@ -1031,6 +1032,17 @@ module RetroState
     unless baseline.is_a?(Integer) && baseline >= 0 && baseline <= total
       raise Error, "#{label}: invalid last_completed_artifact_audit_total"
     end
+
+    counted_ids = data.fetch(COUNTED_CANDIDATE_IDS_FIELD, [])
+    valid_ids = counted_ids.is_a?(Array) && counted_ids.all? do |candidate_id|
+      candidate_id.is_a?(String) && candidate_id.match?(/\ARC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
+    end
+    unless valid_ids && counted_ids.uniq.length == counted_ids.length
+      raise Error, "#{label}: #{COUNTED_CANDIDATE_IDS_FIELD} must contain unique candidate IDs"
+    end
+    if counted_ids.length > total
+      raise Error, "#{label}: #{COUNTED_CANDIDATE_IDS_FIELD} cannot exceed candidate_archives_total"
+    end
   end
 
   def validate_assigned_id(data, label, assigned, field, pattern)
@@ -1310,10 +1322,11 @@ module RetroState
   class Store
     attr_reader :root
 
-    def initialize(root)
+    def initialize(root, fault_injector: nil)
       raise MissingStateRoot, "#{STATE_ENV} is not set" if RetroState.blank?(root)
 
       @root = canonical_root(root)
+      @fault_injector = fault_injector
       dangerous_roots = [File::SEPARATOR, File.expand_path("~")]
       raise Error, "state root is too broad: #{@root}" if dangerous_roots.include?(@root)
     end
@@ -1578,34 +1591,61 @@ module RetroState
       RetroState.validate_papercut_closure(closure, papercut_id, source)
       validate_papercut_reference!(closure)
 
-      data["closure"] = closure
       destination = papercut_path("archive", papercut_id)
-      exclusive_write(destination, RetroState.render_document(data, body))
+      if File.file?(destination)
+        verify_matching_papercut_archive(destination, data, body, closure)
+      else
+        data["closure"] = closure
+        exclusive_write(destination, RetroState.render_document(data, body))
+        operation_checkpoint(:papercut_archive_written)
+      end
       File.unlink(source)
       destination
     end
 
     def process(candidate_id, decision_path)
       ensure_initialized
-      source = candidate_path("inbox", candidate_id)
-      raise Error, "candidate not found in inbox: #{candidate_id}" unless File.file?(source)
+      with_artifact_cadence_lock do
+        source = candidate_path("inbox", candidate_id)
+        raise Error, "candidate not found in inbox: #{candidate_id}" unless File.file?(source)
 
-      candidate, body = RetroState.read_document(source)
-      RetroState.validate_candidate(candidate, body, label: source, routed: true)
-      decision, decision_body = RetroState.read_document(decision_path)
-      RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
-      cadence = artifact_cadence_state
+        candidate, body = RetroState.read_document(source)
+        RetroState.validate_candidate(candidate, body, label: source, routed: true)
+        decision, decision_body = RetroState.read_document(decision_path)
+        RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
 
-      triage = RetroState.without_keys(decision, "schema_version", "record_type")
-      triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
-      candidate["triage"] = triage
-      output = RetroState.render_document(candidate, body)
-      destination = candidate_path("archive", candidate_id)
-      exclusive_write(destination, output)
-      cadence["candidate_archives_total"] += 1
-      write_artifact_cadence(cadence)
-      File.unlink(source)
-      destination
+        triage = RetroState.without_keys(decision, "schema_version", "record_type")
+        triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
+        candidate["triage"] = triage
+        output = RetroState.render_document(candidate, body)
+        destination = candidate_path("archive", candidate_id)
+        cadence = artifact_cadence_state
+        archive_exists = File.file?(destination)
+        tracking_is_durable = File.file?(artifact_cadence_path) &&
+          cadence.key?(COUNTED_CANDIDATE_IDS_FIELD)
+        if archive_exists && !tracking_is_durable
+          raise Error,
+            "cannot safely resume candidate archive without durable identity tracking: #{destination}"
+        end
+        unless tracking_is_durable
+          cadence[COUNTED_CANDIDATE_IDS_FIELD] = []
+          write_artifact_cadence(cadence)
+        end
+
+        created = write_or_verify_archive(destination, output, record_type: "candidate")
+        operation_checkpoint(:candidate_archive_written) if created
+
+        counted_ids = cadence.fetch(COUNTED_CANDIDATE_IDS_FIELD)
+        unless counted_ids.include?(candidate_id)
+          cadence["candidate_archives_total"] += 1
+          counted_ids << candidate_id
+          write_artifact_cadence(cadence)
+        end
+        operation_checkpoint(:candidate_cadence_written)
+
+        File.unlink(source)
+        destination
+      end
     end
 
     def process_verification(proposal_id, decision_path)
@@ -1629,7 +1669,7 @@ module RetroState
       proposal["triage"] = triage
       output = RetroState.render_document(proposal, body)
       destination = verification_path("archive", proposal_id)
-      write_or_verify_archive(destination, output)
+      write_or_verify_archive(destination, output, record_type: "verification")
       File.unlink(source)
       destination
     end
@@ -2328,14 +2368,34 @@ module RetroState
       raise Error, "verification target state #{current_state} cannot receive proposed #{proposed_state} evidence"
     end
 
-    def write_or_verify_archive(destination, output)
+    def write_or_verify_archive(destination, output, record_type:)
       if File.file?(destination)
         unless File.binread(destination) == output
-          raise Error, "existing verification archive differs: #{destination}"
+          raise Error, "existing #{record_type} archive differs: #{destination}"
         end
+        false
       else
         exclusive_write(destination, output)
+        true
       end
+    end
+
+    def verify_matching_papercut_archive(destination, intake, body, requested_closure)
+      archived, archived_body = RetroState.read_document(destination)
+      RetroState.validate_papercut(
+        archived,
+        archived_body,
+        label: destination,
+        routed: true,
+        archived: true
+      )
+      archived_intake = RetroState.without_keys(archived, "closure")
+      same_intake = archived_body == body && archived_intake == intake
+      archived_closure = RetroState.without_keys(archived.fetch("closure"), "closed_at")
+      requested = RetroState.without_keys(requested_closure, "closed_at")
+      return if same_intake && archived_closure == requested
+
+      raise Error, "existing papercut archive differs: #{destination}"
     end
 
     def archived_candidates
@@ -2375,7 +2435,8 @@ module RetroState
         .select { |_audit_path, data| data["audit_kind"] == "skill-repository" }
         .max_by { |_audit_path, data| data.fetch("completed_at") }
         &.last
-      total = archived_candidates.length
+      archived = archived_candidates
+      total = archived.length
       baseline = if latest
         latest.fetch("candidate_archives_total", latest.fetch("candidate_archive_count", 0))
       else
@@ -2386,7 +2447,8 @@ module RetroState
         "schema_version" => SCHEMA_VERSION,
         "record_type" => ARTIFACT_CADENCE_RECORD_TYPE,
         "candidate_archives_total" => total,
-        "last_completed_artifact_audit_total" => baseline
+        "last_completed_artifact_audit_total" => baseline,
+        COUNTED_CANDIDATE_IDS_FIELD => archived.map { |_path, data| data.fetch("candidate_id") }
       }
     rescue Psych::Exception => e
       raise Error, "#{path}: invalid YAML: #{e.message}"
@@ -2395,6 +2457,17 @@ module RetroState
     def write_artifact_cadence(data)
       RetroState.validate_artifact_cadence(data, label: artifact_cadence_path)
       replace_write(artifact_cadence_path, YAML.dump(data))
+    end
+
+    def with_artifact_cadence_lock
+      File.open(artifact_cadence_lock_path, File::RDWR | File::CREAT, 0o600) do |lock|
+        lock.flock(File::LOCK_EX)
+        yield
+      end
+    end
+
+    def operation_checkpoint(point)
+      @fault_injector&.call(point)
     end
 
     def action_reference_open?(action_id)
@@ -2585,6 +2658,10 @@ module RetroState
 
     def artifact_cadence_path
       File.join(root, "audits", "learning-process", "artifact-cadence.yml")
+    end
+
+    def artifact_cadence_lock_path
+      File.join(root, "audits", "learning-process", "artifact-cadence.lock")
     end
 
     def papercut_path(area, papercut_id)
@@ -2947,6 +3024,103 @@ module RetroState
       )
       store.validate
 
+      papercut_recovery_root = File.join(tmp, "papercut-recovery-state")
+      papercut_recovery_store = Store.new(papercut_recovery_root)
+      papercut_recovery_store.init
+      recovery_data, recovery_body = read_document(papercut)
+      recovery_source = papercut_recovery_store.record_papercut(
+        recovery_data,
+        recovery_body,
+        label: papercut
+      )
+      recovery_id = File.basename(recovery_source, ".md")
+      interrupted_papercut_store = Store.new(
+        papercut_recovery_root,
+        fault_injector: lambda do |point|
+          raise Error, "simulated papercut interruption" if point == :papercut_archive_written
+        end
+      )
+      begin
+        interrupted_papercut_store.close_papercut(
+          recovery_id,
+          outcome: "no-action",
+          rationale: "No reusable action was identified."
+        )
+        raise "papercut interruption was not injected"
+      rescue Error => e
+        raise unless e.message == "simulated papercut interruption"
+      end
+      recovery_archive = File.join(
+        papercut_recovery_root,
+        "papercuts",
+        "archive",
+        "#{recovery_id}.md"
+      )
+      unless File.file?(recovery_source) && File.file?(recovery_archive)
+        raise "papercut interruption did not retain both recovery inputs"
+      end
+      archived_before_retry = File.binread(recovery_archive)
+      papercut_recovery_store.close_papercut(
+        recovery_id,
+        outcome: "no-action",
+        rationale: "No reusable action was identified."
+      )
+      raise "recovered papercut remained in inbox" if File.exist?(recovery_source)
+      unless File.binread(recovery_archive) == archived_before_retry
+        raise "papercut retry changed the existing archive or closure timestamp"
+      end
+      papercut_recovery_store.validate
+
+      conflicting_data, conflicting_body = read_document(papercut)
+      conflicting_source = papercut_recovery_store.record_papercut(
+        conflicting_data,
+        conflicting_body,
+        label: papercut
+      )
+      conflicting_id = File.basename(conflicting_source, ".md")
+      conflicting_store = Store.new(
+        papercut_recovery_root,
+        fault_injector: lambda do |point|
+          raise Error, "simulated papercut conflict" if point == :papercut_archive_written
+        end
+      )
+      begin
+        conflicting_store.close_papercut(
+          conflicting_id,
+          outcome: "no-action",
+          rationale: "Original closure rationale."
+        )
+        raise "papercut conflict interruption was not injected"
+      rescue Error => e
+        raise unless e.message == "simulated papercut conflict"
+      end
+      conflicting_archive = File.join(
+        papercut_recovery_root,
+        "papercuts",
+        "archive",
+        "#{conflicting_id}.md"
+      )
+      conflicting_archive_data, conflicting_archive_body = read_document(conflicting_archive)
+      conflicting_archive_data.fetch("closure")["rationale"] = "Conflicting closure rationale."
+      File.write(
+        conflicting_archive,
+        render_document(conflicting_archive_data, conflicting_archive_body)
+      )
+      conflicting_archive_bytes = File.binread(conflicting_archive)
+      begin
+        papercut_recovery_store.close_papercut(
+          conflicting_id,
+          outcome: "no-action",
+          rationale: "Original closure rationale."
+        )
+        raise "conflicting papercut archive was accepted"
+      rescue Error => e
+        raise unless e.message.include?("existing papercut archive differs")
+      end
+      unless File.binread(conflicting_archive) == conflicting_archive_bytes && File.file?(conflicting_source)
+        raise "conflicting papercut archive was overwritten or its inbox record was removed"
+      end
+
       missing_reference_data, missing_reference_body = read_document(papercut)
       missing_reference_path = store.record_papercut(
         missing_reference_data,
@@ -3186,6 +3360,130 @@ module RetroState
         type == "accepted-publication" && candidate_id == id
       end
       raise "unpublished accepted candidate missing from review queue" unless publication_row
+
+      %i[candidate_archive_written candidate_cadence_written].each do |fault_point|
+        recovery_root = File.join(tmp, "candidate-recovery-#{fault_point}")
+        recovery_store = Store.new(recovery_root)
+        recovery_store.init
+        recovery_input = File.join(tmp, "candidate-recovery-#{fault_point}.md")
+        recovery_decision = File.join(tmp, "candidate-recovery-#{fault_point}-decision.md")
+        File.write(
+          recovery_input,
+          candidate_template.gsub("Short candidate title", "Recoverable candidate archival")
+        )
+        recovery_source = recovery_store.route(recovery_input)
+        recovery_id = File.basename(recovery_source, ".md")
+        recovery_decision_text = without_review_trigger_contract.call(
+          decision_template
+          .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", recovery_id)
+          .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
+          .sub("verdict: defer", "verdict: reject")
+        )
+        File.write(recovery_decision, recovery_decision_text)
+        interrupted_store = Store.new(
+          recovery_root,
+          fault_injector: lambda do |point|
+            raise Error, "simulated #{fault_point}" if point == fault_point
+          end
+        )
+        begin
+          interrupted_store.process(recovery_id, recovery_decision)
+          raise "candidate interruption was not injected at #{fault_point}"
+        rescue Error => e
+          raise unless e.message == "simulated #{fault_point}"
+        end
+
+        recovery_archive = File.join(
+          recovery_root,
+          "retrospectives",
+          "archive",
+          "#{recovery_id}.md"
+        )
+        unless File.file?(recovery_source) && File.file?(recovery_archive)
+          raise "candidate interruption did not retain both recovery inputs at #{fault_point}"
+        end
+        archived_before_retry = File.binread(recovery_archive)
+        cadence_path = File.join(
+          recovery_root,
+          "audits",
+          "learning-process",
+          "artifact-cadence.yml"
+        )
+        interrupted_cadence = stringify_keys(
+          YAML.safe_load(File.read(cadence_path, encoding: "UTF-8"), aliases: false)
+        )
+        expected_interrupted_total = (fault_point == :candidate_archive_written) ? 0 : 1
+        unless interrupted_cadence.fetch("candidate_archives_total") == expected_interrupted_total
+          raise "candidate interruption recorded the wrong cadence total at #{fault_point}"
+        end
+
+        recovery_store.process(recovery_id, recovery_decision)
+        raise "recovered candidate remained in inbox at #{fault_point}" if File.exist?(recovery_source)
+        unless File.binread(recovery_archive) == archived_before_retry
+          raise "candidate retry changed the existing archive at #{fault_point}"
+        end
+        final_cadence = stringify_keys(
+          YAML.safe_load(File.read(cadence_path, encoding: "UTF-8"), aliases: false)
+        )
+        unless final_cadence.fetch("candidate_archives_total") == 1 &&
+            final_cadence.fetch(COUNTED_CANDIDATE_IDS_FIELD) == [recovery_id]
+          raise "candidate retry did not count the archive exactly once at #{fault_point}"
+        end
+        unless Dir.glob(File.join(recovery_root, "retrospectives", "archive", "*.md")).length == 1
+          raise "candidate retry did not retain exactly one archive at #{fault_point}"
+        end
+        recovery_store.validate
+      end
+
+      conflict_root = File.join(tmp, "candidate-recovery-conflict")
+      conflict_store = Store.new(conflict_root)
+      conflict_store.init
+      conflict_input = File.join(tmp, "candidate-recovery-conflict.md")
+      conflict_decision = File.join(tmp, "candidate-recovery-conflict-decision.md")
+      File.write(
+        conflict_input,
+        candidate_template.gsub("Short candidate title", "Conflicting candidate archival")
+      )
+      conflict_source = conflict_store.route(conflict_input)
+      conflict_id = File.basename(conflict_source, ".md")
+      conflict_decision_text = without_review_trigger_contract.call(
+        decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", conflict_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
+        .sub("verdict: defer", "verdict: reject")
+      )
+      File.write(conflict_decision, conflict_decision_text)
+      interrupted_conflict_store = Store.new(
+        conflict_root,
+        fault_injector: lambda do |point|
+          raise Error, "simulated candidate conflict" if point == :candidate_archive_written
+        end
+      )
+      begin
+        interrupted_conflict_store.process(conflict_id, conflict_decision)
+        raise "candidate conflict interruption was not injected"
+      rescue Error => e
+        raise unless e.message == "simulated candidate conflict"
+      end
+      conflict_archive = File.join(
+        conflict_root,
+        "retrospectives",
+        "archive",
+        "#{conflict_id}.md"
+      )
+      conflict_archive_data, conflict_archive_body = read_document(conflict_archive)
+      conflict_archive_data.fetch("triage")["rationale"] = "Conflicting decision rationale."
+      File.write(conflict_archive, render_document(conflict_archive_data, conflict_archive_body))
+      conflict_archive_bytes = File.binread(conflict_archive)
+      begin
+        conflict_store.process(conflict_id, conflict_decision)
+        raise "conflicting candidate archive was accepted"
+      rescue Error => e
+        raise unless e.message.include?("existing candidate archive differs")
+      end
+      unless File.binread(conflict_archive) == conflict_archive_bytes && File.file?(conflict_source)
+        raise "conflicting candidate archive was overwritten or its inbox record was removed"
+      end
 
       accepted_text = accepted_template.sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
       File.write(accepted, accepted_text)

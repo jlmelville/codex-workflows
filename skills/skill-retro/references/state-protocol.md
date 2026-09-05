@@ -173,7 +173,9 @@ digested intake fields, then moves the record to the archive. `duplicate`
 requires `--related-papercut-id PC-*`; `candidate` requires
 `--related-candidate-id RC-*`, and the formal candidate must exist first. Other
 outcomes reject related IDs. Closing requires explicit state-mutation authority
-from the review user.
+from the review user. If closure is interrupted after archive creation, retry
+the same `close-papercut` operation. A matching archive is retained with its
+original `closed_at`; a different intake or closure decision is refused.
 
 Do not promote mechanically. Reviewers synthesize a new candidate only when
 the observation is reusable, materially missing from current coverage, and has
@@ -264,7 +266,10 @@ digest and original intake fields remain in the archived document. For a
 deferred verdict, first state the `unresolved_decision` that current evidence
 cannot justify. Post-implementation behavioral uncertainty is not a deferral:
 implement the justified outcome, keep it behaviorally `unverified`, and retain
-its destination-matched `verification_opportunity`.
+its destination-matched `verification_opportunity`. If processing is interrupted
+after archive creation, retry `process` with the same candidate and decision.
+The helper verifies the existing archive, completes cadence exactly once, and
+removes the inbox copy; a conflicting archive is refused.
 
 Every new or reconsidered candidate deferral uses this shared liveness
 contract in addition to `unresolved_decision`. New open drafts and ledgers use
@@ -473,10 +478,11 @@ Completed audits stay cold; only their unresolved action records belong in
 Use `audit_kind: learning-process` for feedback-loop diagnoses and
 `audit_kind: skill-repository` for completed report-only artifact audits. The
 helper maintains `audits/learning-process/artifact-cadence.yml` as a monotonic
-machine-owned count of processed candidate archives. On first use, it migrates
-from the retained archive and any prior audit baseline; later deletion of cold
-archive history does not rewind cadence. No per-task or model telemetry is
-needed:
+machine-owned count of processed candidate archives. It retains the candidate
+identities counted after identity tracking begins so interrupted processing can
+resume without double-counting. On first use, it migrates from the retained
+archive and any prior audit baseline; later deletion of cold archive history
+does not rewind cadence. No per-task or model telemetry is needed:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
