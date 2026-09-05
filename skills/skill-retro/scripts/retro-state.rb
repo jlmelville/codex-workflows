@@ -3553,6 +3553,17 @@ module RetroState
           supported_rows.first.fetch(2) == "supported"
         raise "supported accepted record was not discoverable by semantic text"
       end
+      supported_destination_rows = store.accepted_records_query(destination: "public source")
+      unless supported_destination_rows.map(&:first) == [accepted_id] &&
+          supported_destination_rows.first.fetch(2) == "supported"
+        raise "supported accepted record was not discoverable by destination"
+      end
+      unless store.accepted_records_query(destination: "unrelated destination").empty?
+        raise "unrelated destination supplied a false accepted-record match"
+      end
+      if store.verification_opportunities(destination: "public source").map(&:first).include?(accepted_id)
+        raise "supported accepted record remained in the unverified opportunity query"
+      end
 
       contradicted_proposal_text = verification_proposal_template
         .sub("SCR-YYYYMMDD-abcdef", accepted_id)
@@ -3626,19 +3637,35 @@ module RetroState
       end
       store.validate
 
-      contradicted_data = updated_accepted.merge(
-        "verification" => "contradicted",
-        "verification_basis" => "later-session",
-        "contradiction" => {
-          "summary" => "Later evidence contradicts the implemented outcome.",
-          "what_is_false" => "The earlier action is not safe under the observed condition.",
-          "recorded_at" => "2026-07-15T12:03:00Z",
-          "decisive_evidence" => ["Later-session evidence reproduced the unsafe action."]
-        }
-      )
-      contradicted_text = render_document(contradicted_data, rejected_accepted_body)
-      File.write(accepted, contradicted_text)
-      store.update_accepted(accepted_id, accepted)
+      supported_contradiction_text = verification_proposal_template
+        .sub("SCR-YYYYMMDD-abcdef", accepted_id)
+        .sub("proposed_verification: supported", "proposed_verification: contradicted")
+        .sub(
+          '# what_is_false: "What the accepted outcome asserted that is now false."',
+          'what_is_false: "The earlier action is not safe under the observed condition."'
+        )
+      File.write(verification_proposal, supported_contradiction_text)
+      supported_contradiction_path = store.route_verification(verification_proposal)
+      supported_contradiction_id = File.basename(supported_contradiction_path, ".md")
+      supported_contradiction_decision = verification_decision_template
+        .sub("VP-YYYYMMDDTHHMMSSZ-abcdef", supported_contradiction_id)
+        .sub("verdict: reject", "verdict: apply")
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:03:00Z")
+      File.write(verification_decision, supported_contradiction_decision)
+      store.process_verification(supported_contradiction_id, verification_decision)
+      assigned_contradiction, rejected_accepted_body = read_document(accepted_path)
+      prior_evidence_preserved = stored_updated_accepted.fetch("decisive_evidence").all? do |evidence|
+        assigned_contradiction.fetch("decisive_evidence").include?(evidence)
+      end
+      unless assigned_contradiction["verification"] == "contradicted" &&
+          assigned_contradiction["accepted_id"] == accepted_id &&
+          assigned_contradiction["accepted_at"] == original_accepted_at &&
+          assigned_contradiction.fetch("applied_verification_proposal_ids") ==
+              [supported_proposal_id, supported_contradiction_id] &&
+          prior_evidence_preserved
+        raise "supported contradiction did not preserve accepted identity and evidence"
+      end
+      contradicted_data = without_keys(assigned_contradiction, "accepted_id", "accepted_at")
       unless store.review_queue.map(&:first).include?("contradiction")
         raise "contradicted accepted record missing from review queue"
       end

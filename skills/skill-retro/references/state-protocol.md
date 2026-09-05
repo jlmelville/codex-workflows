@@ -374,6 +374,13 @@ intended-outcome
 comparative-improvement
 ```
 
+When observed failure or harm bears on active guidance, use a bounded
+`accepted-records --destination TEXT` or `--text TEXT` query to locate the
+applicable identity, including a supported record, then read its exact
+`verification_opportunity`. Route a contradiction only when the evidence
+addresses that record's claim and opportunity. Use a candidate when the
+decision itself changes.
+
 Contradicted proposals must also state `what_is_false`; supported proposals
 must not. Route one proposal per file. A query hit creates no obligation, and
 proposal routing authority creates only a new external inbox file.

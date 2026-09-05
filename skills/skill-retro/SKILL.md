@@ -10,11 +10,9 @@ decisions; verification proposals carry decisive later evidence for one
 accepted outcome. Use `$papercut-capture` for low-cost friction. Operational
 records never belong in a project or public skill repository.
 
-Run the checkpoint in this file first. Read
-[record-construction.md](references/record-construction.md) only if the
-checkpoint identifies a possible candidate or verification proposal. Before
-any external-state write, also read
-[state-protocol.md](references/state-protocol.md).
+Run the checkpoint in this file first. Load record-construction and state
+mechanics only when a possible record survives, as routed under Construct Or
+Report.
 
 ## Authority
 
@@ -48,9 +46,14 @@ after validation and small fixes, before the final response or handoff. Also
 evaluate when substantial user redirection exposes missing guidance or reusable
 craft.
 
-For materially involved destinations, use `verification-opportunities
---destination TEXT` as a pull query. Route only decisive evidence for the exact
-recorded opportunity; a query hit creates no work, quota, or record.
+For ordinary opportunistic confirmation in materially involved destinations,
+use `verification-opportunities --destination TEXT` as a pull query. When
+observed failure or harm bears on active guidance, use a bounded
+`accepted-records --destination TEXT` or `--text TEXT` query to find the
+applicable identity, including a supported record, and read its recorded
+opportunity. Route contradiction only when the evidence addresses that claim
+and opportunity; use a candidate when the decision itself changes. A query hit
+creates no work, quota, or record.
 
 Err toward a quiet no-change evaluation when the boundary is uncertain. Fold
 minor fixes into the current unit and reevaluate only for a materially changed
@@ -113,7 +116,16 @@ scanner.
 If a possible record survives admission, read
 [record-construction.md](references/record-construction.md) for evidence fields,
 identity and supersession rules, destination choice, helper routing, fallbacks,
-and the compact chat shape. In default mode, use that shape without writing.
+and the compact chat shape. Before a candidate write, read the state protocol's
+[Installed Helper](references/state-protocol.md#installed-helper) and
+[Candidate Intake](references/state-protocol.md#candidate-intake) sections.
+Before a verification write, read
+[Installed Helper](references/state-protocol.md#installed-helper) and
+[Accepted Records And Verification](references/state-protocol.md#accepted-records-and-verification).
+In default mode, use the chat shape without writing.
 
-If no change is warranted, say so directly and cite the specific existing
-coverage instead of stretching ordinary project details into a candidate.
+For an explicitly requested retrospective report, state a no-change conclusion
+concisely and cite the relevant existing coverage. During standing automatic
+evaluation, omit retrospective-specific output when nothing is routed unless
+the user requests it. Always disclose routed records, blocked writes, and
+paste-ready fallbacks.

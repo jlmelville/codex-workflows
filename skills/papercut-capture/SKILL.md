@@ -7,8 +7,8 @@ description: Capture sanitized observations of unexpected, avoidable workflow fr
 
 Preserve workflow friction while its evidence is fresh, before deciding whether
 it warrants a local fix, an external-owner action, or a reusable skill change.
-Read the shared [state protocol](../skill-retro/references/state-protocol.md)
-before writing external state.
+The shared state protocol supplies write mechanics after an observation
+qualifies.
 
 ## Authority
 

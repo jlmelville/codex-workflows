@@ -37,19 +37,23 @@ public surface under the existing accepted identity and leave behavioral verific
 
 ## Verification Evidence
 
-Use the typed fields and claim vocabulary in the [state protocol](state-protocol.md), match one eligible
-`SCR-*` opportunity, and use `what_is_false` only for contradiction. Record the task, decisive behavior or
-failure, affected guidance, and why it matters. `$skill-retro-triage` alone applies or rejects a proposal.
+Use the typed fields and claim vocabulary in the state protocol's
+[Accepted Records And Verification](state-protocol.md#accepted-records-and-verification) section, match one
+eligible `SCR-*` opportunity, and use `what_is_false` only for contradiction. Record the task, decisive
+behavior or failure, affected guidance, and why it matters. `$skill-retro-triage` alone applies or rejects a
+proposal.
 
 Do not recommend maintained prompt corpora, synthetic model fixtures, repeated model runs, `codex exec`
 benchmarks, raw trace archives, paid model-backed CI, or public evidence records merely to validate prose.
 
 ## Helper, Routing, And Chat
 
-Before writing, follow the [state protocol](state-protocol.md) for templates, identity, temporary input,
-fallback, and sandbox recovery. Use the installed helper from project repositories; do not depend on this
-source checkout. Triage ready records with repository-local `$skill-retro-triage`; external state never
-belongs in Git.
+Before writing, read the state protocol's [Installed Helper](state-protocol.md#installed-helper) section and
+the operation-specific [Candidate Intake](state-protocol.md#candidate-intake) or
+[Accepted Records And Verification](state-protocol.md#accepted-records-and-verification) section for
+templates, identity, temporary input, fallback, and sandbox recovery. Use the installed helper from project
+repositories; do not depend on this source checkout. Triage ready records with repository-local
+`$skill-retro-triage`; external state never belongs in Git.
 
 For a candidate, report name, observation, decisive evidence, lesson, home, testability, confidence, and
 recommendation. For verification, report target, exact opportunity match, proposed state and basis, claim,
