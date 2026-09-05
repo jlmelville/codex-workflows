@@ -43,8 +43,8 @@ eligible `SCR-*` opportunity, and use `what_is_false` only for contradiction. Re
 behavior or failure, affected guidance, and why it matters. `$skill-retro-triage` alone applies or rejects a
 proposal.
 
-Do not recommend maintained prompt corpora, synthetic model fixtures, repeated model runs, `codex exec`
-benchmarks, raw trace archives, paid model-backed CI, or public evidence records merely to validate prose.
+For occasional independent authoring checks and limits on evaluation infrastructure, follow
+[bounded forward-testing](../../codex-skill-repo/references/semantic-authoring.md#bounded-forward-testing); keep the typed verification requirements above.
 
 ## Helper, Routing, And Chat
 

@@ -37,6 +37,23 @@ its local destination first. Any offsetting reduction must independently
 improve that same material or another explicitly reviewed target, not serve as
 an invisible cross-skill subsidy.
 
+## Bounded Forward-Testing
+
+For a complex or risky skill change, an occasional independent attempt at a
+realistic task may justify its cost. Follow the system `skill-creator` guidance
+when available. Use minimum raw artifacts, an isolated temporary workspace,
+permitted side effects, and a bounded question; withhold the intended answer.
+Inspect the resulting actions and artifacts. Compare the existing and revised
+guidance only when the question requires a comparator, and state the limits of
+that observation, including the model and context when known.
+
+This is optional authoring evidence. It does not establish ordinary later-use
+effectiveness or satisfy a `later-session` verification opportunity. Keep the
+existing typed evidence requirements. Do not build maintained prompt corpora,
+repeated-run infrastructure, raw trace archives, paid model-backed CI, or public
+evidence records merely to validate prose. Additional authority or substantial
+cost still requires approval.
+
 ## Promoting Local Guidance
 
 When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,

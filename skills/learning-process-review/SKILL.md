@@ -13,9 +13,10 @@ instructions to execute mechanically.
 
 - Default to a read-only review. Report findings and the complete proposed
   drain batch before changing public source or external state.
-- Mutate state only after the user explicitly accepts the reported batch. When
-  autonomous review and drainage were explicitly requested in advance, report
-  the batch as an intermediate update before continuing in the same turn.
+- When the user has authorized a batch or review with drainage, report the
+  concrete actions as an intermediate update and complete them within that
+  scope. Prior acceptance needs no renewed approval; ask for decisions outside
+  the existing authorization.
 - Treat source edits, installs, commits, pushes, messages, and external-owner
   actions as separate mutations requiring applicable authority.
 - Apply `$papercut-capture` only to new friction encountered during the review;

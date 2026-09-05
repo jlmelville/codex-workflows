@@ -1,6 +1,6 @@
 ---
 name: r-ci-hardening
-description: Harden R package GitHub Actions, including check, pkgdown, coverage, and Dependabot workflows. Use for workflow security, permissions, action pins, optional-dependency lanes, deploys, actionlint, zizmor, or usethis CI scaffolding.
+description: Configure or review R-specific GitHub Actions behavior for package checks, optional dependencies, coverage, and pkgdown deployment. Complements the shared workflow-hardening skill.
 ---
 
 # R CI Hardening

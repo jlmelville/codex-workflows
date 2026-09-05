@@ -331,7 +331,7 @@ preserves every prior deferral in `triage_history`, replaces the active `triage`
 and leaves a replacement `defer` in the review queue while removing a terminal
 replacement verdict from it. Do not direct-edit archived triage state.
 
-After user acceptance, follow
+For an authorized implementation batch, follow
 [report-to-patch.md](report-to-patch.md) for public implementation, validation,
 publication, and accepted-record ordering. The source commit must stand on its
 own without access to external state and need not expose the candidate ID.
@@ -441,9 +441,9 @@ after either terminal disposition.
 When archived correction candidates name earlier outcomes, `record-accepted`
 derives and preserves `supersedes_accepted_ids`.
 
-Do not create maintained prompt corpora, synthetic model fixtures, repeated
-model runs, raw trace archives, paid model-backed CI, or public evidence records
-merely to verify skill prose.
+Occasional authoring checks follow the
+[bounded forward-testing guidance](../../codex-skill-repo/references/semantic-authoring.md#bounded-forward-testing).
+They do not replace the typed verification evidence required here.
 
 ## Drafts, Ledgers, And Cleanup
 

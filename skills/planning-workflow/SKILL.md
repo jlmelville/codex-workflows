@@ -1,6 +1,6 @@
 ---
 name: planning-workflow
-description: Create, execute, resume, and hand off durable plans for complex coding work. Use for cross-module features, unresolved migrations, phased debugging, plan-backed audits or cleanups, ExecPlans, chunk plans, review packets, and fresh-agent handoffs. Do not use for report-only audits or small changes.
+description: Plan and resume complex coding work that needs durable decisions, execution packets, or handoffs. Skip small changes and report-only audits.
 ---
 
 # Planning Workflow
@@ -19,22 +19,15 @@ work itself.
    - an ExecPlan for complex work likely to outlive one context window;
    - a chunk plan for broad work that needs bounded independent packets;
    - an audit or review packet to preserve evidence or challenge conclusions.
-3. Before drafting a durable plan, write this compact scope decision in chat or
-   at its top:
-
-   ```text
-   Owner objective:
-   Already-working capabilities:
-   Explicit non-goals:
-   Existing proven path:
-   Cheapest capacity or scope adjustment preserving that path:
-   Why the proven path is insufficient:
-   Replacement mechanism: none, or owner-approved proposal
-   ```
-
-   Treat inherited handoff mechanisms as proposals unless the owner accepted them. If insufficiency has no concrete answer, use the proven path.
-   Replacing working code, even for a more bounded or elegant mechanism, is an owner question that must include the capacity-or-scope counterfactual. For workflow-heavy, human-operated work without a fixed external interface, sketch the shortest operator question-to-payoff path before stabilizing public APIs, schemas, persistent records, or large contract layers.
-   Use unexplained concepts, expert defaults, manual choreography, or machinery with no visible consumer to narrow the design; skip this probe for small local changes or externally fixed contracts.
+3. Record the objective, accepted scope, constraints, and completion evidence in
+   the smallest useful form. When proposing replacement of a working approach,
+   explain why it is insufficient and whether a capacity or scope adjustment
+   would preserve it. Treat inherited mechanisms as proposals unless accepted.
+   Ordinary implementation choices and replacements within an authorized
+   refactor do not need another approval. For workflow-heavy, human-operated
+   work without a fixed external interface, sketch the shortest operator path
+   before stabilizing APIs, schemas, or persistent machinery; use that path to
+   challenge complexity with no visible consumer.
 4. Freeze the owner's objective, constraints, and non-goals for review; keep
    chosen mechanisms challengeable. Classify discoveries against that contract.
    Admit a plan item only when omitting it would leave the accepted contract unmet or required evidence missing. Treat retained behavior and applicable, named safety and authority boundaries as part of that contract; usefulness, reviewer origin, and imagined future value are not enough. Admit only the smallest probe that can settle a concrete uncertainty material to in-scope implementation or acceptance, and seek direction for material expansion of goals, semantics, acceptance, or authority.
@@ -59,8 +52,9 @@ through durable state, a public API, schema or configuration surface, compatibil
 persistence machinery, a new subsystem, or wider semantics, stop with `scope-reopen`. Re-present the in-contract
 correction and proposed expansion separately; do not decompose or schedule the expansion before acceptance.
 
-Before owner acceptance, summarize on one screen the objective, already-working capabilities, explicit non-goals, work-package count when named packages are used,
-and the three costliest or most novel decisions; name a nearby precedent only when readily known. The count informs judgment, not acceptance or `scope-reopen`.
+When a scope decision needs acceptance, present the concrete proposed change,
+existing capabilities it preserves or replaces, and material cost or tradeoffs.
+Carry prior user authorization forward; pause only for a decision outside it.
 
 ## Artifact And State Boundaries
 
@@ -95,7 +89,10 @@ After compaction or interruption, re-read repo instructions, this skill, the
 active plan, and the latest handoff; verify them against source before
 continuing.
 
-Close when the accepted contract is satisfied and in-scope blockers are
-resolved or explicitly dispositioned. A future agent must be able to identify
-the goal, current state, decisions and rationale, relevant files and commands,
-validation and gaps, next action, and guardrails without chat history.
+Continue through implementation, relevant validation, and in-scope fixes until
+the accepted contract is satisfied or a blocker needs new authority or input.
+An implementation checkpoint or separable phase is not itself a request for
+review. Respect an explicitly requested review boundary. A future agent must be
+able to identify the goal, current state, decisions and rationale, relevant
+files and commands, validation and gaps, next action, and guardrails without
+chat history.

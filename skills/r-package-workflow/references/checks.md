@@ -1,7 +1,11 @@
 # R Package Check Selection
 
-Use the smallest check set that gives real confidence. Broaden when touching
-shared behavior, generated files, infrastructure, or compiled code.
+Use the smallest check set that exercises the changed contract, plus explicit
+repository gates. Broaden when touching shared behavior, generated files,
+infrastructure, or compiled code. A scoped prose correction normally needs
+source, link, and relevant render checks; it does not itself require full
+package tests. A passing check on unchanged inputs need not be repeated unless
+new changes, failures, or unresolved concerns invalidate that evidence.
 
 ## R Behavior
 
@@ -117,11 +121,12 @@ line or expression that emits the warning.
 
 ## Final Validation Bundles
 
-For final cleanup chunks, release-like checks, or package-wide infrastructure
-and documentation work, run the broadest feasible bundle. Require 0 errors,
-0 warnings, and 0 repository-attributable notes before treating the local check
-as complete; a known baseline helps establish attribution but does not excuse a
-repository diagnostic:
+For package-wide cleanup, release-like checks, or package-wide infrastructure
+and documentation work, run this bundle, adding applicable repository gates.
+Require 0 errors, 0 warnings, and 0 repository-attributable notes before claiming
+a clean package check. A known baseline establishes attribution; it does not
+make a failing gate pass. Repair failures within the accepted scope and report
+unrelated diagnostics and their effect on completion:
 
 - full tests: `Rscript -e 'testthat::test_local()'`
 - package check:

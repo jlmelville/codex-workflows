@@ -25,4 +25,5 @@ skill	skill-retro	160	850	9843	41508
 skill	skill-retro-triage	178	800	9139	71334
 skill	technical-writing	100	240	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
-repository	instructional-markdown	-	9046	-	450000
+# Accepted scope: conditional triage routes and bounded authoring evaluation.
+repository	instructional-markdown	-	9065	-	450000

@@ -1,6 +1,6 @@
 ---
 name: python-uv-project-workflow
-description: Work in Python projects managed with uv. Use when Codex edits, reviews, tests, debugs, or validates uv-managed Python code, dependencies, pyproject.toml, uv.lock, pytest, Ruff, type hints, notebooks, fixtures, or src layouts. Pair with uv-sandbox-workflow when running uv in sandboxes.
+description: Develop and validate uv-managed Python projects, including dependency and lockfile changes. Use uv-sandbox-workflow for sandbox execution setup.
 ---
 
 # Python uv Project Workflow

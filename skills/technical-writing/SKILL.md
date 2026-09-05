@@ -1,6 +1,6 @@
 ---
 name: technical-writing
-description: Write, revise, or review technical prose across READMEs, API documentation, guides, comments, docstrings, release notes, design documents, and explanations. Use when deciding what readers need, structuring content around their task, grounding warnings or contrasts, or removing low-value detail. Pair with format-specific skills for generation and validation.
+description: Draft, revise, or review technical documentation for reader tasks, clarity, and necessary detail. Use for deliberate prose work, including substantive comment or docstring revisions; skip incidental text edits during coding.
 ---
 
 # Technical Writing

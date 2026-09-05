@@ -1,6 +1,6 @@
 ---
 name: r-performance-workflow
-description: Run phased R package performance optimization with benchmarks, semantic validation, plans, and before/after evidence. Use when Codex works on speed, memory, allocation, parallelism, Rcpp performance, benchmark scripts, baseline comparisons, or plan-driven optimization phases.
+description: Optimize R package speed or memory use with semantic checks and comparable benchmarks. Use for performance investigations, benchmark harnesses, and optimization phases.
 ---
 
 # R Performance Workflow
@@ -44,7 +44,8 @@ Prefer one scoped optimization per phase. For each phase:
    changed.
 6. Update the active plan using the output contract in **Plan And Handoff
    Updates**.
-7. Stop at a coherent boundary when the next optimization is separable.
+7. At a coherent boundary, continue with the next accepted phase or close when
+   the objective is met. Seek review when the next decision exceeds that scope.
 
 Do not claim a performance win from smoke tests, tiny toy data, or noisy single
 runs. Use smoke benchmarks to prove the harness works; use evidence benchmarks

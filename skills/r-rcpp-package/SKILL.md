@@ -1,6 +1,6 @@
 ---
 name: r-rcpp-package
-description: Rcpp and cpp11 compiled-code workflow for R packages, including src changes, Makevars, generated bindings, C++ formatting, thread safety, exception propagation, and compiled checks. Use when Codex edits or reviews C/C++/Rcpp/cpp11 code, headers, wrappers, Makevars, or compiled behavior.
+description: Develop or review compiled R package code and Rcpp or cpp11 bindings, including native safety, generated wrappers, and compiled checks.
 ---
 
 # Compiled R Package Work

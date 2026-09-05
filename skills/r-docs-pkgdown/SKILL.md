@@ -1,6 +1,6 @@
 ---
 name: r-docs-pkgdown
-description: Maintain R package documentation for README, NEWS, roxygen comments, man pages, vignettes, pkgdown config, website metadata, and pkgdown Pages setup. Use when Codex edits or reviews user-facing docs, generated Rd files, _pkgdown.yml, DESCRIPTION metadata, or pkgdown scaffolding.
+description: Maintain R package help, articles, and pkgdown sites, including roxygen generation, documentation metadata, and publishing setup.
 ---
 
 # R Docs and pkgdown
@@ -103,9 +103,12 @@ Rscript -e 'roxygen2::roxygenise()'
 Rscript -e 'pkgdown::build_site(new_process = FALSE)'
 ```
 
-These focused commands assume a loadable package and writable caches. Before
-completion, run the [final package bundle](../r-package-workflow/references/checks.md#final-validation-bundles). For a fresh or
-restricted article build, use [validation.md](references/validation.md#fresh-temporary-library-article-builds).
+Choose generation, execution, link, and render checks for the changed surface;
+the commands above assume a loadable package and writable caches. Use the
+[final package bundle](../r-package-workflow/references/checks.md#final-validation-bundles)
+for package-wide documentation work or an explicit repository gate. For a fresh
+or restricted article build, use
+[validation.md](references/validation.md#fresh-temporary-library-article-builds).
 
 When a pkgdown workflow changes, also run the required checks from
 `$r-ci-hardening`.

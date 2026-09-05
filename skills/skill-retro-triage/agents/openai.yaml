@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Retro Triage"
   short_description: "Judge candidate and verification inboxes"
-  default_prompt: "Use $skill-retro-triage to judge pending external Skill Candidate Reports and Verification Evidence Proposals and propose the complete decision and any source implementation batch."
+  default_prompt: "Use $skill-retro-triage to judge pending candidates and verification proposals, report the batch, and complete any already authorized processing or implementation."

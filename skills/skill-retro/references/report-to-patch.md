@@ -1,21 +1,16 @@
 # Skill Candidate Implementation
 
-Use after triage has judged external candidate evidence and the user has
-accepted the proposed implementation batch.
+Use after triage has judged external candidate evidence and implementation is
+authorized, including an already accepted batch.
 
 ## State Before Source
 
-Read [state-protocol.md](state-protocol.md). Use the external helper to attach a
-complete verdict and archive each processed candidate. A deferred decision must
-name the unresolved decision and use the structured trigger contract: durable
-predicate, observer, `review-queue` route, probe, next action, and close
-condition. Later behavioral uncertainty after a justified implementation uses
-an unverified accepted outcome instead. Split and merge decisions must retain
-all originating opaque IDs. When a deferred trigger later fires, use
-`reconsider --id ID --decision PATH` so the replacement verdict keeps the
-original triage lineage. Adjudicate each verification proposal separately with
-`process-verification`; an applied proposal updates its existing accepted
-identity and a rejected proposal does not.
+Read the protocol's [Installed Helper](state-protocol.md#installed-helper) and
+[Triage And Archive](state-protocol.md#triage-and-archive) before archiving each
+complete verdict with the helper. Preserve all originating IDs; use
+`reconsider` for a fired deferral to retain its lineage. For mixed batches,
+adjudicate verification proposals separately through the
+[verification protocol](state-protocol.md#accepted-records-and-verification).
 
 Do not copy candidate or verification inbox, archive, accepted, draft, ledger,
 audit, or cadence documents into the source repository. They are disposable
@@ -75,8 +70,8 @@ Activate, revise, or deprecate fired drafts.
 
 ## External Accepted Record
 
-After the public commit exists, create or update a concise external accepted
-record. Store plural `originating_candidate_ids`, sanitized evidence,
+After the public commit exists, read [Accepted Records And Verification](state-protocol.md#accepted-records-and-verification)
+and create or update a concise accepted record. Store plural `originating_candidate_ids`, sanitized evidence,
 destination, trigger and non-trigger, verification opportunity, disposition,
 verification state and basis, applied proposal provenance, and known
 implementation commits.

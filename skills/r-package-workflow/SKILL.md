@@ -1,26 +1,26 @@
 ---
 name: r-package-workflow
-description: General R package development workflow using testthat, roxygen2, pkgdown, Air, lintr, Rcpp, GitHub Actions, or local plans. Use whenever Codex edits, reviews, cleans up, tests, documents, release-checks, or otherwise works inside an R package repo.
+description: Develop and review R packages with package-specific generated-file, dependency, and validation conventions. Use for package implementation and integration work.
 ---
 
 # R Package Workflow
 
-Use this as the default operating procedure for R package work.
+Use this for R package implementation and integration. For a focused task,
+consult only the package conventions and specialist guidance it needs.
 
 ## First Pass
 
-1. Apply `$repo-update-preflight` before task-specific inspection or editing.
-2. Read package context before assuming structure: `DESCRIPTION`, `NAMESPACE`,
-   relevant `R/`, `src/`, `tests/testthat/`, `NEWS.md`, `README.md`, and any
-   active plan or handoff under `plans/`.
-3. Do not revert unrelated user changes. If touched files already contain user
-   edits, work with them.
-4. Keep behavioral fixes, generated documentation, and broad formatting in
-   separate phases unless the user explicitly asks for one combined sweep.
+Read applicable repository instructions and inspect the worktree. Apply
+`$repo-update-preflight` when the user requests an update or repository policy
+requires current upstream. Read `DESCRIPTION` when dependencies or package
+tooling matter, then follow the affected source, tests, generated files, and
+active plan as needed to resolve the task.
+
+Preserve unrelated user edits. Keep broad formatting separate from behavioral
+fixes unless requested; keep required generated output with its source change.
 
 ## Change Discipline
 
-- Prefer existing repo patterns over new abstractions.
 - For scientific or multi-author cleanup work, preserve contributed methods,
   mathematical code, historical bridge code, and long-form vignettes unless a
   change fixes an objective bug, resource-safety issue, packaging integration,
@@ -41,8 +41,6 @@ Use this as the default operating procedure for R package work.
   source attributes, and generated-file headers before selecting a generator
   or generated-file workflow. Rcpp and cpp11 use different commands and own
   different outputs.
-- Prefer exported API tests over private-helper tests. If an internal test
-  remains, document the safety or user-visible behavior it protects.
 - Treat these as generated unless intentionally refreshed:
   `R/RcppExports.R`, `src/RcppExports.cpp`, `R/cpp11.R`, `src/cpp11.cpp`,
   `NAMESPACE`, `man/*.Rd`, pkgdown output under `docs/`.
@@ -53,33 +51,31 @@ Use this as the default operating procedure for R package work.
   with `requireNamespace()`, give users a clear install message, document the
   optional requirement, and skip tests that execute the optional path when the
   package is absent.
-- Use `apply_patch` for manual edits. Use package tools for generated output.
 - After `usethis` modifies infrastructure, re-harden generated files rather
   than accepting templates as final.
 
 ## Checks
 
-Choose checks based on blast radius. See [checks.md](references/checks.md) for
-the command matrix, warning attribution, and final-validation workflows.
+Select checks using [checks.md](references/checks.md).
 
 When a release check has a large, compiled, or repository-sensitive reverse-
 dependency universe, follow [revdepcheck.md](references/revdepcheck.md) before
 starting `revdepcheck`. It owns dependency preparation, external staging, and
 the exact runner-path preflight.
 
-After substantive edits to hand-maintained R source or tests, run the
-configured Air check and lintr in addition to behavior-driven checks. If either
-configured check is unavailable, name the command not run and report validation
-as incomplete.
+For scoped source or test changes, run the affected behavior checks and
+configured formatting and lint checks at the relevant scope. Broaden for shared
+behavior, package integration, or explicit repository gates. Use the
+[final validation bundle](references/checks.md#final-validation-bundles) for
+package-wide cleanup, infrastructure or documentation work, and release checks.
 
-Before calling substantive R package work complete, run the configured Air,
-lint, full-test, and package-check gates from [checks.md](references/checks.md#final-validation-bundles),
-refreshing generated documentation when relevant. Fix every repository-owned
-failure or diagnostic. A skipped, unavailable, interrupted, or failing gate
-permits only an explicitly incomplete refactor checkpoint or blocked handoff
-recording the command, diagnostic, attribution, and next action—not a clean
-completion claim. Treat new code-specific or behavior-changing diagnostics as
-repository-owned until evidence identifies another owner.
+Fix failures caused by the change and diagnostics within the accepted task.
+Attribute other failures with evidence and report them without silently adding
+unrelated repairs. Treat new code-specific or behavior-changing diagnostics as
+repository-owned until evidence identifies another owner. Never claim a
+required gate passed when it was skipped, unavailable, interrupted, or failed;
+report the command, limitation, and remaining validation. An unrelated baseline
+failure does not expand scope or make a failing required gate successful.
 
 For ambiguous check ownership, use the exact restricted-environment mechanics
 in [checks.md](references/checks.md#restricted-environment-mechanics). Consult
@@ -103,8 +99,9 @@ For sparse `Matrix` class preservation, exact structural-support contracts, or
 slot-level implementation work, use the idioms in
 [sparse-matrix.md](references/sparse-matrix.md).
 
-If the task touches a narrower area, also apply the focused skill when
-available:
+Use a focused skill when its decisions or mechanics are needed for the task.
+Mentioning an area or reading one of its files does not require entering its
+workflow:
 
 - GitHub Actions, pkgdown deploy, coverage workflows, or Dependabot
   configuration:
