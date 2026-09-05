@@ -11,15 +11,12 @@ sandbox cache directories, network approval, and `uv run --with` mechanics.
 
 ## First Pass
 
-1. Inspect the worktree before editing:
-   `git --no-optional-locks status --short --untracked-files=all`.
-2. Read project context before assuming layout: `pyproject.toml`, `uv.lock`,
-   `README*`, package modules under `src/` or the project package directory,
-   relevant `tests/`, and any active local plan or handoff.
-3. Identify the package manager and test/lint tools from `pyproject.toml`
-   rather than guessing.
-4. Do not revert unrelated user changes. If touched files already contain user
-   edits, work with them.
+Read applicable repository instructions and inspect the worktree before editing.
+Use `pyproject.toml` to resolve package layout, dependencies, and test/lint tools
+when needed. Read relevant `uv.lock` entries for dependency or environment
+questions; follow affected source, tests, README, and active plans only as the
+task requires. Preserve unrelated user edits and work with any overlapping
+changes.
 
 ## Change Discipline
 

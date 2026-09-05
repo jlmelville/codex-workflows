@@ -135,8 +135,10 @@ adapters that install backend results, read
 ## Common Commands
 
 Use the public-versus-internal test rule above when the private-call search
-finds a candidate. Run focused tests before the full suite; include Air or
-lintr when the change affects formatting or lint configuration.
+finds a candidate. Select commands for the change: use focused tests for scoped
+work and the full suite for shared behavior, integration risk, or explicit
+repository gates. Include Air or lintr when formatting or lint configuration
+changes. These commands are options, not a required sequence.
 
 ```sh
 rg -n ":::|getFromNamespace|\\.Call|RcppExports|sourceCpp" tests

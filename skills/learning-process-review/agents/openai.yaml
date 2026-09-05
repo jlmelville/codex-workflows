@@ -1,4 +1,4 @@
 interface:
   display_name: "Learning Process Review"
   short_description: "Review learning state and skill artifacts"
-  default_prompt: "Use $learning-process-review to review learning state and run any due public skill-artifact audit before proposing changes."
+  default_prompt: "Use $learning-process-review to review the requested learning-state or public-skill scope and complete any already-authorized follow-up."

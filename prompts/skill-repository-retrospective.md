@@ -7,6 +7,10 @@ Use this periodically after several skill-driven updates. Do not edit files,
 create commits, sync installed skills, or open PRs unless explicitly asked.
 Produce a report in chat.
 
+This is the full-corpus audit route. For an explicitly focused question, use
+[the focused public-review route](../skills/learning-process-review/SKILL.md#public-artifact-audit-route)
+instead of the full inspection and report requirements below.
+
 Inspect:
 
 - `skills/*/SKILL.md` trigger descriptions and core workflow guidance;

@@ -24,12 +24,17 @@ instructions to execute mechanically.
 
 ## Public Artifact Audit Route
 
-For a direct public-only audit, follow
+For a focused public-skill question, inspect the relevant guidance and connected
+surfaces. Report the scope, evidence, recommendations, and limits in a form that
+fits the question. Do not require the full audit checklist or report template;
+a focused review does not complete or reset the artifact-audit cadence.
+
+For a full public artifact audit, follow
 [the repository-root artifact-audit prompt](../../prompts/skill-repository-retrospective.md).
-Do not require or inspect private learning state as audit evidence. Defer cadence
-or completed-audit state access until after the report and applicable mutation
-gate. In a broader process review, run the same prompt as a separate due-cadence
-report and keep private state out of its findings.
+Keep private learning state out of both review routes. For full audits, defer
+cadence or completed-audit state access until after the report and applicable
+mutation gate. In a broader process review, run the same prompt as a separate
+due-cadence report and keep private state out of its findings.
 
 ## Private Learning-State Review
 

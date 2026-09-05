@@ -8,6 +8,11 @@ Read this only after `SKILL.md` identifies a possible candidate or verification 
 - Consolidate by missing delta and decision, or by accepted identity and claim. Write one file per
   distinct result and split materially different deltas into independently judgeable records.
 - Recheck privacy and preserve only evidence needed to judge the decision or claim.
+- For admitted records about pauses or detours attributed to instructions, identify the source file and
+  clause, the authorized work interrupted, and the observed action and consequence. Quote only a bounded,
+  privacy-safe excerpt; otherwise give a sanitized summary. Distinguish the instruction's explicit
+  requirement from the agent's interpretation, and observed effects from suspected causation. An agent's
+  explanation alone does not establish causation.
 
 ## Candidate Evidence
 

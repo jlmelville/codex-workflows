@@ -19,18 +19,16 @@ non-duplicative.
 
 ## First Pass
 
-1. Inspect the worktree before editing:
-   `git --no-optional-locks status --short --untracked-files=all`.
-2. Find existing instruction files and local skills:
+Read applicable instruction files and inspect the worktree before editing.
+Consult nearby docs, active plans, and relevant skills when needed to establish
+an instruction's purpose, scope, or better home. For broader discovery, use:
 
-   ```sh
-   rg --files -uu | rg '(^|/)(AGENTS|CLAUDE|PLANS)\.md$|(^|/)\.agents/|(^|/)docs/agents/'
-   ```
+```sh
+rg --files -uu | rg '(^|/)(AGENTS|CLAUDE|PLANS)\.md$|(^|/)\.agents/|(^|/)docs/agents/'
+```
 
-3. Read the current `AGENTS.md` or equivalent, nearby repo docs, active plans,
-   and relevant installed skills before deciding what belongs where.
-4. Preserve user changes. If instruction files are untracked or ignored, still
-   treat them as user-authored guidance.
+Preserve user changes. Treat untracked or ignored instruction files as
+user-authored guidance too.
 
 ## Classification
 
