@@ -3,6 +3,37 @@
 Use these contracts when performance evidence must survive incremental runs,
 span multiple files, or support a later human decision.
 
+## Observe A Subprocess
+
+For a long operational command whose lifecycle is part of the evidence, use the optional Python 3
+launcher on Linux or macOS:
+
+```sh
+python3 "${HOME}/.agents/skills/r-performance-workflow/scripts/subprocess-evidence.py" \
+  --out /tmp/operation-evidence --poll-seconds 30 -- Rscript --vanilla -e 'sum(1:10)'
+```
+
+The output directory must be new and its parent must exist. It contains separate stdout/stderr logs
+and an atomic `report.json` with argv, working directory, UTC start/finish, command-lifecycle elapsed
+seconds, and real return code. The helper propagates failure even if the workload wrote an apparent
+success artifact. `SIGINT` and `SIGTERM` cancel the owned process group, with at most five seconds
+before forced cleanup; independently detached workers are outside that group. Abrupt death of the
+observer itself may leave a `running` report, which is incomplete evidence.
+
+Use repeated `--watch FILE` arguments for a bounded before/after file set, interpreted relative to the
+invocation directory; missing files are recorded and symlinks or non-regular files are rejected.
+Metadata equality establishes only equal size and modification time. Add `--hash` when content
+identity matters. A witness failure leaves the child's return code intact in the report but makes
+the observer fail. Workload-specific result assertions remain separate.
+
+`--cwd` changes the command's working directory. The launcher records argv but does not freeze or
+relocate program files; preserve their inputs and do not edit a running script. It does not capture
+environment variables or measure parent/worker CPU and memory. Keep R profiling separate and label
+inclusive samples and component timings by their measured scope. The existing
+[read-only process observer](../../r-package-workflow/references/revdepcheck.md#keep-preparation-outside-the-package-source)
+can inspect an already-running Linux process. Run `subprocess-evidence.py --self-test` for temporary
+lifecycle, failure, file-witness, and cancellation fixtures.
+
 ## Resumable Evidence Checkpoints
 
 Treat an incremental checkpoint as an evidence cache rather than a list of

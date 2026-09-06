@@ -32,6 +32,13 @@ Common fields:
 - Search for stale public names after renames, including examples, articles,
   README, NEWS, `_pkgdown.yml`, `NAMESPACE`, and `man/*.Rd`.
 
+For a synchronization assessment, compare the recorded generator version with the installed version
+and run `roxygen2::needs_roxygenize()` on the exact candidate. Honor repository generator pins. On
+reported drift, evaluate generation in a temporary copy or an authorized documentation phase, inspect
+`DESCRIPTION` metadata separately from `man/*.Rd` and `NAMESPACE`, and require an idempotent second
+pass. Apply the metadata policy above and rerun affected checks when generated content changes.
+Unchanged source does not establish that a different generator produces unchanged output.
+
 ## README
 
 Keep README short:

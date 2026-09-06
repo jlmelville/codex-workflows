@@ -12,6 +12,9 @@ Use this for documentation and pkgdown work in R packages.
 - Keep README focused on installation, quick start, and links.
 - For GitHub installation instructions in new or refreshed READMEs, prefer
   `pak::pak("owner/repo")` over deprecated `devtools::install_github()`.
+- Check that the installation recipe supplies the packages required by the displayed quick start.
+  When that path uses optional dependencies, request those explicitly or add an adjacent install
+  step; a package manager's default dependency selection may include only hard dependencies.
 - Move long method explanations, literature notes, and extended examples into
   pkgdown articles.
 - When an article or vignette labels a chunk self-contained or copy-paste-ready,

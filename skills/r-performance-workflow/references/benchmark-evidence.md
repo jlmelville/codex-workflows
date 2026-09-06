@@ -71,6 +71,12 @@ Derive feasible capacity after structural caps and require every selected unit t
 Freeze each case's evaluative or diagnostic role before the grid. Retain raw diagnostic outcomes, but report
 role-specific denominators so universally solved or unsolved probes do not silently control an aggregate ranking.
 
+When one initialization or scaling control must serve a frozen heterogeneous input suite, preflight
+its numerical suitability on every frozen input before tuning or performance acquisition. Check
+finite values, unintended clipping or floor activation, nondegenerate gradients, and applicable
+derivative invariants, then freeze one common feasible value. Keep this screen label-free and separate
+from optimizer outcomes; it does not permit held-out performance inspection or per-input tuning.
+
 Use bounded direct/wrapped, zero/one-operation, scaling-heavy, and rich/minimal-result probes to separate costs.
 Profiles choose targets; representative whole-operation benchmarks plus the semantic oracle decide what to keep.
 
@@ -109,3 +115,10 @@ cons cells or performed no allocation work. When a zero is surprising, add a
 sanity control that the profiler should detect. If allocation is
 decision-critical, select a profiler that observes the relevant class or state
 the limitation explicitly.
+
+For R buffer accumulation, measure copying through the actual update helper or callback with
+`tracemem()` or `Rprofmem()` at increasing sizes. Preallocation and environment ownership do not by
+themselves establish amortized growth: references introduced at that boundary can still cause copies,
+even when a similar top-level assignment does not. Direct binding updates in private closure-owned
+buffers are one option to test; retain exact output checks and measured allocation scaling as the
+acceptance evidence.

@@ -27,6 +27,10 @@ one row for every upstream-eligible point even when a narrower raw operation is
 unavailable. Compare layers only where both objects exist; record unavailable
 comparison explicitly.
 
+For strict trajectory replay, use the
+[operation-order and prefix/full bridge contract](../../r-performance-workflow/references/benchmark-evidence.md#gate-and-probe-design)
+before rewriting an algebraically equivalent recurrence.
+
 When the real implementation returns a reason that collapses materially
 different internal branches, preserve its result and replay only the smallest
 pure deterministic predicate that owns the distinction on the exact captured,

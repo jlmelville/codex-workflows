@@ -23,9 +23,9 @@ metadata_contract <- c(
 )
 
 supported_map_metadata <- c(
-  format_version = "1",
+  format_version = "2",
   producer = "r-architecture-map.R",
-  producer_version = "1"
+  producer_version = "2"
 )
 
 parse_args <- function(args) {
@@ -116,6 +116,7 @@ table_contracts <- list(
     "target_functions"
   ),
   sccs = c("scc_id", "size", "files", "members"),
+  `file-sccs` = c("size", "members"),
   `private-test-coupling` = c("symbol", "source_file", "test_file")
 )
 
@@ -574,6 +575,7 @@ metric_values <- function(map) {
     internal_edges = nrow(map$edges),
     cross_file_edges = sum(coupling_edges, na.rm = TRUE),
     multi_function_sccs = sum(scc_sizes > 1L, na.rm = TRUE),
+    cyclic_file_components = nrow(map$`file-sccs`),
     private_test_references = nrow(map$`private-test-coupling`)
   )
 }
@@ -603,6 +605,12 @@ compare_maps <- function(before, after) {
       after$`file-coupling`
     ),
     sccs = scc_changes(before$sccs, after$sccs),
+    file_sccs = set_changes(
+      before$`file-sccs`,
+      after$`file-sccs`,
+      table_contracts$`file-sccs`,
+      "file-sccs.tsv"
+    ),
     private_test_coupling = set_changes(
       before$`private-test-coupling`,
       after$`private-test-coupling`,
@@ -691,10 +699,15 @@ build_summary <- function(result, top) {
     paste0("- Added or removed edges: ", nrow(result$edges)),
     paste0("- Cross-file coupling changes: ", nrow(result$file_coupling)),
     paste0("- Component changes: ", nrow(result$sccs)),
+    paste0("- Cyclic file component changes: ", nrow(result$file_sccs)),
     paste0(
       "- Added or removed private-test references: ",
       nrow(result$private_test_coupling)
     ),
+    "",
+    "## Cyclic File Component Changes",
+    "",
+    markdown_table(head(result$file_sccs, top)),
     "",
     "## Interpretation Boundary",
     "",
@@ -764,6 +777,7 @@ write_report <- function(result, out, top) {
   write_tsv(result$edges, file.path(stage, "edges.tsv"))
   write_tsv(result$file_coupling, file.path(stage, "file-coupling.tsv"))
   write_tsv(result$sccs, file.path(stage, "sccs.tsv"))
+  write_tsv(result$file_sccs, file.path(stage, "file-sccs.tsv"))
   write_tsv(
     result$private_test_coupling,
     file.path(stage, "private-test-coupling.tsv")
@@ -782,14 +796,15 @@ write_fixture_map <- function(
   coupling,
   sccs,
   tests,
+  file_sccs = data.frame(size = integer(), members = character()),
   reference_method = "codetools"
 ) {
   dir.create(root)
   write.table(
     data.frame(
-      format_version = "1",
+      format_version = "2",
       producer = "r-architecture-map.R",
-      producer_version = "1",
+      producer_version = "2",
       reference_method = reference_method
     ),
     file.path(root, "metadata.tsv"),
@@ -832,6 +847,7 @@ write_fixture_map <- function(
     row.names = FALSE,
     quote = TRUE
   )
+  write_tsv(file_sccs, file.path(root, "file-sccs.tsv"))
 }
 
 run_self_test <- function() {
@@ -916,6 +932,14 @@ run_self_test <- function() {
     test_file = "tests/testthat/test-b.R"
   )
   after_tests <- before_tests
+  before_file_sccs <- data.frame(
+    size = c(2L, 3L),
+    members = c("R/a.R,R/b.R", "R/c.R,R/d.R,R/e.R")
+  )
+  after_file_sccs <- data.frame(
+    size = c(2L, 2L),
+    members = c("R/x.R,R/y.R", "R/a.R,R/b.R")
+  )
 
   write_fixture_map(
     before_root,
@@ -923,7 +947,8 @@ run_self_test <- function() {
     before_edges,
     before_coupling,
     before_sccs,
-    before_tests
+    before_tests,
+    before_file_sccs
   )
   write_fixture_map(
     after_root,
@@ -931,7 +956,8 @@ run_self_test <- function() {
     after_edges,
     after_coupling,
     after_sccs,
-    after_tests
+    after_tests,
+    after_file_sccs
   )
   before_map <- read_map(before_root)
   after_map <- read_map(after_root)
@@ -950,6 +976,14 @@ run_self_test <- function() {
     compatibility_error,
     fixed = TRUE
   ))
+  for (field in c("format_version", "producer_version")) {
+    incompatible_map <- after_map
+    incompatible_map$metadata[[field]] <- "1"
+    stopifnot(inherits(
+      try(compare_maps(before_map, incompatible_map), silent = TRUE),
+      "try-error"
+    ))
+  }
   result <- compare_maps(before_map, after_map)
   stopifnot(identical(result, compare_maps(before_map, after_map)))
   stopifnot(
@@ -965,12 +999,23 @@ run_self_test <- function() {
   stopifnot(nrow(result$sccs) == 1L)
   stopifnot(result$sccs$members[[1L]] == "gamma")
   stopifnot(nrow(result$private_test_coupling) == 0L)
+  stopifnot(nrow(result$file_sccs) == 2L)
+  stopifnot(
+    result$file_sccs$change[result$file_sccs$members == "R/c.R,R/d.R,R/e.R"] ==
+      "removed"
+  )
+  stopifnot(
+    result$file_sccs$change[result$file_sccs$members == "R/x.R,R/y.R"] ==
+      "added"
+  )
+  stopifnot(!"R/a.R,R/b.R" %in% result$file_sccs$members)
+  stopifnot(nrow(compare_maps(before_map, before_map)$file_sccs) == 0L)
 
   out <- file.path(root, "diff")
   write_report(result, out, 10L)
   stopifnot(all(file.exists(file.path(
     out,
-    c("summary.md", "metrics.tsv", "functions.tsv", "sccs.tsv")
+    c("summary.md", "metrics.tsv", "functions.tsv", "sccs.tsv", "file-sccs.tsv")
   ))))
   invisible(TRUE)
 }

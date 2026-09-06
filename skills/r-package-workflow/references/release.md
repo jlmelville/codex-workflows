@@ -7,8 +7,9 @@ Repository Policy](https://cran.r-project.org/web/packages/policies.html) when r
 
 1. Reconcile the version across `DESCRIPTION`, NEWS, generated files, and
    `cran-comments.md`. Classify old remote findings against their exact archive.
-2. Run `roxygen2::needs_roxygenize()` on the exact candidate. Resolve drift in isolation or an authorized documentation phase;
-   inspect generated surfaces, require an idempotent second pass, and classify metadata-only churn.
+2. Assess the exact candidate using the
+   [roxygen synchronization recipe](../../r-docs-pkgdown/references/pkgdown.md#roxygen), including
+   isolated drift evaluation, generated-surface review, metadata classification, and idempotence.
 3. Build with current R-patched or R-release; inspect the archive's identity, contents, licenses, and documentation.
 
 ## Validate The Archive

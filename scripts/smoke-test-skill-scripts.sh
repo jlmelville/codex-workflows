@@ -185,6 +185,14 @@ run_architecture_audit_smoke() {
   Rscript --vanilla "${trace_script}" --self-test >/dev/null
 }
 
+run_evidence_helper_smoke() {
+  require_command python3
+  python3 "${repo_dir}/skills/r-performance-workflow/scripts/subprocess-evidence.py" --help >/dev/null
+  python3 "${repo_dir}/skills/r-performance-workflow/scripts/subprocess-evidence.py" --self-test >/dev/null
+  python3 "${repo_dir}/skills/r-docs-pkgdown/scripts/render-rmd-review.py" --help >/dev/null
+  python3 "${repo_dir}/skills/r-docs-pkgdown/scripts/render-rmd-review.py" --self-test >/dev/null
+}
+
 run_manifest_smoke() {
   local script="${repo_dir}/skills/local-r-dataset-manifest/scripts/validate_manifest.R"
   local smoke_dir="${tmp_root}/manifest"
@@ -1424,6 +1432,7 @@ run_patch_identity_smoke() {
 run_notebook_smoke
 run_benchmark_smoke
 run_architecture_audit_smoke
+run_evidence_helper_smoke
 run_manifest_smoke
 run_roxygen_smoke
 run_document_validation_smoke

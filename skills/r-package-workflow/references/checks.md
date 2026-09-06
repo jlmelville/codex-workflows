@@ -142,6 +142,12 @@ For CRAN packages or release preparation, follow the routed
 [release lifecycle](release.md) after development checks. It owns candidate
 identity, release validation, submission, acceptance, and return to development.
 
+For substantive ordinary handoffs of roxygen-managed packages, compare recorded and installed
+generator versions and probe synchronization even when comments and signatures are unchanged. Follow
+the [roxygen synchronization recipe](../../r-docs-pkgdown/references/pkgdown.md#roxygen) when drift is
+reported; a clean check with generation disabled does not establish generator synchronization. Reuse
+an already completed probe and generation on the same final candidate.
+
 Inspect generated and temporary output before finalizing:
 
 1. Run
@@ -205,6 +211,12 @@ versions, then run `air format .` and `air format . --check` and report the diff
 scope. Treat a version mismatch as an upgrade decision: trial the newer version
 on a temporary copy; if its diff is accepted, update the explicit CI pin and
 local tool together, otherwise use the pinned version and report the mismatch.
+
+When establishing local/CI lint parity, compare lintr versions as well as configuration and
+invocation; identical commands can exercise different rule defaults across releases. Reproduce a
+mismatch with the CI version before changing policy. When witnessed drift or duplicated commands
+justifies it, use one project entry point that checks the required version and gives an actionable
+installation diagnostic, with CI installing that same version.
 
 For scoped work, format and check the intended paths before the repository-wide
 check. Review unexpected non-generated `R/` changes on a temporary copy. Exclude

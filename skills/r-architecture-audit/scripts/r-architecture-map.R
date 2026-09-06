@@ -17,9 +17,9 @@ abort <- function(...) {
 
 map_metadata <- function(reference_method) {
   data.frame(
-    format_version = "1",
+    format_version = "2",
     producer = "r-architecture-map.R",
-    producer_version = "1",
+    producer_version = "2",
     reference_method = reference_method,
     stringsAsFactors = FALSE
   )
@@ -646,6 +646,35 @@ file_coupling <- function(edges, source_files) {
   result[order(result$source_file, result$target_file), , drop = FALSE]
 }
 
+cyclic_file_components <- function(coupling) {
+  empty <- data.frame(size = integer(), members = character())
+  if (nrow(coupling) == 0L) {
+    return(empty)
+  }
+  edges <- data.frame(
+    caller = coupling$source_file,
+    callee = coupling$target_file
+  )
+  vertices <- unique(c(edges$caller, edges$callee))
+  components <- Filter(
+    function(members) length(members) > 1L,
+    strong_components(vertices, edges)
+  )
+  if (length(components) == 0L) {
+    return(empty)
+  }
+  rows <- lapply(components, function(members) {
+    # Escape the member separator so filenames containing commas retain distinct identities.
+    encoded <- gsub("%", "%25", sort(members, method = "radix"), fixed = TRUE)
+    encoded <- gsub(",", "%2C", encoded, fixed = TRUE)
+    data.frame(size = length(members), members = paste(encoded, collapse = ","))
+  })
+  result <- do.call(rbind, rows)
+  result <- result[order(result$members, method = "radix"), , drop = FALSE]
+  rownames(result) <- NULL
+  result
+}
+
 markdown_escape <- function(value) {
   gsub("[|]", "\\\\|", as.character(value))
 }
@@ -707,6 +736,7 @@ build_summary <- function(result, top) {
       sum(result$file_coupling$edge_count)
     ),
     paste0("- Multi-function strongly connected components: ", nrow(multi_scc)),
+    paste0("- Cyclic file components: ", nrow(result$file_sccs)),
     paste0(
       "- Direct private-test references: ",
       nrow(result$private_test_coupling)
@@ -742,6 +772,10 @@ build_summary <- function(result, top) {
     "## Multi-function Components",
     "",
     markdown_table(multi_scc),
+    "",
+    "## Cyclic File Components",
+    "",
+    markdown_table(head(result$file_sccs, top)),
     "",
     "## Interpretation Boundary",
     "",
@@ -868,13 +902,15 @@ analyze_package <- function(package) {
     drop = FALSE
   ]
 
+  coupling <- file_coupling(edges, source_files)
   list(
     package_root = package_root,
     definition_count = length(inventory$definitions),
     metadata = map_metadata(edge_result$method),
     functions = functions,
     edges = edge_files,
-    file_coupling = file_coupling(edges, source_files),
+    file_coupling = coupling,
+    file_sccs = cyclic_file_components(coupling),
     sccs = sccs,
     private_test_coupling = test_coupling,
     diagnostics = diagnostics,
@@ -941,6 +977,7 @@ write_report <- function(result, out, top) {
   write_tsv(result$functions, file.path(stage, "functions.tsv"))
   write_tsv(result$edges, file.path(stage, "edges.tsv"))
   write_tsv(result$file_coupling, file.path(stage, "file-coupling.tsv"))
+  write_tsv(result$file_sccs, file.path(stage, "file-sccs.tsv"))
   write_tsv(result$sccs, file.path(stage, "sccs.tsv"))
   write_tsv(
     result$private_test_coupling,
@@ -993,12 +1030,62 @@ run_self_test <- function() {
       result$edges$reference_kind == "value"
   ))
   stopifnot(any(result$private_test_coupling$symbol == "dead_a"))
+  stopifnot(nrow(result$file_sccs) == 0L)
+
+  # File responsibility cycles need not contain any recursive functions.
+  fixtures <- list(
+    "a.R" = c(
+      "pair_a <- function() pair_b_leaf()",
+      "pair_a_leaf <- function() 1"
+    ),
+    "b.R" = c(
+      "pair_b <- function() pair_a_leaf()",
+      "pair_b_leaf <- function() 1"
+    ),
+    "c.R" = c(
+      "long_c <- function() long_d_leaf()",
+      "long_c_leaf <- function() 1"
+    ),
+    "d.R" = c(
+      "long_d <- function() long_e_leaf()",
+      "long_d_leaf <- function() 1"
+    ),
+    "e,%.R" = c(
+      "long_e <- function() long_c_leaf()",
+      "long_e_leaf <- function() 1"
+    )
+  )
+  for (file in names(fixtures)) {
+    writeLines(fixtures[[file]], file.path(root, "R", file))
+  }
+  result <- analyze_package(root)
+  stopifnot(all(
+    result$functions$scc_size[grepl("^(pair|long)_", result$functions$name)] ==
+      1L
+  ))
+  stopifnot(identical(result$file_sccs$size, c(2L, 3L)))
+  stopifnot(identical(
+    result$file_sccs$members,
+    c("R/a.R,R/b.R", "R/c.R,R/d.R,R/e%2C%25.R")
+  ))
+  stopifnot(identical(
+    result$file_sccs,
+    cyclic_file_components(result$file_coupling[
+      rev(seq_len(nrow(result$file_coupling))),
+    ])
+  ))
 
   out <- file.path(root, "report")
   write_report(result, out, 10L)
   stopifnot(all(file.exists(file.path(
     out,
-    c("summary.md", "metadata.tsv", "functions.tsv", "sccs.tsv")
+    c(
+      "summary.md",
+      "metadata.tsv",
+      "functions.tsv",
+      "sccs.tsv",
+      "file-sccs.tsv"
+    )
   ))))
   metadata <- read.delim(
     file.path(out, "metadata.tsv"),

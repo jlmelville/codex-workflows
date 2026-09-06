@@ -93,6 +93,12 @@ can start a representative reverse-dependency worker.
 
 ## Extend A Completed Stock Run
 
+For a custom resumable preparation runner, separate operator-selected semantic inputs from resources
+created during execution. A package-owned default cache becoming present must not by itself change
+the identity of an otherwise identical request; retain that cache for discovery and execution, and
+keep explicit cache selections identity-bearing. Test identical calls before and after first-run
+cache creation plus an explicit-cache contrast, without weakening artifact compatibility checks.
+
 Before resetting a completed run, distinguish its database, target-private
 libraries, and binary cache; workers may delete private libraries while leaving
 reusable archives. Record the cache root, audit exact versions and platform

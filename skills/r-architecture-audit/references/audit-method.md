@@ -17,6 +17,9 @@ package load hooks. Its report contains:
 - `edges.tsv`: conservative internal function and higher-order references;
 - `file-coupling.tsv`: cross-file edges aggregated by source and target file;
 - `sccs.tsv`: recursive components, including the files they cross;
+- `file-sccs.tsv`: cyclic components of the aggregated file graph, even when every function component
+  is a singleton; member sets are radix-sorted, comma-separated paths with `%` and `,` escaped as
+  `%25` and `%2C` so filenames remain unambiguous;
 - `private-test-coupling.tsv`: direct parsed references from tests to
   non-exported functions;
 - `metadata.tsv`: map format, producer and producer version, and reference
@@ -27,6 +30,15 @@ package load hooks. Its report contains:
 Review both extremes: large reachable components may expose responsibility
 coupling, while mutually referring unreachable functions may expose an entire
 stranded subsystem that a definition-only search misses.
+
+## Inspect Broad Lint Suppressions
+
+Inventory file-wide and large-range lint exclusions and report the files and source lines they hide
+relative to the inspected source. Inspect their rationale and sample the hidden diagnostics before
+judging removal; suppression extent is a reading priority, not a quality score. For R object-usage
+diagnostics, use the [current-package lint context](../../r-package-workflow/references/checks.md#formatting-and-lint)
+with current source and relevant test helpers loaded in a fresh process. A stale installed namespace
+or a context-free rerun can misclassify ordinary cross-file references as defects.
 
 ## Compare Frozen Maps
 
@@ -48,6 +60,9 @@ The comparison reports aggregate deltas and machine-readable changes in
 functions, reachability, complexity, edges, cross-file coupling, strongly
 connected components, and direct private-test references. Component identity is
 based on its member set rather than the mapper's run-local component number.
+File-component additions and removals are reported separately in `file-sccs.tsv`. Current maps use
+format and producer version 2; regenerate both snapshots with the current mapper when comparing older
+reports. File cycles identify responsibility boundaries to inspect, not automatic refactoring failures.
 
 ## Confirm R Reachability Claims
 

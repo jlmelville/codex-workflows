@@ -76,6 +76,13 @@ nonzero later-stage progress with a zero-total-transition or whole-step rollback
 control so stage-local status is not mistaken for aggregate failure.
 For resumable runners, table-cross outer process state, persisted completeness, and domain status so a failed execution cannot appear successful; separately inventory every execution-determining input consumed after resume, mutate one representative per input class after serialization, and require rejection before workers start.
 
+When resumability promises recovery from process death, synchronize on a persisted completion marker,
+terminate the actual child before its owning operation returns, and restart the public workflow in a
+fresh process. Use execution markers to distinguish retained complete domain units from unfinished
+units that may repeat. When cleanup survival is promised, remove exactly the advertised disposable
+state and repeat the recovery check. Caught errors and successful serialization alone do not exercise
+abrupt death, and retained progress does not imply exactly-once execution.
+
 ## Tagged Cache Entries
 
 Treat a cached value and its iteration, version, or parameter marker as one

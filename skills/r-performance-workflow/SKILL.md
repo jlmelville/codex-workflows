@@ -119,8 +119,8 @@ For the bundled evidence script, callback selected-point traces,
 allocation-evidence limits, workload-scoped gates, abstraction probes, or
 bounded exploratory grids, follow the
 [benchmark evidence guidance](references/benchmark-evidence.md). For resumable
-checkpoint contracts, heterogeneous artifact-assembly smokes, derived decision
-artifacts, or human-review projections, follow the
+checkpoint contracts, optional subprocess lifecycle observation, heterogeneous artifact-assembly
+smokes, derived decision artifacts, or human-review projections, follow the
 [evidence artifact contracts](references/evidence-artifact-contracts.md).
 If results are noisy, say so and record what stronger workload is needed.
 

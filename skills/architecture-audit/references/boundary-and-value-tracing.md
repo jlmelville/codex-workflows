@@ -23,6 +23,13 @@ ownership boundary. First establish whether the value can change, whether corrup
 detected at that boundary, and whether the consumer is independently supported. Those distinctions
 determine whether consolidation preserves the contract.
 
+When adjacent layers materialize or validate substantially the same entities, trace metadata and
+physical payloads separately. Compare their entity sets, persistence lifetimes, production consumers,
+and independent operator decisions. If one representation exists only to be copied or converted into
+the next, challenge that boundary before optimizing it. Retain a separate representation when a
+supported consumer or ownership contract requires it; metadata availability need not require a second
+copy of every payload.
+
 For a family of related fields or modes, use named search patterns to build a reproducible reading
 set, then classify the matches by their actual use. Lexical absence does not rule out computed
 names, dynamic dispatch, generated code, native consumers, or external use; a lexical match does

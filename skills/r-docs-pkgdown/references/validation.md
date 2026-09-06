@@ -96,6 +96,36 @@ Preserve every site-level script, stylesheet, asset, and interaction that the
 artifact or prose promises, or state explicitly which behavior the portable
 packet excludes.
 
+## Render A Working-Tree Review
+
+For a tracked R Markdown article whose equations or code make a source diff hard to review, generate
+an optional current-side HTML copy:
+
+```sh
+python3 "${HOME}/.agents/skills/r-docs-pkgdown/scripts/render-rmd-review.py" \
+  vignettes/articles/example.Rmd --base HEAD --out /tmp/article-review.html
+```
+
+Use the actual article path and a new output file in an existing directory. The helper compares the
+working tree, including staged changes, with the selected commit; expands changed lines to complete
+paragraphs, lists, code fences, display math, or fenced divs; and adds accessible change navigation.
+Deleted text is omitted, including deletion-only diffs, and the artifact states that limitation.
+Review removals in Git. Front-matter edits, reference-definition edits, raw HTML blocks, raw TeX
+environments outside `$$` or `\[` display math, and malformed block delimiters require source review
+instead of an inferred highlight. Responsive `srcset` assets require separate asset review.
+
+Rendering requires Python 3, Git, R, rmarkdown, and Pandoc and executes the document's chunks with the
+original source directory as their working root. Prepare its ordinary package and data dependencies
+first. The temporary copy uses standard self-contained HTML with embedded MathML; site themes,
+plugins, and original output-format options are outside this portable review. Source-level chunk
+options still apply. The source file is preserved; chunk side effects follow the document's code.
+
+Before publishing the new file, the helper checks region counts, unique navigation controls, and
+embedded assets, and rejects source changes during rendering. Inspect the exact delivered HTML for
+layout and interaction quality as well. `render-rmd-review.py --self-test` checks block and artifact
+contracts without R; `--self-test-render` additionally exercises real math, tables, relative data,
+chunk output, figures, nested divs, lists, deletion-only changes, and output preservation.
+
 ## Inspect Rendered Numerical Tables
 
 Inspect rendered table cells in addition to their source objects. Fixed decimal
