@@ -1,21 +1,20 @@
 ---
 name: r-architecture-audit
-description: Audit R package architecture before structural cleanup. Use for package modularity, bloat, dead-code, reachability, coupling, or proportionality reviews.
+description: Audit R package structure or diffs with R-specific reachability, dispatch, and mapping tools. Use for package modularity, dead-code, coupling, or simplification reviews.
 ---
 
 # R Architecture Audit
 
-Produce a checked, report-only architecture map before recommending package-wide
-splits, deletions, or rewrites. Treat static metrics as navigation evidence, not
-quality scores or automatic refactoring verdicts.
+Read [architecture-audit](../architecture-audit/SKILL.md) for the shared scope, authority, consumer
+evidence, simplification judgment, and report contract. Apply this extension to R packages; if the
+general skill routed here, continue with its already-loaded contract.
 
 ## Audit Boundary
 
-Start from the owner's question and the package's actual public surface. Read
-`DESCRIPTION`, `NAMESPACE`, any `Collate` policy, `R/`, relevant compiled or
-generated boundaries, tests, vignettes, scripts, and active plans. Record the
-current revision and worktree state. Do not edit the package unless the user
-separately asks to implement an accepted recommendation.
+Establish R package roots from `DESCRIPTION`, `NAMESPACE`, any `Collate` policy, and `R/`. Include
+compiled or generated boundaries, tests, vignettes, scripts, and active plans as relevant. For a
+bounded diff, trace the affected package routes; a full package map is useful when reachability or
+cross-file structure is part of the question.
 
 Use the bundled mapper for a conventional package:
 
@@ -33,27 +32,16 @@ assignment, generated registration, heavy reflection, or runtime plugin systems,
 use the mapper only as a high-recall starting point and trace those mechanisms
 manually.
 
-## Judgment
+## R-Specific Judgment
 
-- Cross-check function-aware references with repository-wide search. A static
-  absence is a deletion candidate, never proof of dead code.
-- Trace representative public routes across data ownership, persistence, and
-  external-process boundaries. A reachable function or value can still have no
-  production consumer.
-- Separate source responsibility from filenames. Multi-file cycles, high
-  complexity, and large private test surfaces identify where to read; they do
-  not require a file split or public API.
-- Preserve dynamic dispatch, load hooks, native entry points, generated calls,
-  configuration lookup, and non-package consumers unless evidence rules them
-  out.
-- Prefer removing a confirmed stranded branch or behaviorless variant before
-  introducing a new abstraction around it.
+- Confirm S3, S4, R6, nonstandard evaluation, package hooks, native registration, and supported
+  non-exported entry points using the R-specific checks in the audit method.
+- For base-R, dependency, or native replacements, preserve missing-value behavior, vector recycling,
+  attributes and classes, ordering, sparse representations, numerical tolerances, and allocation
+  costs where applicable. Use `$r-performance-workflow` when measured speed or memory claims matter.
 
-## Output
+## R Evidence And Handoff
 
-Report the public roots and principal operator paths, cross-file components and
-complexity concentrations, unreachable or test-only candidates with confidence
-and caveats, value-level non-consumers, and the smallest recommended actions.
-Distinguish safe deletion candidates, design questions, and accepted behavior.
-If implementation is requested, hand the accepted scope to `$r-package-workflow`
-and use `$planning-workflow` for a broad refactor.
+Attach relevant mapper or comparison evidence to the shared report, including namespace roots,
+dynamic-consumer caveats, and direct private-test coupling. If implementation is requested, hand
+the accepted scope to `$r-package-workflow`.

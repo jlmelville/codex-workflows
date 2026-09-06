@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Audit"
+  short_description: "Review structure and simplify with consumer evidence"
+  default_prompt: "Use $architecture-audit to review this diff or repository for unnecessary complexity and report behavior-preserving simplifications."

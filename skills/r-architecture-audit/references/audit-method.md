@@ -1,8 +1,8 @@
 # R Architecture Audit Method
 
-Use this procedure to turn the mapper's static inventory into a bounded
-architecture judgment. The goal is to identify where human review is valuable
-and which structural claims survive source confirmation.
+Use this reference for R mapper evidence, snapshot compatibility, and R-specific consumer checks.
+The shared [architecture-audit](../../architecture-audit/SKILL.md) owns structural judgment and the
+report contract.
 
 ## Read The Structural Map
 
@@ -48,15 +48,11 @@ The comparison reports aggregate deltas and machine-readable changes in
 functions, reachability, complexity, edges, cross-file coupling, strongly
 connected components, and direct private-test references. Component identity is
 based on its member set rather than the mapper's run-local component number.
-Treat every delta as a reading guide: source reduction or a smaller component
-does not establish better architecture without the corresponding responsibility,
-consumer, and behavior evidence.
 
-## Confirm Reachability Claims
+## Confirm R Reachability Claims
 
-For each deletion candidate, search its exact definition and references across
-the complete repository, including tests, vignettes, scripts, configuration,
-generated files, and ignored development material when relevant. Inspect:
+Extend the shared consumer search to package vignettes, generated wrappers, and ignored development
+material when relevant. Inspect:
 
 - `get()`, `assign()`, `do.call()`, formula or string dispatch, registries, and
   option-driven lookup;
@@ -66,33 +62,7 @@ generated files, and ignored development material when relevant. Inspect:
   and
 - documented or supported private entry points used outside the package.
 
-Classify candidates as confirmed unreachable, test-only, dynamically reachable,
-or unresolved. Delete only after the supported consumer boundary is clear.
-
-## Trace Boundaries And Values
-
-Choose representative public operations rather than tracing every function.
-For each route, record:
-
-| Boundary | Questions |
-| --- | --- |
-| Input ownership | Is the value user-, package-, callback-, or tool-owned? |
-| Validation | Is it validated once at ownership transfer or repeatedly afterward? |
-| Persistence | Which values cross files, sessions, caches, or process boundaries? |
-| External work | Which function actually launches, queries, or mutates an external system? |
-| Consumption | Which branch, output, or side effect changes because of the value? |
-
-Then trace representative modes, fields, and configuration values beyond
-function reachability. Distinguish construction, validation, hashing,
-serialization, testing, branching, output, and external-effect uses. A mode or
-field that is only validated, hashed, serialized, or tested may preserve data
-shape without driving production behavior; confirm its consumers before calling
-it live or dead.
-
-Repeated validation or hashing of package-owned immutable values is a possible
-trust-boundary smell, not automatically wasted work. First establish whether
-the value can change, whether corruption must be detected at that boundary, and
-whether the consumer is independently supported.
+## Trace R Value Families
 
 For a field, mode, or related evidence family that function reachability cannot
 represent, build a reproducible lexical reading set with named patterns:
@@ -106,43 +76,7 @@ Rscript "${HOME}/.agents/skills/r-architecture-audit/scripts/r-value-family-trac
   --out /tmp/diagnostic-family.tsv
 ```
 
-The trace scans conventional source, test, and documentation roots and emits one
-row per matching file and line, with all matching pattern names, enclosing
-top-level R function when available, and source text. Manually classify each row
-as construction, behavioral consumption, validation or identity-only use,
-persistence, public output, or operator decision. Lexical absence does not rule
-out computed names, dynamic dispatch, generated code, native consumers, or
-external use, and a lexical match does not establish semantic reachability.
-
-## Interpret Structure Proportionally
-
-Aggregate function count, source extent, complexity, and cross-file edges by
-responsibility, not merely by file. Use the results to select reading order:
-
-- a multi-file strongly connected component suggests coupled responsibilities
-  worth tracing together;
-- a high-complexity validator may be justified by a large public state space;
-- many private tests can indicate essential safety coverage or a stranded
-  private product surface; and
-- a large unreachable component deserves confirmation before any broader
-  modularity proposal.
-
-Do not turn thresholds into pass/fail gates. Compare structural cost with the
-size of the public API, operator path, supported variants, safety boundaries,
-and demonstrated consumers.
-
-## Report Shape
-
-Lead with the owner's architecture question and a compact map of the public
-surface. Then report:
-
-1. principal public routes and responsibility boundaries;
-2. cross-file components and complexity concentrations;
-3. confirmed, test-only, dynamic, and unresolved reachability findings;
-4. value-level variants or fields without production consumers;
-5. direct private-test coupling and what behavior those tests protect; and
-6. recommendations ordered by confidence and reversibility.
-
-Keep deletion candidates separate from design seams. A useful report may
-recommend deletion, consolidation, a later bounded refactor, or no structural
-change.
+The trace scans conventional source, test, and documentation roots and emits one row per matching
+file and line, with all matching pattern names, enclosing top-level R function when available, and
+source text. Classify the rows using the shared
+[boundary and value tracing method](../../architecture-audit/references/boundary-and-value-tracing.md).

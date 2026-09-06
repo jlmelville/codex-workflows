@@ -47,6 +47,12 @@ Inspect the resulting actions and artifacts. Compare the existing and revised
 guidance only when the question requires a comparator, and state the limits of
 that observation, including the model and context when known.
 
+For comparisons, isolate each condition's instructions, plugins, conversation history, and workspace
+so the baseline cannot inherit the guidance under evaluation. Hold the task and resources comparable.
+Before trusting an automated scorer, check that a known-good result passes and a plausible bad result
+fails on the behavior being measured. Verify required behavior before interpreting reductions in
+code size, tool calls, or cost; report untested dimensions separately.
+
 This is optional authoring evidence. It does not establish ordinary later-use
 effectiveness or satisfy a `later-session` verification opportunity. Keep the
 existing typed evidence requirements. Do not build maintained prompt corpora,

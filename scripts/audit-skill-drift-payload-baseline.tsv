@@ -1,5 +1,7 @@
 # scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
 skill	agent-instructions-maintenance	160	800	9576	73576
+# Accepted scope: shared architecture audit and simplification contract, with an R extension.
+skill	architecture-audit	80	110	5500	8000
 skill	codex-approval-rules-audit	160	800	13130	77130
 skill	codex-skill-repo	192	800	8571	56927
 skill	dependabot-pr-maintenance	160	800	9547	65161
@@ -26,5 +28,5 @@ skill	skill-retro	160	850	9843	41785
 skill	skill-retro-triage	178	800	9139	71334
 skill	technical-writing	100	240	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
-# Accepted scope: conditional context and checks, pause evidence, focused public reviews.
-repository	instructional-markdown	-	9076	-	450000
+# Accepted scope: shared architecture audit, R extension, and bounded evaluation controls.
+repository	instructional-markdown	-	9107	-	450000

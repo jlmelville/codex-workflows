@@ -1,4 +1,5 @@
 # section	pattern	rationale
+Description Overlap	architecture-audit <-> r-architecture-audit	General structural review and its R package extension intentionally share audit triggers; explicit routing keeps shared judgment in architecture-audit and R tools in r-architecture-audit.
 Repeated Helper Names	frontmatter:	Small parser helper names are acceptable in separate repository scripts.
 Repeated Helper Names	require_command:	Small smoke-test helper names are acceptable in unrelated script contexts.
 Machine-Specific Paths	skills/local-r-dataset-manifest/	The local dataset skill intentionally names James-local paths and requires path verification before use.
