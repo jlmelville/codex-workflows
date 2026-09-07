@@ -179,6 +179,27 @@ run_architecture_audit_smoke() {
   require_command Rscript
   Rscript --vanilla "${map_script}" --help >/dev/null
   Rscript --vanilla "${map_script}" --self-test >/dev/null
+
+  local package_dir="${tmp_root}/architecture-package"
+  local report_dir="${tmp_root}/architecture-report"
+  Rscript --vanilla - "${package_dir}" <<'RS'
+root <- commandArgs(TRUE)[[1L]]
+dir.create(file.path(root, "R"), recursive = TRUE)
+writeLines(c("Package: architecturefixture", "Version: 0.0.1"), file.path(root, "DESCRIPTION"))
+writeLines("export(entry)", file.path(root, "NAMESPACE"))
+writeLines(
+  c("utils::globalVariables('x')", "entry <- function(x) x"),
+  file.path(root, "R", "entry.R")
+)
+RS
+  Rscript --vanilla "${map_script}" --package "${package_dir}" --out "${report_dir}" >/dev/null
+  Rscript --vanilla - "${report_dir}" <<'RS'
+root <- commandArgs(TRUE)[[1L]]
+stopifnot(file.exists(file.path(root, "summary.md")))
+functions <- read.delim(file.path(root, "functions.tsv"))
+stopifnot(nrow(functions) == 1L, functions$name == "entry", functions$public_root)
+RS
+
   Rscript --vanilla "${diff_script}" --help >/dev/null
   Rscript --vanilla "${diff_script}" --self-test >/dev/null
   Rscript --vanilla "${trace_script}" --help >/dev/null

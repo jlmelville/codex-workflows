@@ -1,7 +1,7 @@
 # Diagnostic Regressions
 
-Use this for focused tests that must preserve warning behavior, diagnostic
-direction, metadata attributes, or useful table-driven failure labels.
+Use this for focused tests that must preserve warning behavior, diagnostic direction, metadata
+attributes, useful table-driven failure labels, or nested-process failure output.
 
 ## Partial-Match Warnings
 
@@ -71,6 +71,15 @@ value and complete ordered condition stream both matter, capture the stream
 with `withCallingHandlers()`, muffle every intended condition, then assert the
 value, count, order, and distinguishing content. Do not suppress important
 conditions merely to keep a passing reporter quiet.
+
+## Nested Process Failures
+
+When integration fixtures launch child processes, retain actionable failure output before temporary
+fixture cleanup runs. Emit bounded child diagnostics into the parent failure stream or copy selected
+logs to a location owned by the check-artifact collector. Uploading the parent check directory cannot
+recover logs already deleted by a fixture. Exercise a deliberately failing child and confirm its
+output survives cleanup in the reported failure or collected artifact; keep successful runs quiet
+and avoid retaining whole temporary trees by default.
 
 ## Optional Progress Diagnostics
 

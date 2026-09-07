@@ -47,9 +47,14 @@ evaluate when substantial user redirection exposes missing guidance or reusable
 craft.
 
 For ordinary opportunistic confirmation in materially involved destinations,
-use `verification-opportunities --destination TEXT` as a pull query. When
-observed failure or harm bears on active guidance, use a bounded
-`accepted-records --destination TEXT` or `--text TEXT` query to find the
+use the installed helper for a read-only pull query:
+
+```sh
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-opportunities --destination TEXT
+```
+
+When observed failure or harm bears on active guidance, use a bounded
+`accepted-records --destination TEXT` or `--text TEXT` query through the same helper to find the
 applicable identity, including a supported record, and read its recorded
 opportunity. Route contradiction only when the evidence addresses that claim
 and opportunity; use a candidate when the decision itself changes. A query hit

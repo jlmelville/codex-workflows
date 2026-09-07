@@ -23,10 +23,11 @@ still attempts unavailable dependency planning, install the current source
 directly into an explicit temporary library and put that library first for the
 render.
 
-When `NEWS.md` structure or intervening prose is in doubt, install the built
-candidate in a temporary library, call `utils::news()`, inspect the latest
-`Version`, `Category`, and `Text`, and print the full database. This tests R's
-supported reader at the distribution boundary.
+When `NEWS.md` structure or intervening prose is in doubt, install the built candidate in a temporary
+library, call `utils::news()`, inspect the latest `Version`, `Category`, and `Text`, and display the full
+database. If `print.news_db()` fails because Date metadata is absent, use
+`print(as.data.frame(news_db))` on the parsed object; a display failure does not imply a parser failure.
+This tests R's supported reader at the distribution boundary.
 
 ## Validate The Claimed Lesson
 
@@ -45,16 +46,10 @@ largest raw value as best.
 
 ## Preserve Technical-Article Integrity
 
-Before revising a technical article, identify its primary reader task. Keep the
-code, visible output, and interpretation aligned with that task. As a default,
-give each substantial reader-facing passage a clear function such as orienting
-the reader, defining a needed relationship, motivating a problem, explaining a
-choice, connecting adjacent steps, interpreting visible evidence, or stating a
-consequence. Hidden semantic checks normally need no narration; explain their
-underlying invariant only when it independently helps the reader. Review
-contrasts and caveats in context rather than mechanically removing connective
-words, because a meaningful distinction may be the clearest way to explain a
-boundary. Inspect the rendered article to confirm that hidden chunks do not
+Use [$technical-writing](../../technical-writing/SKILL.md) for reader-task, sentence-admission, and
+contrast judgments. Keep article code, visible output, and interpretation aligned with that task.
+Hidden semantic checks normally need no narration; explain their underlying invariant only when it
+independently helps the reader. Inspect the rendered article to confirm that hidden chunks do not
 leave visible transitions or references without their payoff.
 During final technical reconciliation, map each hidden assertion to visible
 code, output, prose, or a declared executable example. Move unmatched schema
@@ -226,11 +221,12 @@ the check:
 Rscript --vanilla "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" --rmarkdown path/to/article.Rmd
 ```
 
-For a configured pkgdown article, pass its article name instead of a source
-path:
+For a configured pkgdown article, pass its full registered article key, including any subdirectory
+prefix, rather than a source path or basename. For example, an article registered as
+`articles/example` needs that complete key:
 
 ```sh
-Rscript --vanilla "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" --pkgdown article-name
+Rscript --vanilla "${HOME}/.agents/skills/r-docs-pkgdown/scripts/validate-document.R" --pkgdown articles/example
 ```
 
 The helper does not acquire dependencies; a missing one is a setup result. Its

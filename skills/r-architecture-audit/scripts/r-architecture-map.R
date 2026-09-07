@@ -120,7 +120,7 @@ source_extent <- function(ref) {
 }
 
 assignment_parts <- function(expr) {
-  if (!is.call(expr)) {
+  if (!is.call(expr) || !is.symbol(expr[[1L]])) {
     return(NULL)
   }
   head <- as.character(expr[[1L]])
@@ -1005,6 +1005,7 @@ run_self_test <- function() {
   writeLines(
     c(
       "entry <- function(x) dispatch(worker, x)",
+      "utils::globalVariables('x')",
       "dispatch <- function(fun, x) fun(x)",
       "worker <- function(x) if (x > 0) x else -x",
       "dead_a <- function(x = 1) dead_b(x)",

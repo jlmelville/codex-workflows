@@ -17,7 +17,7 @@ usage <- function(status = 0L, message = NULL) {
       "",
       "Options:",
       "  --rmarkdown DOCUMENT        Render one R Markdown document.",
-      "  --pkgdown ARTICLE           Build one configured pkgdown article.",
+      "  --pkgdown ARTICLE           Use the full registered key, e.g. articles/example.",
       "  --build-source              Build and install a source tarball instead of the source directory.",
       "  --expect-installed-doc PATH Require PATH beneath the installed package's doc/ directory.",
       "  --help                      Show this help."

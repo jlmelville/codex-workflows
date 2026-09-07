@@ -5,9 +5,11 @@ review needs compact, complete suite totals.
 
 ## Focused File Selection
 
-`testthat::test_local(filter = ...)` treats the filter as a regular expression
-over normalized `test-*.R` basenames. Derive patterns from the actual files.
-For exactly one file, anchor both ends:
+Inventory the installed testthat discovery set before deriving filters: its filename pattern is
+`^test.*\.[rR]$`, not just `test-*.R`. This includes `test_api.R` and lowercase `.r` files.
+`testthat::test_local(filter = ...)` matches a regular expression against context names with a leading
+`test-` or `test_` and the R extension removed. Derive patterns from the actual discovered files; other
+`test` prefixes remain in the context name. For exactly one file, anchor both ends:
 
 ```r
 testthat::test_local(filter = "^api$")

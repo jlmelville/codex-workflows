@@ -102,8 +102,8 @@ regressions, read
 
 ## Diagnostic Regressions
 
-For warning regressions, paired validation branches, metadata attributes, or
-table-driven diagnostic labels, read
+For warning regressions, paired validation branches, metadata attributes, table-driven diagnostic
+labels, or nested-process failure output, read
 [diagnostic-regressions.md](references/diagnostic-regressions.md).
 
 ## testthat Edition Migrations

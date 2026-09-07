@@ -183,6 +183,18 @@ CRAN package metadata, and CRAN news timeline metadata. DNS errors for hosts
 such as `cloud.r-project.org` or `crandb.r-pkg.org` are sandbox/network
 evidence; if the build matters, request approval and rerun with escalation.
 
+If initialization was interrupted, retry with a fresh temporary destination. A partial nonempty
+directory may lack pkgdown ownership metadata and fail the next build's destination safety check.
+Preserve partial output when it carries useful evidence; do not bypass the check or clear a destination
+whose contents are not known to be disposable generated output.
+
+Before a full site build, inspect root-level Markdown as site input: pkgdown can render additional
+pages independently of Git and R build ignore rules. Keep local backups outside the build input or
+use a staging copy containing only intended sources. Check generated page membership before
+publication. For intended root guides, inspect rendered links as well as local file targets; relative
+`R/` or `tests/` links can point to unpublished files. Use repository-hosted source URLs for those
+targets and verify both the repository paths and rendered destinations.
+
 In restricted Codex sandboxes, set cache paths to writable temporary
 directories when needed, for example `XDG_CACHE_HOME=/tmp/pkgdown-cache`. Treat
 generated `docs/` output as source diff only when the repo tracks or explicitly
