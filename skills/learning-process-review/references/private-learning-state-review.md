@@ -63,6 +63,18 @@ Behavioral conclusion:
 Plan-to-diff size may identify an anomaly but is never a target or sufficient
 verdict. Do not infer utility from conformance or successful completion alone.
 
+Within an already-due review, select a few learned rules relevant to the evidence. In the existing
+review note, record the decision each changes, downstream value, reading and application cost,
+maintenance cost, proposed treatment, and behavior that must survive. Use
+[candidate maintenance judgment](../../skill-retro-triage/references/candidate-judgment.md) to compare
+remedies. A justified retention or no-change decision completes the trial.
+
+When task evidence is available, trace one selected lesson from the user's request through the
+guidance available at the time, its trigger and reference route, and the action or artifact at the
+point of need. Distinguish absent knowledge, undiscovered guidance, agent interpretation, and an
+ineffective rule before proposing a source change. Mark unavailable observations unknown; installation
+parity or an unactivated draft does not establish ordinary use.
+
 Aggregate evidence that a skill made work worse through misactivation,
 unnecessary sequencing, displaced simpler paths, stale assumptions, or
 procedural compliance that missed the objective. Route repeated or decisive
