@@ -98,8 +98,9 @@ finalization. See
 
 Treat interpolation, extrapolation, and other iterative proposal formulas as
 fallible before evaluation. Check algebraic domains directly; do not guard a signed or dimensioned ratio by adding an
-absolute epsilon unless a mathematically derived regularizer preserves scale, units, and sign. Require every proposal
-to be finite, inside its permitted region, and representably progressive before a callback.
+absolute epsilon unless a mathematically derived regularizer preserves scale, units, and sign. Require
+every proposal to be finite and inside its permitted region. Assess representable progress using both
+realized parameters and proposal metadata that changes acceptance.
 
 When a separately selected scale such as line-search alpha multiplies a direction, do not infer no progress from its
 unscaled norm. Reserve a pre-search shortcut for exact vector zero; let the scaled parameter map decide representability.
@@ -112,6 +113,12 @@ progress remains, terminate through the safe fallback rather than looping, even 
 
 In bracketed recovery, keep evaluated condition and fallback endpoints distinct from evolving resolution boundaries.
 A failed non-finite trial may block a callback at the same parameter vector, but cannot supply conditions or fallback state.
+
+Repeated valid parameters are not blanket exhaustion: different step lengths can project to the same
+point while changing an Armijo bound. Reevaluate a valid deterministic cached result with the new
+metadata, or permit a bounded callback, when the acceptance predicate changes. Stop safely when
+neither the parameters nor the relevant condition can progress. Regress a repeated valid projection
+that fails the first bound and passes the next, checking callback counts through the owning search.
 
 Regress the owning algorithm rather than only the algebraic helper. Cover the
 decisive algebraic degeneracies, signed denominators around zero, exact-zero and

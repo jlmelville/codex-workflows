@@ -63,6 +63,10 @@ See [rcpp.md](references/rcpp.md) for check guidance.
 
 ## Checks
 
+For native assurance reviews, select conditional lanes using
+[Native Verification](references/rcpp.md#native-verification), including explicit leak evidence when
+cleanup is part of the acceptance contract.
+
 Choose exactly one generation command when bindings changed:
 
 ```sh

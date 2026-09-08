@@ -18,6 +18,12 @@ Before drafting, identify:
 - the source-supported facts; and
 - the function of the passage in that task.
 
+When revising established prose, preserve the intended author voice alongside clarity. Calibrate
+against representative samples, preferring author-selected ones; use older prose when recent rewrites
+are an unreliable baseline. Retain useful explanatory cadence and transitions at the surface's level of
+informality, without inventing personal experience or compulsory humor. Concision and rendering checks
+do not establish that the author's voice survived.
+
 Do not preserve a detail merely because it is true. Give it a reader-facing
 job: orient, instruct, connect steps, explain a reason, define a non-obvious
 contract, or prevent a plausible mistake.

@@ -76,7 +76,7 @@ clang-format --dry-run --Werror src/distance.h src/random-dist.cpp
 ## Threading
 
 - Use RAII joiners or established local parallel helpers.
-- Capture and rethrow worker exceptions.
+- Capture worker failures and propagate them after joining.
 - Avoid using chunk end offsets as thread IDs.
 - Keep RNG contracts explicit in docs/tests: same seed plus same thread count
   should be reproducible unless a different contract is documented.
@@ -87,6 +87,14 @@ clang-format --dry-run --Werror src/distance.h src/random-dist.cpp
   Linux success or a configured but unrun service is not cross-platform proof.
   When the supported matrix already exercises the code successfully, record an
   explicit no-change decision instead of adding speculative flags.
+
+When a supported R process mixes C++ runtimes, test a real worker failure as well as serial propagation
+on the affected toolchain. Runtime coexistence alone does not prove exception-object transport unsafe.
+If capture/rethrow loses exception identity or corrupts state, copy a bounded diagnostic inside the
+worker and construct the caller-facing exception after joining, within the package's runtime. Keep
+diagnostic capture safe on allocation failure. Preserve direct serial propagation and ordinary
+exception-object transport where demonstrated safe; diagnostic translation need not preserve the
+original exception type.
 
 ## Mixed Random And Deterministic Routes
 
@@ -173,6 +181,31 @@ ordinary and hidden files, directories, symlinks, and unsupported entries.
   it remains and remove it before release if public paths become available.
 - Include too-small input, invalid metric, tie/edge cases, and thread-count
   coverage when those semantics matter.
+
+## Native Verification
+
+For native assurance reviews, use supported-platform package checks as the baseline and select
+additional lanes by the changed hazards. These are conditional evidence routes, not a requirement to
+run every tool for every edit:
+
+| Surface or risk | Additional evidence |
+| --- | --- |
+| Compiler portability | Strict GCC and Clang warning builds using the supported dialect. |
+| Memory lifetime or undefined operations | ASan/UBSan package-suite runs; distinguish full-suite coverage from focused native probes. |
+| Concurrent native cores | A focused TSan harness exercising shared state and real worker failures. |
+| R/native protection or link boundaries | Applicable rchk or LTO checks. |
+| Installed C++ headers | Standalone GCC and Clang compilation of each supported public header without accidental transitive includes. |
+
+When lifecycle acceptance includes leak-free cleanup, an ASan pass with leak detection disabled or
+unavailable is incomplete evidence. Require active leak detection, complete allocation accounting for
+owned resources, or an independent leak checker such as Valgrind over the same successful and injected
+failure cases. State the coverage and exclusions; substitute evidence need not expand the fault matrix.
+
+For each lane used as acceptance evidence, record the tested revision, toolchain, test scope, and
+result. Map it to the final native sources and installed headers; rerun affected lanes after relevant
+changes. A configured workflow or older green run alone is not current assurance. Reuse the
+[R-hub execution and evidence contract](../../r-ci-hardening/references/github-actions.md#manual-r-hub-diagnostics)
+for hosted diagnostics rather than duplicating its dispatch and completion procedure.
 
 ## Check Output
 

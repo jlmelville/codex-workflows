@@ -41,6 +41,13 @@ result into an unconditional cross-platform guarantee. When threaded execution
 is nondeterministic, give users a deterministic execution mode or a persisted
 intermediate strategy when durable reproduction matters.
 
+When a locally seeded operation promises to preserve the caller's RNG stream, compare actual next
+draws with a no-call control under each supported generator, not only `RNGkind()` and `.Random.seed`.
+[R's RNG documentation](https://stat.ethz.ch/R-manual/R-devel/library/base/html/Random.html)
+notes that `.Random.seed` omits Box-Muller cached state and may not capture other generators' state.
+Qualify isolation claims accordingly. An explicitly supported Inversion normal generator can avoid
+that Box-Muller limitation; do not silently change the caller's generator to satisfy the test.
+
 ## Dependency Attachment Changes
 
 When moving a runtime dependency from `Depends` to `Imports`, validate the
