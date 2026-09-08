@@ -52,6 +52,8 @@ so the baseline cannot inherit the guidance under evaluation. Hold the task and 
 Before trusting an automated scorer, check that a known-good result passes and a plausible bad result
 fails on the behavior being measured. Verify required behavior before interpreting reductions in
 code size, tool calls, or cost; report untested dimensions separately.
+When comparing resource use, include failed and capped attempts, state the accounting boundary,
+and use inexpensive measurements already available from the run.
 
 This is optional authoring evidence. It does not establish ordinary later-use
 effectiveness or satisfy a `later-session` verification opportunity. Keep the
