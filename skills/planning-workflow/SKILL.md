@@ -23,18 +23,20 @@ work itself.
    the smallest useful form. When proposing replacement of a working approach,
    explain why it is insufficient and whether a capacity or scope adjustment
    would preserve it. Treat inherited mechanisms as proposals unless accepted.
-   Ordinary implementation choices and replacements within an authorized
-   refactor do not need another approval. For workflow-heavy, human-operated
-   work without a fixed external interface, sketch the shortest operator path
-   before stabilizing APIs, schemas, or persistent machinery; use that path to
-   challenge complexity with no visible consumer.
+   Ordinary implementation choices and replacements within an authorized refactor do not need another
+   approval. When designing or materially changing an API, component boundary, or operator workflow,
+   sketch a representative task from the consumer's side before settling the interface. Include the
+   operation that exposes a consequential ownership, sequencing, or lifecycle decision. Use the sketch
+   to challenge unnecessary caller knowledge and machinery while preserving accepted constraints.
 4. Hold the owner's objective, constraints, and non-goals fixed during review while allowing the
    chosen approach to be challenged. Assess discoveries against that accepted contract, including
    behavior to preserve and applicable, named safety and authority boundaries. Add a plan item only
    when omitting it would leave an obligation unmet or required evidence missing. Usefulness, a
-   reviewer's suggestion, or possible future value alone does not justify it. Use the smallest probe
-   that can resolve a concrete uncertainty affecting work or acceptance within scope. Seek direction
-   before materially expanding goals, behavior, acceptance criteria, or authority.
+   reviewer's suggestion, or possible future value alone does not justify it. For an uncertainty
+   affecting the approach or acceptance within scope, identify the decision and the evidence needed to
+   resolve it against the requested outcome and relevant constraints. Use the smallest adequate check
+   that preserves the behavior in question, and stop when the evidence supports a decision. Seek
+   direction before materially expanding goals, behavior, acceptance criteria, or authority.
    Before an existing safeguard requires replacing an approach or adding a parallel path, identify
    how it is enforced and where it applies. Strengthening it or widening its scope requires separate,
    proportionate evidence; the existing safeguard does not itself authorize either expansion.
