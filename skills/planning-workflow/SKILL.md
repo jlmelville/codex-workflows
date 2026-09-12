@@ -28,12 +28,16 @@ work itself.
    work without a fixed external interface, sketch the shortest operator path
    before stabilizing APIs, schemas, or persistent machinery; use that path to
    challenge complexity with no visible consumer.
-4. Freeze the owner's objective, constraints, and non-goals for review; keep
-   chosen mechanisms challengeable. Classify discoveries against that contract.
-   Admit a plan item only when omitting it would leave the accepted contract unmet or required evidence missing. Treat retained behavior and applicable, named safety and authority boundaries as part of that contract; usefulness, reviewer origin, and imagined future value are not enough. Admit only the smallest probe that can settle a concrete uncertainty material to in-scope implementation or acceptance, and seek direction for material expansion of goals, semantics, acceptance, or authority.
-   Before an inherited safeguard forces replacement or a parallel path, name
-   its enforcement and scope. Either increase is a new, proportionally evidenced
-   decision; a lower or narrower safeguard cannot authorize its own escalation.
+4. Hold the owner's objective, constraints, and non-goals fixed during review while allowing the
+   chosen approach to be challenged. Assess discoveries against that accepted contract, including
+   behavior to preserve and applicable, named safety and authority boundaries. Add a plan item only
+   when omitting it would leave an obligation unmet or required evidence missing. Usefulness, a
+   reviewer's suggestion, or possible future value alone does not justify it. Use the smallest probe
+   that can resolve a concrete uncertainty affecting work or acceptance within scope. Seek direction
+   before materially expanding goals, behavior, acceptance criteria, or authority.
+   Before an existing safeguard requires replacing an approach or adding a parallel path, identify
+   how it is enforced and where it applies. Strengthening it or widening its scope requires separate,
+   proportionate evidence; the existing safeguard does not itself authorize either expansion.
 5. Before a long unattended loop, define an observation that distinguishes
    progress, success, regression, and failure, plus its stop boundary. End at a
    human-judgment boundary; the witness does not expand authority or cost.
@@ -46,11 +50,12 @@ evidence, not a prose outline.
 
 ## Proportionality And Acceptance
 
-A plan records accepted obligations; it does not create them. Classify the smallest honest remedy separately from
-the defect; a confirmed defect does not expand the accepted contract. If that remedy would extend the contract
-through durable state, a public API, schema or configuration surface, compatibility, background, retry or
-persistence machinery, a new subsystem, or wider semantics, stop with `scope-reopen`. Re-present the in-contract
-correction and proposed expansion separately; do not decompose or schedule the expansion before acceptance.
+A plan records accepted obligations; it does not create them. A confirmed defect does not expand
+those obligations. Identify the smallest adequate remedy separately from the defect. If that remedy
+would extend the accepted contract through durable state, a public API, schema or configuration
+surface, compatibility requirements, background work, retries, persistence machinery, a new subsystem,
+or wider behavior, stop with `scope-reopen`. Present the correction within scope separately from the
+proposed expansion. Do not break the expansion into tasks or schedule it before acceptance.
 
 When a scope decision needs acceptance, present the concrete proposed change,
 existing capabilities it preserves or replaces, and material cost or tradeoffs.

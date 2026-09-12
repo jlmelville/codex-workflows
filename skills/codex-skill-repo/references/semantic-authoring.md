@@ -6,28 +6,30 @@ incident-shaped decisions.
 
 ## Admission
 
-State the changed action, authority, observation, or success condition and check whether an existing principle already
-produces it. A new narrative is further evidence, not a new rule, when the decision and witness are unchanged.
+State the changed action, authority, observation, or success condition. Check whether an existing
+principle already produces it. Another incident adds evidence rather than a rule when the decision and
+required observation are unchanged.
 
-A skill may be relevant enough to consult without entering its operational workflow. Enter only when the task requires
-that outcome and authority permits it; a terminal predecessor prunes dependent stages but not independent closure duties.
+Consulting a skill does not require running its workflow. Run it only when the task requires its
+outcome and authority permits it. If an earlier decision ends that work, skip the stages that depend
+on it. Still complete any independently required finishing work.
 
 Use these destinations:
 
-- **Default judgment:** a compact principle needed when the skill triggers. State the distinguishing condition and
-  action, not the incident; keep unconditional privacy, authority, evidence, and completion contracts here.
+- **Default judgment:** a compact principle needed when the skill triggers. State the condition and
+  action that distinguish the case; keep unconditional privacy, authority, evidence, and completion
+  contracts here. Omit incident narration.
 - **Routed mechanics:** exact commands, APIs, tool behavior, environment
   requirements, file formats, ordering, and fail-closed recipes. Prefer scripts
   for deterministic or quoting-sensitive behavior; do not turn mechanics vague.
 - **Optional cases:** short analogies for a distinct plausible wrong implementation
   or observation boundary that judgment and mechanics do not resolve.
-- **Verification only:** recurrence supporting or contradicting an existing decision
-  and witness. Keep it in external accepted state, not public skill content.
+- **Verification only:** recurrence supporting or contradicting an existing decision and required
+  observation. Keep it in external accepted state, not public skill content.
 
-Split material when its parts need different roles or loading conditions. The
-smallest change is the smallest truthful change to the decision model, not the
-fewest edited lines. Do not merge distinguishable conditions that require
-different actions.
+Split material when its parts serve different roles or need to be loaded under different conditions.
+Minimize changes to the decisions the guidance supports, even when that requires editing more lines.
+Preserve distinct conditions that require different actions.
 
 Capacity metrics reveal review pressure; they do not prove that text is
 dispensable. Do not pay for a justified addition by rewriting an unrelated
