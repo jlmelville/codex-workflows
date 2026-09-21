@@ -35,7 +35,8 @@ Explicit non-goals:
 - <work outside this task>
 
 Validation:
-- Ran `<command>`: <result>
+- Ran `<command>`: <result, relevant revision/environment, requirement supported>
+- Still unverified: <consequential requirement or evidence boundary, if any>
 
 Open issues and next action:
 - <uncertainty, exact next step, and guardrail>
@@ -44,3 +45,9 @@ Open issues and next action:
 Do not promote a prior agent's mechanism, adjective, or decision list into an
 owner constraint. Prefer exact paths, symbols, commands, statuses, and bounded
 errors over narrative.
+
+Point to consequential rejected approaches and their conditions in the active
+plan so the successor can avoid repeating a ruled-out investigation without
+treating a temporary limitation as permanent. If no plan exists, include that
+information here. Keep historical observations distinct from preconditions the
+successor must recheck before acting.

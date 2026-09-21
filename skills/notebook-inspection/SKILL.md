@@ -70,9 +70,11 @@ python3 "${HOME}/.agents/skills/notebook-inspection/scripts/notebook_inspect.py"
 ```
 
 Use `--type markdown` when searching prose and `--type all` when both code and
-markdown are relevant. Batch `stats` and `search` continue through readable
-notebooks but exit nonzero if any input cannot be parsed; do not treat partial
-output as a clean scan.
+markdown are relevant. All commands continue through valid inputs and exit 2
+if any target cannot be discovered, read, or parsed, or an inspection command
+finds malformed notebook structure. Search exits 0 for a clean match and 1 for
+a clean no-match scan. Empty directories are reported explicitly; `stats` exits
+0 and `search` exits 1. Do not treat partial output as a clean scan.
 
 ## Outputs
 
@@ -86,6 +88,8 @@ python3 "${HOME}/.agents/skills/notebook-inspection/scripts/notebook_inspect.py"
 Do not copy large base64 strings, embedded JavaScript, Plotly blobs, widget
 state, or binary image data into chat, plans, or source comments. Summarize that
 such outputs exist instead.
+The inspector lists omitted MIME keys even when an output also has printable
+text; those keys disclose an uninspected representation, not its content.
 
 ## Editing
 
@@ -102,6 +106,10 @@ After editing, validate notebook JSON:
 ```sh
 python3 "${HOME}/.agents/skills/notebook-inspection/scripts/notebook_inspect.py" validate path/to/notebook.ipynb
 ```
+
+`validate` checks JSON parsing only. Inspection commands check the minimal cell
+and output structure they consume; neither establishes full notebook-schema
+validity or execution. Use the repository's schema validator when required.
 
 If the repo has notebook execution tooling, use it when execution is required.
 Otherwise do not claim the notebook was executed.

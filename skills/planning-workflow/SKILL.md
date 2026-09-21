@@ -63,6 +63,17 @@ When a scope decision needs acceptance, present the concrete proposed change,
 existing capabilities it preserves or replaces, and material cost or tradeoffs.
 Carry prior user authorization forward; pause only for a decision outside it.
 
+Name an acceptance witness for each requirement: an executable check, inspected
+artifact, observation, or owner decision that bears on that requirement. State
+what the result establishes and which consequential requirement remains unverified.
+When a plausible mistake could pass the proposed check, use
+[acceptance-evidence.md](references/acceptance-evidence.md) to construct a
+distinguishing fixture or observe the relevant boundary.
+
+Where it reduces consequential uncertainty, sequence a small consumer-visible
+end-to-end result before optional expansion. That first result determines useful
+ordering; preserve all accepted completion obligations.
+
 ## Artifact And State Boundaries
 
 Classify files as `execplan`, `chunk-plan`, `audit`, `review-packet`, `handoff`,

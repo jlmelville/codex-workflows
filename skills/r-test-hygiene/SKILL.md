@@ -61,6 +61,11 @@ with direct coverage tests.
 
 ## Refactor Safety Nets
 
+When a fixture could let a plausible mistake pass, use the shared
+[acceptance-evidence cases](../planning-workflow/references/acceptance-evidence.md)
+for stale-first selection, unequal identifiers, nonempty preservation baselines,
+effect boundaries, and doubles paired with real adapters.
+
 Before refactoring state machines, hook dispatchers, staged pipelines, caches,
 or lifecycle controllers, add small synthetic contract tests before changing
 code, even when existing coverage or integration traces look broad. Build tiny

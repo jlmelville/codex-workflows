@@ -56,11 +56,23 @@ permissions:
    execution, credentials, artifacts, and write-back boundary as one path.
 7. Run the checks below.
 
+## CI Test Selection
+
+When adding a regression or claiming CI coverage, trace the production behavior
+through its test, the exact runner command and configuration, required dependencies,
+job conditions, and workflow event/path filters. Check that a future change to
+the production file alone triggers the relevant workflow. Confirm the intended
+test actually executes and reaches a terminal result; selection with a skip or
+a green unrelated job does not establish coverage.
+
 ## Checks
 
 Use this skill's bundled audit script as the canonical workflow check. It runs
 `actionlint`, `zizmor` with its supported fallback, the action-pin comment
-check, and the checkout-credential check:
+check, and the checkout-credential check. Zizmor also receives sibling
+`dependabot.yml` and `dependabot.yaml` files, including when workflows are absent.
+It uses strict collection so malformed configuration fails the audit; scanner
+versions must support Dependabot collection and `--strict-collection`.
 The checkout check covers only direct workflow steps; when a pinned composite action performs or may perform checkout, inspect its pinned source or replace the wrapper with an explicit checkout before claiming the credential boundary is satisfied.
 
 ```sh

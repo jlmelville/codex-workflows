@@ -34,6 +34,15 @@ Then handle expected nonzero commands explicitly with `if`, `case`, or `|| true`
 where silence is intentional. Avoid letting `set -e` obscure a meaningful
 failure message.
 
+For a consequential producer, check failure explicitly before consuming its
+output. A loop reading process substitution does not inherit the producer's
+status, even with `pipefail`; capture discovery into a checked temporary file
+(preserving NUL delimiters for filenames) before looping. Distinguish a search's
+no-match status from operational failure rather than masking both with `|| true`.
+Separating command substitution into an assignment helps expose its status, but
+`set -e` can still be disabled by the caller's conditional context. Exercise the
+complete command with an injected producer failure, not just the helper alone.
+
 ## Output Behavior
 
 Keep routine success silent or limited to one stable summary. Put machine

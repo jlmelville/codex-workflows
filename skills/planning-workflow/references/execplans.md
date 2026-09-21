@@ -28,10 +28,22 @@ commands, fixtures, expected observations, acceptance criteria, non-goals, and
 user vetoes. Summarize logs and errors; do not paste long transcripts unless
 the exact output is necessary to continue.
 
+Preserve a failed approach when its result changes a successor's reasonable
+choice. Record the decisive observation and relevant conditions, including when
+the approach could become viable again; retain exact commands only when needed
+to reproduce or distinguish the failure. Use discoveries or decisions as its
+single durable home. Add stable decision anchors when later references need
+them, while keeping the current plan's relevant rationale self-contained.
+
 Update `Progress`, `Surprises & Discoveries`, `Decision Log`, validation state,
 and outcomes whenever work pauses, changes direction, completes a milestone, or
 hands off. Put the active state and next action near the top so large plans do
 not bury what matters.
+
+For validation, connect the observation to the accepted requirement and name
+consequential evidence still missing. Bind historical results to their command
+and relevant revision or environment; recheck mutable preconditions before the
+next action instead of treating an old observation as current state.
 
 ## Lifecycle Rollover
 
