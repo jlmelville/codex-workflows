@@ -186,7 +186,7 @@ def observe(args):
 def self_test():
     script = str(Path(__file__).resolve())
     with tempfile.TemporaryDirectory(prefix="subprocess-evidence-test.") as temporary:
-        root = Path(temporary)
+        root = Path(temporary).resolve()
         watched = root / "selected.txt"
         watched.write_text("preserved", encoding="utf-8")
 

@@ -48,62 +48,9 @@ assert_usage_error() {
   fi
 }
 
-run_notebook_smoke() {
-  local script="${repo_dir}/skills/notebook-inspection/scripts/notebook_inspect.py"
-  local notebook="${tmp_root}/tiny.ipynb"
-  local malformed="${tmp_root}/malformed.ipynb"
-  local stdout_file="${tmp_root}/notebook.stdout"
-  local stderr_file="${tmp_root}/notebook.stderr"
-
+run_inspection_audit_regressions() {
   require_command python3
-  python3 - "${notebook}" <<'PY'
-import json
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-path.write_text(json.dumps({
-    "cells": [
-        {"cell_type": "markdown", "metadata": {}, "source": ["alpha notes\n"]},
-        {"cell_type": "code", "metadata": {}, "source": ["x = 1\n"], "outputs": []},
-    ],
-    "metadata": {},
-    "nbformat": 4,
-    "nbformat_minor": 5,
-}), encoding="utf-8")
-PY
-  printf '%s\n' '{"cells": [' >"${malformed}"
-
-  python3 "${script}" --help >/dev/null
-  python3 "${script}" validate "${notebook}" >/dev/null
-  python3 "${script}" stats "${notebook}" >/dev/null
-  python3 "${script}" cells --type all "${notebook}" >/dev/null
-  python3 "${script}" search --type all alpha "${notebook}" >/dev/null
-  if python3 "${script}" search missing "${notebook}" >/dev/null; then
-    echo "notebook_inspect.py search should exit 1 when no match is found" >&2
-    return 1
-  fi
-  if python3 "${script}" stats "${notebook}" "${malformed}" \
-    >"${stdout_file}" 2>"${stderr_file}"; then
-    echo "notebook_inspect.py stats should fail after a partial parse" >&2
-    return 1
-  fi
-  grep -Fq "${notebook}" "${stdout_file}"
-  grep -Fq "parse failed" "${stderr_file}"
-  if python3 "${script}" search --type all alpha "${tmp_root}" \
-    >"${stdout_file}" 2>"${stderr_file}"; then
-    echo "notebook_inspect.py search should fail after a partial parse" >&2
-    return 1
-  fi
-  grep -Fq "alpha notes" "${stdout_file}"
-  grep -Fq "failed to parse notebook" "${stderr_file}"
-  if python3 "${script}" outputs --limit 0 "${notebook}" \
-    >"${stdout_file}" 2>"${stderr_file}"; then
-    echo "notebook_inspect.py outputs should reject a nonpositive limit" >&2
-    return 1
-  fi
-  [[ ! -s "${stdout_file}" ]]
-  grep -Fq "must be a positive integer" "${stderr_file}"
+  python3 "${repo_dir}/scripts/test-inspection-audits.py"
 }
 
 run_benchmark_smoke() {
@@ -584,6 +531,19 @@ run_long_process_observer_smoke() {
     "state root is not a directory" \
     "${script}" "$$" --state-root "${state_dir}/missing"
 
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    if "${script}" "$$" >"${output}" 2>"${stderr_file}"; then
+      echo "observe-long-r-process.sh should reject an unsupported platform" >&2
+      return 1
+    else
+      command_status=$?
+    fi
+    [[ "${command_status}" -eq 1 ]]
+    [[ ! -s "${output}" ]]
+    grep -Fq 'Linux is required' "${stderr_file}"
+    return 0
+  fi
+
   sleep 30 &
   sleep_pid=$!
   if ! "${script}" "${sleep_pid}" --state-root "${state_dir}" >"${output}"; then
@@ -728,7 +688,7 @@ EOF_COMMAND
     PATH="${fake_bin}:${PATH}" SMOKE_LOG="${log}" "${script}" ci >/dev/null
   )
   grep -Fq 'actionlint ' "${log}"
-  grep -Fq 'zizmor -qq --no-progress .github/workflows' "${log}"
+  grep -Fq 'zizmor -qq --no-progress --collect=workflows,dependabot --strict-collection .github/workflows' "${log}"
 
   if (cd "${pkg_dir}" && "${script}" unknown >/dev/null 2>&1); then
     echo "check-r-package.sh should reject an unknown mode" >&2
@@ -1450,7 +1410,7 @@ run_patch_identity_smoke() {
   grep -Fq "the index is not clean" "${stderr_file}"
 }
 
-run_notebook_smoke
+run_inspection_audit_regressions
 run_benchmark_smoke
 run_architecture_audit_smoke
 run_evidence_helper_smoke

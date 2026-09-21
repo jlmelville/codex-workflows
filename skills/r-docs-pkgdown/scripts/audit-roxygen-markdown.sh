@@ -55,6 +55,7 @@ load_roxygen_dirs() {
 
 load_roxygen_files() {
   local search_dirs=()
+  local discovery_file
 
   roxygen_files=()
   [[ -d R ]] && search_dirs+=(R)
@@ -65,11 +66,20 @@ load_roxygen_files() {
     return 1
   fi
 
+  if ! discovery_file="$(mktemp)"; then
+    echo "Could not create roxygen discovery file." >&2
+    status=1
+    return 1
+  fi
+  tmp_files+=("${discovery_file}")
+  if ! find "${search_dirs[@]}" -type f -name '*.R' -print0 >"${discovery_file}"; then
+    echo "R source discovery failed." >&2
+    status=1
+    return 1
+  fi
   while IFS= read -r -d '' file; do
     roxygen_files+=("${file}")
-  done < <(
-    find "${search_dirs[@]}" -type f -name '*.R' -print0
-  )
+  done <"${discovery_file}"
 
   if ((${#roxygen_files[@]} == 0)); then
     echo "No R source files found under R or man-roxygen."

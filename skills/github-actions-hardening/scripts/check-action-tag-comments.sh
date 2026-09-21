@@ -74,9 +74,15 @@ if [[ -f "${workflow_target}" ]]; then
       ;;
   esac
 elif [[ -d "${workflow_target}" ]]; then
+  discovery_file="$(mktemp)"
+  trap 'rm -f "${discovery_file}"' EXIT
+  if ! find "${workflow_target}" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 >"${discovery_file}"; then
+    echo "check-action-tag-comments.sh: workflow discovery failed for ${workflow_target}" >&2
+    exit 2
+  fi
   while IFS= read -r -d '' file; do
     workflow_files+=("${file}")
-  done < <(find "${workflow_target}" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+  done <"${discovery_file}"
 elif [[ "${target_explicit}" == true ]]; then
   echo "check-action-tag-comments.sh: no workflow file or directory at ${workflow_target}" >&2
   exit 2
