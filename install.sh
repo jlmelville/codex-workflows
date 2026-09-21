@@ -121,7 +121,7 @@ relative_find() {
   local root="$1"
 
   (
-    cd "${root}"
+    cd "${root}" || return 1
     find . -mindepth 1 -print | sed 's#^\./##' | LC_ALL=C sort
   )
 }
@@ -293,9 +293,21 @@ compare_trees() {
     return 1
   fi
 
-  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-workflows-compare.XXXXXX")"
-  relative_find "${expected}" >"${tmp_dir}/expected"
-  relative_find "${actual}" >"${tmp_dir}/actual"
+  if ! tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-workflows-compare.XXXXXX")"; then
+    echo "${label}: could not create comparison temporary directory" >&2
+    return 1
+  fi
+  # Conditional callers disable errexit; reject failed or partial inventories explicitly.
+  if ! relative_find "${expected}" >"${tmp_dir}/expected"; then
+    echo "${label}: could not enumerate source directory: ${expected}" >&2
+    rm -rf "${tmp_dir}"
+    return 1
+  fi
+  if ! relative_find "${actual}" >"${tmp_dir}/actual"; then
+    echo "${label}: could not enumerate installed directory: ${actual}" >&2
+    rm -rf "${tmp_dir}"
+    return 1
+  fi
 
   if ! cmp -s "${tmp_dir}/expected" "${tmp_dir}/actual"; then
     echo "${label}: file list differs" >&2
@@ -363,12 +375,12 @@ classify_unowned_targets() {
     fi
 
     if [[ -d "${target_path}" && ! -L "${target_path}" ]] && \
-      compare_trees "${source_dir}/${name}" "${target_path}" "${name}" >/dev/null 2>&1; then
+      compare_trees "${source_dir}/${name}" "${target_path}" "${name}" >/dev/null; then
       adopted_source_names+=("${name}")
       continue
     fi
 
-    die "refusing to replace unowned user-scoped skill: ${target_path}; source skill '${name}' is absent from the prior managed manifest and the existing target differs. Move or remove the existing target, then rerun ./install.sh"
+    die "refusing to replace unowned user-scoped skill: ${target_path}; source skill '${name}' is absent from the prior managed manifest and the existing target differs or could not be compared. Resolve comparison errors or move the differing target, then rerun ./install.sh"
   done
 }
 

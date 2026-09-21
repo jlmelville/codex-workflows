@@ -98,38 +98,33 @@ triggers remain active.
 ## Batch Merge
 
 When merging multiple bot PRs, especially overlapping Dependabot action PRs,
-repeat the verified merge loop for each PR:
+follow the core [Merge loop](../SKILL.md#merge) for each PR, completing its
+confirmation and fetch steps before moving to the next. Apply these additional
+batch checks and recovery steps:
 
-1. Re-read the PR with portable JSON fields and confirm bot author, target repo,
-   base branch, head SHA, check state, and mergeability.
+1. Reconfirm the bot author and target repository for each PR.
 2. If mergeability is `UNKNOWN`, wait briefly and re-read. GitHub may report
    `UNKNOWN` immediately after a preceding merge while it recomputes the next
    PR's merge result.
-3. Confirm the head SHA is unchanged from validation and use
-   `--match-head-commit` on every merge.
-4. Merge with the repository's strategy and `--delete-branch` when requested.
-5. Confirm merged state, merge commit, and branch deletion before moving to the
-   next PR.
-6. For the PR just merged, treat direct
+3. For the PR just merged, treat direct
    `gh pr view <number> --json state,mergedAt,mergeCommit` as the source of
    truth. If `gh pr list --state open` still shows it, wait and re-read before
    retrying the merge or reporting an inconsistency.
-7. After each merge, fetch the remote base branch without disturbing local
-   changes, then re-read the remaining PRs because mergeability and checks may
-   have changed.
-8. If logically compatible dependency-only edits conflict textually, resolve
+4. After each merge and fetch, re-read the remaining PRs because mergeability
+   and checks may have changed.
+5. If logically compatible dependency-only edits conflict textually, resolve
    the intended combined versions only in the disposable validation checkout
    and run the combined checks there. Do not push that temporary resolution to
    a bot branch.
-9. Merge one verified PR, ask the bot to rebase each conflicting remainder,
+6. Merge one verified PR, ask the bot to rebase each conflicting remainder,
    and treat every regenerated head as new work: re-read the exact patch and
    PR state, repeat relevant local validation, wait for fresh required checks,
    and use the new expected head SHA when merging.
-10. After the last merge, treat the final base-branch commit as the terminal
-    batch witness. Wait for every supported workflow on that commit to reach a
-    terminal state and record the result. Concurrency-cancelled intermediate
-    pushes are acceptable when the final supported run succeeds; a fresh
-    legacy-provider context on the final commit is not.
+7. After the last merge, treat the final base-branch commit as the terminal
+   batch witness. Wait for every supported workflow on that commit to reach a
+   terminal state and record the result. Concurrency-cancelled intermediate
+   pushes are acceptable when the final supported run succeeds; a fresh
+   legacy-provider context on the final commit is not.
 
 If inherited global Git URL rewriting sends the post-merge fetch through an
 unusable transport, bypass global configuration for that fetch and use an

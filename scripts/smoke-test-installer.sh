@@ -136,6 +136,101 @@ create_fixture() {
   make_repo_local "${fixture}" repo-only
 }
 
+test_inventory_failures() {
+  local fake_bin="${tmp_root}/inventory-fake-bin"
+  local compare_tmp="${tmp_root}/inventory-tmp"
+  local original_manifest="${tmp_root}/inventory-manifest"
+  local output="${tmp_root}/inventory-failure.out"
+  local injection_log="${tmp_root}/inventory-injections"
+  local tree_state entry_mode failure_mode inject_source before after
+  local args=()
+
+  mkdir -p "${fake_bin}" "${compare_tmp}"
+  cp -p "${manifest}" "${original_manifest}"
+  cat >"${fake_bin}/find" <<'EOF_FIND'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == . && "${2:-}" == -mindepth ]] && \
+  { [[ "${PWD}" == "${INVENTORY_TARGET}" ]] || \
+    [[ "${INVENTORY_INJECT_SOURCE}" == 1 && "${PWD}" == "${INVENTORY_SOURCE}" ]]; }; then
+  printf '%s\n' "${PWD}" >>"${INVENTORY_LOG}"
+  if [[ "${INVENTORY_FAILURE}" == partial ]]; then
+    printf '%s\n' ./SKILL.md
+  fi
+  echo 'injected inventory failure' >&2
+  exit 23
+fi
+exec "${INVENTORY_REAL_FIND}" "$@"
+EOF_FIND
+  chmod 755 "${fake_bin}/find"
+
+  for tree_state in equal unequal; do
+    if [[ "${tree_state}" == unequal ]]; then
+      printf '%s\n' 'unowned content to preserve' >"${agents_home}/skills/alpha/notes.txt"
+    fi
+    for entry_mode in check dry-run install; do
+      cp -p "${original_manifest}" "${manifest}"
+      args=()
+      inject_source=1
+      if [[ "${entry_mode}" == check ]]; then
+        args=(--check)
+      else
+        sed '/^alpha$/d' "${original_manifest}" >"${manifest}"
+        if [[ "${entry_mode}" == dry-run ]]; then
+          args=(--dry-run)
+        else
+          # Let staging succeed so the real install reaches unowned classification.
+          inject_source=0
+        fi
+      fi
+      before="$(snapshot_tree "${user_home}")"
+      for failure_mode in empty partial; do
+        : >"${injection_log}"
+        if env PATH="${fake_bin}:${PATH}" HOME="${user_home}" CODEX_HOME="${codex_home}" \
+          TMPDIR="${compare_tmp}" INVENTORY_REAL_FIND="$(command -v find)" \
+          INVENTORY_SOURCE="${fixture}/skills/alpha" \
+          INVENTORY_TARGET="${agents_home}/skills/alpha" \
+          INVENTORY_INJECT_SOURCE="${inject_source}" INVENTORY_FAILURE="${failure_mode}" \
+          INVENTORY_LOG="${injection_log}" \
+          "${fixture}/install.sh" ${args[@]+"${args[@]}"} >"${output}" 2>&1; then
+          fail "${entry_mode} accepted ${failure_mode} inventory failure for ${tree_state} trees"
+        fi
+        [[ -s "${injection_log}" ]] || fail "inventory failure was not exercised"
+        assert_file_contains "${output}" "injected inventory failure"
+        assert_file_contains "${output}" "could not enumerate"
+        assert_file_not_contains "${output}" "Managed user-scoped skills match"
+        after="$(snapshot_tree "${user_home}")"
+        [[ "${before}" == "${after}" ]] || \
+          fail "${entry_mode} inventory failure changed target paths, content, modes, manifest, or instructions"
+        [[ -z "$(ls -A "${compare_tmp}")" ]] || fail "inventory failure leaked temporary files"
+      done
+    done
+  done
+  cp -p "${original_manifest}" "${manifest}"
+  cp -p "${fixture}/skills/alpha/notes.txt" "${agents_home}/skills/alpha/notes.txt"
+
+  cat >"${fake_bin}/mktemp" <<'EOF_MKTEMP'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${2:-}" == */codex-workflows-compare.XXXXXX ]]; then
+  echo 'injected comparison temporary-directory failure' >&2
+  exit 23
+fi
+exec "${INVENTORY_REAL_MKTEMP}" "$@"
+EOF_MKTEMP
+  chmod 755 "${fake_bin}/mktemp"
+  before="$(snapshot_tree "${user_home}")"
+  if env PATH="${fake_bin}:${PATH}" HOME="${user_home}" CODEX_HOME="${codex_home}" \
+    INVENTORY_REAL_FIND="$(command -v find)" INVENTORY_TARGET=unused INVENTORY_INJECT_SOURCE=0 \
+    INVENTORY_REAL_MKTEMP="$(command -v mktemp)" \
+    "${fixture}/install.sh" --check >"${output}" 2>&1; then
+    fail "--check accepted comparison temporary-directory failure"
+  fi
+  assert_file_contains "${output}" "could not create comparison temporary directory"
+  after="$(snapshot_tree "${user_home}")"
+  [[ "${before}" == "${after}" ]] || fail "comparison setup failure changed the target home"
+}
+
 fixture="${tmp_root}/fixture"
 user_home="${tmp_root}/user-home"
 agents_home="${user_home}/.agents"
@@ -236,6 +331,7 @@ printf '%s\n' '0.0.0-unavailable' >"${tmp_root}/installed-helper-conflict/.ruby-
 )
 
 HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null
+test_inventory_failures
 mkdir -p "${agents_home}/skills/repo-only"
 if HOME="${user_home}" CODEX_HOME="${codex_home}" "${fixture}/install.sh" --check >/dev/null 2>&1; then
   fail "--check did not detect a repository-local skill duplicated in the user scope"
