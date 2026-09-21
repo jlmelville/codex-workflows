@@ -78,6 +78,11 @@ a clean no-match scan. Empty directories are reported explicitly; `stats` exits
 
 ## Outputs
 
+Distinguish current source, stored outputs, clean-kernel execution, published
+files, and narrative claims. Stored output supports current source only when
+provenance connects them; execution order or a successful parse alone does not
+establish that connection. State which boundary the available evidence covers.
+
 Only inspect outputs when necessary. Start with text streams, tracebacks, and
 small text/plain or text/markdown payloads:
 
@@ -132,8 +137,11 @@ not as the primary implementation surface.
 
 Do not strip notebook outputs unless the user asks or repo convention requires
 it. Prefer the repo's existing notebook tooling when present. If no tooling
-exists, use a small script that clears only outputs and execution counts, then
-validate that the notebook still parses.
+exists, use a small script that clears outputs, execution counts, and associated
+execution metadata while preserving unrelated metadata, then validate that the
+notebook still parses. Account for downstream cells whose stored outputs depend
+on invalidated source or state; clearing only the edited cell may leave stale
+results elsewhere. This does not make full notebook execution mandatory.
 
 ## Validation Choices
 

@@ -49,6 +49,12 @@ Inspect the resulting actions and artifacts. Compare the existing and revised
 guidance only when the question requires a comparator, and state the limits of
 that observation, including the model and context when known.
 
+Before inspecting evaluation results, derive acceptance criteria from the user's
+desired outcome, authority, and relevant constraints, independently of the
+proposed skill's prescribed steps. The evaluating agent owns this work. Apply
+the same criteria to both conditions in a comparison, and report conformance
+separately from task success.
+
 For comparisons, isolate each condition's instructions, plugins, conversation history, and workspace
 so the baseline cannot inherit the guidance under evaluation. Hold the task and resources comparable.
 Before trusting an automated scorer, check that a known-good result passes and a plausible bad result

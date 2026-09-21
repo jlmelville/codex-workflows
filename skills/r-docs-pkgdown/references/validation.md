@@ -188,6 +188,14 @@ and use a build-included location for installed users. Inspect `.Rbuildignore`
 and the source archive, then exercise only the source, built, installed, and
 website contexts the prose claims.
 
+Validate a distributed reproduction companion from the reader's promised
+starting point, in a fresh working directory with only declared packages and
+obtainable inputs. If the promise includes computing the example, exercise data
+generation or public acquisition through fitting and the promised output. For
+costly acquisition, use a bounded representative check and state the untested
+scope. A saved-result redraw is sufficient only when that is the reader's task;
+name and validate that narrower boundary.
+
 A document rendered on several surfaces has several link roots. Resolve every
 relative target in each output tree; when an installed vignette links to a
 website-only article, use its canonical absolute URL. Validate both installed

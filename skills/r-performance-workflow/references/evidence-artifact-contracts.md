@@ -50,6 +50,11 @@ must be joined. Treat complete-file hashing and byte-stable no-op reruns as
 high-assurance or reproducibility checks when file identity itself matters, not
 as universal cache-validity requirements.
 
+For portable persisted artifacts, store relative paths with an explicit owner
+root and verify reading them from a different working directory. Machine-local
+absolute paths are a separate contract. Check case-fold uniqueness only when
+the promised portability requires it.
+
 Capture the producing runtime and toolchain record in the checkpoint and render
 later reports from that immutable record. Structurally validate every provenance
 field that the report consumes; if provenance must be reconstructed, label it

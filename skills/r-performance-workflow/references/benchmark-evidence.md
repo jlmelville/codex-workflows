@@ -80,6 +80,11 @@ from optimizer outcomes; it does not permit held-out performance inspection or p
 Use bounded direct/wrapped, zero/one-operation, scaling-heavy, and rich/minimal-result probes to separate costs.
 Profiles choose targets; representative whole-operation benchmarks plus the semantic oracle decide what to keep.
 
+For storage-backed work, distinguish logical payload from the physical chunks,
+shards, pages, or repeated transfers it touches. Compare aligned and scattered
+operations with equal logical work to expose amplification; retain a remedy only
+when representative whole-operation benchmarks and semantic checks justify it.
+
 For expensive grids, predeclare the evidence threshold and stop rule, start with distinguishing rows, and summarize
 each tranche. Skip rows unlikely to change the decision and record the stop rationale in the plan or handoff.
 

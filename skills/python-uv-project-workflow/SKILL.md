@@ -45,8 +45,8 @@ command fails instead of rewriting `uv.lock`. Reserve unlocked `uv sync`,
 `uv lock`, and `uv add` for intended dependency changes. Do not edit `uv.lock`
 manually.
 
-For nested workspaces, resolver policy, lock metadata, or invalid dependency
-metadata warnings, read
+For CI interpreter selection, package-manager migration, nested workspaces,
+resolver policy, lock metadata, or invalid dependency metadata warnings, read
 [dependency-resolution.md](references/dependency-resolution.md).
 
 When running uv in Codex, follow `$uv-sandbox-workflow` first so mutable uv

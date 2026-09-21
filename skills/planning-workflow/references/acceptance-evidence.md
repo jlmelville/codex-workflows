@@ -39,6 +39,12 @@ check through the real adapter or installed command when signature, option,
 serialization, or dependency behavior is at risk. A permissive fake can accept
 an interface the dependency rejects.
 
+When a threshold's real inputs are impractically large, exercise `K - 1`, `K`,
+and `K + 1` with cheap counts or shapes at the decision boundary. Pair that
+matrix with a small real-adapter check that receives the resolved decision and
+deliberately distinct arguments. Extract a pure decision helper only when scale
+prevents a practical direct test.
+
 Use the real producer when its output contract is the risk, while retaining
 independently specified inputs or an independent oracle when producer and
 consumer could share the same mistake. Parser and compatibility checks still

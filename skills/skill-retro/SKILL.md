@@ -46,6 +46,13 @@ after validation and small fixes, before the final response or handoff. Also
 evaluate when substantial user redirection exposes missing guidance or reusable
 craft.
 
+For a worthwhile future learning action retained at this checkpoint, identify
+how an agent will encounter and own it. Cite sufficient active guidance, route
+an admitted missing delta within authority, or explicitly drop an unjustified
+recommendation. A stored proposal is review input, not an active instruction;
+preserve the admission threshold and do not leave the action dependent on a
+chat-only reminder.
+
 For ordinary opportunistic confirmation in materially involved destinations,
 use the installed helper for a read-only pull query:
 
