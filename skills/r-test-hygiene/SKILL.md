@@ -59,6 +59,12 @@ in `R/` and `tests/testthat/`; when current public paths no longer use the
 helper, prefer removal plus public-contract tests over preserving dead internals
 with direct coverage tests.
 
+Before deleting or consolidating tests, identify the still-needed failure each detects and the
+surviving test that detects it, or explain why the contract is obsolete. Repair weak assertions when
+their contract remains useful. A green remaining suite alone does not establish preserved protection;
+use the shared [distinguishing-evidence guidance](../planning-workflow/references/acceptance-evidence.md)
+when replacement coverage is uncertain.
+
 ## Refactor Safety Nets
 
 When a fixture could let a plausible mistake pass, use the shared
