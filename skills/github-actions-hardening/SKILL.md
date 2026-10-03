@@ -139,7 +139,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
 ```
+
+The cooldown delays version updates until a release is at least seven days old.
 
 Review Dependabot PRs with `$dependabot-pr-maintenance`.
 
