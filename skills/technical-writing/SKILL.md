@@ -24,6 +24,11 @@ are an unreliable baseline. Retain useful explanatory cadence and transitions at
 informality, without inventing personal experience or compulsory humor. Concision and rendering checks
 do not establish that the author's voice survived.
 
+For James Melville's technical prose, read
+[Melville style and article references](references/melville-style.md).
+Use its author-selected whole articles to calibrate the draft; the distilled
+observations are a reading aid, not a substitute for those articles.
+
 Do not preserve a detail merely because it is true. Give it a reader-facing
 job: orient, instruct, connect steps, explain a reason, define a non-obvious
 contract, or prevent a plausible mistake.
