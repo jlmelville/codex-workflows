@@ -31,17 +31,10 @@ source, raw transcripts, unredacted paths, and unnecessary repository names.
 
 ## Judgment
 
-Classify each reviewed papercut as one of:
-
-- `no-action`: useful observation, but no remedy is warranted;
-- `local-fix`: the remedy belongs only to the originating repository;
-- `candidate`: a reusable missing kernel is ready for `$skill-retro` and triage;
-- `external-owner`: another owner must act;
-- `duplicate`: an existing papercut owns the same evidence and drain.
-
-Do not promote mechanically. Name the exact missing delta and smallest owner;
-keep local wrappers out of reusable candidates. Create a candidate or identify
-the surviving duplicate before closing the papercut.
+Use the shared [papercut review and drain](../../skill-retro-triage/references/papercut-drain.md)
+for classification and authorized closure. Review the full open inbox here,
+including clusters left outside bounded triage batches and the pilot's benefit
+and review cost.
 
 Evaluate verdict distributions, repeated construction mistakes, undrained
 deferrals, fired drafts or ledgers, stale or rejected verification proposals,
@@ -95,6 +88,10 @@ Later behavioral uncertainty belongs in an unverified accepted outcome. Every
 deferral, draft, or ledger needs a trigger predicate, observer, `review-queue`
 route, executable probe, next action, and close condition.
 
+Review due [loop experiments](loop-experiments.md) alongside other ledger
+actions. Report their benefit, operating cost, evidence limits and outcome;
+source conformance or more records alone does not establish effectiveness.
+
 ## External Orientation
 
 During every full learning-process review, use `https://mattwood.fyi/` as a
@@ -125,6 +122,7 @@ settled-looking addition.
 ### Papercut Clusters And Drains
 ### Verdict And Deferral Patterns
 ### Draft And Ledger Drains
+### Loop Experiment Outcomes
 ### Verification Health
 ### Downstream Outcome Evidence
 ### External Orientation

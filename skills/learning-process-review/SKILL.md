@@ -44,6 +44,10 @@ broader process retrospective, read
 It owns the state context, judgment, report, drain, and next-review mechanics
 that are not needed for a direct public artifact audit.
 
+When proposing or reviewing a material learning-loop change with uncertain
+benefit, use [loop experiments](references/loop-experiments.md) for a bounded
+observation using existing ledgers and review routes.
+
 ## Completed Artifact Audit
 
 After the applicable mutation gate, handle every unresolved executable

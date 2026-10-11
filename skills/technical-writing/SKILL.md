@@ -80,8 +80,11 @@ same path.
 
 For each sentence, ask whether it adds non-inferable value, is supported by the
 available evidence, belongs on this surface, and advances the reader's task.
-For each negative clause, identify the source of the alternative it rejects.
-Delete or rewrite anything that fails those checks.
+For each negative clause, identify the source of the alternative it rejects and
+the reader mistake it prevents. Remove clauses whose only job is defending the
+writer from a possible criticism; changing their wording leaves that problem
+intact. Put a supported limitation once where it changes interpretation or
+action. Delete or rewrite anything that fails those checks.
 
 When the boundary remains unclear, read
 [sentence-admission cases](references/sentence-admission-cases.md).

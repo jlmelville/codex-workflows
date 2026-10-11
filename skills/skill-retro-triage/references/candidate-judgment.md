@@ -36,6 +36,13 @@ remains. Exercise valid input, the known bad condition, and a harmless near-matc
 narrowest useful scope; keep newly proposed enforcement advisory while false positives remain
 uncertain. A helper that the relevant workflow never runs has not replaced an instruction.
 
+Before landing a warning, vocabulary, or threshold, exercise it against the real
+population it will judge, or a justified representative sample. Record the firing
+count and denominator, inspect harmless hits, and weigh the burden against the
+harm prevented. Prefer advisory legacy listings or write-time checks when a new
+gate would mostly reject existing artifacts; synthetic cases alone do not
+calibrate a population-wide rule.
+
 Before a possible repeat or destination-repair verdict, run a bounded
 `accepted-records` query. For source drift or representation changes that preserve the decision, use
 `no-change`, retain the source repair, and update the original identity's destinations and commits
@@ -70,3 +77,7 @@ as open ledgers. Within authorized scope, execute fired non-skill actions and
 activate, revise, or deprecate fired drafts instead of refreshing them
 indefinitely. For public implementation, follow the parent route to
 `report-to-patch.md`.
+
+For a change to the learning loop itself, use
+[loop experiments](../../learning-process-review/references/loop-experiments.md)
+to judge benefit and operating cost through an existing ledger when warranted.

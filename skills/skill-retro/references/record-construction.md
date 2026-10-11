@@ -25,7 +25,8 @@ Read this only after `SKILL.md` identifies a possible candidate or verification 
 - Include a bounded exact failure signal when decisive. For commands, record whether they were exercised,
   whether quoting or sandbox caveats remain, and which commands are untested.
 - Prefer a validator or bundled script for deterministic command behavior, layout, metadata, generated
-  output, or fragile recurring searches. If prose is the right control, explain why a script is unwarranted.
+  output, or fragile recurring searches. Explain the control choice in `smallest_change`: what a helper
+  can enforce, what judgment remains, and why prose is needed when chosen. A proposal may need both.
 - State the narrowest supported context; broaden only with a credible transfer mechanism.
 
 When a corrected decision makes an accepted outcome false, name `supersedes_accepted_id` and state

@@ -74,6 +74,13 @@ counts unless instructions require them.
 
 ## Detect And Admit A Result
 
+Examine how the work unfolded as well as what it delivered. Read
+[value-stream judgment](references/value-stream.md) at the checkpoint to look
+for concrete departures from what the user and applicable guidance value,
+including concerns outside the named signals below. A successful deliverable
+does not settle whether the journey was useful; noticing a concern does not
+itself establish a missing rule.
+
 Distinguish these outcomes before loading record-construction mechanics:
 
 - A candidate captures a reusable, non-obvious decision or craft lesson that
@@ -92,6 +99,10 @@ Before admitting a candidate:
 - Treat material human correction as a checkpoint, but separate the observed
   judgment from producer inference and do not infer success or comparative
   improvement from the selected alternative.
+- Notice successful inline scripts or pipelines that recompute a procedure the
+  next run will need. Consider an existing helper's output mode or subcommand
+  when recurrence and saved effort justify maintaining it; exploratory code
+  alone is not a missing delta.
 - When active guidance materially influenced the work, check whether it made
   the task worse through misactivation, unnecessary sequencing, stale
   assumptions, displacement of a simpler valid path, or procedural compliance

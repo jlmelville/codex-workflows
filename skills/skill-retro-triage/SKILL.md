@@ -39,6 +39,12 @@ complete intake review. From the source repository root:
 ./skills/skill-retro/scripts/retro-state.rb review-queue
 ```
 
+Also list open `papercuts` and review a bounded cluster relevant to the batch
+through [papercut drain](references/papercut-drain.md). This pilot brings fresh
+observations into ordinary triage; a complete backlog drain is not a
+prerequisite for candidate or verification work. The route preserves read-only
+review and requires papercut-processing authority for closure.
+
 If the state variable is unavailable, report that live intake cannot be read;
 review a supplied paste-ready candidate without inventing a state location.
 
@@ -88,6 +94,12 @@ commit-linked accepted metadata only after the public commit exists. Source
 commits must stand on their own without private evidence or opaque state IDs.
 
 ## Output
+
+Present a proposed batch as a compact table with item, destination, recommended
+action, rationale, and authority or decision needed. Give a recommendation for
+each item. When approval is missing, request one batch decision with exclusions;
+carry existing acceptance forward and continue authorized work. A due date or
+user silence grants no authority to apply a recommendation.
 
 Report the verdicts and batch, source and state changes, records left open,
 applicable source validation and install/check results, state validation,

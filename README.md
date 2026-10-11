@@ -170,11 +170,17 @@ Automatically routed Skill Candidate Reports and Verification Evidence
 Proposals go directly to `$skill-retro-triage`; `$learning-process-review` is a
 periodic audit and is not a prerequisite for triage.
 
+The managed learning instructions ask agents to examine the journey while work
+unfolds, using the user's objective and applicable guidance to notice concerns
+beyond named failure signals. Papercut capture and retrospectives preserve
+qualifying observations from that judgment; neither requires inventing a record
+for every task. See [value-stream judgment](skills/skill-retro/references/value-stream.md).
+
 | Moment | Entry point | Scope |
 | --- | --- | --- |
 | During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
 | At a meaningful task boundary | `$skill-retro` | Evaluate session evidence and automatically route only high-confidence candidates or exact verification proposals. |
-| When intake accumulates | `$skill-retro-triage` | Judge candidates and verification proposals, then implement the accepted batch. |
+| When intake accumulates | `$skill-retro-triage` | Review a bounded relevant papercut cluster, judge candidates and verification proposals, then implement authorized changes and drains. |
 | At the process-review cadence below | `$learning-process-review` | Audit external learning state; when the artifact audit is due, also run and supervise the repository prompt below. |
 | When the artifact audit is due (direct/manual entry) | `prompts/skill-repository-retrospective.md` | Run the same report-only public-skill audit directly, without the broader learning-process review. |
 
@@ -192,6 +198,11 @@ Run the first process review after 10 papercuts or 14 calendar days after
 enabling capture. Thereafter use the next trigger recorded by the previous
 review; absent one, the default is five new papercuts or 14 calendar days after
 the last review.
+
+Material loop changes with uncertain benefit can use
+[bounded experiments](skills/learning-process-review/references/loop-experiments.md)
+in existing ledgers. Process review judges their benefit and operating cost;
+the papercut-in-triage pilot is reviewed there alongside undrained clusters.
 
 The external helper marks this artifact audit due after ten candidate reports
 have been processed since the last successfully recorded artifact audit:

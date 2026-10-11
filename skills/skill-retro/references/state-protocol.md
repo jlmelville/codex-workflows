@@ -81,45 +81,10 @@ From this source repository root, the equivalent command is:
 ./skills/skill-retro/scripts/retro-state.rb --help
 ```
 
-Key operations are:
-
-```text
-template candidate
-route --file PATH
-pending
-template papercut
-record-papercut --file PATH
-template papercut-repair
-prepare-papercut-repair --id ID
-repair-papercut --id ID --file PATH
-papercuts
-papercuts --archive
-close-papercut --id ID --outcome OUTCOME --rationale TEXT
-template decision
-process --id ID --decision PATH
-reconsider --id ID --decision PATH
-template verification
-route-verification --file PATH
-pending-verifications
-template verification-decision
-process-verification --id ID --decision PATH
-template accepted
-record-accepted --file PATH
-update-accepted --id ID --file PATH
-accepted-records [--destination TEXT] [--text TEXT]
-verification-opportunities [--destination TEXT]
-template draft
-record-draft --file PATH
-template ledger
-record-ledger --file PATH
-close-ledger --id ID --rationale TEXT
-template audit
-record-audit --file PATH
-audits
-artifact-audit-status [--archive-threshold N]
-review-queue
-validate
-```
+Use `--help` for the current operation list and flags, and `template KIND` for
+the current record shape and field vocabularies. This protocol owns the
+decisions those interfaces cannot make: authority, evidence, operation ordering,
+identity, privacy, and recovery.
 
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.

@@ -27,6 +27,13 @@ narrow or disable standing authority.
 
 ## Qualification
 
+Notice friction while work unfolds, including successful steps whose effort or
+detours undermine the user's objective. Use the values in applicable guidance
+to recognize unlisted problems; read
+[value-stream judgment](../skill-retro/references/value-stream.md) when the
+usual symptoms do not explain the concern. The observation must still qualify
+below before capture.
+
 Record an observation when most of these are true:
 
 - available instructions and repository context did not make the behavior
@@ -78,7 +85,7 @@ disclose nonzero records and any paste-ready fallback; follow stricter
 applicable instructions when present.
 
 Do not turn a papercut into a mature conclusion during project work. Review
-open observations later from the `codex-workflows` source checkout with its
-repository-local `$learning-process-review`. Use `$skill-retro` during work;
-the review routes mature reusable candidates to the repository-local
-`$skill-retro-triage` consumer.
+open observations later from the `codex-workflows` source checkout through
+bounded `$skill-retro-triage` review or the broader `$learning-process-review`.
+Use `$skill-retro` during work; mature reusable candidates go to the
+repository-local `$skill-retro-triage` consumer.

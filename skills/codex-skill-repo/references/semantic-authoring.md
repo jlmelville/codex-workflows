@@ -22,6 +22,11 @@ Use these destinations:
 - **Routed mechanics:** exact commands, APIs, tool behavior, environment
   requirements, file formats, ordering, and fail-closed recipes. Prefer scripts
   for deterministic or quoting-sensitive behavior; do not turn mechanics vague.
+  Keep commands, field vocabularies, and mechanically enforced constraints in
+  discoverable helper help, templates, and refusal messages where practical.
+  Remove duplicated prose only after those surfaces are usable; retain the
+  judgment, invocation route, authority, privacy, and recovery decisions the
+  helper cannot make.
 - **Optional cases:** short analogies for a distinct plausible wrong implementation
   or observation boundary that judgment and mechanics do not resolve.
 - **Verification only:** recurrence supporting or contradicting an existing decision and required
