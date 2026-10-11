@@ -60,6 +60,11 @@ proposed skill's prescribed steps. The evaluating agent owns this work. Apply
 the same criteria to both conditions in a comparison, and report conformance
 separately from task success.
 
+Optionally, include a case selected from the user's objective independently of
+the triggering incident, including a should-not-trigger case when relevant.
+If using a final holdout during iterative tuning, keep it untouched until the
+revision is finalized; cases used to select revisions are development evidence.
+
 For comparisons, isolate each condition's instructions, plugins, conversation history, and workspace
 so the baseline cannot inherit the guidance under evaluation. Hold the task and resources comparable.
 Before trusting an automated scorer, check that a known-good result passes and a plausible bad result
