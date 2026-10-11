@@ -1,15 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+fail() {
+  echo "installer smoke: $*" >&2
+  exit 1
+}
+
+[[ $# -le 1 ]] || fail "usage: $0 [--check-shell]"
+case "${1:-}" in
+  ''|--check-shell) ;;
+  *) fail "usage: $0 [--check-shell]" ;;
+esac
+
+smoke_platform="$(uname -s)"
+if [[ "${smoke_platform}" == Darwin ]]; then
+  system_bash_version="$(/bin/bash -c 'printf "%s.%s" "${BASH_VERSINFO[0]}" "${BASH_VERSINFO[1]}"')"
+  [[ "${system_bash_version}" == 3.2 ]] || fail "/bin/bash must provide Bash 3.2"
+  if [[ "${BASH}" != /bin/bash ]]; then
+    exec /bin/bash "$0" "$@"
+  fi
+fi
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-installer-smoke.XXXXXX")"
 tmp_root="$(cd "${tmp_root}" && pwd -P)"
 trap 'rm -rf "${tmp_root}"' EXIT
 
-fail() {
-  echo "installer smoke: $*" >&2
-  exit 1
-}
+smoke_original_path="${PATH}"
+if [[ "${smoke_platform}" == Darwin ]]; then
+  # Direct fixture execution uses env bash, so selecting only the runner is insufficient.
+  mkdir "${tmp_root}/bash-bin"
+  ln -s /bin/bash "${tmp_root}/bash-bin/bash"
+  export PATH="${tmp_root}/bash-bin:${PATH}"
+  # shellcheck disable=SC2016  # The child Bash must expand its own version.
+  resolved_bash_version="$(/usr/bin/env bash -c 'printf "%s.%s" "${BASH_VERSINFO[0]}" "${BASH_VERSINFO[1]}"')"
+  [[ "${resolved_bash_version}" == 3.2 ]] || fail "env bash must resolve to Bash 3.2"
+fi
+
+# Diagnose the runner and the real installer entry point without running all fixtures.
+if [[ "${1:-}" == --check-shell ]]; then
+  printf 'runner\t%s.%s\t%s\n' "${BASH_VERSINFO[0]}" "${BASH_VERSINFO[1]}" "${BASH}"
+  cat >"${tmp_root}/shell-witness.sh" <<'EOF_SHELL_WITNESS'
+printf 'installer\t%s.%s\t%s\n' "${BASH_VERSINFO[0]}" "${BASH_VERSINFO[1]}" "${BASH}" >>"${INSTALLER_SHELL_WITNESS}"
+EOF_SHELL_WITNESS
+  BASH_ENV="${tmp_root}/shell-witness.sh" INSTALLER_SHELL_WITNESS="${tmp_root}/shell-witness.out" \
+    "${repo_dir}/install.sh" --help >/dev/null
+  cat "${tmp_root}/shell-witness.out"
+  exit 0
+fi
 
 assert_file_contains() {
   local file="$1"
@@ -34,6 +72,28 @@ assert_file_not_contains() {
     exit 1
   fi
 }
+
+test_bash_resolution() {
+  [[ "${smoke_platform}" == Darwin ]] || return 0
+  local newer_bash newer_version newer_major newer_minor
+  newer_bash="$(PATH="${smoke_original_path}" command -v bash)"
+  # shellcheck disable=SC2016  # Inspect the candidate interpreter, not this runner.
+  newer_version="$("${newer_bash}" -c 'printf "%s.%s" "${BASH_VERSINFO[0]}" "${BASH_VERSINFO[1]}"')"
+  IFS=. read -r newer_major newer_minor <<<"${newer_version}"
+  if ((newer_major < 3 || (newer_major == 3 && newer_minor <= 2))); then
+    echo "Installer shell regression skipped: incoming PATH has no newer Bash." >&2
+    return 0
+  fi
+  mkdir "${tmp_root}/newer-bash-bin"
+  ln -s "${newer_bash}" "${tmp_root}/newer-bash-bin/bash"
+  # This would leave installer subprocesses on the newer Bash if only the runner changed.
+  env PATH="${tmp_root}/newer-bash-bin:${smoke_original_path}" \
+    "${repo_dir}/scripts/smoke-test-installer.sh" --check-shell >"${tmp_root}/shell-resolution.out"
+  assert_file_contains "${tmp_root}/shell-resolution.out" $'runner\t3.2\t'
+  assert_file_contains "${tmp_root}/shell-resolution.out" $'installer\t3.2\t'
+}
+
+test_bash_resolution
 
 path_mode() {
   local path="$1"
