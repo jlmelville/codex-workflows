@@ -70,6 +70,12 @@ When a plausible mistake could pass the proposed check, use
 [acceptance-evidence.md](references/acceptance-evidence.md) to construct a
 distinguishing fixture or observe the relevant boundary.
 
+Where setup, control, or observation leaves it unclear whether the witness can
+be obtained, resolve that uncertainty before substantial implementation. Reuse
+existing tooling or add the smallest in-scope fixture, command, or harness,
+and exercise it far enough to establish that the required observations are
+available. A concrete obstacle justifies this work without repeated failures.
+
 Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
 ordering; preserve all accepted completion obligations.
