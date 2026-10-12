@@ -7,6 +7,17 @@ mistake it guards against; attribute the failure to the assertion, not broken
 setup or an unavailable dependency. An ordinary test edit does not require a
 staged mutation experiment or retained red transcript.
 
+## Reported Failures
+
+**Reported failure versus another defect:** When using a reduced or synthetic
+reproducer to establish that a reported issue is resolved, check that it
+preserves the conditions and distinguishing observations relevant to the
+diagnosis, rather than only the symptom. Fixing a different reproducible defect
+does not establish resolution of the reported issue. If the connection remains
+uncertain, state what was verified and what remains unverified. Running the
+supplied reproducer before and after the patch may establish the connection
+directly.
+
 ## Selection And Identity
 
 - **Current versus first:** put a stale item before the intended current item,
