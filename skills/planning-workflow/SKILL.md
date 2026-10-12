@@ -76,6 +76,13 @@ existing tooling or add the smallest in-scope fixture, command, or harness,
 and exercise it far enough to establish that the required observations are
 available. A concrete obstacle justifies this work without repeated failures.
 
+Preserve an exercised, non-obvious verification recipe when likely reuse
+justifies its upkeep and existing project guidance does not already make it
+repeatable. Prefer updating a project-local script or on-demand reference,
+linked from the repo's normal discovery point. Include prerequisites,
+invocation, observations, and cleanup needed to repeat it; state what was
+exercised and cite the contract behind expected results.
+
 Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
 ordering; preserve all accepted completion obligations.
