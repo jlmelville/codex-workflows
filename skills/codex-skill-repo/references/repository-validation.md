@@ -84,6 +84,12 @@ If the repository's generic workflow audit is unavailable, run `actionlint`,
 When adding or changing a manual validation lane, push it, trigger it once with
 `gh workflow run`, watch it to completion, and fix setup failures.
 
+After pushing to a default branch with CI, check runs for the exact pushed
+commit and read every triggered workflow's conclusion before reporting
+completion. Wait for unfinished runs; when runs cannot be inspected, report
+hosted validation as unverified. Fix failures within task authority and report
+any that require new authority.
+
 ## Shared Policy And Mirrors
 
 When changing shared tool policy, common command examples, or duplicated

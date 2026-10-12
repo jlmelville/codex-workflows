@@ -27,7 +27,11 @@ Read this only after `SKILL.md` identifies a possible candidate or verification 
 - Prefer a validator or bundled script for deterministic command behavior, layout, metadata, generated
   output, or fragile recurring searches. Explain the control choice in `smallest_change`: what a helper
   can enforce, what judgment remains, and why prose is needed when chosen. A proposal may need both.
-- State the narrowest supported context; broaden only with a credible transfer mechanism.
+- Keep the claim in the narrowest supported context; broaden only with a credible transfer mechanism.
+  Choose its home separately: ask which other languages, frameworks, artifact types, or repositories
+  share the failure mechanism. Put the shared kernel in the most general active home that covers
+  those contexts, with stack mechanics as examples or extensions. Do not strand it only in an
+  uninstalled draft when an active home covers it.
 
 When a corrected decision makes an accepted outcome false, name `supersedes_accepted_id` and state
 `now_false`. For the same outcome and witness, use verification. For implementation drift, name the missed

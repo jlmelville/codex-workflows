@@ -6,9 +6,13 @@ the parent skill's authority and shared evidence rules.
 Choose `accept`, `defer`, `reject`, `split`, `merge`, or `no-change` for each
 candidate. Evaluate concrete distinct evidence, durability and recurrence
 likelihood, the exact guidance gap, expected benefit versus instruction and
-maintenance cost, and the smallest natural destination. Keep the scope as
-narrow as the evidence supports; broaden only with a credible transfer
-mechanism. Separate the reusable kernel from repository-local wrappers.
+maintenance cost, and the natural active destination. Keep the claim as narrow
+as the evidence supports; broaden only with a credible transfer mechanism.
+Choose its home separately: identify sibling contexts that share the mechanism
+and place the kernel in the most general active home that covers them. Keep
+stack mechanics as examples or extensions and repository-local wrappers local.
+Do not strand a shared kernel only in an uninstalled draft when an active home
+covers it.
 
 Use `reject` or `no-change` when a candidate changes no decision an agent would
 otherwise miss or costs more than the harm it prevents. Do not manufacture
@@ -46,8 +50,9 @@ calibrate a population-wide rule.
 Before a possible repeat or destination-repair verdict, run a bounded
 `accepted-records` query. For source drift or representation changes that preserve the decision, use
 `no-change`, retain the source repair, and update the original identity's destinations and commits
-after publication. Preserve its behavioral verification. Recurrence of the same
-decision and witness belongs in verification; if it arrived as a candidate,
+after publication. Append relocation commits without replacing the original
+implementation provenance; preserve its behavioral verification. Recurrence of
+the same decision and witness belongs in verification; if it arrived as a candidate,
 reject or mark it `no-change` and direct the producer to the typed verification
 route. Do not translate ambiguous intake into accepted-state evidence.
 

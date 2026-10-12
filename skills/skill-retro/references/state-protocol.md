@@ -372,10 +372,13 @@ cadence.
 Use `update-accepted --id ID --file PATH` for later disposition, public-source
 destination, evidence curation, or commit updates; use the typed proposal path
 for new verification evidence. Supply a complete unassigned accepted document,
-like `template accepted`; the helper preserves `accepted_id` and `accepted_at`
-and requires the originating candidate, supersession lineage, and applied
-proposal IDs to remain intact. Do not direct-edit the stored record or create a
-second accepted identity for the same outcome merely to record later evidence.
+like `template accepted`; the helper preserves `accepted_id`, `accepted_at`,
+and prior `implementation_commits`, appending new commits without duplicates.
+It requires the originating candidate, supersession lineage, and applied
+proposal IDs to remain intact. A pure relocation uses this existing identity
+and retains its verification state and basis. Do not direct-edit the stored
+record or create a second accepted identity for the same outcome merely to
+record later evidence.
 
 A newly contradicted record includes:
 

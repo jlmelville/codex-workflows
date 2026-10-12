@@ -95,7 +95,9 @@ Before admitting a candidate:
 - Check the affected skill, reference, prompt, script, or local instruction.
   Name the concrete missing delta and prefer refining its natural home over
   creating a skill. If coverage already makes the decision clear, cite it and
-  stop.
+  end candidate admission; for an observed failure or material correction,
+  evaluate the accepted-record verification route above before concluding no
+  change.
 - Treat material human correction as a checkpoint, but separate the observed
   judgment from producer inference and do not infer success or comparative
   improvement from the selected alternative.
@@ -111,7 +113,7 @@ Before admitting a candidate:
   abandoned, or severely over-built work is not positive evidence without an
   independent successful use.
 - Route only the reusable kernel, not a repository-local wrapper, and keep the
-  proposed scope no broader than the evidence supports.
+  claimed scope no broader than the evidence supports.
 
 Before admitting verification evidence:
 

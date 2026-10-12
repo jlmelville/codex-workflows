@@ -1772,6 +1772,8 @@ module RetroState
 
       replacement["accepted_id"] = current.fetch("accepted_id")
       replacement["accepted_at"] = current.fetch("accepted_at")
+      replacement["implementation_commits"] =
+        (current.fetch("implementation_commits") + replacement.fetch("implementation_commits")).uniq
       RetroState.validate_accepted(replacement, body, label: input_path, assigned: true)
       replace_write(path, RetroState.render_document(replacement, body))
       path
@@ -3606,6 +3608,27 @@ module RetroState
       raise "accepted update missed disposition" unless stored_updated_accepted["disposition"] == "implemented"
       raise "accepted update missed verification" unless stored_updated_accepted["verification"] == "supported"
 
+      relocated_accepted = without_keys(stored_updated_accepted, "accepted_id", "accepted_at")
+      relocated_accepted["destination"] = "Relocated public source destination."
+      relocated_accepted["implementation_commits"] = ["def5678"]
+      File.write(accepted, render_document(relocated_accepted, rejected_accepted_body))
+      store.update_accepted(accepted_id, accepted)
+      stored_relocated_accepted, = read_document(accepted_path)
+      unless stored_relocated_accepted["destination"] == relocated_accepted["destination"] &&
+          stored_relocated_accepted["implementation_commits"] == ["abc1234", "def5678"]
+        raise "accepted relocation lost its original implementation commit or new destination"
+      end
+      %w[accepted_id accepted_at verification verification_basis applied_verification_proposal_ids].each do |field|
+        unless stored_relocated_accepted[field] == stored_updated_accepted[field]
+          raise "accepted relocation changed #{field}"
+        end
+      end
+      relocated_bytes = File.binread(accepted_path)
+      store.update_accepted(accepted_id, accepted)
+      unless File.binread(accepted_path) == relocated_bytes
+        raise "accepted relocation retry changed provenance"
+      end
+
       changed_lineage = updated_accepted_text.sub(id, "RC-20260715T120000Z-000000")
       File.write(accepted, changed_lineage)
       begin
@@ -4096,7 +4119,8 @@ def usage
                                         Replace a deferred verdict and preserve its history
       record-accepted --file PATH       Store a curated accepted record
       update-accepted --id ID --file PATH
-                                        Replace a curated record while preserving identity
+                                        Replace a curated record; preserve identity, acceptance
+                                        date, and prior implementation commits
       accepted-records [--destination TEXT] [--text TEXT]
                                         Find accepted identities across all states
       verification-opportunities [--destination TEXT]
