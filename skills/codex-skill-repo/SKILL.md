@@ -183,10 +183,10 @@ For workflow changes from this source repository root, also run when present:
 ./skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows
 ```
 
-Before validating substantial skill, script, CI, installer, shared-policy, or
-drift changes, read
-[repository-validation.md](references/repository-validation.md) for the quick
-validator, temporary state, mirrors, advisory audits, and pre-commit review.
+Before validating substantial source changes you make, read
+[repository-validation.md](references/repository-validation.md).
+For report-only reviews, choose checks for the change; consult relevant
+sections only to resolve a validation question.
 
 Keep repository-specific candidate consumers in that repository's local skill
 scope.
