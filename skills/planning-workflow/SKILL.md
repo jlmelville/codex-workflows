@@ -83,6 +83,11 @@ linked from the repo's normal discovery point. Include prerequisites,
 invocation, observations, and cleanup needed to repeat it; state what was
 exercised and cite the contract behind expected results.
 
+Refresh affected steps when a task changes the recipe's prerequisites, entry
+points, or observations, or when use reveals drift. Re-exercise revisions;
+mark blocked checks unverified. Distinguish recipe drift from product
+regressions against the cited contract before changing expected results.
+
 Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
 ordering; preserve all accepted completion obligations.
