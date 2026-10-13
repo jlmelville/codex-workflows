@@ -84,16 +84,8 @@ Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
 ordering; preserve all accepted completion obligations.
 
-Preserve non-obvious, exercised recipes when likely reuse justifies upkeep and
-existing guidance does not make them repeatable. Prefer updating a project-local
-script or on-demand reference linked from repo guidance. Include prerequisites,
-invocation, observations, cleanup, and exercised scope; cite the contract for
-expected results.
-
-When a task changes setup, interaction, or observations, or use reveals drift,
-refresh and re-exercise only affected steps and dependent checks. Mark blocked
-checks unverified. Distinguish recipe drift from regressions against the cited
-contract before changing expectations.
+For preserving or refreshing exercised project-local verification recipes, use
+`$agent-instructions-maintenance`.
 
 ## Artifact And State Boundaries
 

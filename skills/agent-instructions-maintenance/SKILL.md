@@ -5,13 +5,13 @@ description: Create, audit, shrink, or update repo agent instructions such as AG
 
 # Agent Instructions Maintenance
 
-Use this skill to keep always-loaded repository guidance short, local, and
-non-duplicative.
+Keep repository agent guidance local and non-duplicative, including project-local
+operating recipes. Keep always-loaded instructions short.
 
 ## Use A More Specific Skill When
 
 - Use ordinary docs editing for README, changelog, or user-facing docs changes
-  that do not affect always-loaded agent instructions.
+  that do not affect agent guidance.
 - Use `$planning-workflow` for active plans, handoffs, audits, or plan-file
   cleanup when the main task is execution state rather than instruction policy.
 - Use `$github-actions-hardening` or `$r-ci-hardening` for CI workflow rules
@@ -47,6 +47,19 @@ Keep `repo-invariant`, short `repo-map`, and important `command-default`
 content. Move or reference `skill-routable` and `deep-dive` content. Remove
 `stale-duplicate` and `ordinary-judgment` content unless the repo has an unusual
 reason to keep it.
+
+## Verification Recipes
+
+Preserve non-obvious, exercised recipes when likely reuse justifies upkeep and
+existing guidance does not make them repeatable. Prefer updating a project-local
+script or on-demand reference linked from repo guidance. Include prerequisites,
+invocation, observations, cleanup, and exercised scope; cite the contract for
+expected results.
+
+When a task changes setup, interaction, or observations, or use reveals drift,
+refresh and re-exercise only affected steps and dependent checks. Mark blocked
+checks unverified. Distinguish recipe drift from regressions against the cited
+contract before changing expectations.
 
 ## When To Create AGENTS.md
 
@@ -105,5 +118,5 @@ For instruction-only changes, validation is usually:
 - check `git status --short --untracked-files=all`;
 - confirm any referenced skills or docs exist.
 
-Do not run project tests for pure instruction edits unless the edit also changes
-code, tooling, or generated artifacts.
+Do not run project tests for pure instruction edits unless needed for affected
+recipe checks or the edit also changes code, tooling, or generated artifacts.
