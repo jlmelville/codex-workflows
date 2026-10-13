@@ -161,6 +161,39 @@ After pulling skill changes, run `./install.sh` again. See
 [Repository Maintenance](docs/repository-maintenance.md) for installation
 details, validation, CI, and local tooling.
 
+## R CI Maintenance Example
+
+[`prompts/weekly-r-ci-updates.md`](prompts/weekly-r-ci-updates.md) combines
+`$dependabot-pr-maintenance`, `$github-actions-hardening`, and `$r-ci-hardening`
+to maintain GitHub Actions dependencies across R package repositories. Use it
+weekly or when a batch of Dependabot action updates has accumulated, with the
+skills installed and `gh` available.
+
+From this repository, replace the capitalized values and send:
+
+```text
+Run prompts/weekly-r-ci-updates.md with these settings:
+
+github_host: github.com
+github_account: YOUR_GITHUB_LOGIN
+repository_owners: [YOUR_REPOSITORY_OWNER]
+checkout_roots: [YOUR_CHECKOUT_PARENT]
+mode: review
+```
+
+`repository_owners` and `checkout_roots` accept multiple entries. Use absolute
+checkout paths. `github_account` is the expected CLI login; owners can also be
+organizations. Review mode validates and reports without changing GitHub state.
+Set `mode: merge` to authorize the scoped branch updates, CI reruns, fixes, and
+merges described in the prompt.
+
+For repeated use, keep a small local entry-point file containing the invocation
+and your settings. Reference the shared prompt by its absolute path when
+running outside this repository, and start the maintenance chat in your checkout
+parent directory with access to the configured roots. Invoke that local file
+each week; keep the maintenance procedure in the versioned prompt so fixes
+reach future runs without maintaining a second copy.
+
 ## Learning And Introspection
 
 `$skill-retro-triage` and `$learning-process-review` are repository-local: run

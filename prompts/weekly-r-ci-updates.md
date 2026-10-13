@@ -1,0 +1,108 @@
+# R CI dependency maintenance
+
+Run this task now using the settings supplied by the invoking message or local
+entry point. Require `github_host`, `github_account`, `repository_owners`,
+`checkout_roots`, and `mode` (`review` or `merge`). Ask for missing or unresolved
+settings before starting. Repository owners and merge authority must be
+explicit; do not infer them from the authenticated account.
+
+Find qualifying GitHub Actions dependency updates in R package repositories
+within that scope. Review mode validates and reports without changing GitHub
+state. Merge mode also performs the authorized updates and merges below. Leave
+blocked items for follow-up and continue with independent repositories.
+
+## Skills and authority
+
+Apply `$dependabot-pr-maintenance`, including its pinned-actions, stale-CI, and
+batch-merge guidance, plus `$github-actions-hardening` and `$r-ci-hardening`.
+Use their current validation procedures and canonical audit scripts. Read
+applicable repository instructions from existing checkouts and the fresh remote
+default-branch tree before validation or edits.
+
+In merge mode, this invocation authorizes merging qualifying PRs, justified CI
+reruns, stale bot branch updates through GitHub's branch-update operation, and
+small fixes directly needed for an update, such as correcting a pin's version
+comment. Work through the batch without asking for confirmation on each PR.
+Revalidate any changed PR head. Neither mode authorizes comments or reviews,
+force-pushes, branch deletion, protection bypasses, or unrelated changes.
+
+## Verify GitHub CLI access
+
+Before discovery or maintenance changes, run
+`gh auth status --hostname HOST` and
+`gh api --hostname HOST user --jq .login`, substituting `github_host` for `HOST`.
+Confirm the active account matches `github_account` and has the repository and
+workflow access needed for the task (`repo` and `workflow` scopes for OAuth
+tokens). Do not expose token values.
+
+If a check fails inside the sandbox, retry with approved network and system
+credential-store access before concluding that the credential is invalid. If
+the account or required access still cannot be verified, stop and report the
+concrete failure and needed `gh auth login` or `gh auth refresh` step. Verify
+authentication again after any repair before continuing.
+
+Prefer `gh` for discovery, PR and check inspection, logs, branch updates, CI
+reruns, and merges guarded by the validated expected head SHA. Explicitly target
+the configured host in GitHub operations. Use a connected GitHub app or direct
+API call only when `gh` cannot perform a required operation; report the fallback
+and its reason.
+
+## Discover the batch
+
+- Discover local Git repositories beneath `checkout_roots`, resolve their
+  GitHub identities from remotes, and deduplicate by host and `owner/name`.
+  Maintain only repositories on `github_host` whose owners appear in
+  `repository_owners`.
+- Include repositories without local checkouts by discovering repositories for
+  every configured owner on GitHub. Skip archived repositories. Confirm R
+  package identity using the root `DESCRIPTION` on the current remote default
+  branch; GitHub's primary-language label can miss packages with substantial
+  C++ code.
+- Paginate repository and open-PR listings. Serialize GitHub listing/search
+  requests and follow the skill's rate-limit and network retry guidance. Record
+  discovery failures instead of treating them as empty results.
+- Eligible PRs are genuine Dependabot updates targeting the repository's
+  current default branch and consisting solely of GitHub Actions dependency
+  version/SHA changes in workflows or composite actions, with associated
+  version comments. Exclude drafts, runtime/package dependency updates, source
+  changes, and broad workflow redesigns. Major action updates can qualify after
+  checking upstream release notes, migration requirements, and runner/runtime
+  compatibility.
+
+## Preserve local work
+
+Use disposable standalone clones under a newly created temporary directory for
+validation and authorized PR edits, starting from the current remote
+default-branch commit. Existing checkouts are discovery and instruction sources;
+preserve their tracked and untracked files, index, stashes, local branches, and
+commits. Do not pull, stash, reset, clean, switch branches, or fast-forward them.
+A dirty, diverged, or outdated checkout is not a reason to skip a repository.
+Perform the skill's fetch/refresh steps in the disposable clone. Remove only
+temporary resources created by this run.
+
+## Validate and merge
+
+Follow the skills' candidate review and validation loop, including individual
+and combined merge-result validation against the latest remote default branch.
+Use hosted R package checks; add local package validation when repository
+instructions or the particular change require it. Review mode reports the
+existing check results and any evidence that would require a remote change.
+
+In merge mode, follow the skills' stale-check recovery and sequential merge
+loop, including expected-head protection and reassessment after each merge.
+Repeat affected validation when a PR head or base moves. Keep fixes confined to
+the CI update. Unrelated failures do not authorize ignoring required checks.
+
+Process independent repositories while checks run, then revisit pending
+candidates. Bound retries and report unresolved blockers. After the last merge
+in each repository, verify workflows on the final default-branch commit as
+required by the batch skill and report any post-merge failure explicitly.
+
+## Report
+
+Summarize discovery coverage, including repositories with no eligible updates
+and any gaps. Give a compact table of PR links, dependency changes, outcome,
+validation results, and merge commit or concrete blocker. In review mode,
+identify candidates ready to merge without claiming they were merged.
+Distinguish merged, blocked, pending, and out-of-scope items. Confirm local
+checkouts were preserved and identify follow-up work.
