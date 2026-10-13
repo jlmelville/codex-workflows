@@ -69,6 +69,16 @@ explain the supported reason someone would need it.
   setup only where it bridges into that concept.
 - Move specialized detail to a better-matched surface when it remains useful.
 
+For diagrams, arrange the reader's comparison explicitly: keep identities,
+terminology, and ordering stable across alternatives, and group phases or
+ownership boundaries that change interpretation. Use parallel, concise labels
+and put a shared edge meaning in a caption instead of repeating it on every
+arrow. Keep consequential constraints and failure paths visible. In Mermaid,
+use block grids for alignment and state diagrams for lifecycle logic when
+supported; automatic flowchart layout is not a positioning guarantee. Inspect
+at the intended reading width; reorient, regroup, or split a cramped diagram
+before reducing text size. Pair focal color with meaningful text or shape.
+
 ## Run A Reader Pass
 
 Treat an explanation as a dependency chain. During drafting and review, check
