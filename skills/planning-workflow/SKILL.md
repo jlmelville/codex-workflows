@@ -87,13 +87,13 @@ ordering; preserve all accepted completion obligations.
 Preserve non-obvious, exercised recipes when likely reuse justifies upkeep and
 existing guidance does not make them repeatable. Prefer updating a project-local
 script or on-demand reference linked from repo guidance. Include prerequisites,
-invocation, observations, and cleanup; state the exercised scope and cite the
-contract for expected results.
+invocation, observations, cleanup, and exercised scope; cite the contract for
+expected results.
 
-Refresh affected steps when a task changes setup, interaction, or observations,
-or use reveals drift. Re-exercise only affected steps and dependent checks;
-mark blocked checks unverified. Distinguish recipe drift from regressions
-against the cited contract before changing expectations.
+When a task changes setup, interaction, or observations, or use reveals drift,
+refresh and re-exercise only affected steps and dependent checks. Mark blocked
+checks unverified. Distinguish recipe drift from regressions against the cited
+contract before changing expectations.
 
 ## Artifact And State Boundaries
 
