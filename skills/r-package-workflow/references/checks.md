@@ -179,6 +179,19 @@ CI-container, or external-service output. Preserve these exact recipes:
 
 - When R tooling needs caches in a restricted filesystem, redirect them to a
   writable temporary path such as `XDG_CACHE_HOME=/tmp/r-cache`.
+- Before a one-off reticulate probe, honor the project's Python selection. When
+  an existing interpreter is suitable, check required imports with that
+  executable and set `RETICULATE_PYTHON` for a fresh R process before Python
+  initializes. For example, for an existing Python with NumPy:
+
+  ```sh
+  probe_python="$(python3 -c 'import sys, numpy; print(sys.executable)')" &&
+    RETICULATE_PYTHON="$probe_python" \
+      Rscript --vanilla -e 'stopifnot(reticulate::py_module_available("numpy"))'
+  ```
+
+  If the project requires a managed environment, follow `$uv-sandbox-workflow`
+  for writable caches and acquisition while preserving that environment choice.
 - When material pkgdown or package-check validation fails because DNS, CRAN
   metadata, or external assets are blocked, rerun through the applicable
   network-approval path before assigning the failure to package behavior.

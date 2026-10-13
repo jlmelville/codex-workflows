@@ -97,9 +97,13 @@ For a tracked R Markdown article whose equations or code make a source diff hard
 an optional current-side HTML copy:
 
 ```sh
+review_dir="$(mktemp -d "${TMPDIR:-/tmp}/article-review.XXXXXX")"
 python3 "${HOME}/.agents/skills/r-docs-pkgdown/scripts/render-rmd-review.py" \
-  vignettes/articles/example.Rmd --base HEAD --out /tmp/article-review.html
+  vignettes/articles/example.Rmd --base HEAD --out "${review_dir}/article-review.html"
 ```
+
+For browser inspection requiring HTTP, use the
+[local preview recipe](pkgdown.md#build-notes) with `preview_root="$review_dir"`.
 
 Use the actual article path and a new output file in an existing directory. The helper compares the
 working tree, including staged changes, with the selected commit; expands changed lines to complete

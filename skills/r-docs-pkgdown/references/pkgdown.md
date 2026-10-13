@@ -228,6 +228,21 @@ stops the server process but leaves the generated preview available for
 inspection; the next invocation starts fresh, or the directory can be removed
 explicitly when earlier cleanup is useful.
 
+For already generated static output, set `preview_root` to its dedicated output
+directory and serve it over loopback HTTP:
+
+```sh
+python3 -m http.server 8765 --bind 127.0.0.1 --directory "$preview_root"
+```
+
+Use this route when the browser cannot open `file:` URLs. Before visual review,
+compare a page fetched from the preview URL with the intended generated file,
+using exact bytes or a content marker that distinguishes the current build. A
+successful reload alone does not establish freshness. If the build output moves,
+restart only a server owned by this task with the new root; choose another port
+when an unrelated server occupies it. If browser policy also blocks HTTP,
+report visual inspection as incomplete.
+
 When validating pkgdown without committing generated site output, combine a
 writable cache with a temporary destination:
 
