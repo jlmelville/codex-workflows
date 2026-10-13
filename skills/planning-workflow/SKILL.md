@@ -91,9 +91,9 @@ invocation, observations, and cleanup; state the exercised scope and cite the
 contract for expected results.
 
 Refresh affected steps when a task changes setup, interaction, or observations,
-or use reveals drift. Re-exercise revisions; mark blocked checks unverified.
-Distinguish recipe drift from regressions against the cited contract before
-changing expectations.
+or use reveals drift. Re-exercise only affected steps and dependent checks;
+mark blocked checks unverified. Distinguish recipe drift from regressions
+against the cited contract before changing expectations.
 
 ## Artifact And State Boundaries
 
