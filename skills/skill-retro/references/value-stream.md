@@ -22,11 +22,15 @@ reveals; this is an open inquiry, not a checklist to complete:
   [planning](../../planning-workflow/SKILL.md) and
   [semantic authoring](../../codex-skill-repo/references/semantic-authoring.md).
 - **Evidence at the claim's boundary:** What did the observation establish,
-  and where did inference become a stronger reported claim? Grounded in
+  and where did inference become a stronger reported claim? Which material
+  premises could change the recommendation, and are they checked or explicitly
+  uncertain? Grounded in
   [retrospective admission](../SKILL.md) and
   [acceptance evidence](../../planning-workflow/references/acceptance-evidence.md).
 - **Proportionate effort:** What repeated work, abstraction, scan, or review
-  imposed cost without a corresponding consumer benefit? Grounded in
+  imposed cost without a corresponding consumer benefit? Which accepted
+  requirement or concrete uncertainty justifies added records, approvals, reviews,
+  or verification? Grounded in
   [architecture review](../../architecture-audit/SKILL.md) and
   [candidate judgment](../../skill-retro-triage/references/candidate-judgment.md).
 - **Owner attention and control:** Where did an agent unnecessarily return a
