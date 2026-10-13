@@ -5,8 +5,8 @@ description: Create, audit, shrink, or update repo agent instructions such as AG
 
 # Agent Instructions Maintenance
 
-Keep repository agent guidance local and non-duplicative, including project-local
-operating recipes. Keep always-loaded instructions short.
+Keep repository agent guidance, including operating recipes, local and
+non-duplicative. Keep always-loaded instructions short.
 
 ## Use A More Specific Skill When
 
@@ -118,5 +118,5 @@ For instruction-only changes, validation is usually:
 - check `git status --short --untracked-files=all`;
 - confirm any referenced skills or docs exist.
 
-Do not run project tests for pure instruction edits unless needed for affected
-recipe checks or the edit also changes code, tooling, or generated artifacts.
+Run project tests only when needed for affected recipe checks or changes to
+code, tooling, or generated artifacts.

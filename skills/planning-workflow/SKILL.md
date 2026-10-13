@@ -84,8 +84,8 @@ Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
 ordering; preserve all accepted completion obligations.
 
-For preserving or refreshing exercised project-local verification recipes, use
-`$agent-instructions-maintenance`.
+Use `$agent-instructions-maintenance` when preserving or refreshing project-local
+verification recipes.
 
 ## Artifact And State Boundaries
 
