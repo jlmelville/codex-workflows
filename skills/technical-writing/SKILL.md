@@ -75,9 +75,12 @@ ownership boundaries that change interpretation. Use parallel, concise labels
 and put a shared edge meaning in a caption instead of repeating it on every
 arrow. Keep consequential constraints and failure paths visible. In Mermaid,
 use block grids for alignment and state diagrams for lifecycle logic when
-supported; automatic flowchart layout is not a positioning guarantee. Inspect
-at the intended reading width; reorient, regroup, or split a cramped diagram
-before reducing text size. Pair focal color with meaningful text or shape.
+supported; automatic flowchart layout is not a positioning guarantee.
+Before delivery, render Mermaid and inspect it at its intended display size
+(760px wide for chat if unspecified). Check label legibility and clipping;
+reorient, regroup, or split cramped diagrams before reducing text size.
+If rendering is unavailable, report readability as unverified.
+Pair focal color with meaningful text or shape.
 
 ## Run A Reader Pass
 
