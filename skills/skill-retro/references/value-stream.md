@@ -30,7 +30,10 @@ reveals; this is an open inquiry, not a checklist to complete:
 - **Proportionate effort:** What repeated work, abstraction, scan, or review
   imposed cost without a corresponding consumer benefit? Which accepted
   requirement or concrete uncertainty justifies added records, approvals, reviews,
-  or verification? Grounded in
+  or verification? For successful inline scripts or pipelines that recompute a
+  procedure later work will need, would an existing helper's output mode or
+  subcommand save enough recurring effort to justify maintaining it? Exploratory
+  code alone is not a missing delta. Grounded in
   [architecture review](../../architecture-audit/SKILL.md) and
   [candidate judgment](../../skill-retro-triage/references/candidate-judgment.md).
 - **Owner attention and control:** Where did an agent unnecessarily return a

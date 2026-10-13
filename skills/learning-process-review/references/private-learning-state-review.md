@@ -115,6 +115,13 @@ settled-looking addition.
 
 ## Report
 
+When proposing or assessing a material learning-loop change, lead with a
+compact cost summary for a stated observation window. Reuse available state
+counts, source diffs, drift results, and evidence of agent work and owner
+attention. Distinguish inherited cost from the change's delta and mark
+unavailable measures unknown; use existing outputs without new counters,
+fields, or a separate collection pass.
+
 ```md
 ## Learning Process Retrospective
 
