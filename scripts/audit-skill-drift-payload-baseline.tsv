@@ -10,15 +10,15 @@ skill	learning-process-review	160	800	12936	67720
 skill	local-r-dataset-manifest	160	800	12112	76112
 skill	notebook-inspection	160	800	7262	71262
 skill	papercut-capture	160	800	11642	75642
-# Accepted scope: shared acceptance evidence, scoped planning and handoffs, and metered-run budgets.
-skill	planning-workflow	160	969	12276	52951
+# Accepted scope: shared acceptance evidence, scoped planning and handoffs, restriction provenance, and metered-run budgets.
+skill	planning-workflow	160	970	12276	53036
 skill	python-uv-project-workflow	160	800	9675	71136
 skill	r-architecture-audit	160	800	12000	64000
 skill	r-ci-hardening	160	800	12702	62523
-# Accepted scope: document rendering, reproduction boundaries, and canonical figure-size guidance.
-skill	r-docs-pkgdown	160	931	10425	46861
-# Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, and recipe routing.
-skill	r-package-workflow	160	943	10533	52656
+# Accepted scope: document rendering, reproduction boundaries, canonical figure-size guidance, and static-preview verification.
+skill	r-docs-pkgdown	160	950	10425	47784
+# Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
+skill	r-package-workflow	160	957	10533	53353
 skill	r-performance-workflow	160	800	8913	64942
 skill	r-rcpp-package	160	800	11771	67304
 # Accepted scope: coverage preservation, diagnostic evidence, process recovery, and numerical contracts.
@@ -33,5 +33,5 @@ skill	skill-retro-triage	178	800	9139	71334
 # Accepted scope: author-voice calibration and sentence-admission guidance; character ceilings unchanged.
 skill	technical-writing	100	242	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
-# Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt, and learning-loop guidance.
-repository	instructional-markdown	-	10069	-	506992
+# Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt and tested inspection wrapper, and learning-loop guidance.
+repository	instructional-markdown	-	10112	-	509108

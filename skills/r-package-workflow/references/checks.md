@@ -182,10 +182,11 @@ CI-container, or external-service output. Preserve these exact recipes:
 - Before a one-off reticulate probe, honor the project's Python selection. When
   an existing interpreter is suitable, check required imports with that
   executable and set `RETICULATE_PYTHON` for a fresh R process before Python
-  initializes. For example, for an existing Python with NumPy:
+  initializes. For example, with `project_python` set to the project-selected
+  existing interpreter, check NumPy:
 
   ```sh
-  probe_python="$(python3 -c 'import sys, numpy; print(sys.executable)')" &&
+  probe_python="$("$project_python" -c 'import sys, numpy; print(sys.executable)')" &&
     RETICULATE_PYTHON="$probe_python" \
       Rscript --vanilla -e 'stopifnot(reticulate::py_module_available("numpy"))'
   ```
