@@ -22,6 +22,10 @@ Read this only after `SKILL.md` identifies a possible candidate or verification 
   stated rationale or constraints, and any alternative or outcome. Leave unstated rationale absent and separate producer inference from evidence.
 - Name the missing delta and its smallest natural home: `SKILL.md`, reference, script, prompt, local
   instruction, external/plugin-owned surface, or no action. Mark ownership unknown if necessary.
+- For an admitted already-landed change, use the existing evidence fields and body to preserve the
+  pre-change gap, sanitized owner direction or upstream provenance, exact public landing commit,
+  observed validation, and whether any source patch remains. Owner acceptance and landing do not
+  establish behavioral effectiveness; no new landing fields or record per commit are required.
 - Include a bounded exact failure signal when decisive. For commands, record whether they were exercised,
   whether quoting or sandbox caveats remain, and which commands are untested.
 - Prefer a validator or bundled script for deterministic command behavior, layout, metadata, generated
@@ -42,8 +46,8 @@ public surface under the existing accepted identity and leave behavioral verific
 - Add a skill only for a reusable, non-obvious, recurring pattern with no natural existing home.
 - Update an existing skill for a focused refinement; add a script when deterministic behavior matters;
   add a prompt when the asset is an instruction to ask another agent.
-- Add nothing for ordinary judgment, a local convention, or an already-covered decision. Cite the
-  section, item, script, prompt, or convention that covers it.
+- Add nothing for ordinary judgment, a local convention, or a decision covered before the assessed
+  change. Cite the section, item, script, prompt, or convention that covers it.
 
 ## Verification Evidence
 

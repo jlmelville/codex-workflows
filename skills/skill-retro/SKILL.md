@@ -84,7 +84,10 @@ itself establish a missing rule.
 Distinguish these outcomes before loading record-construction mechanics:
 
 - A candidate captures a reusable, non-obvious decision or craft lesson that
-  active guidance materially lacks and that is likely to recur.
+  active guidance materially lacks and that is likely to recur. For an otherwise
+  admissible owner-directed or upstream change already landed during the work,
+  judge the missing delta against pre-change guidance; landing alone does not
+  end admission.
 - A verification proposal carries decisive later evidence for the exact claim
   and witness named by one recorded `SCR-*` opportunity.
 - No change is the correct result for ordinary engineering judgment, a local
@@ -94,8 +97,8 @@ Before admitting a candidate:
 
 - Check the affected skill, reference, prompt, script, or local instruction.
   Name the concrete missing delta and prefer refining its natural home over
-  creating a skill. If coverage already makes the decision clear, cite it and
-  end candidate admission; for an observed failure or material correction,
+  creating a skill. If pre-existing coverage makes the decision clear, cite it
+  and end candidate admission; for an observed failure or material correction,
   evaluate the accepted-record verification route above before concluding no
   change.
 - Treat material human correction as a checkpoint, but separate the observed

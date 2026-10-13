@@ -18,6 +18,13 @@ Use `reject` or `no-change` when a candidate changes no decision an agent would
 otherwise miss or costs more than the harm it prevents. Do not manufacture
 verdict diversity or a rejection quota.
 
+For an otherwise admissible already-landed change, assess the pre-change gap and
+verify that the exact public commit and current destination implement the same
+decision. Query `accepted-records` to avoid a duplicate identity; reuse the
+existing identity for same-decision repair or relocation. For a new accepted
+outcome, follow the already-landed branch in
+[report-to-patch.md](../../skill-retro/references/report-to-patch.md#public-change).
+
 Before choosing a destination, state the changed decision, authority,
 observation, or success condition. Prefer an existing principle. Keep shared
 judgment in the default path, exact mechanics in routed references or scripts,

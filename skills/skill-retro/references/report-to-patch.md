@@ -26,7 +26,15 @@ user.
 
 ## Public Change
 
-For each accepted candidate:
+For an accepted already-landed change, verify the exact public landing commit
+and current destination after normal verdict archival. If no source delta
+remains, proceed to External Accepted Record using that commit, skipping only
+source, installation, and publication work already completed. Finish any
+independently required checks; do not re-land the change or make an empty source
+commit. Keep a new outcome implemented and behaviorally unverified unless
+qualifying evidence establishes more.
+
+For each accepted candidate that still needs source work:
 
 1. Re-read the destination before editing.
 2. Identify the decision, authority boundary, required observation, or success
