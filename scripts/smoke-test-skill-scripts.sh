@@ -53,6 +53,12 @@ run_inspection_audit_regressions() {
   python3 "${repo_dir}/scripts/test-inspection-audits.py"
 }
 
+run_checkout_index_regressions() {
+  require_command python3
+  require_command git
+  python3 "${repo_dir}/scripts/test-checkout-index-preservation.py"
+}
+
 run_benchmark_smoke() {
   local script="${repo_dir}/skills/r-performance-workflow/scripts/benchmark-evidence.R"
   local smoke_dir="${tmp_root}/benchmark"
@@ -1447,6 +1453,7 @@ run_patch_identity_smoke() {
 }
 
 run_inspection_audit_regressions
+run_checkout_index_regressions
 run_benchmark_smoke
 run_architecture_audit_smoke
 run_evidence_helper_smoke

@@ -11,6 +11,7 @@ Repeated Helper Names	run: skills/planning-workflow/scripts/patch-identity.rb:	T
 Repeated Helper Names	run_command: scripts/test-inspection-audits.py:	The Python test harness and R documentation validator wrap subprocesses with different runtime and result contracts.
 Repeated Helper Names	run_self_test: skills/r-architecture-audit/scripts/	Each standalone R audit command owns fixtures for its distinct mapping, comparison, or value-tracing contract.
 Repeated Helper Names	self_test: skills/r-docs-pkgdown/scripts/render-rmd-review.py:	Document rendering, subprocess evidence, and retrospective state have independent CLI self-tests for different contracts.
+Repeated Helper Names	setUp: scripts/test-checkout-index-preservation.py:	unittest requires this lifecycle method name; each test class owns its isolated temporary fixtures.
 Repeated Helper Names	source_extent: skills/r-architecture-audit/scripts/	The mapper returns start, end, and line count; the value tracer returns only start and end for identifying enclosing functions.
 Repeated Helper Names	write_report: skills/r-architecture-audit/scripts/	R architecture reports and Python subprocess evidence serialize different result schemas through local report entry points.
 Machine-Specific Paths	skills/local-r-dataset-manifest/	The local dataset skill intentionally names James-local paths and requires path verification before use.

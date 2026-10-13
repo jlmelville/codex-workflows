@@ -50,16 +50,25 @@ and its reason.
 ## Preserve local work
 
 Before discovery, protect every Git inspection of an existing checkout,
-including helper subprocesses, with this environment and command-local option:
+including helper subprocesses, with this wrapper. Set `checkout` to the path
+being inspected:
 
+<!-- checkout-index-inspection:start -->
 ```sh
-GIT_OPTIONAL_LOCKS=0 git -c diff.autoRefreshIndex=false -C "$checkout" \
-  status --porcelain=v1 --untracked-files=all
+inspect_git() {
+  GIT_OPTIONAL_LOCKS=0 git -c diff.autoRefreshIndex=false -C "$checkout" "$@"
+}
 ```
+<!-- checkout-index-inspection:end -->
 
-Use the same protection for `diff`, `remote`, `rev-parse`, and other inspection
-commands. Optional locks alone do not prevent `git diff` from refreshing the
-index. Do not change repository or global Git configuration to apply this fix.
+Pass inspection arguments to this wrapper, for example
+`inspect_git status --porcelain=v1 --untracked-files=all`. Use it for `diff`,
+`remote`, `rev-parse`, and other inspections; apply both protections explicitly
+in helper subprocesses that cannot call the shell function. Optional locks alone
+do not prevent `git diff` from refreshing the index. Do not change repository
+or global Git configuration to apply this fix. Repository validation executes
+this marked wrapper through
+[`scripts/test-checkout-index-preservation.py`](../scripts/test-checkout-index-preservation.py).
 
 With that protection, resolve the actual index path using
 `rev-parse --git-path index`; resolve a relative result against the checkout
