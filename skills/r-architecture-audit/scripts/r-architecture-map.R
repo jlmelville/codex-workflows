@@ -74,14 +74,6 @@ parse_args <- function(args) {
   opts
 }
 
-package_relative_path <- function(path, root) {
-  prefix <- paste0(root, "/")
-  if (startsWith(path, prefix)) {
-    return(substring(path, nchar(prefix) + 1L))
-  }
-  path
-}
-
 source_order <- function(package_root, files) {
   description <- file.path(package_root, "DESCRIPTION")
   if (!file.exists(description)) {
@@ -117,26 +109,6 @@ source_extent <- function(ref) {
   start <- values[[1L]]
   end <- values[[3L]]
   c(line = start, end_line = end, lines = end - start + 1L)
-}
-
-assignment_parts <- function(expr) {
-  if (!is.call(expr) || !is.symbol(expr[[1L]])) {
-    return(NULL)
-  }
-  head <- as.character(expr[[1L]])
-  if (head %in% c("<-", "=", "<<-")) {
-    lhs <- expr[[2L]]
-    rhs <- expr[[3L]]
-  } else if (head %in% c("->", "->>")) {
-    lhs <- expr[[3L]]
-    rhs <- expr[[2L]]
-  } else {
-    return(NULL)
-  }
-  if (!is.symbol(lhs)) {
-    return(NULL)
-  }
-  list(name = as.character(lhs), rhs = rhs)
 }
 
 is_function_literal <- function(expr) {
@@ -675,10 +647,6 @@ cyclic_file_components <- function(coupling) {
   result
 }
 
-markdown_escape <- function(value) {
-  gsub("[|]", "\\\\|", as.character(value))
-}
-
 markdown_table <- function(data, columns = names(data)) {
   if (nrow(data) == 0L) {
     return("_None._")
@@ -918,32 +886,6 @@ analyze_package <- function(package) {
   )
 }
 
-write_atomic <- function(path, writer) {
-  temporary <- tempfile(
-    pattern = paste0(".", basename(path), "."),
-    tmpdir = dirname(path)
-  )
-  on.exit(unlink(temporary), add = TRUE)
-  writer(temporary)
-  if (!file.rename(temporary, path)) {
-    abort("could not move completed output into place: ", path)
-  }
-}
-
-write_tsv <- function(data, path) {
-  write_atomic(path, function(temporary) {
-    write.table(
-      data,
-      file = temporary,
-      sep = "\t",
-      row.names = FALSE,
-      col.names = TRUE,
-      quote = TRUE,
-      na = ""
-    )
-  })
-}
-
 write_report <- function(result, out, top) {
   if (file.exists(out)) {
     abort("refusing to overwrite existing output path: ", out)
@@ -1116,7 +1058,15 @@ main <- function(args) {
 }
 
 tryCatch(
-  main(commandArgs(trailingOnly = TRUE)),
+  {
+    script_path <- grep("^--file=", commandArgs(), value = TRUE)[[1L]]
+    script_path <- sub("^--file=", "", script_path)
+    # R encodes spaces in --file arguments as ~+~.
+    script_path <- gsub("~+~", " ", script_path, fixed = TRUE)
+    script_dir <- dirname(normalizePath(script_path, mustWork = TRUE))
+    source(file.path(script_dir, "audit-common.R"), local = TRUE)
+    main(commandArgs(trailingOnly = TRUE))
+  },
   error = function(error) {
     message("r-architecture-map.R: ", conditionMessage(error))
     quit(status = 1L)

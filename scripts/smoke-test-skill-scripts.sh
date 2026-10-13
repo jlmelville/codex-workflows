@@ -120,12 +120,53 @@ RS
 
 run_architecture_audit_smoke() {
   local map_script="${repo_dir}/skills/r-architecture-audit/scripts/r-architecture-map.R"
-  local diff_script="${repo_dir}/skills/r-architecture-audit/scripts/r-architecture-diff.R"
-  local trace_script="${repo_dir}/skills/r-architecture-audit/scripts/r-value-family-trace.R"
+  local installed_scripts="${tmp_root}/installed skills/r-architecture-audit/scripts"
+  local script_name
 
   require_command Rscript
-  Rscript --vanilla "${map_script}" --help >/dev/null
-  Rscript --vanilla "${map_script}" --self-test >/dev/null
+  mkdir -p "${installed_scripts}"
+  cp "${repo_dir}/skills/r-architecture-audit/scripts/"*.R "${installed_scripts}/"
+  (
+    cd "${tmp_root}"
+    for script_name in r-architecture-map.R r-architecture-diff.R r-value-family-trace.R; do
+      Rscript --vanilla "installed skills/r-architecture-audit/scripts/${script_name}" --help >/dev/null
+      Rscript --vanilla "installed skills/r-architecture-audit/scripts/${script_name}" --self-test >/dev/null
+    done
+  )
+
+  Rscript --vanilla - "${installed_scripts}/audit-common.R" "${tmp_root}/atomic-output" <<'RS'
+source(commandArgs(TRUE)[[1L]])
+abort <- function(...) stop(..., call. = FALSE)
+root <- commandArgs(TRUE)[[2L]]
+dir.create(root)
+destination <- file.path(root, "result.tsv")
+for (existing in c(FALSE, TRUE)) {
+  if (existing) writeLines("preserved", destination)
+  failure <- tryCatch(
+    write_atomic(destination, function(path) {
+      writeLines("partial", path)
+      stop("injected writer failure")
+    }),
+    error = identity
+  )
+  stopifnot(inherits(failure, "error"))
+  stopifnot(conditionMessage(failure) == "injected writer failure")
+  expected <- if (existing) "result.tsv" else character()
+  stopifnot(identical(list.files(root, all.files = TRUE, no.. = TRUE), expected))
+  if (existing) stopifnot(identical(readLines(destination), "preserved"))
+}
+blocked <- file.path(root, "blocked")
+dir.create(blocked)
+writeLines("preserved", file.path(blocked, "sentinel"))
+failure <- suppressWarnings(tryCatch(
+  write_atomic(blocked, function(path) writeLines("complete", path)),
+  error = identity
+))
+stopifnot(inherits(failure, "error"))
+stopifnot(grepl("could not move completed output into place", conditionMessage(failure), fixed = TRUE))
+stopifnot(identical(readLines(file.path(blocked, "sentinel")), "preserved"))
+stopifnot(identical(list.files(root, all.files = TRUE, no.. = TRUE), c("blocked", "result.tsv")))
+RS
 
   local package_dir="${tmp_root}/architecture-package"
   local report_dir="${tmp_root}/architecture-report"
@@ -135,7 +176,7 @@ dir.create(file.path(root, "R"), recursive = TRUE)
 writeLines(c("Package: architecturefixture", "Version: 0.0.1"), file.path(root, "DESCRIPTION"))
 writeLines("export(entry)", file.path(root, "NAMESPACE"))
 writeLines(
-  c("utils::globalVariables('x')", "entry <- function(x) x"),
+  c("utils::globalVariables('x')", "(function(x) x)(1)", "entry <- function(x) x"),
   file.path(root, "R", "entry.R")
 )
 RS
@@ -146,11 +187,6 @@ stopifnot(file.exists(file.path(root, "summary.md")))
 functions <- read.delim(file.path(root, "functions.tsv"))
 stopifnot(nrow(functions) == 1L, functions$name == "entry", functions$public_root)
 RS
-
-  Rscript --vanilla "${diff_script}" --help >/dev/null
-  Rscript --vanilla "${diff_script}" --self-test >/dev/null
-  Rscript --vanilla "${trace_script}" --help >/dev/null
-  Rscript --vanilla "${trace_script}" --self-test >/dev/null
 }
 
 run_evidence_helper_smoke() {

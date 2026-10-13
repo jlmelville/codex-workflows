@@ -620,10 +620,6 @@ compare_maps <- function(before, after) {
   )
 }
 
-markdown_escape <- function(value) {
-  gsub("[|]", "\\\\|", as.character(value))
-}
-
 markdown_table <- function(data, columns = names(data)) {
   if (nrow(data) == 0L) {
     return("_None._")
@@ -716,32 +712,6 @@ build_summary <- function(result, top) {
     "and the cleanup question that motivated the comparison."
   )
   paste(lines, collapse = "\n")
-}
-
-write_atomic <- function(path, writer) {
-  temporary <- tempfile(
-    pattern = paste0(".", basename(path), "."),
-    tmpdir = dirname(path)
-  )
-  on.exit(unlink(temporary), add = TRUE)
-  writer(temporary)
-  if (!file.rename(temporary, path)) {
-    abort("could not move completed output into place: ", path)
-  }
-}
-
-write_tsv <- function(data, path) {
-  write_atomic(path, function(temporary) {
-    write.table(
-      data,
-      file = temporary,
-      sep = "\t",
-      row.names = FALSE,
-      col.names = TRUE,
-      quote = TRUE,
-      na = ""
-    )
-  })
 }
 
 write_report <- function(result, out, top) {
@@ -1038,7 +1008,15 @@ main <- function(args) {
 }
 
 tryCatch(
-  main(commandArgs(trailingOnly = TRUE)),
+  {
+    script_path <- grep("^--file=", commandArgs(), value = TRUE)[[1L]]
+    script_path <- sub("^--file=", "", script_path)
+    # R encodes spaces in --file arguments as ~+~.
+    script_path <- gsub("~+~", " ", script_path, fixed = TRUE)
+    script_dir <- dirname(normalizePath(script_path, mustWork = TRUE))
+    source(file.path(script_dir, "audit-common.R"), local = TRUE)
+    main(commandArgs(trailingOnly = TRUE))
+  },
   error = function(error) {
     message("r-architecture-diff.R: ", conditionMessage(error))
     quit(status = 1L)

@@ -112,14 +112,6 @@ parse_args <- function(args) {
   opts
 }
 
-package_relative_path <- function(path, root) {
-  prefix <- paste0(root, "/")
-  if (startsWith(path, prefix)) {
-    return(substring(path, nchar(prefix) + 1L))
-  }
-  path
-}
-
 trace_files <- function(package_root) {
   roots <- c("R", "tests", "vignettes", "man")
   extensions <- "[.](R|r|Rmd|rmd|qmd|md|Rd)$"
@@ -159,26 +151,6 @@ source_extent <- function(ref) {
   }
   values <- as.integer(ref)
   c(line = values[[1L]], end_line = values[[3L]])
-}
-
-assignment_parts <- function(expr) {
-  if (!is.call(expr) || !is.symbol(expr[[1L]])) {
-    return(NULL)
-  }
-  head <- as.character(expr[[1L]])
-  if (head %in% c("<-", "=", "<<-")) {
-    lhs <- expr[[2L]]
-    rhs <- expr[[3L]]
-  } else if (head %in% c("->", "->>")) {
-    lhs <- expr[[3L]]
-    rhs <- expr[[2L]]
-  } else {
-    return(NULL)
-  }
-  if (!is.symbol(lhs)) {
-    return(NULL)
-  }
-  list(name = as.character(lhs), rhs = rhs)
 }
 
 function_extents <- function(file, relative) {
@@ -425,7 +397,15 @@ main <- function(args) {
 }
 
 tryCatch(
-  main(commandArgs(trailingOnly = TRUE)),
+  {
+    script_path <- grep("^--file=", commandArgs(), value = TRUE)[[1L]]
+    script_path <- sub("^--file=", "", script_path)
+    # R encodes spaces in --file arguments as ~+~.
+    script_path <- gsub("~+~", " ", script_path, fixed = TRUE)
+    script_dir <- dirname(normalizePath(script_path, mustWork = TRUE))
+    source(file.path(script_dir, "audit-common.R"), local = TRUE)
+    main(commandArgs(trailingOnly = TRUE))
+  },
   error = function(error) {
     message("r-value-family-trace.R: ", conditionMessage(error))
     quit(status = 1L)
