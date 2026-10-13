@@ -79,6 +79,10 @@ For behavior changes, state what failed or was missing before and what now
 passes or works after. If a command is expensive, optional-data-dependent, or
 unavailable, report that honestly and name the command that should be run.
 
+When verification uncovers non-obvious operating knowledge worth reusing, or a
+change or observed drift affects an existing verification recipe, use
+`$agent-instructions-maintenance`.
+
 For Python CLIs that accept arbitrary numeric vectors, or for cross-language
 objective, gradient, Hessian, or autograd comparisons, read
 [numerical-validation.md](references/numerical-validation.md).

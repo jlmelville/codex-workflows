@@ -69,6 +69,10 @@ behavior, package integration, or explicit repository gates. Use the
 [final validation bundle](references/checks.md#final-validation-bundles) for
 package-wide cleanup, infrastructure or documentation work, and release checks.
 
+When verification uncovers non-obvious operating knowledge worth reusing, or a
+change or observed drift affects an existing verification recipe, use
+`$agent-instructions-maintenance`.
+
 Fix failures caused by the change and diagnostics within the accepted task.
 Attribute other failures with evidence and report them without silently adding
 unrelated repairs. Treat new code-specific or behavior-changing diagnostics as
