@@ -70,10 +70,10 @@ When a plausible mistake could pass the proposed check, use
 [acceptance-evidence.md](references/acceptance-evidence.md) to construct a
 distinguishing fixture or observe the relevant boundary.
 
-Resolve uncertainty about setup, control, or observation before substantial
-implementation. Reuse existing tooling or add the smallest in-scope fixture,
-command, or harness, and exercise it to confirm the required observations are
-available; repeated friction is not required.
+Invest early in verification tooling in proportion to consequential uncertainty
+about setup, control, or observation. Reuse existing tooling or add the smallest
+in-scope fixture, command, or harness, and exercise it to confirm the required
+observations are available; repeated friction is not required.
 
 Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
