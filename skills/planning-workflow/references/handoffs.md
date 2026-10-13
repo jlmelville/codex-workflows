@@ -42,9 +42,10 @@ Open issues and next action:
 - <uncertainty, exact next step, and guardrail>
 ```
 
-Do not promote a prior agent's mechanism, adjective, or decision list into an
-owner constraint. Prefer exact paths, symbols, commands, statuses, and bounded
-errors over narrative.
+Preserve the origin and scope of agent-added restrictions when copying them;
+describe authority not established for the successor as unresolved rather than
+as an owner prohibition. Prefer exact paths, symbols, commands, statuses, and
+bounded errors over narrative.
 
 Point to consequential rejected approaches and their conditions in the active
 plan so the successor can avoid repeating a ruled-out investigation without
