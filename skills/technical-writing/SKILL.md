@@ -1,6 +1,6 @@
 ---
 name: technical-writing
-description: Draft, revise, or review technical documentation for reader tasks, clarity, and necessary detail. Use for deliberate prose work, including substantive comment or docstring revisions; skip incidental text edits during coding.
+description: Draft, revise, or review technical documentation, explain technical designs, and create or refine technical diagrams, including Mermaid. Use for deliberate technical communication and substantive comment or docstring revisions; skip incidental text edits during coding.
 ---
 
 # Technical Writing
