@@ -121,6 +121,9 @@ counts, source diffs, drift results, and evidence of agent work and owner
 attention. Distinguish inherited cost from the change's delta and mark
 unavailable measures unknown; use existing outputs without new counters,
 fields, or a separate collection pass.
+Where relevant, separate growth in default instructions, routed references,
+and tests/fixtures, and include already-available comparable validation
+timings; treat counts as review leads.
 
 ```md
 ## Learning Process Retrospective
