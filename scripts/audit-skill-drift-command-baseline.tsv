@@ -20,6 +20,7 @@ Rscript -e	skills/r-docs-pkgdown/SKILL.md	3
 Rscript -e	skills/r-docs-pkgdown/references/pkgdown.md	1
 Rscript -e	skills/r-docs-pkgdown/references/roxygen-markdown.md	1
 Rscript -e	skills/r-package-workflow/references/checks.md	11
+Rscript -e	skills/r-performance-workflow/references/evidence-artifact-contracts.md	1
 Rscript -e	skills/r-rcpp-package/SKILL.md	4
 Rscript -e	skills/r-rcpp-package/references/rcpp.md	2
 Rscript -e	skills/r-test-hygiene/SKILL.md	3

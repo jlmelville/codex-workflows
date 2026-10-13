@@ -2,6 +2,15 @@
 Description Overlap	architecture-audit <-> r-architecture-audit	General structural review and its R package extension intentionally share audit triggers; explicit routing keeps shared judgment in architecture-audit and R tools in r-architecture-audit.
 Repeated Helper Names	frontmatter:	Small parser helper names are acceptable in separate repository scripts.
 Repeated Helper Names	require_command:	Small smoke-test helper names are acceptable in unrelated script contexts.
+Repeated Helper Names	abort: skills/r-architecture-audit/scripts/	Standalone R audit commands intentionally keep trivial local error wrappers.
+Repeated Helper Names	build_summary: skills/r-architecture-audit/scripts/	Architecture maps and diffs summarize different result schemas; the shared name does not imply shared summary logic.
+Repeated Helper Names	cleanup: install.sh:	The installer, Ruby runtime preflight, and process observer clean different owned resources through independent local traps.
+Repeated Helper Names	die: install.sh:	The installer and Ruby runtime preflight keep small local error exits to avoid a shared bootstrap dependency.
+Repeated Helper Names	run: skills/planning-workflow/scripts/patch-identity.rb:	The Ruby patch-identity entry point and nested Python self-test runner have different scopes and contracts.
+Repeated Helper Names	run_command: scripts/test-inspection-audits.py:	The Python test harness and R documentation validator wrap subprocesses with different runtime and result contracts.
+Repeated Helper Names	run_self_test: skills/r-architecture-audit/scripts/	Each standalone R audit command owns fixtures for its distinct mapping, comparison, or value-tracing contract.
+Repeated Helper Names	self_test: skills/r-docs-pkgdown/scripts/render-rmd-review.py:	Document rendering, subprocess evidence, and retrospective state have independent CLI self-tests for different contracts.
+Repeated Helper Names	write_report: skills/r-architecture-audit/scripts/	R architecture reports and Python subprocess evidence serialize different result schemas through local report entry points.
 Machine-Specific Paths	skills/local-r-dataset-manifest/	The local dataset skill intentionally names James-local paths and requires path verification before use.
 Repo-Relative Skill Script References	skills/codex-skill-repo/SKILL.md	Source-repository validation examples intentionally use source-tree script paths.
 Repo-Relative Skill Script References	skills/codex-skill-repo/references/source-reconciliation.md	The newly integrated source helper intentionally validates machine-local state before the installed copy is updated.
