@@ -28,7 +28,7 @@ skill	repo-update-preflight	160	800	12990	76990
 skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
 # Accepted scope: pause and detour evidence, journey review, admission, and record-construction guidance.
-skill	skill-retro	160	902	9843	46288
+skill	skill-retro	160	906	9843	46504
 skill	skill-retro-triage	178	800	9139	71334
 # Accepted scope: author-voice calibration and sentence-admission guidance; character ceilings unchanged.
 skill	technical-writing	100	242	6000	18000
