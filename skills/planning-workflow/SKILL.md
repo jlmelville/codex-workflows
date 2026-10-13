@@ -70,27 +70,25 @@ When a plausible mistake could pass the proposed check, use
 [acceptance-evidence.md](references/acceptance-evidence.md) to construct a
 distinguishing fixture or observe the relevant boundary.
 
-Where setup, control, or observation leaves it unclear whether the witness can
-be obtained, resolve that uncertainty before substantial implementation. Reuse
-existing tooling or add the smallest in-scope fixture, command, or harness,
-and exercise it far enough to establish that the required observations are
-available. A concrete obstacle justifies this work without repeated failures.
-
-Preserve an exercised, non-obvious verification recipe when likely reuse
-justifies its upkeep and existing project guidance does not already make it
-repeatable. Prefer updating a project-local script or on-demand reference,
-linked from the repo's normal discovery point. Include prerequisites,
-invocation, observations, and cleanup needed to repeat it; state what was
-exercised and cite the contract behind expected results.
-
-Refresh affected steps when a task changes the recipe's prerequisites, entry
-points, or observations, or when use reveals drift. Re-exercise revisions;
-mark blocked checks unverified. Distinguish recipe drift from product
-regressions against the cited contract before changing expected results.
+Resolve uncertainty about setup, control, or observation before substantial
+implementation. Reuse existing tooling or add the smallest in-scope fixture,
+command, or harness, and exercise it to confirm the required observations are
+available; repeated friction is not required.
 
 Where it reduces consequential uncertainty, sequence a small consumer-visible
 end-to-end result before optional expansion. That first result determines useful
 ordering; preserve all accepted completion obligations.
+
+Preserve non-obvious, exercised recipes when likely reuse justifies upkeep and
+existing guidance does not make them repeatable. Prefer updating a project-local
+script or on-demand reference linked from repo guidance. Include prerequisites,
+invocation, observations, and cleanup; state the exercised scope and cite the
+contract for expected results.
+
+Refresh affected steps when a task changes setup, interaction, or observations,
+or use reveals drift. Re-exercise revisions; mark blocked checks unverified.
+Distinguish recipe drift from regressions against the cited contract before
+changing expectations.
 
 ## Artifact And State Boundaries
 
