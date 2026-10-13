@@ -43,6 +43,11 @@ work itself.
 5. Before a long unattended loop, define an observation that distinguishes
    progress, success, regression, and failure, plus its stop boundary. End at a
    human-judgment boundary; the witness does not expand authority or cost.
+   Before unattended work can incur material metered charges, identify the
+   accepted budget and what bounds spending. Prefer native provider or
+   execution limits, and verify their scope and cutoff behavior. Budget alerts
+   are not enforced caps. Resolve any exposure outside the accepted limits
+   before starting.
 6. Use `$agent-instructions-maintenance` when instruction policy, rather than
    execution state, is the main task.
 
