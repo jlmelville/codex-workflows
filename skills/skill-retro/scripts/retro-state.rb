@@ -1074,7 +1074,7 @@ module RetroState
       existing_coverage: "Existing skill/reference coverage, or none."
       missing_delta: "The exact gap not already covered."
       proposed_destination: "Smallest natural skill, reference, script, prompt, or no change."
-      smallest_change: "The minimum useful content or mechanism change."
+      smallest_change: "Minimum useful change; explain what a helper can enforce, what judgment remains, and why prose is needed when chosen. Both may apply."
       test_status: "What was exercised, or explicitly untested."
       confidence: medium
       recommendation: uncertain # #{RECOMMENDATIONS.join(", ")}
