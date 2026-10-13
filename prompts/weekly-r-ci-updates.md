@@ -47,6 +47,36 @@ the configured host in GitHub operations. Use a connected GitHub app or direct
 API call only when `gh` cannot perform a required operation; report the fallback
 and its reason.
 
+## Preserve local work
+
+Before discovery, protect every Git inspection of an existing checkout,
+including helper subprocesses, with this environment and command-local option:
+
+```sh
+GIT_OPTIONAL_LOCKS=0 git -c diff.autoRefreshIndex=false -C "$checkout" \
+  status --porcelain=v1 --untracked-files=all
+```
+
+Use the same protection for `diff`, `remote`, `rev-parse`, and other inspection
+commands. Optional locks alone do not prevent `git diff` from refreshing the
+index. Do not change repository or global Git configuration to apply this fix.
+
+With that protection, resolve the actual index path using
+`rev-parse --git-path index`; resolve a relative result against the checkout
+directory. Record the index's byte checksum before further inspection and
+verify it after the last inspection. A metadata-only index change still fails
+preservation; report it and distinguish concurrent activity from this run's
+changes. Run commands that require index writes only in a disposable clone.
+
+Use disposable standalone clones under a newly created temporary directory for
+validation and authorized PR edits, starting from the current remote
+default-branch commit. Existing checkouts are discovery and instruction sources;
+preserve their tracked and untracked files, index, stashes, local branches, and
+commits. Do not pull, stash, reset, clean, switch branches, or fast-forward them.
+A dirty, diverged, or outdated checkout is not a reason to skip a repository.
+Perform the skill's fetch/refresh steps in the disposable clone. Remove only
+temporary resources created by this run.
+
 ## Discover the batch
 
 - Discover local Git repositories beneath `checkout_roots`, resolve their
@@ -68,17 +98,6 @@ and its reason.
   changes, and broad workflow redesigns. Major action updates can qualify after
   checking upstream release notes, migration requirements, and runner/runtime
   compatibility.
-
-## Preserve local work
-
-Use disposable standalone clones under a newly created temporary directory for
-validation and authorized PR edits, starting from the current remote
-default-branch commit. Existing checkouts are discovery and instruction sources;
-preserve their tracked and untracked files, index, stashes, local branches, and
-commits. Do not pull, stash, reset, clean, switch branches, or fast-forward them.
-A dirty, diverged, or outdated checkout is not a reason to skip a repository.
-Perform the skill's fetch/refresh steps in the disposable clone. Remove only
-temporary resources created by this run.
 
 ## Validate and merge
 
