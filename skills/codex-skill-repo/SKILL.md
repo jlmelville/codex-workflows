@@ -119,13 +119,9 @@ narration, and duplicated tool documentation do not belong on the default
 path. Prescribe an exact sequence only when ordering prevents a known
 correctness, safety, state, or tooling failure.
 
-Treat line, character, word, and aggregate-description thresholds as capacity
-signals and review gates, not optimization targets or semantic quality scores.
-Never shorten an unrelated skill to admit an addition elsewhere. A reduction
-must be locally justified, preserve the distinctions that change action, and be
-reviewed on its own merits. When a necessary accepted addition crosses a
-baseline, prefer an explicit, narrowly scoped capacity decision over hidden
-collateral compression.
+Treat capacity thresholds as review gates, not optimization targets or quality
+scores. Preserve required behavior and do not shorten unrelated skills to make
+room for an addition.
 
 For pass/fail tools that a skill runs or recommends, use native quiet and
 no-progress modes when they preserve diagnostics. If no suitable quiet mode
@@ -133,12 +129,10 @@ exists, capture output and replay it on failure. Keep requested payloads,
 evidence needed for a decision, and actionable warnings visible; suppress only
 routine progress and successful-check chatter.
 
-Classify learned additions before placing them: compact default judgment,
-routed exact mechanics, optional sanitized cases, or external verification
-only. A reference is a loading mechanism rather than a semantic category; it
-may mix roles and need restructuring. Read
-[semantic-authoring.md](references/semantic-authoring.md) when adding or
-restructuring guidance, mechanics, examples, or casebooks.
+Use [semantic-authoring.md](references/semantic-authoring.md) when adding or
+restructuring guidance, mechanics, examples, or casebooks; creating skills or
+recurring prompts; promoting repo-local guidance; or deciding payload capacity.
+It owns admission, placement, initialization, and source-replacement mechanics.
 
 Classify external tools by owner before prescribing installation or parity,
 and do not claim complete validation when a required check has no supported
@@ -147,26 +141,7 @@ selection mechanics, read
 [repository-validation.md](references/repository-validation.md).
 
 Create a new skill only for repeated work with clear triggers and decisions;
-keep maintainer-only knowledge in repository docs. For recurring non-installed
-prompts, document the exact path, a copy-ready invocation, and useful cadence.
-When a supervising skill and a direct manual entry point use the same prompt,
-say that they are two routes to one mechanism, show the literal path relative
-to the repository root, and distinguish the skill's broader supervision or
-follow-up from the direct prompt's scope.
-
-When adding a skill, follow system `skill-creator` guidance and initialize with
-`init_skill.py` when available. Keep trigger conditions in the frontmatter
-description and add `agents/openai.yaml`. When passing `$skill-name` through
-shell arguments, quote or escape `$`, then inspect the generated default prompt
-for the literal invocation. Validate the skill and repository, install it, and
-confirm managed parity when applicable.
-
-## Promoting Local Guidance
-
-When promoting repo-local skills, instructions, prompts, or plan material into
-user-scoped skills, follow the classification, generalization, and
-source-replacement workflow in
-[semantic-authoring.md](references/semantic-authoring.md#promoting-local-guidance).
+keep maintainer-only knowledge in repository docs.
 
 ## Validation
 

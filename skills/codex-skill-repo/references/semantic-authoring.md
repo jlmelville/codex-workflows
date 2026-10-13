@@ -1,8 +1,9 @@
 # Semantic Skill Authoring
 
-Use this when adding learned guidance or restructuring a skill corpus. Preserve
-the evidence and mechanics needed for correctness while reducing duplicated
-incident-shaped decisions.
+Use this when adding or restructuring skill-repository guidance, creating
+skills or recurring prompts, promoting repo-local guidance, or deciding payload
+capacity. Preserve the evidence and mechanics needed for correctness while
+reducing duplicated incident-shaped decisions.
 
 ## Admission
 
@@ -14,7 +15,7 @@ Consulting a skill does not require running its workflow. Run it only when the t
 outcome and authority permits it. If an earlier decision ends that work, skip the stages that depend
 on it. Still complete any independently required finishing work.
 
-Use these destinations:
+Classify learned additions before placing them:
 
 - **Default judgment:** a compact principle needed when the skill triggers. State the condition and
   action that distinguish the case; keep unconditional privacy, authority, evidence, and completion
@@ -43,6 +44,25 @@ needed to apply a rule. If a limit is crossed, review the affected addition and
 its local destination first. Any offsetting reduction must independently
 improve that same material or another explicitly reviewed target, not serve as
 an invisible cross-skill subsidy.
+When a necessary accepted addition crosses a baseline, prefer an explicit,
+narrowly scoped capacity decision over hidden collateral compression.
+
+## New Skill Creation
+
+When adding a skill, follow system `skill-creator` guidance and initialize with
+`init_skill.py` when available. Keep trigger conditions in the frontmatter
+description and add `agents/openai.yaml`. When passing `$skill-name` through
+shell arguments, quote or escape `$`, then inspect the generated default prompt
+for the literal invocation. Validate the skill and repository, install it, and
+confirm managed parity when applicable.
+
+## Recurring Non-Installed Prompts
+
+For recurring non-installed prompts, document the exact path, a copy-ready
+invocation, and useful cadence. When a supervising skill and a direct manual
+entry point use the same prompt, say that they are two routes to one mechanism,
+show the literal path relative to the repository root, and distinguish the
+skill's broader supervision or follow-up from the direct prompt's scope.
 
 ## Bounded Forward-Testing
 
@@ -99,7 +119,8 @@ When turning repo-local `.agents/skills`, `docs/agents`, `prompts/`,
 
 ## References And Casebooks
 
-A reference controls when material is loaded; moving text into `references/`
+A reference controls when material is loaded rather than defining its semantic
+role; it may mix roles and need restructuring. Moving text into `references/`
 does not by itself compress the decision model. Route a reference from
 `SKILL.md` with the condition that makes it relevant.
 
