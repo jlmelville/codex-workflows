@@ -106,6 +106,11 @@ batch checks and recovery steps:
 2. If mergeability is `UNKNOWN`, wait briefly and re-read. GitHub may report
    `UNKNOWN` immediately after a preceding merge while it recomputes the next
    PR's merge result.
+   If a connector reports only a normalized boolean, fetch raw PR `mergeable`
+   and `mergeable_state` fields before interpreting `false` as a conflict.
+   Raw `mergeable: null` is still pending; raw `false` is non-mergeable.
+   Keep unresolved state pending and retain the expected-head and required-check
+   gates before merging.
 3. For the PR just merged, treat direct
    `gh pr view <number> --json state,mergedAt,mergeCommit` as the source of
    truth. If `gh pr list --state open` still shows it, wait and re-read before

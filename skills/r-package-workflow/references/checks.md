@@ -145,6 +145,13 @@ unrelated diagnostics and their effect on completion:
   `$github-actions-hardening` when workflows changed;
 - pkgdown build when site output, articles, examples, or `_pkgdown.yml` changed.
 
+Before accepting diagnostic counts, confirm successful process completion from
+the returned check `status` and raw output. A halted `rcmdcheck` or
+`devtools::check()` run can report 0 errors, warnings, and notes even with
+`error_on = "note"`. Treat a nonzero status or an incomplete log as failed or
+incomplete validation; use the network rerun below when blocked metadata access
+caused the halt.
+
 For CRAN packages or release preparation, follow the routed
 [release lifecycle](release.md) after development checks. It owns candidate
 identity, release validation, submission, acceptance, and return to development.
