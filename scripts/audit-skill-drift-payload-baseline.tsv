@@ -10,23 +10,28 @@ skill	learning-process-review	160	800	12936	67720
 skill	local-r-dataset-manifest	160	800	12112	76112
 skill	notebook-inspection	160	800	7262	71262
 skill	papercut-capture	160	800	11642	75642
-skill	planning-workflow	160	846	12276	46191
+# Accepted scope: shared acceptance evidence, scoped planning and handoffs, and metered-run budgets.
+skill	planning-workflow	160	969	12276	52951
 skill	python-uv-project-workflow	160	800	9675	71136
 skill	r-architecture-audit	160	800	12000	64000
 skill	r-ci-hardening	160	800	12702	62523
-skill	r-docs-pkgdown	160	875	10425	43058
-skill	r-package-workflow	160	913	10533	50607
+# Accepted scope: document rendering, reproduction boundaries, and canonical figure-size guidance.
+skill	r-docs-pkgdown	160	931	10425	46861
+# Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, and recipe routing.
+skill	r-package-workflow	160	943	10533	52656
 skill	r-performance-workflow	160	800	8913	64942
 skill	r-rcpp-package	160	800	11771	67304
-skill	r-test-hygiene	160	1052	8321	53130
+# Accepted scope: coverage preservation, diagnostic evidence, process recovery, and numerical contracts.
+skill	r-test-hygiene	160	1086	8321	55573
 skill	repo-bootstrap	160	800	10112	74112
 skill	repo-update-preflight	160	800	12990	76990
 skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
-# Accepted scope: instruction-specific pause and detour evidence.
-skill	skill-retro	160	850	9843	41785
+# Accepted scope: pause and detour evidence, journey review, admission, and record-construction guidance.
+skill	skill-retro	160	902	9843	46288
 skill	skill-retro-triage	178	800	9139	71334
-skill	technical-writing	100	240	6000	18000
+# Accepted scope: author-voice calibration and sentence-admission guidance; character ceilings unchanged.
+skill	technical-writing	100	242	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
-# Accepted scope: shared architecture audit, R extension, and bounded evaluation controls.
-repository	instructional-markdown	-	9107	-	450000
+# Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt, and learning-loop guidance.
+repository	instructional-markdown	-	10069	-	506992
