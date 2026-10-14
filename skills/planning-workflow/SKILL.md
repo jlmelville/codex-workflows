@@ -32,9 +32,9 @@ work itself.
    chosen approach to be challenged. Assess discoveries against that accepted contract, including
    behavior to preserve and applicable, named safety and authority boundaries. Add a plan item only
    when omitting it would leave an obligation unmet or required evidence missing. Usefulness, a
-   reviewer's suggestion, or possible future value alone does not justify it. For an uncertainty
-   affecting the approach or acceptance within scope, identify the decision and the evidence needed to
-   resolve it against the requested outcome and relevant constraints. Use the smallest adequate check
+   reviewer's suggestion, or possible future value alone does not justify it. For consequential
+   uncertainty within scope, own the investigation: identify the decision, choose methods and evidence,
+   and establish the necessary access and feedback. Use the smallest adequate check
    that preserves the behavior in question, and stop when the evidence supports a decision. Seek
    direction before materially expanding goals, behavior, acceptance criteria, or authority.
    Before an existing safeguard requires replacing an approach or adding a parallel path, identify
