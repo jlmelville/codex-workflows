@@ -8,6 +8,13 @@ task's scope and authority; use `$papercut-capture` and `$skill-retro` for
 observations that meet their admission rules. Judgment does not require a
 record, a new rule, or a separate review pass for every action.
 
+Standing capture and routing authorize only new inbox records. An explicit
+request for a specific learning-state outcome authorizes the necessary record
+transitions and bookkeeping for that outcome; helper operation names are
+unnecessary. Review-only requests remain read-only. Do not infer substantive
+acceptance, stronger evidence claims, or authority over unrelated state.
+Repository-local privacy restrictions still apply.
+
 ## Workflow papercuts
 
 For substantive repository work, apply `$papercut-capture`.
@@ -16,10 +23,6 @@ This is standing authorization only to create sanitized new papercut inbox
 records beneath the configured external state root. Record qualifying workflow
 friction when encountered, continue without interrupting the task, and disclose
 nonzero recordings in the final response.
-
-Do not close, promote, edit, or otherwise mutate existing papercut or
-retrospective records during project work. Explicit task instructions and
-repository-local privacy restrictions take precedence.
 
 ## Workflow retrospectives
 
@@ -40,7 +43,3 @@ Fold small follow-up fixes into the current evaluation. If a retrospective has
 already run, evaluate again only when later work materially changes the lesson
 or reveals a distinct one. Disclose nonzero routed candidates and verification
 proposals in the final response.
-
-Do not edit or otherwise mutate existing retrospective state during project
-work. Explicit task instructions and repository-local privacy restrictions take
-precedence.
