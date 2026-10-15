@@ -129,14 +129,20 @@ def rollout_metadata(row):
                     if child_agent(payload.get('agent_path')):
                         return None, 'subagent'
                 elif kind == 'response_item':
-                    if payload.get('type') == 'message' and payload.get('role') == 'user':
-                        users += 1
+                    if not isinstance(payload.get('type'), str) or not payload['type']:
+                        raise MetadataError('invalid_response_type')
+                    if payload['type'] == 'message':
+                        if not isinstance(payload.get('role'), str) or not payload['role']:
+                            raise MetadataError('invalid_message_role')
+                        users += payload['role'] == 'user'
                 else:
                     tag = payload.get('type')
+                    if not isinstance(tag, str) or not tag:
+                        raise MetadataError('invalid_lifecycle_tag')
                     if tag in LIFECYCLE:
                         latest = tag
                         completed = timestamp(record.get('timestamp'))
-                    elif isinstance(tag, str) and tag.startswith('task_'):
+                    elif tag.startswith('task_'):
                         raise MetadataError('unsupported_lifecycle_event')
         after = path.stat()
         if (before.st_size, before.st_mtime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ino):

@@ -168,6 +168,21 @@ class SessionSampleTests(unittest.TestCase):
         result = self.manifest(status='incomplete')
         self.assertEqual(result['counts']['unknown'], 2)
 
+    def test_malformed_metadata_fields_block_selection(self):
+        self.add('good')
+        cases = [('event_msg', {}, 'invalid_lifecycle_tag'),
+                 ('event_msg', {'type': ''}, 'invalid_lifecycle_tag'),
+                 ('response_item', {}, 'invalid_response_type'),
+                 ('response_item', {'type': ''}, 'invalid_response_type'),
+                 ('response_item', {'type': 'message'}, 'invalid_message_role'),
+                 ('response_item', {'type': 'message', 'role': ''}, 'invalid_message_role')]
+        for index, (kind, payload, reason) in enumerate(cases):
+            path = self.add('bad-field-' + str(index))
+            with path.open('a') as stream:
+                stream.write(json.dumps({'type': kind, 'payload': payload}) + '\n')
+            result = self.manifest(status='incomplete')
+            self.assertIn(reason, [item['reason'] for item in result['unknown']])
+
     def test_outcome_fields_do_not_change_selection(self):
         path = self.add('good')
         original = self.manifest()
