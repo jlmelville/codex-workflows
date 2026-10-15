@@ -11,7 +11,8 @@ skill	local-r-dataset-manifest	160	800	12112	76112
 skill	notebook-inspection	160	800	7262	71262
 skill	papercut-capture	160	800	11642	75642
 # Accepted scope: shared acceptance evidence, scoped planning and handoffs, restriction provenance, and metered-run budgets.
-skill	planning-workflow	160	970	12276	53036
+# Reviewed addition: optional patch scopes, automatic new-file discovery, and explicit ignored-file decisions.
+skill	planning-workflow	160	981	12276	53653
 skill	python-uv-project-workflow	160	800	9675	71136
 skill	r-architecture-audit	160	800	12000	64000
 skill	r-ci-hardening	160	800	12702	62523
@@ -41,4 +42,5 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Reviewed additions: authoring and investigation refinements, completion evidence, learning provenance and authority, diagram guidance, and README steering names.
 # Reviewed addition: pending-support protocol and supplemental-evidence adjudication.
 # Reviewed addition: the existing checkpoint's source-destination discovery clarification.
-repository	instructional-markdown	-	10202	-	515118
+# Reviewed addition: scoped patch-identity boundary and ignored-file guidance.
+repository	instructional-markdown	-	10213	-	515753
