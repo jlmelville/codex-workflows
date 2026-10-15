@@ -10,7 +10,7 @@ public artifact audits use the parent route and no private-state evidence.
 2. Read
    `${HOME}/.agents/skills/skill-retro/references/state-protocol.md` before any
    state mutation.
-3. Start with the installed helper:
+3. Start with the installed helper; use `show --id ID` for record contents:
 
    ```sh
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts

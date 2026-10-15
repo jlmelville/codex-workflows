@@ -86,6 +86,9 @@ the current record shape and field vocabularies. This protocol owns the
 decisions those interfaces cannot make: authority, evidence, operation ordering,
 identity, privacy, and recovery.
 
+For state-preservation checks, use `snapshot` and then `compare`; save the
+snapshot outside the state root. See each command's `--help` for flags.
+
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.
 

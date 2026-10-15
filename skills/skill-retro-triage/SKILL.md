@@ -48,8 +48,8 @@ review and requires papercut-processing authority for closure.
 If the state variable is unavailable, report that live intake cannot be read;
 review a supplied paste-ready candidate without inventing a state location.
 
-Read the cited destinations needed to judge each record. Load only the relevant
-route:
+Inspect selected records with `show --id ID` and read the cited destinations
+needed to judge them. Load only the relevant route:
 
 - Candidate judgment, reconsideration, or fired drafts and ledgers:
   [candidate-judgment.md](references/candidate-judgment.md).

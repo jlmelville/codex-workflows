@@ -63,6 +63,8 @@ for a read-only pull query:
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-opportunities --destination TEXT
 ```
 
+Read selected records with `show --id ID` through the same helper.
+
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query through the same helper to find the
 applicable identity, including a supported record, and read its recorded
