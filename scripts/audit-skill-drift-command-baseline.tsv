@@ -28,7 +28,8 @@ Rscript -e	skills/r-test-hygiene/references/coverage-roi.md	1
 Rscript -e	skills/r-test-hygiene/references/fixtures.md	1
 Rscript -e	skills/r-test-hygiene/references/testthat-edition-migrations.md	1
 devtools::check	skills/r-package-workflow/references/check-diagnostic-cases.md	1
-devtools::check	skills/r-package-workflow/references/checks.md	4
+# Accepted addition: the aborted-check explanation names devtools::check; executable check recipes are unchanged.
+devtools::check	skills/r-package-workflow/references/checks.md	5
 devtools::check	skills/r-rcpp-package/SKILL.md	1
 persist-credentials	skills/github-actions-hardening/SKILL.md	1
 persist-credentials	skills/r-ci-hardening/references/github-actions.md	2

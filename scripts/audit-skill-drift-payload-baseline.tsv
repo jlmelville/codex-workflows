@@ -18,7 +18,8 @@ skill	r-ci-hardening	160	800	12702	62523
 # Accepted scope: document rendering, reproduction boundaries, canonical figure-size guidance, and static-preview verification.
 skill	r-docs-pkgdown	160	950	10425	47784
 # Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
-skill	r-package-workflow	160	957	10533	53353
+# Reviewed addition: successful process completion before accepting package-check diagnostic counts.
+skill	r-package-workflow	160	964	10533	53750
 skill	r-performance-workflow	160	800	8913	64942
 skill	r-rcpp-package	160	800	11771	67304
 # Accepted scope: coverage preservation, diagnostic evidence, process recovery, and numerical contracts.
@@ -28,10 +29,12 @@ skill	repo-update-preflight	160	800	12990	76990
 skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
 # Accepted scope: pause and detour evidence, journey review, admission, and record-construction guidance.
-skill	skill-retro	160	906	9843	46504
+# Reviewed additions: already-landed attribution, learning-state outcome authority, and shared-premise judgment.
+skill	skill-retro	160	925	9843	48057
 skill	skill-retro-triage	178	800	9139	71334
-# Accepted scope: author-voice calibration and sentence-admission guidance; character ceilings unchanged.
-skill	technical-writing	100	242	6000	18000
+# Accepted scope: author-voice calibration, sentence-admission, and diagram comparison/rendering guidance; routing and character ceilings unchanged.
+skill	technical-writing	103	255	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
 # Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt and tested inspection wrapper, and learning-loop guidance.
-repository	instructional-markdown	-	10112	-	509108
+# Reviewed additions: authoring and investigation refinements, completion evidence, learning provenance and authority, diagram guidance, and README steering names.
+repository	instructional-markdown	-	10184	-	513869
