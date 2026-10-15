@@ -9,7 +9,10 @@ for evidence bases, typed decisions, eligible transitions, and identity rules.
 Choose `apply` or `reject` for each proposal. Apply only to an `accepted` or
 `implemented` target when evidence exercises its exact opportunity, its basis
 and claim match the observation, and the transition is eligible: `unverified`
-to `supported`, or `unverified`/`supported` to `contradicted`. Reject stale,
+to `supported`, `unverified`/`supported` to `contradicted`, or `supported` to
+`supported` with a materially useful `supplemental_reason`. Judge what the
+supplement adds beyond existing support; its presence or a different claim
+label alone is insufficient. Reject stale,
 duplicate, overclaimed, mismatched, or insufficient evidence.
 
 When processing is authorized, use `template verification-decision` and

@@ -297,6 +297,12 @@ module RetroState
     elsif data.key?("what_is_false")
       raise Error, "#{label}: supported proposals must not contain what_is_false"
     end
+    if data.key?("supplemental_reason")
+      require_fields(data, %w[supplemental_reason], label)
+      unless data["proposed_verification"] == "supported"
+        raise Error, "#{label}: supplemental_reason is only for supported proposals"
+      end
+    end
 
     if routed
       require_fields(data, %w[verification_proposal_id created_at intake_digest], label)
@@ -1108,6 +1114,8 @@ module RetroState
       redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
       # A contradicted proposal must also add:
       # what_is_false: "What the accepted outcome asserted that is now false."
+      # Further support when support is pending or the target is supported must add:
+      # supplemental_reason: "What this evidence materially adds to adjudication beyond existing support."
       ---
 
       # Short verification proposal title
@@ -1378,6 +1386,13 @@ module RetroState
       RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
       ensure_initialized
       validate_verification_target!(data)
+      if data["proposed_verification"] == "supported" && !data.key?("supplemental_reason")
+        pending = pending_support.fetch(data.fetch("target_accepted_id"), [])
+        unless pending.empty?
+          ids = pending.map { |proposal| proposal.fetch("verification_proposal_id") }
+          raise Error, "support already pending: #{ids.join(", ")}; read it and add supplemental_reason only for materially useful evidence"
+        end
+      end
       ensure_verification_dirs
 
       now = Time.now.utc
@@ -1394,11 +1409,7 @@ module RetroState
 
     def pending_verifications
       ensure_initialized
-      return [] unless verification_dirs_present?
-
-      Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
-        RetroState.validate_verification_proposal(data, body, label: path, routed: true)
+      pending_verification_records.map do |path, data|
         [
           data.fetch("verification_proposal_id"),
           data.fetch("target_accepted_id"),
@@ -1943,6 +1954,7 @@ module RetroState
 
     def verification_opportunities(destination: nil)
       ensure_initialized
+      support = pending_support
       accepted_records.each_with_object([]) do |(path, data), rows|
         next unless %w[accepted implemented].include?(data["disposition"])
         next unless data["verification"] == "unverified"
@@ -1954,7 +1966,10 @@ module RetroState
           data.fetch("accepted_id"),
           data.fetch("destination"),
           data.fetch("verification_opportunity"),
-          path
+          path,
+          support.fetch(data.fetch("accepted_id"), []).map { |proposal|
+            "#{proposal.fetch("verification_proposal_id")}:#{proposal.fetch("claim")}"
+          }.join(",")
         ]
       end
     end
@@ -2288,7 +2303,12 @@ module RetroState
 
       validate_verification_target_state!(current, proposal)
       replacement = current.dup
-      replacement["observed_behavior"] = proposal.fetch("observation")
+      replacement["observed_behavior"] = if current["verification"] == "supported" &&
+          proposal["proposed_verification"] == "supported"
+        [current.fetch("observed_behavior"), proposal.fetch("observation")].uniq.join("\n\n")
+      else
+        proposal.fetch("observation")
+      end
       replacement["decisive_evidence"] = (
         current.fetch("decisive_evidence") + proposal.fetch("decisive_evidence")
       ).uniq
@@ -2361,13 +2381,33 @@ module RetroState
       proposed_state = proposal.fetch("proposed_verification")
       current_state = accepted.fetch("verification")
       valid = if proposed_state == "supported"
-        current_state == "unverified"
+        current_state == "unverified" ||
+          (current_state == "supported" && proposal.key?("supplemental_reason"))
       else
         %w[unverified supported].include?(current_state)
       end
       return if valid
 
+      if proposed_state == "supported" && current_state == "supported"
+        raise Error, "verification target is already supported; add supplemental_reason only for materially useful evidence"
+      end
       raise Error, "verification target state #{current_state} cannot receive proposed #{proposed_state} evidence"
+    end
+
+    def pending_verification_records
+      return [] unless verification_dirs_present?
+
+      Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_verification_proposal(data, body, label: path, routed: true)
+        [path, data]
+      end
+    end
+
+    def pending_support
+      pending_verification_records.map(&:last)
+        .select { |proposal| proposal["proposed_verification"] == "supported" }
+        .group_by { |proposal| proposal.fetch("target_accepted_id") }
     end
 
     def write_or_verify_archive(destination, output, record_type:)
@@ -3519,6 +3559,9 @@ module RetroState
         .sub("SCR-YYYYMMDD-abcdef", accepted_id)
         .sub("verification_basis: later-session", "verification_basis: deterministic-test")
         .sub("claim: guidance-conformance", "claim: executable-correctness")
+      unless store.verification_opportunities(destination: "public source").first.fetch(4).empty?
+        raise "fresh verification opportunity reported pending support"
+      end
       File.write(verification_proposal, supported_proposal_text)
       supported_proposal_path = store.route_verification(verification_proposal)
       supported_proposal_id = File.basename(supported_proposal_path, ".md")
@@ -3530,6 +3573,75 @@ module RetroState
              }
         raise "verification proposal missing from review queue"
       end
+      unless store.verification_opportunities(destination: "public source").first.fetch(4) ==
+          "#{supported_proposal_id}:executable-correctness"
+        raise "opportunity query did not expose pending support and claim"
+      end
+      original_support_bytes = File.binread(supported_proposal_path)
+      [supported_proposal_text,
+        supported_proposal_text.sub("claim: executable-correctness", "claim: intended-outcome")].each do |repeat|
+        File.write(verification_proposal, repeat)
+        begin
+          store.route_verification(verification_proposal)
+          raise "unexplained repeat support was routed"
+        rescue Error => e
+          raise unless e.message.include?("support already pending: #{supported_proposal_id}")
+        end
+      end
+      unless store.pending_verifications.map(&:first) == [supported_proposal_id] &&
+          File.binread(supported_proposal_path) == original_support_bytes
+        raise "refused repeat support changed the inbox"
+      end
+
+      pending_contradiction_text = supported_proposal_text
+        .sub("proposed_verification: supported", "proposed_verification: contradicted")
+        .sub("# what_is_false:", "what_is_false:")
+      File.write(verification_proposal, pending_contradiction_text)
+      pending_contradiction_path = store.route_verification(verification_proposal)
+      pending_contradiction_id = File.basename(pending_contradiction_path, ".md")
+      pending_reject = verification_decision_template
+        .sub("VP-YYYYMMDDTHHMMSSZ-abcdef", pending_contradiction_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:01Z")
+      File.write(verification_decision, pending_reject)
+      store.process_verification(pending_contradiction_id, verification_decision)
+      support_reject = pending_reject.sub(pending_contradiction_id, supported_proposal_id)
+      File.write(verification_decision, support_reject)
+      store.process_verification(supported_proposal_id, verification_decision)
+      unless store.verification_opportunities(destination: "public source").first.fetch(4).empty?
+        raise "rejected support still covered the opportunity"
+      end
+      File.write(verification_proposal, supported_proposal_text)
+      supported_proposal_path = store.route_verification(verification_proposal)
+      supported_proposal_id = File.basename(supported_proposal_path, ".md")
+
+      supplemental_data, supplemental_body = parse_document(supported_proposal_text)
+      supplemental_data["supplemental_reason"] = "Exercises a distinct failure boundary absent from pending support."
+      supplemental_data["observation"] = "The previously untested failure boundary holds."
+      supplemental_data["decisive_evidence"] = ["A distinct failure-boundary check passed."]
+      supplemental_text = render_document(supplemental_data, supplemental_body)
+      File.write(verification_proposal, supplemental_text)
+      supplemental_path = store.route_verification(verification_proposal)
+      supplemental_id = File.basename(supplemental_path, ".md")
+      ["", false].each do |invalid_reason|
+        validate_verification_proposal(
+          supplemental_data.merge("supplemental_reason" => invalid_reason),
+          supplemental_body, label: "invalid supplemental reason", routed: false
+        )
+        raise "invalid supplemental rationale was accepted"
+      rescue Error => e
+        raise unless e.message.include?("supplemental_reason must be a non-empty string")
+      end
+      begin
+        invalid_supplement = supplemental_data.merge(
+          "proposed_verification" => "contradicted", "what_is_false" => "A boundary fails."
+        )
+        validate_verification_proposal(
+          invalid_supplement, supplemental_body, label: "contradiction with supplement", routed: false
+        )
+        raise "contradiction accepted a supplemental support rationale"
+      rescue Error => e
+        raise unless e.message.include?("supplemental_reason is only for supported proposals")
+      end
       cadence_before_verification = store.artifact_audit_status
       supported_decision_text = verification_decision_template
         .sub("VP-YYYYMMDDTHHMMSSZ-abcdef", supported_proposal_id)
@@ -3538,7 +3650,9 @@ module RetroState
       File.write(verification_decision, supported_decision_text)
       supported_archive_path = store.process_verification(supported_proposal_id, verification_decision)
       raise "verification proposal was not archived" unless File.file?(supported_archive_path)
-      raise "verification proposal remained pending" unless store.pending_verifications.empty?
+      unless store.pending_verifications.map(&:first) == [supplemental_id]
+        raise "primary application removed supplemental support"
+      end
       unless store.artifact_audit_status == cadence_before_verification
         raise "verification proposal changed candidate artifact-audit cadence"
       end
@@ -3567,6 +3681,29 @@ module RetroState
         raise "supported accepted record remained in the unverified opportunity query"
       end
 
+      File.write(verification_proposal, supported_proposal_text)
+      begin
+        store.route_verification(verification_proposal)
+        raise "supported target accepted unexplained repeat support"
+      rescue Error => e
+        raise unless e.message.include?("already supported; add supplemental_reason")
+      end
+      supplemental_decision = supported_decision_text.sub(supported_proposal_id, supplemental_id)
+      File.write(verification_decision, supplemental_decision)
+      store.process_verification(supplemental_id, verification_decision)
+      supplemented, = read_document(accepted_path)
+      unless supplemented["verification"] == "supported" &&
+          supplemented["observed_behavior"].include?(supported_accepted.fetch("observed_behavior")) &&
+          supplemented["observed_behavior"].include?(supplemental_data.fetch("observation")) &&
+          supplemented["decisive_evidence"] ==
+              (supported_accepted.fetch("decisive_evidence") + supplemental_data.fetch("decisive_evidence")).uniq &&
+          supplemented["applied_verification_proposal_ids"] == [supported_proposal_id, supplemental_id]
+        raise "supplemental support lost accepted state, observations, evidence, or provenance"
+      end
+      if store.pending_verifications.any?
+        raise "applied supplemental support remained pending"
+      end
+
       contradicted_proposal_text = verification_proposal_template
         .sub("SCR-YYYYMMDD-abcdef", accepted_id)
         .sub("proposed_verification: supported", "proposed_verification: contradicted")
@@ -3585,7 +3722,7 @@ module RetroState
       raise "rejected verification proposal was not archived" unless File.file?(rejected_archive_path)
       rejected_accepted, rejected_accepted_body = read_document(accepted_path)
       unless rejected_accepted["verification"] == "supported" &&
-          rejected_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id]
+          rejected_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id, supplemental_id]
         raise "rejected verification proposal changed accepted state"
       end
       unless store.artifact_audit_status == cadence_before_verification
@@ -3684,9 +3821,20 @@ module RetroState
           assigned_contradiction["accepted_id"] == accepted_id &&
           assigned_contradiction["accepted_at"] == original_accepted_at &&
           assigned_contradiction.fetch("applied_verification_proposal_ids") ==
-              [supported_proposal_id, supported_contradiction_id] &&
+              [supported_proposal_id, supplemental_id, supported_contradiction_id] &&
           prior_evidence_preserved
         raise "supported contradiction did not preserve accepted identity and evidence"
+      end
+      contradiction_bytes = File.binread(accepted_path)
+      File.write(verification_proposal, supplemental_text)
+      begin
+        store.route_verification(verification_proposal)
+        raise "supplemental support revived a contradicted target"
+      rescue Error => e
+        raise unless e.message.include?("state contradicted cannot receive proposed supported")
+      end
+      unless File.binread(accepted_path) == contradiction_bytes
+        raise "refused supplemental support changed contradictory evidence"
       end
       contradicted_data = without_keys(assigned_contradiction, "accepted_id", "accepted_at")
       unless store.review_queue.map(&:first).include?("contradiction")
@@ -4124,7 +4272,7 @@ def usage
       accepted-records [--destination TEXT] [--text TEXT]
                                         Find accepted identities across all states
       verification-opportunities [--destination TEXT]
-                                        List relevant unverified accepted outcomes
+                                        List unverified outcomes; final column is pending support IDs:claims
       record-draft --file PATH          Store an uninstalled draft
       record-ledger --file PATH         Store a maintenance ledger entry
       close-ledger --id ID --rationale TEXT

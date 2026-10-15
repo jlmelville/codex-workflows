@@ -325,9 +325,13 @@ outcome. Neither basis establishes comparative improvement without an observed
 comparator.
 
 Use `verification-opportunities --destination TEXT` as a pull query only for
-destinations materially involved in a completed task. When the task produces
-decisive evidence for the target's exact opportunity, create `template
-verification` and route it with `route-verification`. A proposal names one
+destinations materially involved in a completed task. Its final column lists
+pending support IDs and claims; the first four columns remain identity,
+destination, opportunity, and path. Read pending support before constructing
+another positive proposal. Another conforming task alone need not add evidence
+that changes adjudication. When the task produces decisive evidence for the
+target's exact opportunity, create `template verification` and route it with
+`route-verification`. A proposal names one
 `target_accepted_id`, proposes `supported` or `contradicted`, selects
 `later-session` or `deterministic-test`, records the opportunity match and
 observation, and classifies its claim as one of:
@@ -347,8 +351,12 @@ addresses that record's claim and opportunity. Use a candidate when the
 decision itself changes.
 
 Contradicted proposals must also state `what_is_false`; supported proposals
-must not. Route one proposal per file. A query hit creates no obligation, and
-proposal routing authority creates only a new external inbox file.
+must not. Further support when support is pending or the target is supported
+requires `supplemental_reason`: what the evidence materially adds beyond existing
+support, such as a previously untested boundary or a stronger warranted claim.
+A different task or claim label alone is insufficient. Omit redundant support;
+preserve useful supplements and contradictions. Route one proposal per file.
+A query hit creates no obligation; routing authority creates only a new inbox file.
 
 Triage lists proposals with `pending-verifications`, chooses `apply` or
 `reject` in `template verification-decision`, and records the result with
@@ -359,12 +367,16 @@ only for these transitions:
 unverified -> supported
 unverified -> contradicted
 supported  -> contradicted
+supported  -> supported (material supplemental evidence only)
 ```
 
 Application updates the existing accepted identity's observation, decisive
 evidence, verification state and basis, records the `VP-*` provenance, and
 creates the structured contradiction mapping when needed. Rejection archives
-the proposal without changing the accepted record. Processing is recoverable
+the proposal without changing the accepted record. Supplemental application
+retains both observations, accumulated evidence, and proposal provenance; each
+proposal preserves its own basis. Triage must judge the supplemental reason,
+not merely its presence. Processing is recoverable
 if interrupted between accepted-state replacement and proposal archival.
 Verification proposal archives do not increment candidate artifact-audit
 cadence.

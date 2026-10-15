@@ -30,11 +30,13 @@ skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
 # Accepted scope: pause and detour evidence, journey review, admission, and record-construction guidance.
 # Reviewed additions: already-landed attribution, learning-state outcome authority, and shared-premise judgment.
-skill	skill-retro	160	925	9843	48057
+# Reviewed addition: pending-support visibility and material supplemental evidence on the existing accepted identity.
+skill	skill-retro	160	937	9843	48935
 skill	skill-retro-triage	178	800	9139	71334
 # Accepted scope: author-voice calibration, sentence-admission, and diagram comparison/rendering guidance; routing and character ceilings unchanged.
 skill	technical-writing	103	255	6000	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
 # Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt and tested inspection wrapper, and learning-loop guidance.
 # Reviewed additions: authoring and investigation refinements, completion evidence, learning provenance and authority, diagram guidance, and README steering names.
-repository	instructional-markdown	-	10184	-	513869
+# Reviewed addition: pending-support protocol and supplemental-evidence adjudication.
+repository	instructional-markdown	-	10199	-	514941
