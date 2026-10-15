@@ -3,6 +3,7 @@
 
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import runpy
 import sqlite3
@@ -11,7 +12,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'skills/learning-process-review/scripts/select-session-sample.py'
@@ -76,15 +77,16 @@ class SessionSampleTests(unittest.TestCase):
         args = ['--catalog', str(self.catalog), '--workspace', self.workspace,
                 '--after', CUTOFF, '--count', str(count)]
         result = subprocess.run([sys.executable, str(SCRIPT), *args, *extra],
-                                capture_output=True, text=True, timeout=15)
+                                capture_output=True, text=True, timeout=15,
+                                env={**os.environ, 'CODEX_WORKFLOWS_STATE_DIR': str(self.root / 'learning-state')})
         after = {str(p.relative_to(self.root)): p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
         self.assertEqual(after, before, 'selector wrote catalog, rollouts, or learning state')
         self.assertNotIn('Traceback', result.stderr)
         self.assertNotIn('PRIVATE_OUTCOME', result.stdout + result.stderr)
         return result
 
-    def manifest(self, count=1, status='ready'):
-        result = self.run_selector(count)
+    def manifest(self, count=1, status='ready', extra=()):
+        result = self.run_selector(count, extra)
         self.assertEqual(result.returncode, 0 if status == 'ready' else 1, result.stderr)
         self.assertEqual(result.stderr, '')
         document = json.loads(result.stdout)
@@ -186,12 +188,95 @@ class SessionSampleTests(unittest.TestCase):
     def test_outcome_fields_do_not_change_selection(self):
         path = self.add('good')
         original = self.manifest()
+        explained = self.manifest(extra=['--explain-id', 'good'])
         path.write_text(path.read_text().replace('PRIVATE_OUTCOME', 'A completely different outcome'))
         self.append(path, 'agent_message')
         with sqlite3.connect(self.catalog) as connection:
             connection.execute('UPDATE threads SET title = ?, first_user_message = ?, has_user_event = 1',
                                ('Different outcome', 'Different outcome'))
         self.assertEqual(self.manifest(), original)
+        self.assertEqual(self.manifest(extra=['--explain-id', 'good']), explained)
+
+    def test_explanations_report_eligibility_without_changing_selection(self):
+        self.add('good')
+        self.add('other-eligible', completed=30)
+        self.add('old-reopened', created=-1000).unlink()
+        self.add('completed-equal', completed=0)
+        self.add('source-child', source='PRIVATE_OUTCOME').unlink()
+        self.add('catalog-child', agent_path='/root/PRIVATE_OUTCOME').unlink()
+        self.add('rollout-child', meta_source={'subagent': {'other': 'PRIVATE_OUTCOME'}})
+        self.add('no-users', users=0)
+        self.append(self.add('failed'), 'task_failed')
+        self.add('no-lifecycle').write_text('\n'.join(json.dumps(record) for record in [
+            {'type': 'session_meta', 'payload': {'id': 'no-lifecycle', 'source': 'cli'}},
+            {'type': 'response_item', 'payload': {'type': 'message', 'role': 'user'}}]) + '\n')
+        self.add('malformed').write_text('{PRIVATE_OUTCOME')
+        self.add('other-workspace', workspace=self.workspace + '-other').unlink()
+        original = self.manifest(status='incomplete')
+        requested = ['failed', 'good', 'source-child', 'old-reopened', 'catalog-child',
+                     'rollout-child', 'no-users', 'no-lifecycle', 'completed-equal',
+                     'malformed', 'missing', 'other-workspace', 'failed']
+        extra = [value for identity in requested for value in ('--explain-id', identity)]
+        result = self.manifest(status='incomplete', extra=extra)
+        explanations = result.pop('explanations')
+        self.assertEqual(result, original)
+        self.assertEqual([item['id'] for item in explanations], list(dict.fromkeys(requested)))
+        items = {item['id']: item for item in explanations}
+        self.assertEqual(items['good'], {
+            'id': 'good', 'source': 'cli', 'created_at': stamp(1), 'completed_at': stamp(10),
+            'user_messages': 1, 'latest_lifecycle': 'task_complete',
+            'latest_lifecycle_at': stamp(10), 'status': 'eligible', 'reason': None})
+        for identity, reason in [('source-child', 'source'), ('catalog-child', 'subagent'),
+                                 ('rollout-child', 'subagent'), ('no-users', 'no_user_messages'),
+                                 ('no-lifecycle', 'not_completed'), ('failed', 'not_completed'),
+                                 ('old-reopened', 'created_at_or_before_cutoff'),
+                                 ('completed-equal', 'completed_at_or_before_cutoff')]:
+            self.assertEqual((items[identity]['status'], items[identity]['reason']), ('excluded', reason))
+        self.assertEqual(items['failed']['latest_lifecycle'], 'task_failed')
+        self.assertEqual(items['failed']['latest_lifecycle_at'], stamp(20))
+        self.assertNotIn('completed_at', items['failed'])
+        self.assertEqual(items['no-users']['user_messages'], 0)
+        self.assertNotIn('latest_lifecycle', items['no-lifecycle'])
+        self.assertNotIn('source', items['source-child'])
+        self.assertNotIn('user_messages', items['old-reopened'])
+        for identity in ('missing', 'other-workspace'):
+            self.assertEqual(items[identity], {
+                'id': identity, 'status': 'unknown', 'reason': 'not_found_in_workspace'})
+        self.assertEqual(items['malformed']['reason'], 'invalid_jsonl_or_timestamp')
+        self.assertEqual(items['malformed']['status'], 'unknown')
+
+    def test_explanations_preserve_ready_and_insufficient_cohorts(self):
+        self.add('a')
+        self.add('b', completed=20)
+        extra = ['--explain-id', 'a', '--explain-id', 'absent']
+        for count, status in ((1, 'ready'), (3, 'insufficient')):
+            with self.subTest(status=status):
+                original = self.manifest(count, status)
+                result = self.manifest(count, status, extra)
+                explanations = result.pop('explanations')
+                self.assertEqual(result, original)
+                self.assertEqual(explanations[0]['status'], 'eligible')
+                self.assertEqual(explanations[1]['reason'], 'not_found_in_workspace')
+        self.assertEqual(self.manifest()['selected'][0]['id'], 'b')
+
+    def test_explanations_do_not_reread_or_expand_rollout_access(self):
+        module = runpy.run_path(str(SCRIPT))
+        self.add('good')
+        self.append(self.add('active'), 'task_started')
+        self.add('old', created=-1000).unlink()
+        self.add('child', agent_path='/root/child').unlink()
+        self.add('elsewhere', workspace=self.workspace + '-other').unlink()
+        reader = Mock(wraps=module['rollout_metadata'])
+        args = (self.catalog, self.workspace, module['timestamp'](CUTOFF), 3)
+        with patch.dict(module['classify'].__globals__, {'rollout_metadata': reader}):
+            original = module['select'](*args)
+            calls = [call.args[0]['id'] for call in reader.call_args_list]
+            reader.reset_mock()
+            explained = module['select'](*args, explain_ids=['good', 'active', 'old', 'child', 'elsewhere'])
+            self.assertEqual([call.args[0]['id'] for call in reader.call_args_list], calls)
+        self.assertEqual(set(calls), {'good', 'active'})
+        explained.pop('explanations')
+        self.assertEqual(explained, original)
 
     def test_legacy_catalog_columns(self):
         self.create_catalog(optional=False)
@@ -222,7 +307,8 @@ class SessionSampleTests(unittest.TestCase):
         self.assertFalse(self.catalog.exists())
 
     def test_usage_and_help(self):
-        for extra in (['--count', '0'], ['--after', '2026-01-01'], ['--unknown']):
+        for extra in (['--count', '0'], ['--after', '2026-01-01'], ['--unknown'],
+                      ['--explain-id', ''], ['--explain-id', ' '], ['--explain-id']):
             with self.subTest(extra=extra):
                 result = self.run_selector(extra=extra)
                 self.assertEqual(result.returncode, 2)
@@ -232,6 +318,7 @@ class SessionSampleTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stderr, '')
         self.assertIn('standard library only', result.stdout)
+        self.assertIn('--explain-id ID', result.stdout)
 
 
 if __name__ == '__main__':
