@@ -1377,6 +1377,68 @@ module RetroState
       {"root" => root, "records" => records}
     end
 
+    def prepare_decision(id, verdict)
+      record = show([id]).fetch("records").first
+      data = record.fetch("frontmatter")
+      body = record.fetch("body")
+      path = File.join(root, record.fetch("path"))
+      reviewed_at = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+      case id
+      when /\ARC-/
+        archived = path == candidate_path("archive", id)
+        unless archived || path == candidate_path("inbox", id)
+          raise Error, "candidate must be in inbox or archive: #{id}"
+        end
+        RetroState.validate_candidate(data, body, label: path, routed: true, archived: archived)
+        if archived
+          unless data.fetch("triage").fetch("verdict") == "defer"
+            raise Error, "candidate is not currently deferred: #{id}"
+          end
+          unless reviewed_at > data.fetch("triage").fetch("reviewed_at")
+            raise Error, "replacement decision timestamp must be newer than the current triage"
+          end
+        end
+        id_field = "candidate_id"
+        verdicts = VERDICTS
+        template = RetroState.decision_template
+      when /\AVP-/
+        unless path == verification_path("inbox", id)
+          raise Error, "verification proposal must be in inbox: #{id}"
+        end
+        RetroState.validate_verification_proposal(data, body, label: path, routed: true)
+        id_field = "verification_proposal_id"
+        verdicts = VERIFICATION_PROPOSAL_VERDICTS
+        template = RetroState.verification_decision_template
+      else
+        raise Error, "prepare-decision requires a candidate or verification proposal ID"
+      end
+      raise Error, "record identity does not match #{id}" unless data[id_field] == id
+      raise Error, "verdict must be one of #{verdicts.join(", ")}" unless verdicts.include?(verdict)
+
+      decision, decision_body = RetroState.parse_document(template)
+      decision[id_field] = id
+      decision["verdict"] = verdict
+      decision["reviewed_at"] = reviewed_at
+      decision["rationale"] = ""
+      if id_field == "candidate_id" && verdict != "defer"
+        RetroState.review_trigger_contract_fields.each { |field| decision.delete(field) }
+      end
+      RetroState.render_document(decision, decision_body)
+    end
+
+    def prepare_accepted_update(id)
+      record = show([id]).fetch("records").first
+      data = record.fetch("frontmatter")
+      body = record.fetch("body")
+      path = File.join(root, record.fetch("path"))
+      raise Error, "accepted record must be in retrospectives/accepted: #{id}" unless path == accepted_path(id)
+
+      RetroState.validate_accepted(data, body, label: path, assigned: true)
+      raise Error, "record identity does not match #{id}" unless data.fetch("accepted_id") == id
+
+      RetroState.render_document(RetroState.without_keys(data, "accepted_id", "accepted_at"), body)
+    end
+
     def snapshot
       raise Error, "state root does not exist: #{root}" unless Dir.exist?(root)
       refuse_git_worktree!
@@ -2871,25 +2933,29 @@ module RetroState
     end
   end
 
-  def inspection_self_test
+  def self_test_cli(root)
     require "open3"
+    lambda do |status, *arguments, stdin: "", error: nil|
+      out, err, result = Open3.capture3(
+        RbConfig.ruby, File.expand_path(__FILE__), *arguments, "--root", root,
+        stdin_data: stdin
+      )
+      raise "#{arguments.inspect}: expected exit #{status}, got #{result.exitstatus}: #{err}" unless result.exitstatus == status
+      if error
+        raise "#{arguments.inspect}: invalid error output" unless out.empty? && err.include?(error) && !err.include?("from ")
+      else
+        raise "#{arguments.inspect}: unexpected stderr: #{err}" unless err.empty?
+      end
+      out
+    end
+  end
+
+  def inspection_self_test
     Dir.mktmpdir("retro-inspection-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
       store = Store.new(root)
       store.init
-      run = lambda do |status, *arguments, stdin: "", error: nil|
-        out, err, result = Open3.capture3(
-          RbConfig.ruby, File.expand_path(__FILE__), *arguments, "--root", root,
-          stdin_data: stdin
-        )
-        raise "#{arguments.inspect}: expected exit #{status}, got #{result.exitstatus}: #{err}" unless result.exitstatus == status
-        if error
-          raise "#{arguments.inspect}: invalid error output" unless out.empty? && err.include?(error) && !err.include?("from ")
-        else
-          raise "#{arguments.inspect}: unexpected stderr: #{err}" unless err.empty?
-        end
-        out
-      end
+      run = self_test_cli(root)
       input = File.join(tmp, "candidate.md")
       File.write(input, candidate_template)
       candidate = store.route(input)
@@ -2961,8 +3027,128 @@ module RetroState
     end
   end
 
+  def preparation_self_test
+    Dir.mktmpdir("retro-preparation-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = self_test_cli(root)
+      input = File.join(tmp, "input.md")
+      decision_file = File.join(tmp, "decision.md")
+      File.write(input, candidate_template)
+      candidate = store.route(input)
+      id = File.basename(candidate, ".md")
+      before = store.snapshot
+      decision, body = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "accept"))
+      unless decision.values_at("candidate_id", "verdict", "rationale") == [id, "accept", ""] &&
+          review_trigger_contract_fields.none? { |field| decision.key?(field) }
+        raise "incorrect terminal decision draft"
+      end
+      begin
+        validate_decision(decision, body, label: "unreviewed draft", expected_id: id)
+        raise "blank rationale was accepted"
+      rescue Error => e
+        raise unless e.message.include?("rationale must be a non-empty string")
+      end
+      deferred, = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "defer"))
+      validate_review_trigger_contract(deferred, "defer scaffold", legacy_allowed: false)
+      run.call(2, "prepare-decision", "--id", id, error: "missing argument: --verdict")
+      run.call(2, "prepare-decision", "--id", id, "--id", id, "--verdict", "accept", error: "exactly one --id")
+      run.call(2, "prepare-accepted-update", error: "missing argument: --id")
+      run.call(2, "prepare-accepted-update", "--id", id, "--verdict", "accept", error: "--verdict is not valid")
+      run.call(1, "prepare-decision", "--id", id, "--verdict", "apply", error: "verdict must be one of")
+      run.call(1, "prepare-decision", "--id", "../escape", "--verdict", "accept", error: "invalid record ID")
+      run.call(1, "prepare-accepted-update", "--id", "SCR-20000101-000000", error: "record not found")
+      intake = File.read(candidate)
+      File.write(candidate, intake.sub("Short candidate title", "Tampered candidate title"))
+      run.call(1, "prepare-decision", "--id", id, "--verdict", "accept", error: "intake fields changed after routing")
+      File.write(candidate, intake)
+      raise "decision preparation wrote state" unless store.snapshot == before
+      decision["rationale"] = "Fixture acceptance."
+      File.write(decision_file, render_document(decision, body))
+      store.process(id, decision_file)
+      run.call(1, "prepare-decision", "--id", id, "--verdict", "reject", error: "not currently deferred")
+
+      accepted, accepted_body = parse_document(accepted_template)
+      accepted["originating_candidate_ids"] = [id]
+      accepted["implementation_commits"] = ["abcdef0"]
+      accepted["extra_context"] = {"preserve" => ["custom metadata"]}
+      File.write(input, render_document(accepted, accepted_body))
+      accepted_path = store.record_accepted(input)
+      accepted_id = File.basename(accepted_path, ".md")
+      proposal, proposal_body = parse_document(verification_proposal_template)
+      proposal["target_accepted_id"] = accepted_id
+      proposal["proposed_verification"] = "contradicted"
+      proposal["what_is_false"] = "The recorded fixture expectation failed."
+      File.write(input, render_document(proposal, proposal_body))
+      proposal_path = store.route_verification(input)
+      proposal_id = File.basename(proposal_path, ".md")
+      before = store.snapshot
+      verification, verification_body = parse_document(run.call(0, "prepare-decision", "--id", proposal_id, "--verdict", "apply"))
+      unless verification.values_at("record_type", "verification_proposal_id", "verdict", "rationale") ==
+          ["verification-decision", proposal_id, "apply", ""]
+        raise "incorrect verification decision draft"
+      end
+      run.call(1, "prepare-decision", "--id", proposal_id, "--verdict", "accept", error: "verdict must be one of")
+      raise "verification preparation wrote state" unless store.snapshot == before
+      verification["rationale"] = "Fixture contradiction."
+      File.write(decision_file, render_document(verification, verification_body))
+      store.process_verification(proposal_id, decision_file)
+      run.call(1, "prepare-decision", "--id", proposal_id, "--verdict", "reject", error: "must be in inbox")
+
+      original, original_body = read_document(accepted_path)
+      before = store.snapshot
+      replacement = run.call(0, "prepare-accepted-update", "--id", accepted_id)
+      updated, updated_body = parse_document(replacement)
+      unless updated == without_keys(original, "accepted_id", "accepted_at") && updated_body == original_body
+        raise "accepted preparation lost metadata or body"
+      end
+      %w[prepare-decision prepare-accepted-update].each do |command|
+        raise "missing preparation help" unless run.call(0, command, "--help").include?("Usage: retro-state.rb #{command}")
+      end
+      run.call(1, "prepare-decision", "--id", accepted_id, "--verdict", "accept", error: "requires a candidate or verification")
+      raise "accepted preparation wrote state" unless store.snapshot == before
+      File.write(input, replacement)
+      store.update_accepted(accepted_id, input)
+      raise "accepted update did not round-trip" unless read_document(accepted_path) == [original, original_body]
+      legacy = without_keys(original, "contradiction")
+      File.write(accepted_path, render_document(legacy, original_body))
+      legacy_input, = parse_document(run.call(0, "prepare-accepted-update", "--id", accepted_id))
+      raise "preparation invented legacy contradiction evidence" if legacy_input.key?("contradiction")
+      File.write(accepted_path, render_document(original, original_body))
+
+      File.write(input, candidate_template)
+      candidate = store.route(input)
+      id = File.basename(candidate, ".md")
+      deferred, deferred_body = parse_document(store.prepare_decision(id, "defer"))
+      deferred["rationale"] = "Fixture deferral."
+      deferred["reviewed_at"] = "2000-01-01T00:00:00Z"
+      File.write(decision_file, render_document(deferred, deferred_body))
+      archived = store.process(id, decision_file)
+      before = store.snapshot
+      replacement, replacement_body = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "no-change"))
+      raise "reconsideration timestamp is not newer" unless replacement.fetch("reviewed_at") > deferred.fetch("reviewed_at")
+      raise "reconsideration preparation wrote state" unless store.snapshot == before
+      data, body = read_document(archived)
+      prior_triage = data.fetch("triage").dup
+      data["triage"]["reviewed_at"] = "9999-01-01T00:00:00Z"
+      File.write(archived, render_document(data, body))
+      before = store.snapshot
+      run.call(1, "prepare-decision", "--id", id, "--verdict", "no-change", error: "timestamp must be newer")
+      raise "failed preparation wrote state" unless store.snapshot == before
+      data["triage"] = prior_triage
+      File.write(archived, render_document(data, body))
+      replacement["rationale"] = "Fixture terminal reconsideration."
+      File.write(decision_file, render_document(replacement, replacement_body))
+      store.reconsider(id, decision_file)
+      reconsidered, = read_document(archived)
+      raise "prepared reconsideration lost history" unless reconsidered.fetch("triage_history").last == prior_triage
+    end
+  end
+
   def self_test
     inspection_self_test
+    preparation_self_test
     Dir.mktmpdir("retro-state-self-test.") do |tmp|
       root = File.join(tmp, "state")
       input = File.join(tmp, "candidate.md")
@@ -4489,6 +4675,27 @@ end
 
 def usage(command = nil)
   details = case command
+  when "prepare-decision"
+    <<~TEXT
+      Usage: retro-state.rb prepare-decision --id ID --verdict VERDICT [--root DIR]
+
+      Print an editable Markdown/YAML decision for a candidate (RC-*) in inbox or
+      deferred archive, or a verification proposal (VP-*) in inbox.
+      Candidate verdicts: #{RetroState::VERDICTS.join(", ")}.
+      Verification verdicts: #{RetroState::VERIFICATION_PROPOSAL_VERDICTS.join(", ")}.
+      Sets the ID and current UTC reviewed_at; reconsiderations must be newer.
+      Rationale is blank: fill it, any defer fields, and related IDs before review.
+      Submit separately through process, reconsider, or process-verification.
+    TEXT
+  when "prepare-accepted-update"
+    <<~TEXT
+      Usage: retro-state.rb prepare-accepted-update --id SCR-ID [--root DIR]
+
+      Print the accepted record as editable Markdown/YAML, removing only accepted_id
+      and accepted_at. Preserves all other metadata and the body, including evidence,
+      verification, opportunity, lineage, and commits; legacy gaps remain visible.
+      Review edits, then submit separately through update-accepted --id ID --file PATH.
+    TEXT
   when "show"
     <<~TEXT
       Usage: retro-state.rb show --id ID [--id ID ...] [--root DIR]
@@ -4530,6 +4737,9 @@ def usage(command = nil)
       show --id ID [--id ID ...]       Inspect selected records as JSON
       snapshot                         Print a JSON state inventory
       compare --file PATH              Compare inventory; optional --allow-path PATH
+      prepare-decision --id ID --verdict VERDICT
+                                        Print an editable candidate or verification decision
+      prepare-accepted-update --id ID  Print an editable accepted-record replacement
       init                              Initialize the configured state root
       template TYPE                    Print a papercut, papercut-repair, candidate, decision,
                                         verification, verification-decision, accepted, draft,
@@ -4572,7 +4782,7 @@ def usage(command = nil)
 
     Common option:
       --root DIR  Override #{RetroState::STATE_ENV} for this invocation
-      COMMAND --help  Show command help (JSON inspection commands have focused help)
+      COMMAND --help  Show command help (inspection and preparation have focused help)
   TEXT
 end
 
@@ -4588,6 +4798,8 @@ def reject_inapplicable_options!(command, provided)
     "show" => %w[--root --id],
     "snapshot" => %w[--root],
     "compare" => %w[--root --file --allow-path],
+    "prepare-decision" => %w[--root --id --verdict],
+    "prepare-accepted-update" => %w[--root --id],
     "init" => %w[--root],
     "template" => [],
     "record-papercut" => %w[--root --file],
@@ -4633,6 +4845,7 @@ end
 command = ARGV.shift
 commands = %w[
   show snapshot compare
+  prepare-decision prepare-accepted-update
   init template record-papercut prepare-papercut-repair repair-papercut papercuts
   close-papercut route pending process
   route-verification pending-verifications process-verification
@@ -4655,6 +4868,7 @@ decision_path = nil
 archive = false
 outcome = nil
 rationale = nil
+verdict = nil
 related_papercut_id = nil
 related_candidate_id = nil
 destination_filter = nil
@@ -4673,6 +4887,7 @@ parser = OptionParser.new do |opts|
   opts.on("--archive") { archive = true }
   opts.on("--outcome OUTCOME") { |value| outcome = value }
   opts.on("--rationale TEXT") { |value| rationale = value }
+  opts.on("--verdict VERDICT") { |value| verdict = value }
   opts.on("--related-papercut-id ID") { |value| related_papercut_id = value }
   opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
   opts.on("--destination TEXT") { |value| destination_filter = value }
@@ -4701,6 +4916,7 @@ begin
       "--archive" => archive,
       "--outcome" => !outcome.nil?,
       "--rationale" => !rationale.nil?,
+      "--verdict" => !verdict.nil?,
       "--related-papercut-id" => !related_papercut_id.nil?,
       "--related-candidate-id" => !related_candidate_id.nil?,
       "--destination" => !destination_filter.nil?,
@@ -4713,6 +4929,13 @@ begin
   end
   if command == "compare" && !input_path
     raise OptionParser::MissingArgument, "--file PATH"
+  end
+  if %w[prepare-decision prepare-accepted-update].include?(command)
+    raise OptionParser::MissingArgument, "--id ID" unless record_id
+    raise OptionParser::InvalidArgument, "exactly one --id is required" unless record_ids.one?
+  end
+  if command == "prepare-decision" && !verdict
+    raise OptionParser::MissingArgument, "--verdict VERDICT"
   end
 
   case command
@@ -4760,6 +4983,10 @@ begin
 
     store = RetroState::Store.new(root)
     case command
+    when "prepare-decision"
+      print store.prepare_decision(record_id, verdict)
+    when "prepare-accepted-update"
+      print store.prepare_accepted_update(record_id)
     when "show"
       puts JSON.pretty_generate(store.show(record_ids))
     when "snapshot"

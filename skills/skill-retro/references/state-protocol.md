@@ -225,7 +225,7 @@ implementation batch before editing source.
 Query `accepted-records` before a possible repeat or destination-repair verdict.
 It searches all dispositions and states by destination or semantic text, unlike the unverified-only evidence queue.
 
-Use `template decision`, fill the verdict and rationale, then use `process` to
+Use `prepare-decision --id ID --verdict VERDICT`, complete the draft, then use `process` to
 attach the decision and move the record from inbox to archive. The intake
 digest and original intake fields remain in the archived document. For a
 deferred verdict, first state the `unresolved_decision` that current evidence
@@ -358,8 +358,8 @@ A different task or claim label alone is insufficient. Omit redundant support;
 preserve useful supplements and contradictions. Route one proposal per file.
 A query hit creates no obligation; routing authority creates only a new inbox file.
 
-Triage lists proposals with `pending-verifications`, chooses `apply` or
-`reject` in `template verification-decision`, and records the result with
+Triage lists proposals with `pending-verifications`, prepares `apply` or
+`reject` using `prepare-decision`, completes the rationale, and records the result with
 `process-verification`. Apply only to an `accepted` or `implemented` target and
 only for these transitions:
 
@@ -383,9 +383,9 @@ cadence.
 
 Use `update-accepted --id ID --file PATH` for later disposition, public-source
 destination, evidence curation, or commit updates; use the typed proposal path
-for new verification evidence. Supply a complete unassigned accepted document,
-like `template accepted`; the helper preserves `accepted_id`, `accepted_at`,
-and prior `implementation_commits`, appending new commits without duplicates.
+for new verification evidence. Start with `prepare-accepted-update --id ID`;
+the helper preserves `accepted_id`, `accepted_at`, and prior
+`implementation_commits`, appending new commits without duplicates.
 It requires the originating candidate, supersession lineage, and applied
 proposal IDs to remain intact. A pure relocation uses this existing identity
 and retains its verification state and basis. Do not direct-edit the stored
