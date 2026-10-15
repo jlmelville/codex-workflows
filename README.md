@@ -51,6 +51,17 @@ The catalogue shows each capability, its activation contract, a copy-ready
 invocation, and whether the skill includes scripts, references, or assets. It is
 generated on demand so the README does not become a second skill inventory.
 
+## Steer With Principles
+
+Use these names to redirect work when the cue fits. Follow the links for the
+canonical guidance.
+
+| Name | When to use it |
+| --- | --- |
+| [Test the shared premise](skills/skill-retro/assets/global-agents-learning.md#workflow-judgment) | Successive fixes share an assumption but stop making useful progress. |
+| [Evidence at the claim's boundary](skills/skill-retro/references/value-stream.md) | A check may establish less than the reported outcome. |
+| [Simplify without weakening the contract](skills/architecture-audit/SKILL.md#judge-simplifications) | A proposed simplification may discard required behavior. |
+
 ## Set Up A Laptop
 
 Install [rbenv](https://github.com/rbenv/rbenv#installation), ruby-build, and

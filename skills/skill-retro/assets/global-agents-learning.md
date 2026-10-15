@@ -8,6 +8,12 @@ task's scope and authority; use `$papercut-capture` and `$skill-retro` for
 observations that meet their admission rules. Judgment does not require a
 record, a new rule, or a separate review pass for every action.
 
+**Test the shared premise.** When successive fixes share an assumption but make
+no useful progress against the same constraint, test that assumption before
+extending the approach. Choose a small observation that distinguishes it from
+a plausible alternative, including whether to intervene elsewhere. Preserve
+the accepted contract; retain the original approach when evidence supports it.
+
 Standing capture and routing authorize only new inbox records. An explicit
 request for a specific learning-state outcome authorizes the necessary record
 transitions and bookkeeping for that outcome; helper operation names are
