@@ -1442,6 +1442,7 @@ module RetroState
     def route(input_path, document: nil)
       init
       data, body = document || RetroState.read_document(input_path)
+      data = data.dup
       RetroState.validate_candidate(data, body, label: input_path, routed: false)
       validate_candidate_supersession!(data)
 
@@ -1468,6 +1469,7 @@ module RetroState
 
     def route_verification(input_path, document: nil)
       data, body = document || RetroState.read_document(input_path)
+      data = data.dup
       RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
       ensure_initialized
       validate_verification_target!(data)
@@ -3772,6 +3774,19 @@ module RetroState
           end
           File.unlink(routed_path)
           raise "#{command}: CLI routing changed existing state" unless cli_snapshot.call == before_cli
+
+          failing_store = Store.new(cli_root)
+          failing_store.define_singleton_method(:exclusive_write) { |_destination, _content| raise Errno::ENOSPC }
+          fallback_data, fallback_body = parse_document(text)
+          begin
+            method = (command == "route") ? :route : :route_verification
+            failing_store.public_send(method, path, document: [fallback_data, fallback_body])
+            raise "#{command}: write failure was not injected"
+          rescue Errno::ENOSPC
+            unless [fallback_data, fallback_body] == [expected_data, expected_body] && cli_snapshot.call == before_cli
+              raise "#{command}: late write failure changed fallback input or existing state"
+            end
+          end
 
           [nil, blocked_root].each do |fallback_root|
             out, err, result = run_cli.call(command, path, text, fallback_root)
