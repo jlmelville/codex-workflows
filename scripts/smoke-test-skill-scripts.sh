@@ -1472,5 +1472,6 @@ run_ci_tool_parity_smoke
 run_retro_state_smoke
 run_patch_identity_smoke
 python3 "${repo_dir}/scripts/test-patch-identity.py"
+python3 "${repo_dir}/scripts/test-session-sample.py"
 
 echo "Skill script smoke tests passed."

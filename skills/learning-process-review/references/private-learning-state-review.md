@@ -26,6 +26,11 @@ public artifact audits use the parent route and no private-state evidence.
    and audits needed to judge verdict patterns, fired triggers, verification,
    producer quality, or cleanup.
 
+For a ledger's fixed cohort of fresh completed sessions, use this source repository's
+[select-session-sample.py](../scripts/select-session-sample.py) with its catalog,
+workspace, cutoff, and count. See `--help`; freeze its private manifest outside
+Git and learning state before reading outcomes, retaining its completion boundaries.
+
 Treat synchronized state as potentially exposed. Exclude credentials, private
 source, raw transcripts, unredacted paths, and unnecessary repository names.
 
