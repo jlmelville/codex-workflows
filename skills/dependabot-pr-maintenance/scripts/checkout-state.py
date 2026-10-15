@@ -75,18 +75,15 @@ def inventory(root, names, missing=False):
     return {'files': len(entries), 'sha256': hashlib.sha256(payload).hexdigest()}
 
 
-def index_state(root, index):
-    shared = os.fsdecode(git(root, 'rev-parse', '--shared-index-path')).removesuffix('\n')
-    paths = {index}
-    if shared:
-        paths.add((root / shared).absolute())
-    result = {}
-    for path in sorted(paths):
-        entry = file_entry(path, missing=True)
-        if entry['kind'] not in ('file', 'missing'):
-            raise ValueError(f'unsupported index symlink: {path}')
-        result[str(path)] = entry.get('sha256')
-    return result
+def index_state(index):
+    # Even read-only Git index queries freshen shared-index mtimes. Refuse the layout
+    # using filesystem inspection, including leftovers, before Git can read the index.
+    if next(index.parent.glob('sharedindex.*'), None) is not None:
+        raise ValueError('shared-index layouts are unsupported for read-only inspection (sharedindex.* files found)')
+    entry = file_entry(index, missing=True)
+    if entry['kind'] not in ('file', 'missing'):
+        raise ValueError(f'unsupported index symlink: {index}')
+    return {str(index): entry.get('sha256')}
 
 
 def snapshot(root):
@@ -95,7 +92,7 @@ def snapshot(root):
         raise ValueError('expected a checkout root, not a subdirectory')
     index = Path(os.fsdecode(git(root, 'rev-parse', '--git-path', 'index')).removesuffix('\n'))
     index = (root / index).absolute()
-    before = index_state(root, index)
+    before = index_state(index)
     tracked = []
     for record in git(root, 'ls-files', '--stage', '-z').split(b'\0'):
         if record:
@@ -123,7 +120,7 @@ def snapshot(root):
         'tracked': inventory(root, tracked, missing=True),
         'untracked': inventory(root, untracked),
     }
-    if index_state(root, index) != before:
+    if index_state(index) != before:
         raise ValueError('index changed during inspection')
     return result
 
@@ -180,10 +177,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=(
         'Python 3.9+ and Git required. JSON on stdout; exit 0 complete/unchanged, '
         '1 differences or inspection errors, 2 usage. Save private snapshots outside inspected '
-        'checkouts. Hashes cover file bytes/modes, symlink targets, index/shared index, HEAD/branch, '
+        'checkouts. Hashes cover file bytes/modes, symlink targets, index, HEAD/branch, '
         'heads/tags/remotes/stash refs and stash order. Ignored files, empty directories, '
         'timestamps, config and object storage are excluded. No discovery, network, restoration '
-        'or atomic/concurrent-change attribution; submodules and nested repositories are refused.'
+        'or atomic/concurrent-change attribution. Shared-index layouts (including leftover '
+        'sharedindex.* files), submodules and nested repositories are refused.'
     ))
     commands = parser.add_subparsers(dest='operation', required=True)
     take = commands.add_parser('snapshot', help='print state for explicit checkout roots')

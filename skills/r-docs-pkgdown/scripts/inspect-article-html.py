@@ -114,7 +114,7 @@ def inspect(path, root, result):
     for line, fragment in document.math:
         # HTML named entities are legal in embedded MathML; normalize them for the XML parser.
         fragment = re.sub(r'&(?:#[0-9]+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]+);',
-                          lambda match: escape(unescape(match[0]), quote=False), fragment)
+                          lambda match: escape(unescape(match[0]), quote=True), fragment)
         try:
             ET.fromstring(fragment)
         except ET.ParseError as error:

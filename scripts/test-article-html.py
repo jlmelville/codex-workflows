@@ -98,6 +98,15 @@ class ArticleHTMLTests(unittest.TestCase):
         self.assertEqual(result['counts']['math'], 3)
         self.assertEqual(result['issues'], [])
 
+    def test_mathml_quoted_attribute_entities(self):
+        for text in ('<math title="&quot;x&quot;"><mi>x</mi></math>',
+                     "<math title='&apos;x&apos;'><mi>x</mi></math>",
+                     '<math title="&#34;x&#x22;"><mi>&amp;</mi></math>'):
+            with self.subTest(text=text):
+                result = self.inspect(text)
+                self.assertTrue(result['ok'])
+                self.assertEqual(result['issues'], [])
+
     def test_root_relative_directory_and_encoded_paths(self):
         page = self.write('articles/nested.html', '''<a href="/index.html#home">Root</a>
 <a href="../section/#section">Section</a><img src="../image%20one.png?size=2">''')

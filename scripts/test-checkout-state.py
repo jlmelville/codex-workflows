@@ -56,7 +56,7 @@ class CheckoutStateTests(unittest.TestCase):
     def tree(self):
         # Include Git internals and ignored files; exclude only the helper's output (held in memory).
         return {str(path.relative_to(self.root)): ('link', os.readlink(path)) if path.is_symlink()
-                else ('file', path.read_bytes(), path.stat().st_mode)
+                else ('file', path.read_bytes(), path.stat().st_mode, path.stat().st_mtime_ns)
                 for path in self.root.rglob('*') if path.is_symlink() or path.is_file()}
 
     def invoke(self, *args, input_text=None, env=None, status=0):
@@ -138,17 +138,45 @@ class CheckoutStateTests(unittest.TestCase):
         link.symlink_to(self.root / 'other-absent-target')
         self.assertEqual(self.compare(saved, status=1)['changes'][0]['fields'], ['untracked'])
 
-    def test_linked_worktree_and_split_index(self):
+    def test_linked_worktree(self):
         linked = self.root / 'linked checkout'
         self.git('worktree', 'add', '--quiet', '--detach', str(linked), 'HEAD')
-        self.git('update-index', '--split-index', repo=linked)
         saved = self.take(linked)
         entry = saved['checkouts'][0]
         self.assertIsNone(entry['branch'])
-        self.assertEqual(len(entry['indexes']), 2)
+        self.assertEqual(len(entry['indexes']), 1)
         self.assertTrue(all(Path(path).is_absolute() for path in entry['indexes']))
         self.assertNotIn(str(linked / '.git/index'), entry['indexes'])
         self.assertTrue(self.compare(saved)['matches'])
+
+    def test_split_index_refused_without_touching_metadata(self):
+        linked = self.root / 'linked checkout'
+        self.git('worktree', 'add', '--quiet', '--detach', str(linked), 'HEAD')
+        for repo in (self.repo, linked):
+            with self.subTest(linked=repo == linked):
+                baseline = self.take(repo)
+                self.git('update-index', '--split-index', repo=repo)
+                index = Path(self.git('rev-parse', '--git-path', 'index', repo=repo)
+                             .decode().removesuffix('\n'))
+                index = repo / index
+                shared = list(index.parent.glob('sharedindex.*'))
+                self.assertTrue(shared)
+                # Age the shared index so Git's freshness write is observable on every filesystem.
+                for path in shared:
+                    os.utime(path, ns=(946684800000000000, 946684800000000000))
+                saved = self.take(repo, status=1)
+                self.assertEqual(saved['status'], 'incomplete')
+                self.assertEqual(saved['checkouts'], [])
+                self.assertIn('shared-index', saved['errors'][0]['reason'])
+                result = self.compare(baseline, status=1)
+                self.assertEqual(result['status'], 'incomplete')
+                self.assertIsNone(result['matches'])
+
+    def test_leftover_shared_indexes_are_conservatively_refused(self):
+        (self.repo / '.git/sharedindex.leftover').write_bytes(b'leftover fixture')
+        saved = self.take(status=1)
+        self.assertEqual(saved['status'], 'incomplete')
+        self.assertIn('shared-index', saved['errors'][0]['reason'])
 
     def test_unborn_checkout(self):
         unborn = self.root / 'unborn'
@@ -227,8 +255,8 @@ class CheckoutStateTests(unittest.TestCase):
         observe = namespace['snapshot']
         original = observe.__globals__['index_state']
         calls = []
-        def changed(root, index):
-            result = original(root, index)
+        def changed(index):
+            result = original(index)
             calls.append(result)
             return result if len(calls) == 1 else {**result, 'changed': '0' * 64}
         before = self.tree()
