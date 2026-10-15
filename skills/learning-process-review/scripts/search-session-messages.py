@@ -225,7 +225,7 @@ def main():
     args = parser.parse_args()
     try:
         pattern = re.compile(args.pattern) if args.pattern is not None else None
-    except re.error:
+    except (re.error, OverflowError, RecursionError):
         parser.error('--pattern requires a valid Python regex')
     result = search(args.inputs, pattern, args.role, args.before, args.limit, args.max_chars)
     print(json.dumps(result, indent=2, ensure_ascii=True))

@@ -220,6 +220,18 @@ class SessionMessageTests(unittest.TestCase):
         self.assertEqual(result['status'], 'incomplete')
         self.assertEqual(result['errors'][0]['reason'], 'transcript_changed_during_read')
 
+    def test_regex_compiler_limits_are_usage_errors(self):
+        path = self.root / 'never-opened.jsonl'
+        cases = [('oversized quantifier', 'a{999999999999999999999}'),
+                 ('deep nesting', '(' * 600 + 'a' + ')' * 600)]
+        for label, pattern in cases:
+            with self.subTest(case=label):
+                result = self.run_search([path], ['--pattern', pattern])
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, '')
+                self.assertIn('--pattern requires a valid Python regex', result.stderr)
+        self.assertFalse(path.exists())
+
     def test_usage_and_help(self):
         path = self.write('usage.jsonl', [message('valid')])
         for extra in (['--pattern', '['], ['--limit', '0'], ['--max-chars', '-1'],

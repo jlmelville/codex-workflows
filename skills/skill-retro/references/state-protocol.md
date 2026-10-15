@@ -292,8 +292,8 @@ decides which event-based triggers have fired rather than merely refreshing
 their dates. Every triage run must inspect that queue before proposing its
 batch.
 
-When a deferred candidate's review trigger fires, create a complete replacement
-decision and use `reconsider --id ID --decision PATH`. The helper accepts only a
+When a deferred candidate's review trigger fires, use `prepare-decision`, complete
+the replacement draft, and use `reconsider --id ID --decision PATH`. The helper accepts only a
 currently deferred archived candidate and a newer `reviewed_at` timestamp. It
 preserves every prior deferral in `triage_history`, replaces the active `triage`,
 and leaves a replacement `defer` in the review queue while removing a terminal

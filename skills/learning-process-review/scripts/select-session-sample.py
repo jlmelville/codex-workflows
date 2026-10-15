@@ -109,7 +109,7 @@ def rollout_metadata(row):
         with path.open(encoding='utf-8') as stream:
             for line in stream:
                 record = json.loads(line)
-                if not isinstance(record, dict) or not isinstance(record.get('type'), str):
+                if not isinstance(record, dict) or not isinstance(record.get('type'), str) or not record['type']:
                     raise MetadataError('invalid_rollout_record')
                 kind = record['type']
                 if kind not in ('session_meta', 'response_item', 'event_msg'):

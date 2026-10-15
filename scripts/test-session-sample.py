@@ -185,6 +185,19 @@ class SessionSampleTests(unittest.TestCase):
             result = self.manifest(status='incomplete')
             self.assertIn(reason, [item['reason'] for item in result['unknown']])
 
+    def test_empty_record_type_blocks_completed_session(self):
+        path = self.add('empty-kind')
+        with path.open('a') as stream:
+            stream.write(json.dumps({'type': 'turn_context', 'payload': {}}) + '\n')
+        self.manifest()
+        with path.open('a') as stream:
+            stream.write(json.dumps({'type': ''}) + '\n')
+        result = self.manifest(status='incomplete', extra=['--explain-id', 'empty-kind'])
+        self.assertEqual(result['counts'], {'catalog_candidates': 1, 'eligible': 0, 'excluded': 0, 'unknown': 1})
+        self.assertEqual(result['unknown'], [{'id': 'empty-kind', 'reason': 'invalid_rollout_record'}])
+        self.assertEqual(result['explanations'][0]['status'], 'unknown')
+        self.assertEqual(result['explanations'][0]['reason'], 'invalid_rollout_record')
+
     def test_outcome_fields_do_not_change_selection(self):
         path = self.add('good')
         original = self.manifest()
