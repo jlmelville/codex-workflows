@@ -32,6 +32,11 @@ workspace, cutoff, and count; use repeatable `--explain-id ID` for eligibility
 explanations. See `--help`; freeze its private manifest outside Git and learning
 state before reading outcomes, retaining its completion boundaries.
 
+For local message searches or bounded excerpts, use this source repository's
+[search-session-messages.py](../scripts/search-session-messages.py); see `--help`.
+For frozen cohorts, pass each session's completion boundary with `--before`.
+Keep raw excerpt output private, outside Git and learning state; sanitize saved evidence.
+
 Treat synchronized state as potentially exposed. Exclude credentials, private
 source, raw transcripts, unredacted paths, and unnecessary repository names.
 
