@@ -57,6 +57,7 @@ run_checkout_index_regressions() {
   require_command python3
   require_command git
   python3 "${repo_dir}/scripts/test-checkout-index-preservation.py"
+  python3 "${repo_dir}/scripts/test-checkout-state.py"
 }
 
 run_benchmark_smoke() {

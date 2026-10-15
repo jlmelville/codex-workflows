@@ -70,12 +70,13 @@ or global Git configuration to apply this fix. Repository validation executes
 this marked wrapper through
 [`scripts/test-checkout-index-preservation.py`](../scripts/test-checkout-index-preservation.py).
 
-With that protection, resolve the actual index path using
-`rev-parse --git-path index`; resolve a relative result against the checkout
-directory. Record the index's byte checksum before further inspection and
-verify it after the last inspection. A metadata-only index change still fails
-preservation; report it and distinguish concurrent activity from this run's
-changes. Run commands that require index writes only in a disposable clone.
+Use `${HOME}/.agents/skills/dependabot-pr-maintenance/scripts/checkout-state.py`
+`snapshot CHECKOUT...` before further inspection, then `compare --file SNAPSHOT`
+after the last inspection; see `--help`. Save its private JSON outside inspected
+checkouts. An incomplete snapshot or comparison cannot establish preservation.
+A metadata-only index change still fails preservation; report differences and
+distinguish concurrent activity from this run's changes. Run commands that
+require index writes only in a disposable clone.
 
 Use disposable standalone clones under a newly created temporary directory for
 validation and authorized PR edits, starting from the current remote
