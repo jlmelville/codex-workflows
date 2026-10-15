@@ -162,7 +162,6 @@ class ArticleHTMLTests(unittest.TestCase):
         self.assertEqual(self.inspect(None, '--root', self.article, status=1)['status'], 'incomplete')
         result = self.inspect('<a href="http://[invalid">Invalid URL</a>', status=1)
         self.assertEqual(result['errors'][0]['reason'], 'reference_unchecked')
-        self.assertEqual(self.inspect('<![broken]>', status=1)['status'], 'incomplete')
 
     def test_usage_help_and_no_math_is_not_a_failure(self):
         result = self.inspect('<p>Plain article or unexecuted MathJax</p>')
@@ -183,6 +182,10 @@ class ArticleHTMLTests(unittest.TestCase):
         before = self.tree()
         with patch.dict(read_html.__globals__, signature=unittest.mock.Mock(side_effect=[1, 2])):
             with self.assertRaisesRegex(ValueError, 'changed during inspection'):
+                read_html(self.article)
+        # Malformed declarations raise on older Python, but newer HTMLParser treats them as comments.
+        with patch.dict(read_html.__globals__, Document=unittest.mock.Mock(side_effect=AssertionError('bad declaration'))):
+            with self.assertRaisesRegex(ValueError, 'HTML parser rejected input'):
                 read_html(self.article)
         self.assertEqual(self.tree(), before)
 
