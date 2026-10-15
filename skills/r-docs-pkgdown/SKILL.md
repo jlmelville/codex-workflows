@@ -101,6 +101,9 @@ See [pkgdown.md](references/pkgdown.md).
 
 ## Checks
 
+For static checks of already rendered article HTML, use the
+[HTML inspection helper](references/validation.md#inspect-rendered-html).
+
 ```sh
 Rscript -e 'roxygen2::roxygenise()'
 Rscript -e 'pkgdown::build_site(new_process = FALSE)'

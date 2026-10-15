@@ -125,6 +125,14 @@ layout and interaction quality as well. `render-rmd-review.py --self-test` check
 contracts without R; `--self-test-render` additionally exercises real math, tables, relative data,
 chunk output, figures, nested divs, lists, deletion-only changes, and output preservation.
 
+## Inspect Rendered HTML
+
+Use `${HOME}/.agents/skills/r-docs-pkgdown/scripts/inspect-article-html.py FILE`
+for IDs, local links/assets, HTML fragment targets, and embedded MathML; see
+`--help`. Pass `--root SITE_ROOT` for a site tree. JSON distinguishes findings
+from incomplete inspection. This read-only check does not render or fetch URLs;
+retain browser review for layout and interactions.
+
 ## Inspect Rendered Numerical Tables
 
 Inspect rendered table cells in addition to their source objects. Fixed decimal

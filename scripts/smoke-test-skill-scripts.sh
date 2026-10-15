@@ -202,6 +202,7 @@ run_evidence_helper_smoke() {
   python3 "${repo_dir}/skills/r-performance-workflow/scripts/subprocess-evidence.py" --self-test >/dev/null
   python3 "${repo_dir}/skills/r-docs-pkgdown/scripts/render-rmd-review.py" --help >/dev/null
   python3 "${repo_dir}/skills/r-docs-pkgdown/scripts/render-rmd-review.py" --self-test >/dev/null
+  python3 "${repo_dir}/scripts/test-article-html.py"
 }
 
 run_manifest_smoke() {
