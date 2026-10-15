@@ -13,6 +13,7 @@ end
 require "date"
 require "digest"
 require "fileutils"
+require "json"
 require "optparse"
 require "securerandom"
 require "tmpdir"
@@ -1352,6 +1353,90 @@ module RetroState
       exclusive_write(version_path, "#{SCHEMA_VERSION}\n") unless File.exist?(version_path)
       validate_version
       root
+    end
+
+    def show(record_ids)
+      ensure_initialized
+      records = record_ids.uniq.map do |id|
+        unless id.match?(/\A(?:(?:RC|PC|VP)-\d{8}T\d{6}Z|(?:SCR|SD|LE|LA)-\d{8})-[a-f0-9]{6}\z/)
+          raise Error, "invalid record ID: #{id}"
+        end
+        paths = (STATE_DIRS + VERIFICATION_DIRS).map { |dir| File.join(root, dir, "#{id}.md") }
+          .select { |path| File.file?(path) }
+        raise Error, "record not found: #{id}" if paths.empty?
+        raise Error, "record ID is ambiguous: #{id}" unless paths.one?
+
+        path = paths.first
+        unless File.realpath(path).start_with?(root + File::SEPARATOR)
+          raise Error, "record resolves outside the state root: #{id}"
+        end
+        data, body = RetroState.read_document(path)
+        {"id" => id, "path" => path.delete_prefix(root + File::SEPARATOR),
+         "frontmatter" => data, "body" => body}
+      end
+      {"root" => root, "records" => records}
+    end
+
+    def snapshot
+      raise Error, "state root does not exist: #{root}" unless Dir.exist?(root)
+      refuse_git_worktree!
+      entries = {}
+      visit = lambda do |directory|
+        Dir.children(directory).sort.each do |name|
+          path = File.join(directory, name)
+          relative = path.delete_prefix(root + File::SEPARATOR)
+          stat = File.lstat(path)
+          entries[relative] = if stat.symlink?
+            {"kind" => "symlink", "target" => File.readlink(path)}
+          elsif stat.directory?
+            {"kind" => "directory"}
+          elsif stat.file?
+            {"kind" => "file", "sha256" => Digest::SHA256.file(path).hexdigest}
+          else
+            raise Error, "unsupported filesystem entry: #{relative}"
+          end
+          visit.call(path) if stat.directory?
+        end
+      end
+      visit.call(root)
+      {"snapshot_version" => 1, "root" => root, "entries" => entries.sort.to_h}
+    end
+
+    def compare(input_path, allowed_paths: [])
+      text = (input_path == "-") ? $stdin.read : File.read(input_path, encoding: "UTF-8")
+      before = JSON.parse(text)
+      unless before.is_a?(Hash) && before["snapshot_version"] == 1 &&
+          before["root"] == root && before["entries"].is_a?(Hash)
+        raise Error, "snapshot must have version 1, this state root, and an entries mapping"
+      end
+      before.fetch("entries").each do |path, entry|
+        validate_relative_path!(path)
+        valid = case entry.is_a?(Hash) && entry["kind"]
+        when "directory" then entry.keys == ["kind"]
+        when "file" then entry.keys.sort == %w[kind sha256] && entry["sha256"].is_a?(String) && entry["sha256"].match?(/\A[a-f0-9]{64}\z/)
+        when "symlink" then entry.keys.sort == %w[kind target] && entry["target"].is_a?(String)
+        end
+        raise Error, "invalid snapshot entry: #{path}" unless valid
+      end
+      allowed_paths.each { |path| validate_relative_path!(path) }
+      previous = before.fetch("entries")
+      current = snapshot.fetch("entries")
+      added = (current.keys - previous.keys).sort
+      removed = (previous.keys - current.keys).sort
+      modified = (previous.keys & current.keys).select { |path| previous[path] != current[path] }.sort
+      changed = (added + removed + modified).sort
+      unexpected = changed - allowed_paths
+      {"root" => root, "unchanged" => changed.empty?, "matches" => unexpected.empty?,
+       "added" => added, "removed" => removed, "modified" => modified, "unexpected" => unexpected}
+    rescue JSON::ParserError => e
+      raise Error, "invalid snapshot JSON: #{e.message}"
+    end
+
+    def validate_relative_path!(path)
+      unless path.is_a?(String) && !path.include?("\0") &&
+          path.split("/", -1).none? { |part| ["", ".", ".."].include?(part) }
+        raise Error, "expected an exact state-root-relative path: #{path.inspect}"
+      end
     end
 
     def route(input_path)
@@ -2784,7 +2869,98 @@ module RetroState
     end
   end
 
+  def inspection_self_test
+    require "open3"
+    Dir.mktmpdir("retro-inspection-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = lambda do |status, *arguments, stdin: "", error: nil|
+        out, err, result = Open3.capture3(
+          RbConfig.ruby, File.expand_path(__FILE__), *arguments, "--root", root,
+          stdin_data: stdin
+        )
+        raise "#{arguments.inspect}: expected exit #{status}, got #{result.exitstatus}: #{err}" unless result.exitstatus == status
+        if error
+          raise "#{arguments.inspect}: invalid error output" unless out.empty? && err.include?(error) && !err.include?("from ")
+        else
+          raise "#{arguments.inspect}: unexpected stderr: #{err}" unless err.empty?
+        end
+        out
+      end
+      input = File.join(tmp, "candidate.md")
+      File.write(input, candidate_template)
+      candidate = store.route(input)
+      candidate_id = File.basename(candidate, ".md")
+      papercut_data, papercut_body = parse_document(papercut_template)
+      papercut = store.record_papercut(papercut_data, papercut_body, label: "inspection fixture")
+      papercut_id = File.basename(papercut, ".md")
+      store.close_papercut(papercut_id, outcome: "no-action", rationale: "Inspection fixture.")
+      File.binwrite(File.join(root, ".kept"), "\x00a")
+      File.write(File.join(root, "removed"), "old")
+      outside = File.join(tmp, "outside")
+      FileUtils.mkdir_p(outside)
+      File.write(File.join(outside, "private"), "before")
+      File.symlink(outside, File.join(root, "outside-link"))
+      File.symlink(File.join(tmp, "missing"), File.join(root, "dangling"))
+      before = run.call(0, "snapshot")
+      snapshot_file = File.join(tmp, "before.json")
+      File.write(snapshot_file, before)
+      entries = JSON.parse(before).fetch("entries")
+      raise "snapshot followed a directory symlink" unless entries["outside-link"] == {"kind" => "symlink", "target" => outside} && !entries.key?("outside-link/private")
+      raise "snapshot missed a dangling symlink" unless entries.dig("dangling", "kind") == "symlink"
+      shown = JSON.parse(run.call(0, "show", "--id", candidate_id, "--id", papercut_id)).fetch("records")
+      data, body = read_document(candidate)
+      raise "show lost record content" unless shown.first == {"id" => candidate_id, "path" => "retrospectives/inbox/#{candidate_id}.md", "frontmatter" => data, "body" => body}
+      raise "show missed an archived record" unless shown.last.dig("frontmatter", "closure", "outcome") == "no-action"
+      %w[show snapshot compare].each do |command|
+        raise "missing focused help" unless run.call(0, command, "--help").include?("Usage: retro-state.rb #{command}")
+      end
+      run.call(2, "show", error: "missing argument: --id ID")
+      run.call(2, "compare", error: "missing argument: --file PATH")
+      run.call(2, "snapshot", "--file", snapshot_file, error: "--file is not valid for snapshot")
+      run.call(1, "show", "--id", "../escape", error: "invalid record ID")
+      run.call(1, "show", "--id", "SCR-20000101-000000", error: "record not found")
+      run.call(1, "show", "--id", candidate_id, "--id", "SCR-20000101-000000", error: "record not found")
+      duplicate = File.join(root, "retrospectives", "archive", "#{candidate_id}.md")
+      FileUtils.cp(candidate, duplicate)
+      run.call(1, "show", "--id", candidate_id, error: "record ID is ambiguous")
+      File.unlink(duplicate)
+      run.call(1, "compare", "--file", "-", stdin: "{", error: "invalid snapshot JSON")
+      run.call(1, "compare", "--file", tmp, error: "Is a directory")
+      bad = JSON.parse(before).merge("root" => tmp)
+      run.call(1, "compare", "--file", "-", stdin: JSON.generate(bad), error: "this state root")
+      bad = JSON.parse(before)
+      bad["entries"]["../escape"] = {"kind" => "directory"}
+      run.call(1, "compare", "--file", "-", stdin: JSON.generate(bad), error: "state-root-relative path")
+      bad = JSON.parse(before)
+      bad["entries"][".kept"]["sha256"] = "invalid"
+      run.call(1, "compare", "--file", "-", stdin: JSON.generate(bad), error: "invalid snapshot entry")
+      run.call(1, "compare", "--file", snapshot_file, "--allow-path", "../escape", error: "state-root-relative path")
+      File.write(File.join(outside, "private"), "after")
+      unchanged = JSON.parse(run.call(0, "compare", "--file", snapshot_file))
+      raise "inspection wrote state or followed symlink contents" unless unchanged.fetch("unchanged") && unchanged.fetch("matches")
+
+      File.binwrite(File.join(root, ".kept"), "\x00b")
+      File.unlink(File.join(root, "removed"))
+      added = ".added\nfile"
+      File.write(File.join(root, added), "new")
+      FileUtils.mkdir_p(File.join(root, "empty"))
+      File.unlink(File.join(root, "outside-link"))
+      File.symlink(File.join(tmp, "other"), File.join(root, "outside-link"))
+      changed = JSON.parse(run.call(1, "compare", "--file", snapshot_file))
+      raise "incorrect comparison" unless changed.fetch("added") == [added, "empty"] && changed.fetch("removed") == ["removed"] && changed.fetch("modified") == [".kept", "outside-link"] && !changed.fetch("matches") && !changed.fetch("unchanged")
+      permitted = [".kept", "outside-link", "removed", added, "empty"]
+      partial = JSON.parse(run.call(1, "compare", "--file", snapshot_file, "--allow-path", ".kept"))
+      raise "allow-path hid unrelated changes" if partial.fetch("unexpected").include?(".kept") || partial.fetch("unexpected").empty?
+      allowed = permitted.flat_map { |path| ["--allow-path", path] }
+      result = JSON.parse(run.call(0, "compare", "--file", "-", *allowed, stdin: before))
+      raise "allowed comparison failed" unless result.fetch("matches") && result.fetch("unexpected").empty? && !result.fetch("unchanged")
+    end
+  end
+
   def self_test
+    inspection_self_test
     Dir.mktmpdir("retro-state-self-test.") do |tmp|
       root = File.join(tmp, "state")
       input = File.join(tmp, "candidate.md")
@@ -4238,13 +4414,49 @@ module RetroState
   end
 end
 
-def usage
+def usage(command = nil)
+  details = case command
+  when "show"
+    <<~TEXT
+      Usage: retro-state.rb show --id ID [--id ID ...] [--root DIR]
+
+      Print JSON {root, records}: each record has id, relative path, frontmatter, body.
+      Finds inbox and archived records; missing or ambiguous IDs fail without output.
+      Parses selected records only; use validate for full state validation.
+    TEXT
+  when "snapshot"
+    <<~TEXT
+      Usage: retro-state.rb snapshot [--root DIR] > /tmp/retro-before.json
+
+      Print JSON {snapshot_version, root, entries}, including hidden files and empty
+      directories. Files use SHA-256; symlinks record targets and are never followed.
+      Save outside the state root. Excludes permissions and timestamps; not atomic.
+    TEXT
+  when "compare"
+    <<~TEXT
+      Usage: retro-state.rb compare --file PATH [--allow-path PATH ...] [--root DIR]
+
+      Compare this state root with snapshot JSON; --file - reads standard input.
+      Print JSON {root, unchanged, matches, added, removed, modified, unexpected}.
+      --allow-path permits an exact root-relative path to change; no globs or subtree
+      matching. Allowed paths need not change. Default: no changes permitted.
+      Exit 0 for matches, 1 for unexpected changes or operational errors, 2 for usage.
+      Errors go to stderr without JSON; unexpected changes produce JSON without stderr.
+    TEXT
+  end
+  if details
+    return details + "\n--root defaults to #{RetroState::STATE_ENV}. These commands do not write state.\n"
+  end
+
   <<~TEXT
     Usage: retro-state.rb COMMAND [options]
 
     Manage disposable Markdown state beneath #{RetroState::STATE_ENV}.
 
     Commands:
+      show --id ID [--id ID ...]       Inspect selected records as JSON
+      snapshot                         Print a JSON state inventory
+      compare --file PATH              Compare inventory; optional --allow-path PATH
       init                              Initialize the configured state root
       template TYPE                    Print a papercut, papercut-repair, candidate, decision,
                                         verification, verification-decision, accepted, draft,
@@ -4287,6 +4499,7 @@ def usage
 
     Common option:
       --root DIR  Override #{RetroState::STATE_ENV} for this invocation
+      COMMAND --help  Show command help (JSON inspection commands have focused help)
   TEXT
 end
 
@@ -4299,6 +4512,9 @@ end
 
 def reject_inapplicable_options!(command, provided)
   allowed = {
+    "show" => %w[--root --id],
+    "snapshot" => %w[--root],
+    "compare" => %w[--root --file --allow-path],
     "init" => %w[--root],
     "template" => [],
     "record-papercut" => %w[--root --file],
@@ -4343,6 +4559,7 @@ end
 
 command = ARGV.shift
 commands = %w[
+  show snapshot compare
   init template record-papercut prepare-papercut-repair repair-papercut papercuts
   close-papercut route pending process
   route-verification pending-verifications process-verification
@@ -4359,6 +4576,8 @@ end
 root_override = nil
 input_path = nil
 record_id = nil
+record_ids = []
+allowed_paths = []
 decision_path = nil
 archive = false
 outcome = nil
@@ -4372,7 +4591,11 @@ archive_threshold_explicit = false
 parser = OptionParser.new do |opts|
   opts.on("--root DIR") { |value| root_override = value }
   opts.on("--file PATH") { |value| input_path = value }
-  opts.on("--id ID") { |value| record_id = value }
+  opts.on("--id ID") do |value|
+    record_id = value
+    record_ids << value
+  end
+  opts.on("--allow-path PATH") { |value| allowed_paths << value }
   opts.on("--decision PATH") { |value| decision_path = value }
   opts.on("--archive") { archive = true }
   opts.on("--outcome OUTCOME") { |value| outcome = value }
@@ -4386,7 +4609,7 @@ parser = OptionParser.new do |opts|
     archive_threshold_explicit = true
   end
   opts.on("--help") do
-    puts usage
+    puts usage(command)
     exit 0
   end
 end
@@ -4400,6 +4623,7 @@ begin
       "--root" => !root_override.nil?,
       "--file" => !input_path.nil?,
       "--id" => !record_id.nil?,
+      "--allow-path" => !allowed_paths.empty?,
       "--decision" => !decision_path.nil?,
       "--archive" => archive,
       "--outcome" => !outcome.nil?,
@@ -4411,6 +4635,12 @@ begin
       "--archive-threshold" => archive_threshold_explicit
     }
   )
+  if command == "show" && record_ids.empty?
+    raise OptionParser::MissingArgument, "--id ID"
+  end
+  if command == "compare" && !input_path
+    raise OptionParser::MissingArgument, "--file PATH"
+  end
 
   case command
   when "template"
@@ -4457,6 +4687,14 @@ begin
 
     store = RetroState::Store.new(root)
     case command
+    when "show"
+      puts JSON.pretty_generate(store.show(record_ids))
+    when "snapshot"
+      puts JSON.pretty_generate(store.snapshot)
+    when "compare"
+      result = store.compare(input_path, allowed_paths: allowed_paths)
+      puts JSON.pretty_generate(result)
+      exit(result.fetch("matches") ? 0 : 1)
     when "init"
       puts store.init
     when "route"
@@ -4592,9 +4830,9 @@ begin
   end
 rescue OptionParser::ParseError => e
   warn "retro-state.rb: #{e.message}"
-  warn usage
+  warn usage(command)
   exit 2
-rescue RetroState::Error, Errno::ENOENT, Errno::EACCES => e
+rescue RetroState::Error, Errno::ENOENT, Errno::EACCES, Errno::EISDIR, Errno::ENOTDIR, Errno::ELOOP => e
   warn "retro-state.rb: #{e.message}"
   exit 1
 end
