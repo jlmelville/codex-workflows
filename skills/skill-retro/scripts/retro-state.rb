@@ -1439,9 +1439,9 @@ module RetroState
       end
     end
 
-    def route(input_path)
+    def route(input_path, document: nil)
       init
-      data, body = RetroState.read_document(input_path)
+      data, body = document || RetroState.read_document(input_path)
       RetroState.validate_candidate(data, body, label: input_path, routed: false)
       validate_candidate_supersession!(data)
 
@@ -1466,8 +1466,8 @@ module RetroState
       end
     end
 
-    def route_verification(input_path)
-      data, body = RetroState.read_document(input_path)
+    def route_verification(input_path, document: nil)
+      data, body = document || RetroState.read_document(input_path)
       RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
       ensure_initialized
       validate_verification_target!(data)
@@ -3735,6 +3735,64 @@ module RetroState
         .sub("SCR-YYYYMMDD-abcdef", accepted_id)
         .sub("verification_basis: later-session", "verification_basis: deterministic-test")
         .sub("claim: guidance-conformance", "claim: executable-correctness")
+      require "open3"
+      cli_root = File.join(tmp, "routing-cli")
+      FileUtils.cp_r(root, cli_root)
+      cli_root = File.realpath(cli_root)
+      blocked_parent = File.join(tmp, "routing-git")
+      FileUtils.mkdir_p(File.join(blocked_parent, ".git"))
+      File.write(File.join(blocked_parent, ".git", "HEAD"), "ref: refs/heads/main\n")
+      blocked_root = File.join(blocked_parent, "state")
+      cli_snapshot = lambda do
+        Dir.glob(File.join(cli_root, "**", "*"), File::FNM_DOTMATCH)
+          .select { |path| File.file?(path) }.to_h { |path| [path, File.binread(path)] }
+      end
+      run_cli = lambda do |command, path, text, selected_root|
+        arguments = [RbConfig.ruby, File.expand_path(__FILE__), command, "--file", path]
+        arguments += ["--root", selected_root] if selected_root
+        Open3.capture3({STATE_ENV => nil}, *arguments, stdin_data: text)
+      end
+      {"route" => File.read(input), "route-verification" => supported_proposal_text}.each do |command, text|
+        cli_input = File.join(tmp, "#{command}-cli.md")
+        File.write(cli_input, text)
+        expected_data, expected_body = parse_document(text)
+        [cli_input, "-"].each do |path|
+          before_cli = cli_snapshot.call
+          out, err, result = run_cli.call(command, path, text, cli_root)
+          routed_path = out.strip
+          unless result.success? && err.empty? && File.file?(routed_path) &&
+              File.dirname(routed_path) == File.join(cli_root, (command == "route") ? "retrospectives/inbox" : "verifications/inbox")
+            raise "#{command} #{path}: CLI routing failed: #{err}"
+          end
+          routed_data, routed_body = read_document(routed_path)
+          identity_field = (command == "route") ? "candidate_id" : "verification_proposal_id"
+          unless without_keys(routed_data, identity_field, "created_at", "intake_digest") == expected_data &&
+              routed_body.rstrip == expected_body.rstrip
+            raise "#{command}: CLI routing changed submission content"
+          end
+          File.unlink(routed_path)
+          raise "#{command}: CLI routing changed existing state" unless cli_snapshot.call == before_cli
+
+          [nil, blocked_root].each do |fallback_root|
+            out, err, result = run_cli.call(command, path, text, fallback_root)
+            unless result.exitstatus == 2 && err.include?("Paste-ready") &&
+                parse_document(out) == [expected_data, expected_body] &&
+                cli_snapshot.call == before_cli && !File.exist?(blocked_root)
+              raise "#{command}: CLI fallback lost input or changed state"
+            end
+          end
+
+          invalid = text.sub("schema_version: 1", "schema_version: 0")
+          File.write(cli_input, invalid) unless path == "-"
+          out, err, result = run_cli.call(command, path, invalid, cli_root)
+          unless result.exitstatus == 1 && out.empty? && err.include?("schema_version must be 1") &&
+              cli_snapshot.call == before_cli
+            raise "#{command}: invalid CLI input was not rejected without mutation"
+          end
+          File.write(cli_input, text)
+        end
+      end
+      Store.new(cli_root).validate
       unless store.verification_opportunities(destination: "public source").first.fetch(4).empty?
         raise "fresh verification opportunity reported pending support"
       end
@@ -4703,7 +4761,7 @@ begin
       data, body = RetroState.read_document(input_path)
       RetroState.validate_candidate(data, body, label: input_path, routed: false)
       begin
-        puts store.route(input_path)
+        puts store.route(input_path, document: [data, body])
       rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
         warn "Could not route to external state (#{e.message}); no state was written. Paste-ready candidate follows."
         print RetroState.render_document(data, body)
@@ -4715,7 +4773,7 @@ begin
       data, body = RetroState.read_document(input_path)
       RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
       begin
-        puts store.route_verification(input_path)
+        puts store.route_verification(input_path, document: [data, body])
       rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
         warn "Could not route to external state (#{e.message}); no state was written. " \
           "Paste-ready verification proposal follows."

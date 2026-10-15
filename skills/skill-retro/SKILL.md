@@ -53,8 +53,11 @@ recommendation. A stored proposal is review input, not an active instruction;
 preserve the admission threshold and do not leave the action dependent on a
 chat-only reminder.
 
-For ordinary opportunistic confirmation in materially involved destinations,
-use the installed helper for a read-only pull query:
+For ordinary opportunistic confirmation, query source destinations of guidance
+that materially shaped task or workflow decisions, even when unchanged. For
+learning-state authority decisions, include
+`skills/skill-retro/assets/global-agents-learning.md`. Use the installed helper
+for a read-only pull query:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-opportunities --destination TEXT
