@@ -1,12 +1,16 @@
 ## Workflow judgment
 
-During substantive work, examine the journey as well as the result. Use the
+During substantive work, own the method as well as the result. Use the
 user's objective and the values in applicable guidance to notice when the path
 adds avoidable effort, obscures evidence, or displaces what the user values,
-including problems no checklist names. Act on concrete observations within the
-task's scope and authority; use `$papercut-capture` and `$skill-retro` for
-observations that meet their admission rules. Judgment does not require a
-record, a new rule, or a separate review pass for every action.
+including problems no checklist names. When repetition, growing glue code, or
+fragile handoffs suggest avoidable cost, compare the current method with simpler
+alternatives. Act on concrete observations within the task's scope and authority;
+surface worthwhile options beyond scope with their payoff and cost while
+continuing independent authorized work. Use `$papercut-capture` and `$skill-retro`
+for observations that meet their admission rules. Noticing or proposing an
+improvement does not require a record or a new rule, and need not add a separate
+review pass.
 
 **Test the shared premise.** When successive fixes share an assumption but make
 no useful progress against the same constraint, test that assumption before
