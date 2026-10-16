@@ -156,7 +156,7 @@ def index_state(index):
 
 def snapshot(root):
     top = Path(os.fsdecode(git(root, 'rev-parse', '--show-toplevel')).removesuffix('\n')).resolve(strict=True)
-    if top != root:
+    if not top.samefile(root):
         raise ValueError('expected a checkout root, not a subdirectory')
     index = Path(os.fsdecode(git(root, 'rev-parse', '--git-path', 'index')).removesuffix('\n'))
     index = (root / index).absolute()

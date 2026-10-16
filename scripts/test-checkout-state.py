@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Exercise filesystem discovery, checkout state, and inspection preservation."""
 
+from contextlib import redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -141,6 +143,45 @@ class CheckoutStateTests(unittest.TestCase):
                 'reason': 'expected gitdir: path in gitfile',
             }])
             self.assertEqual(saved['errors'], [])
+
+    def test_discovered_alias_snapshot_compare_roundtrip_and_subdirectory_rejection(self):
+        alias = self.root / 'alias'
+        alias.symlink_to(self.repo, target_is_directory=True)
+        subdirectory = self.repo / 'ordinary subdirectory'
+        subdirectory.mkdir()
+        main = runpy.run_path(str(SCRIPT))['main']
+        original_resolve = Path.resolve
+        def resolve(path, *args, **kwargs):
+            # Preserve the alias spelling as case-only aliases do on a case-insensitive filesystem.
+            return path if path == alias else original_resolve(path, *args, **kwargs)
+        def command(*args, input_text=''):
+            output = io.StringIO()
+            with patch.object(sys, 'argv', [str(SCRIPT), *map(str, args)]), \
+                    patch.object(sys, 'stdin', io.StringIO(input_text)), redirect_stdout(output):
+                status = main()
+            return status, json.loads(output.getvalue())
+        before = self.tree()
+        with patch.object(Path, 'resolve', resolve):
+            status, found = command('discover', self.repo, alias)
+            self.assertEqual(status, 0)
+            self.assertEqual(found['candidates'], [{'path': str(alias), 'marker': 'directory'}])
+            status, saved = command('snapshot', found['candidates'][0]['path'])
+            self.assertEqual(status, 0, saved)
+            self.assertEqual(saved['checkouts'][0]['path'], str(alias))
+            status, compared = command('compare', '--file', '-', input_text=json.dumps(saved))
+            self.assertEqual(status, 0, compared)
+            self.assertEqual(compared['status'], 'complete')
+            self.assertTrue(compared['matches'])
+            self.assertEqual(compared['changes'], [])
+            status, rejected = command('snapshot', subdirectory)
+            self.assertEqual(status, 1)
+            self.assertEqual(rejected['status'], 'incomplete')
+            self.assertEqual(rejected['checkouts'], [])
+            self.assertEqual(rejected['errors'], [{
+                'path': str(subdirectory),
+                'reason': 'expected a checkout root, not a subdirectory',
+            }])
+        self.assertEqual(self.tree(), before)
 
     def test_discover_relative_gitfile_and_rejected_markers(self):
         scope = self.root / 'scope'
