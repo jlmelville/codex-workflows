@@ -91,6 +91,9 @@ snapshot outside the state root. See each command's `--help` for flags.
 
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.
+New files publish atomically after their contents are written. Candidate processing,
+verification processing, accepted-record updates, ledger closure, and audit recording
+share a local writer lock; this does not coordinate synchronized copies on different machines.
 
 For producer writes, generate the current template, complete it in a temporary
 file when practical, and submit it with the matching `--file` operation. These
@@ -380,14 +383,17 @@ the proposal without changing the accepted record. Supplemental application
 retains both observations, accumulated evidence, and proposal provenance; each
 proposal preserves its own basis. Triage must judge the supplemental reason,
 not merely its presence. Processing is recoverable
-if interrupted between accepted-state replacement and proposal archival.
+if interrupted between accepted-state replacement and proposal archival: retry
+with the same apply decision. An already-applied proposal cannot be rejected,
+and a conflicting archive is refused before accepted state changes.
 Verification proposal archives do not increment candidate artifact-audit
 cadence.
 
 Use `update-accepted --id ID --file PATH` for later disposition, public-source
 destination, evidence curation, or commit updates; use the typed proposal path
-for new verification evidence. Start with `prepare-accepted-update --id ID`;
-the helper preserves `accepted_id`, `accepted_at`, and prior
+for new verification evidence. Generic updates reject changes to verification
+state or basis. Start with `prepare-accepted-update --id ID`; the helper
+preserves `accepted_id`, `accepted_at`, and prior
 `implementation_commits`, appending new commits without duplicates.
 It requires the originating candidate, supersession lineage, and applied
 proposal IDs to remain intact. A pure relocation uses this existing identity
@@ -481,7 +487,12 @@ does not rewind cadence. No per-task or model telemetry is needed:
 The default audit becomes due after ten newly archived candidate reports; use
 `--archive-threshold N` to calibrate a review without changing correctness.
 Only successfully recording a completed `skill-repository` audit resets the
-baseline. An interrupted or failed audit therefore remains due. Due state
+baseline. Atomic publication of that audit is the commit point. If its following
+cadence-cache update is interrupted, readers reconcile the baseline from completed
+audits; retry `record-audit` with the same input to finish the pending cache update
+without creating another audit identity. Failure before publication leaves the
+audit due. After a lost response, inspect `audits` and `artifact-audit-status`
+before resubmitting. Due state
 authorizes only the report described by
 `prompts/skill-repository-retrospective.md`; it never authorizes source edits or
 automatic corpus rewrites.

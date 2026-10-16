@@ -1765,7 +1765,7 @@ module RetroState
 
     def process(candidate_id, decision_path)
       ensure_initialized
-      with_artifact_cadence_lock do
+      with_state_lock do
         source = candidate_path("inbox", candidate_id)
         raise Error, "candidate not found in inbox: #{candidate_id}" unless File.file?(source)
 
@@ -1810,28 +1810,40 @@ module RetroState
 
     def process_verification(proposal_id, decision_path)
       ensure_initialized
-      source = verification_path("inbox", proposal_id)
-      raise Error, "verification proposal not found in inbox: #{proposal_id}" unless File.file?(source)
+      with_state_lock do
+        source = verification_path("inbox", proposal_id)
+        raise Error, "verification proposal not found in inbox: #{proposal_id}" unless File.file?(source)
 
-      proposal, body = RetroState.read_document(source)
-      RetroState.validate_verification_proposal(proposal, body, label: source, routed: true)
-      decision, decision_body = RetroState.read_document(decision_path)
-      RetroState.validate_verification_decision(
-        decision,
-        decision_body,
-        label: decision_path,
-        expected_id: proposal_id
-      )
+        proposal, body = RetroState.read_document(source)
+        RetroState.validate_verification_proposal(proposal, body, label: source, routed: true)
+        decision, decision_body = RetroState.read_document(decision_path)
+        RetroState.validate_verification_decision(
+          decision,
+          decision_body,
+          label: decision_path,
+          expected_id: proposal_id
+        )
 
-      apply_verification_proposal!(proposal, decision) if decision.fetch("verdict") == "apply"
-      triage = RetroState.without_keys(decision, "schema_version", "record_type")
-      triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
-      proposal["triage"] = triage
-      output = RetroState.render_document(proposal, body)
-      destination = verification_path("archive", proposal_id)
-      write_or_verify_archive(destination, output, record_type: "verification")
-      File.unlink(source)
-      destination
+        triage = RetroState.without_keys(decision, "schema_version", "record_type")
+        triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
+        proposal["triage"] = triage
+        output = RetroState.render_document(proposal, body)
+        destination = verification_path("archive", proposal_id)
+        write_or_verify_archive(destination, output, record_type: "verification") if File.file?(destination)
+        if decision.fetch("verdict") == "apply"
+          apply_verification_proposal!(proposal, decision)
+          operation_checkpoint(:verification_accepted_written)
+        else
+          _path, accepted, _body = read_verification_target(proposal)
+          if accepted.fetch("applied_verification_proposal_ids", []).include?(proposal_id)
+            raise Error, "verification proposal is already applied; resume with the original apply decision"
+          end
+        end
+        write_or_verify_archive(destination, output, record_type: "verification")
+        operation_checkpoint(:verification_archive_written)
+        File.unlink(source)
+        destination
+      end
     end
 
     def reconsider(candidate_id, decision_path)
@@ -1914,29 +1926,36 @@ module RetroState
 
     def update_accepted(accepted_id, input_path)
       ensure_initialized
-      path = accepted_path(accepted_id)
-      raise Error, "accepted record not found: #{accepted_id}" unless File.file?(path)
+      with_state_lock do
+        path = accepted_path(accepted_id)
+        raise Error, "accepted record not found: #{accepted_id}" unless File.file?(path)
 
-      current, current_body = RetroState.read_document(path)
-      RetroState.validate_accepted(current, current_body, label: path, assigned: true)
-      replacement, body = RetroState.read_document(input_path)
-      RetroState.validate_accepted(
-        replacement,
-        body,
-        label: input_path,
-        assigned: false,
-        strict_contradiction: true
-      )
-      RetroState.validate_accepted_transition(current, replacement, accepted_id)
-      validate_accepted_external_references!(replacement, accepted_id: accepted_id)
+        current, current_body = RetroState.read_document(path)
+        RetroState.validate_accepted(current, current_body, label: path, assigned: true)
+        replacement, body = RetroState.read_document(input_path)
+        RetroState.validate_accepted(
+          replacement,
+          body,
+          label: input_path,
+          assigned: false,
+          strict_contradiction: true
+        )
+        RetroState.validate_accepted_transition(current, replacement, accepted_id)
+        %w[verification verification_basis].each do |field|
+          unless replacement[field] == current[field]
+            raise Error, "accepted record #{field} changes require process-verification"
+          end
+        end
+        validate_accepted_external_references!(replacement, accepted_id: accepted_id)
 
-      replacement["accepted_id"] = current.fetch("accepted_id")
-      replacement["accepted_at"] = current.fetch("accepted_at")
-      replacement["implementation_commits"] =
-        (current.fetch("implementation_commits") + replacement.fetch("implementation_commits")).uniq
-      RetroState.validate_accepted(replacement, body, label: input_path, assigned: true)
-      replace_write(path, RetroState.render_document(replacement, body))
-      path
+        replacement["accepted_id"] = current.fetch("accepted_id")
+        replacement["accepted_at"] = current.fetch("accepted_at")
+        replacement["implementation_commits"] =
+          (current.fetch("implementation_commits") + replacement.fetch("implementation_commits")).uniq
+        RetroState.validate_accepted(replacement, body, label: input_path, assigned: true)
+        replace_write(path, RetroState.render_document(replacement, body))
+        path
+      end
     end
 
     def accepted_records_query(destination: nil, text: nil)
@@ -1989,32 +2008,34 @@ module RetroState
 
     def close_ledger(ledger_id, rationale:)
       ensure_initialized
-      path = ledger_path(ledger_id)
-      raise Error, "ledger not found: #{ledger_id}" unless File.file?(path)
+      with_state_lock do
+        path = ledger_path(ledger_id)
+        raise Error, "ledger not found: #{ledger_id}" unless File.file?(path)
 
-      blocking_accepted_id = accepted_records.find do |_accepted_path, accepted|
-        accepted.dig("contradiction", "residual_ledger_id") == ledger_id &&
-          !TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"])
-      end&.last&.fetch("accepted_id")
-      if blocking_accepted_id
-        raise Error,
-          "ledger remains responsible for unresolved contradicted record: #{blocking_accepted_id}"
+        blocking_accepted_id = accepted_records.find do |_accepted_path, accepted|
+          accepted.dig("contradiction", "residual_ledger_id") == ledger_id &&
+            !TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"])
+        end&.last&.fetch("accepted_id")
+        if blocking_accepted_id
+          raise Error,
+            "ledger remains responsible for unresolved contradicted record: #{blocking_accepted_id}"
+        end
+
+        data, body = RetroState.read_document(path)
+        RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
+        raise Error, "ledger is already closed: #{ledger_id}" unless data["status"] == "open"
+
+        closed_at = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+        data["status"] = "closed"
+        data["last_reviewed"] = closed_at
+        data["closure"] = {
+          "rationale" => rationale,
+          "closed_at" => closed_at
+        }
+        RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
+        replace_write(path, RetroState.render_document(data, body))
+        path
       end
-
-      data, body = RetroState.read_document(path)
-      RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
-      raise Error, "ledger is already closed: #{ledger_id}" unless data["status"] == "open"
-
-      closed_at = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-      data["status"] = "closed"
-      data["last_reviewed"] = closed_at
-      data["closure"] = {
-        "rationale" => rationale,
-        "closed_at" => closed_at
-      }
-      RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
-      replace_write(path, RetroState.render_document(data, body))
-      path
     end
 
     def review_queue
@@ -2125,29 +2146,47 @@ module RetroState
 
     def record_audit(input_path)
       ensure_initialized
-      data, body = RetroState.read_document(input_path)
-      RetroState.validate_learning_audit(data, body, label: input_path, assigned: false)
-      data.fetch("unresolved_action_ids").each do |action_id|
-        next if action_reference_open?(action_id)
+      with_state_lock do
+        data, body = RetroState.read_document(input_path)
+        RetroState.validate_learning_audit(data, body, label: input_path, assigned: false)
+        cadence = artifact_cadence_state
+        if data["audit_kind"] == "skill-repository"
+          cached_baseline = read_artifact_cadence&.fetch("last_completed_artifact_audit_total") || 0
+          unfinished = learning_audits.find do |audit_path, audit|
+            matching = audit["audit_kind"] == "skill-repository" &&
+              audit.fetch("candidate_archives_total", 0) > cached_baseline &&
+              RetroState.without_keys(audit, "audit_id", "completed_at", "candidate_archive_count", "candidate_archives_total") == data
+            matching && RetroState.read_document(audit_path).last.rstrip == body.rstrip
+          end
+          if unfinished
+            path, _audit = unfinished
+            write_artifact_cadence(cadence)
+            return path
+          end
+        end
 
-        raise Error, "audit unresolved action is missing or not open: #{action_id}"
-      end
+        data.fetch("unresolved_action_ids").each do |action_id|
+          next if action_reference_open?(action_id)
 
-      now = Time.now.utc
-      id = unique_auxiliary_id("LA", "audits/learning-process")
-      cadence = artifact_cadence_state
-      data["audit_id"] = id
-      data["completed_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      data["candidate_archive_count"] = archived_candidates.length
-      data["candidate_archives_total"] = cadence.fetch("candidate_archives_total")
-      RetroState.validate_learning_audit(data, body, label: input_path, assigned: true)
-      destination = learning_audit_path(id)
-      exclusive_write(destination, RetroState.render_document(data, body))
-      if data["audit_kind"] == "skill-repository"
-        cadence["last_completed_artifact_audit_total"] = cadence.fetch("candidate_archives_total")
-        write_artifact_cadence(cadence)
+          raise Error, "audit unresolved action is missing or not open: #{action_id}"
+        end
+
+        now = Time.now.utc
+        id = unique_auxiliary_id("LA", "audits/learning-process")
+        data["audit_id"] = id
+        data["completed_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        data["candidate_archive_count"] = archived_candidates.length
+        data["candidate_archives_total"] = cadence.fetch("candidate_archives_total")
+        RetroState.validate_learning_audit(data, body, label: input_path, assigned: true)
+        destination = learning_audit_path(id)
+        exclusive_write(destination, RetroState.render_document(data, body))
+        operation_checkpoint(:audit_record_written)
+        if data["audit_kind"] == "skill-repository"
+          cadence["last_completed_artifact_audit_total"] = cadence.fetch("candidate_archives_total")
+          write_artifact_cadence(cadence)
+        end
+        destination
       end
-      destination
     end
 
     def audits
@@ -2615,24 +2654,22 @@ module RetroState
 
     def artifact_cadence_state
       path = artifact_cadence_path
-      if File.file?(path)
-        data = YAML.safe_load(File.read(path, encoding: "UTF-8"), aliases: false)
-        data = RetroState.stringify_keys(data) if data.is_a?(Hash)
+      completed_total = learning_audits
+        .select { |_audit_path, data| data["audit_kind"] == "skill-repository" }
+        .map { |_audit_path, data| data.fetch("candidate_archives_total", data.fetch("candidate_archive_count", 0)) }
+        .max || 0
+      data = read_artifact_cadence
+      if data
+        data["last_completed_artifact_audit_total"] = [
+          data.fetch("last_completed_artifact_audit_total"), completed_total
+        ].max
         RetroState.validate_artifact_cadence(data, label: path)
         return data
       end
 
-      latest = learning_audits
-        .select { |_audit_path, data| data["audit_kind"] == "skill-repository" }
-        .max_by { |_audit_path, data| data.fetch("completed_at") }
-        &.last
       archived = archived_candidates
       total = archived.length
-      baseline = if latest
-        latest.fetch("candidate_archives_total", latest.fetch("candidate_archive_count", 0))
-      else
-        0
-      end
+      baseline = completed_total
       total = [total, baseline].max
       {
         "schema_version" => SCHEMA_VERSION,
@@ -2641,6 +2678,16 @@ module RetroState
         "last_completed_artifact_audit_total" => baseline,
         COUNTED_CANDIDATE_IDS_FIELD => archived.map { |_path, data| data.fetch("candidate_id") }
       }
+    end
+
+    def read_artifact_cadence
+      path = artifact_cadence_path
+      return unless File.file?(path)
+
+      data = YAML.safe_load(File.read(path, encoding: "UTF-8"), aliases: false)
+      data = RetroState.stringify_keys(data) if data.is_a?(Hash)
+      RetroState.validate_artifact_cadence(data, label: path)
+      data
     rescue Psych::Exception => e
       raise Error, "#{path}: invalid YAML: #{e.message}"
     end
@@ -2650,7 +2697,8 @@ module RetroState
       replace_write(artifact_cadence_path, YAML.dump(data))
     end
 
-    def with_artifact_cadence_lock
+    # Keep the existing lock pathname so mixed helper versions still coordinate cadence writes.
+    def with_state_lock
       File.open(artifact_cadence_lock_path, File::RDWR | File::CREAT, 0o600) do |lock|
         lock.flock(File::LOCK_EX)
         yield
@@ -2915,21 +2963,28 @@ module RetroState
     end
 
     def exclusive_write(path, content)
-      File.open(path, File::WRONLY | File::CREAT | File::EXCL, 0o600) do |file|
-        file.write(content)
-        file.flush
-        file.fsync
-      end
+      with_prepared_file(path, content) { |temporary| File.link(temporary, path) }
     rescue Errno::EEXIST
       raise Error, "refusing to overwrite existing state file: #{path}"
     end
 
     def replace_write(path, content)
+      with_prepared_file(path, content) { |temporary| File.rename(temporary, path) }
+    end
+
+    def with_prepared_file(path, content)
       temporary = "#{path}.tmp-#{Process.pid}-#{SecureRandom.hex(3)}"
-      exclusive_write(temporary, content)
-      File.rename(temporary, path)
+      created = false
+      File.open(temporary, File::WRONLY | File::CREAT | File::EXCL, 0o600) do |file|
+        created = true
+        file.write(content)
+        file.flush
+        file.fsync
+      end
+      operation_checkpoint(:state_file_prepared)
+      yield temporary
     ensure
-      File.unlink(temporary) if temporary && File.exist?(temporary)
+      File.unlink(temporary) if created && File.exist?(temporary)
     end
   end
 
@@ -3146,7 +3201,337 @@ module RetroState
     end
   end
 
+  def transition_recovery_self_test
+    Dir.mktmpdir("retro-transition-self-test.") do |tmp|
+      workers = []
+      write = lambda do |name, data, body|
+        path = File.join(tmp, name)
+        File.write(path, render_document(data, body))
+        path
+      end
+      decide = lambda do |id, verdict|
+        template = id.start_with?("VP-") ? verification_decision_template : decision_template
+        data, body = parse_document(template)
+        data[id.start_with?("VP-") ? "verification_proposal_id" : "candidate_id"] = id
+        data["verdict"] = verdict
+        data["reviewed_at"] = "2026-10-15T12:00:00Z"
+        review_trigger_contract_fields.each { |field| data.delete(field) } unless id.start_with?("VP-")
+        write.call("#{id}-#{verdict}.md", data, body)
+      end
+      route_candidate = lambda do |store|
+        data, body = parse_document(candidate_template)
+        path = store.route(write.call("candidate.md", data, body))
+        [File.basename(path, ".md"), path]
+      end
+      fixture = lambda do |name|
+        store = Store.new(File.join(tmp, name))
+        store.init
+        id, = route_candidate.call(store)
+        store.process(id, decide.call(id, "accept"))
+        data, body = parse_document(accepted_template)
+        data["originating_candidate_ids"] = [id]
+        path = store.record_accepted(write.call("accepted.md", data, body))
+        [store, path]
+      end
+      propose = lambda do |store, accepted, state, supplemental = false|
+        data, body = parse_document(verification_proposal_template)
+        data["target_accepted_id"] = File.basename(accepted, ".md")
+        data["proposed_verification"] = state
+        data["observation"] = "Observation #{SecureRandom.hex(3)}"
+        data["decisive_evidence"] = ["Evidence #{SecureRandom.hex(3)}"]
+        data["what_is_false"] = "The accepted outcome fails this boundary." if state == "contradicted"
+        data["supplemental_reason"] = "A distinct boundary is exercised." if supplemental
+        path = store.route_verification(write.call("proposal.md", data, body))
+        File.basename(path, ".md")
+      end
+      start = lambda do |pause_at, &action|
+        events, output = IO.pipe
+        input, release = IO.pipe
+        pid = fork do
+          events.close
+          release.close
+          output.sync = true
+          output.puts("started")
+          paused = false
+          fault = lambda do |point|
+            if point == pause_at && !paused
+              paused = true
+              output.puts("paused")
+              input.gets
+            end
+          end
+          begin
+            action.call(fault)
+            output.puts("completed")
+            exit! 0
+          rescue => e
+            output.puts("failed: #{e.class}: #{e.message}")
+            exit! 1
+          end
+        end
+        output.close
+        input.close
+        worker = [pid, events, release]
+        workers << worker
+        worker
+      end
+      event = lambda do |worker, expected|
+        ready = IO.select([worker.fetch(1)], nil, nil, 5)
+        actual = ready && worker.fetch(1).gets&.strip
+        raise "child expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+      end
+      finish = lambda do |worker|
+        event.call(worker, "completed")
+        _pid, status = Process.wait2(worker.fetch(0))
+        raise "child operation failed" unless status.success?
+      end
+      kill = lambda do |worker|
+        Process.kill("KILL", worker.fetch(0))
+        _pid, status = Process.wait2(worker.fetch(0))
+        raise "child was not killed" unless status.signaled?
+      end
+      blocked = lambda do |worker|
+        if IO.select([worker.fetch(1)], nil, nil, 0.1)
+          raise "shared mutation completed while another writer held the state lock: #{worker.fetch(1).gets}"
+        end
+      end
+
+      # Killing the resource-owning process before publication must leave a retryable inbox.
+      store, = fixture.call("atomic-create")
+      id, inbox = route_candidate.call(store)
+      decision = decide.call(id, "reject")
+      child = start.call(:state_file_prepared) do |fault|
+        Store.new(store.root, fault_injector: fault).process(id, decision)
+      end
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      archive = File.join(store.root, "retrospectives/archive", "#{id}.md")
+      raise "unpublished archive became visible" if File.exist?(archive)
+      raise "interrupted archival lost inbox" unless File.file?(inbox)
+      run = self_test_cli(store.root)
+      run.call(0, "process", "--id", id, "--decision", decision)
+      run.call(0, "validate")
+      raise "archive recovery lost its decision" unless read_document(archive).first.dig("triage", "verdict") == "reject"
+      original = File.binread(archive)
+      begin
+        store.send(:exclusive_write, archive, "replacement")
+        raise "atomic creation overwrote an existing archive"
+      rescue Error => e
+        raise unless e.message.include?("refusing to overwrite")
+      end
+      raise "refused create changed the archive" unless File.binread(archive) == original
+
+      # Both supplemental support and contradiction must preserve the preceding writer's evidence.
+      %w[supported contradicted].each do |second_state|
+        store, accepted = fixture.call("parallel-#{second_state}")
+        first_id = propose.call(store, accepted, "supported")
+        second_id = propose.call(store, accepted, second_state, second_state == "supported")
+        first_decision = decide.call(first_id, "apply")
+        second_decision = decide.call(second_id, "apply")
+        first = start.call(:state_file_prepared) do |fault|
+          Store.new(store.root, fault_injector: fault).process_verification(first_id, first_decision)
+        end
+        event.call(first, "started")
+        event.call(first, "paused")
+        second = start.call(nil) do |fault|
+          Store.new(store.root, fault_injector: fault).process_verification(second_id, second_decision)
+        end
+        event.call(second, "started")
+        blocked.call(second)
+        first.fetch(2).puts("continue")
+        finish.call(first)
+        finish.call(second)
+        data, = read_document(accepted)
+        unless data["verification"] == second_state &&
+            data.fetch("applied_verification_proposal_ids") == [first_id, second_id]
+          raise "parallel verification lost a transition or its provenance"
+        end
+        [first_id, second_id].each do |proposal_id|
+          proposal, = read_document(File.join(store.root, "verifications/archive", "#{proposal_id}.md"))
+          unless (proposal.fetch("decisive_evidence") - data.fetch("decisive_evidence")).empty?
+            raise "parallel verification lost evidence"
+          end
+        end
+        if second_state == "contradicted" && !data.key?("contradiction")
+          raise "parallel verification erased the contradiction"
+        end
+        store.validate
+      end
+
+      # Generic replacement must share the verification lock and retain verification fields.
+      store, accepted = fixture.call("generic-update")
+      accepted_id = File.basename(accepted, ".md")
+      id = propose.call(store, accepted, "supported")
+      apply = decide.call(id, "apply")
+      data, body = read_document(accepted)
+      update = without_keys(data, "accepted_id", "accepted_at")
+      update["destination"] = "Relocated destination."
+      stale = write.call("stale-update.md", update, body)
+      first = start.call(:state_file_prepared) do |fault|
+        Store.new(store.root, fault_injector: fault).process_verification(id, apply)
+      end
+      event.call(first, "started")
+      event.call(first, "paused")
+      second = start.call(nil) do |fault|
+        Store.new(store.root, fault_injector: fault).update_accepted(accepted_id, stale)
+        raise "stale generic replacement erased verification"
+      rescue Error => e
+        raise unless e.message.include?("applied_verification_proposal_ids must be preserved")
+      end
+      event.call(second, "started")
+      blocked.call(second)
+      first.fetch(2).puts("continue")
+      finish.call(first)
+      finish.call(second)
+      data, body = read_document(accepted)
+      update = without_keys(data, "accepted_id", "accepted_at")
+      run = self_test_cli(store.root)
+      [{"verification" => "unverified", "verification_basis" => "none"},
+        {"verification_basis" => "deterministic-test"}].each do |changes|
+        input = write.call("invalid-update.md", update.merge(changes), body)
+        before = store.snapshot
+        run.call(1, "update-accepted", "--id", accepted_id, "--file", input, error: "changes require process-verification")
+        raise "refused generic update changed state" unless store.snapshot == before
+      end
+      update["destination"] = "Relocated destination."
+      store.update_accepted(accepted_id, write.call("valid-update.md", update, body))
+      store.validate
+      unverified_store, unverified_path = fixture.call("generic-upgrade")
+      data, body = read_document(unverified_path)
+      data = without_keys(data, "accepted_id", "accepted_at")
+      data["verification"] = "supported"
+      data["verification_basis"] = "later-session"
+      before = unverified_store.snapshot
+      self_test_cli(unverified_store.root).call(
+        1, "update-accepted", "--id", File.basename(unverified_path, ".md"),
+        "--file", write.call("invalid-upgrade.md", data, body), error: "changes require process-verification"
+      )
+      raise "generic upgrade changed state" unless unverified_store.snapshot == before
+
+      # An interrupted application can resume, but cannot be relabeled as rejection.
+      store, accepted = fixture.call("verification-recovery")
+      id = propose.call(store, accepted, "supported")
+      apply = decide.call(id, "apply")
+      child = start.call(:verification_accepted_written) do |fault|
+        Store.new(store.root, fault_injector: fault).process_verification(id, apply)
+      end
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      before = store.snapshot
+      run = self_test_cli(store.root)
+      run.call(1, "process-verification", "--id", id, "--decision", decide.call(id, "reject"), error: "already applied")
+      raise "conflicting recovery changed state" unless store.snapshot == before
+      run.call(0, "process-verification", "--id", id, "--decision", apply)
+      run.call(0, "validate")
+      unless read_document(accepted).first.fetch("applied_verification_proposal_ids") == [id]
+        raise "verification retry duplicated application"
+      end
+
+      # A stored rejection is checked before a conflicting retry can apply any evidence.
+      store, accepted = fixture.call("verification-archive-conflict")
+      id = propose.call(store, accepted, "supported")
+      reject = decide.call(id, "reject")
+      child = start.call(:verification_archive_written) do |fault|
+        Store.new(store.root, fault_injector: fault).process_verification(id, reject)
+      end
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      before = store.snapshot
+      run = self_test_cli(store.root)
+      run.call(1, "process-verification", "--id", id, "--decision", decide.call(id, "apply"), error: "existing verification archive differs")
+      raise "archive conflict applied evidence" unless store.snapshot == before
+      run.call(0, "process-verification", "--id", id, "--decision", reject)
+      run.call(0, "validate")
+
+      # Audit publication and candidate processing share the same cadence snapshot boundary.
+      store, = fixture.call("audit-concurrency")
+      data, body = parse_document(learning_audit_template)
+      data["audit_kind"] = "skill-repository"
+      audit_input = write.call("audit.md", data, body)
+      id, = route_candidate.call(store)
+      decision = decide.call(id, "reject")
+      audit = start.call(:state_file_prepared) do |fault|
+        Store.new(store.root, fault_injector: fault).record_audit(audit_input)
+      end
+      event.call(audit, "started")
+      event.call(audit, "paused")
+      candidate = start.call(nil) do |fault|
+        Store.new(store.root, fault_injector: fault).process(id, decision)
+      end
+      event.call(candidate, "started")
+      blocked.call(candidate)
+      audit.fetch(2).puts("continue")
+      finish.call(audit)
+      finish.call(candidate)
+      cadence = store.send(:artifact_cadence_state)
+      unless cadence.fetch("candidate_archives_total") == 2 &&
+          cadence.fetch("counted_candidate_ids").include?(id) &&
+          store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+        raise "audit recording rewound candidate cadence"
+      end
+      store.validate
+
+      # Publication is the audit commit point; readers and retries reconcile a lost cache update.
+      store, = fixture.call("audit-recovery")
+      data, body = parse_document(ledger_template)
+      ledger = store.record_ledger(write.call("ledger.md", data, body))
+      ledger_id = File.basename(ledger, ".md")
+      data, body = parse_document(learning_audit_template)
+      data["audit_kind"] = "skill-repository"
+      data["unresolved_action_ids"] = [ledger_id]
+      audit_input = write.call("recovery-audit.md", data, body)
+      before = store.snapshot
+      failed = Store.new(store.root, fault_injector: lambda do |point|
+        raise Error, "before publication" if point == :state_file_prepared
+      end)
+      begin
+        failed.record_audit(audit_input)
+        raise "audit publication failure was not injected"
+      rescue Error => e
+        raise unless e.message == "before publication"
+      end
+      raise "unpublished audit changed state" unless store.snapshot == before
+      raise "unpublished audit reset cadence" unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+      child = start.call(:audit_record_written) do |fault|
+        Store.new(store.root, fault_injector: fault).record_audit(audit_input)
+      end
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      original_audit = store.audits.fetch(0).fetch(3)
+      original_bytes = File.binread(original_audit)
+      run = self_test_cli(store.root)
+      run.call(0, "validate")
+      raise "published audit failed to reset effective cadence" if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+      store.close_ledger(ledger_id, rationale: "The action completed after audit publication.")
+      retried = run.call(0, "record-audit", "--file", audit_input).strip
+      unless retried == original_audit && store.audits.length == 1 && File.binread(original_audit) == original_bytes
+        raise "audit recovery created another identity or changed its committed record"
+      end
+      File.unlink(original_audit)
+      raise "deleting cached audit rewound cadence" if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+      store.validate
+    ensure
+      workers.each do |pid, events, release|
+        begin
+          unless Process.waitpid(pid, Process::WNOHANG)
+            Process.kill("KILL", pid)
+            Process.waitpid(pid)
+          end
+        rescue Errno::ECHILD, Errno::ESRCH
+          # Already reaped by the successful or killed-process assertion.
+        end
+        events.close
+        release.close
+      end
+    end
+  end
+
   def self_test
+    transition_recovery_self_test
     inspection_self_test
     preparation_self_test
     Dir.mktmpdir("retro-state-self-test.") do |tmp|
