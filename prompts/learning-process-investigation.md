@@ -36,8 +36,8 @@ invoking authority; already-authorized follow-up needs no renewed approval.
   probe, next action, and close condition; naming an owner does not establish
   that the owner reaches it.
 - **Discovery and application:** Trace a selected lesson from the request
-  through guidance available at the time, its discovery route, the agent's
-  actions, and the downstream result. Distinguish absent knowledge,
+  through guidance available at the time, its trigger and reference route,
+  the agent's actions, and the downstream result. Distinguish absent knowledge,
   undiscovered guidance, incomplete or mistaken application, and an ineffective
   rule before proposing more guidance.
 - **Verification:** Inspect the exact opportunity, prior applied evidence,
@@ -48,9 +48,10 @@ invoking authority; already-authorized follow-up needs no renewed approval.
 - **Working method:** Where did guidance help, impose avoidable work, or
   displace the user's objective? Separate costs of following the rule from
   over-application and from assurance protecting an accepted requirement.
-  Examine repeated investigation, inline scripting, fragile handoffs, excessive
-  checks or reference loading, and avoidable demands on owner attention. Also
-  identify economical procedures worth retaining or reusing.
+  Examine misactivation, unnecessary sequencing, displaced simpler paths,
+  stale assumptions, repeated investigation, inline scripting, fragile handoffs,
+  excessive checks or reference loading, and avoidable demands on owner
+  attention. Also identify economical procedures worth retaining or reusing.
 - **Learning-loop cost:** Does triage compress useful knowledge or accumulate
   incident-shaped rules and bookkeeping? Use available growth, validation
   timing, and task-effort evidence when it affects a maintenance decision.
@@ -101,6 +102,8 @@ corrections. Separate observation from inferred cause. Loading guidance,
 installation parity, validator success, and model self-report do not establish
 behavioral effectiveness. Missing citations or narration do not establish
 non-use. A successful result can coexist with an unnecessarily costly journey.
+Mark unavailable observations unknown; neither installation parity nor an
+unactivated draft establishes ordinary use.
 
 Keep implementation, guidance conformance, intended benefit, and comparative
 improvement distinct. Comparative claims require an observed comparator.
@@ -111,7 +114,12 @@ Lead with findings most likely to change a worthwhile decision. For each, give
 retrievable evidence, downstream consequence, observed cost or benefit,
 alternative explanations, limitations, and a recommendation. Compare retaining
 the approach, existing tooling, a small extension, better routing, narrowing,
-and removal as relevant. State the behavior or assurance that must survive.
+and removal as relevant, using
+[candidate maintenance judgment](../skills/skill-retro-triage/references/candidate-judgment.md).
+For each selected learned rule, identify the decision it changes and distinguish
+reading, application, and maintenance costs. State the behavior or assurance
+that must survive. A justified retention or no-change decision completes this
+assessment.
 
 Include positive and no-action findings, inspected scope, and unknowns. Report
 structural health separately from behavioral effectiveness. End with a compact

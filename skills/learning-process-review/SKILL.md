@@ -42,9 +42,10 @@ For a focused question about process effects on ordinary work, or an exploratory
 investigation of a machine's downstream evidence, follow
 [`prompts/learning-process-investigation.md`](../../prompts/learning-process-investigation.md).
 This is a report-only route unless the invoking request authorizes follow-up;
-it does not complete a full review or reset cadence. A broader review may use
-the same prompt for deeper downstream inquiry and fold findings into its
-existing report without adding another pass.
+it does not complete a full review or reset cadence. Broader reviews use the
+same investigation guidance for their existing downstream coverage, as scoped
+by the private-review reference below, and fold findings into their existing
+report without adding another pass.
 
 For papercut closure, candidate or verification health, drain decisions, or a
 broader process retrospective, read

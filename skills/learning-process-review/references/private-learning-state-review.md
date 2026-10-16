@@ -67,23 +67,16 @@ Behavioral conclusion:
 Plan-to-diff size may identify an anomaly but is never a target or sufficient
 verdict. Do not infer utility from conformance or successful completion alone.
 
-Within an already-due review, select a few learned rules relevant to the evidence. In the existing
-review note, record the decision each changes, downstream value, reading and application cost,
-maintenance cost, proposed treatment, and behavior that must survive. Use
-[candidate maintenance judgment](../../skill-retro-triage/references/candidate-judgment.md) to compare
-remedies. A justified retention or no-change decision completes the trial.
+Within an already-due review, select a few learned rules relevant to the evidence
+and use the [canonical investigation prompt](../../../prompts/learning-process-investigation.md)
+for their decision, value, and cost assessment. When task evidence is available,
+trace one selected lesson using the same guidance. Fold findings into the
+existing review note; this supplies the downstream investigation required here
+without adding a review pass or report.
 
-When task evidence is available, trace one selected lesson from the user's request through the
-guidance available at the time, its trigger and reference route, and the action or artifact at the
-point of need. Distinguish absent knowledge, undiscovered guidance, agent interpretation, and an
-ineffective rule before proposing a source change. Mark unavailable observations unknown; installation
-parity or an unactivated draft does not establish ordinary use.
-
-Aggregate evidence that a skill made work worse through misactivation,
-unnecessary sequencing, displaced simpler paths, stale assumptions, or
-procedural compliance that missed the objective. Route repeated or decisive
-evidence toward narrowing, qualification, decomposition, supersession, or
-removal; the public audit may report risk, not unobserved behavioral incidents.
+Aggregate evidence of harmful guidance and route repeated or decisive findings
+toward narrowing, qualification, decomposition, supersession, or removal; the
+public audit may report risk, not unobserved behavioral incidents.
 
 Supervise whether triage adds incident-shaped rules without changing a decision,
 retrospectives find compressible clusters, accepted compression lands, casebooks
