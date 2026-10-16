@@ -2150,20 +2150,6 @@ module RetroState
         data, body = RetroState.read_document(input_path)
         RetroState.validate_learning_audit(data, body, label: input_path, assigned: false)
         cadence = artifact_cadence_state
-        if data["audit_kind"] == "skill-repository"
-          cached_baseline = read_artifact_cadence&.fetch("last_completed_artifact_audit_total") || 0
-          unfinished = learning_audits.find do |audit_path, audit|
-            matching = audit["audit_kind"] == "skill-repository" &&
-              audit.fetch("candidate_archives_total", 0) > cached_baseline &&
-              RetroState.without_keys(audit, "audit_id", "completed_at", "candidate_archive_count", "candidate_archives_total") == data
-            matching && RetroState.read_document(audit_path).last.rstrip == body.rstrip
-          end
-          if unfinished
-            path, _audit = unfinished
-            write_artifact_cadence(cadence)
-            return path
-          end
-        end
 
         data.fetch("unresolved_action_ids").each do |action_id|
           next if action_reference_open?(action_id)
@@ -2186,6 +2172,25 @@ module RetroState
           write_artifact_cadence(cadence)
         end
         destination
+      end
+    end
+
+    def recover_audit(audit_id)
+      ensure_initialized
+      with_state_lock do
+        path = learning_audit_path(audit_id)
+        raise Error, "audit not found: #{audit_id}" unless File.file?(path)
+
+        data, body = RetroState.read_document(path)
+        RetroState.validate_learning_audit(data, body, label: path, assigned: true)
+        raise Error, "audit identity does not match #{audit_id}" unless data["audit_id"] == audit_id
+        unless data["audit_kind"] == "skill-repository" && data.key?("candidate_archives_total")
+          raise Error, "audit recovery requires a skill-repository audit with a monotonic cadence total"
+        end
+
+        cadence = artifact_cadence_state
+        write_artifact_cadence(cadence) unless read_artifact_cadence == cadence
+        path
       end
     end
 
@@ -2654,14 +2659,12 @@ module RetroState
 
     def artifact_cadence_state
       path = artifact_cadence_path
-      completed_total = learning_audits
-        .select { |_audit_path, data| data["audit_kind"] == "skill-repository" }
-        .map { |_audit_path, data| data.fetch("candidate_archives_total", data.fetch("candidate_archive_count", 0)) }
-        .max || 0
+      audits = learning_audits.select { |_audit_path, data| data["audit_kind"] == "skill-repository" }
+      completed_total = audits.filter_map { |_audit_path, data| data["candidate_archives_total"] }.max
       data = read_artifact_cadence
       if data
         data["last_completed_artifact_audit_total"] = [
-          data.fetch("last_completed_artifact_audit_total"), completed_total
+          data.fetch("last_completed_artifact_audit_total"), completed_total || 0
         ].max
         RetroState.validate_artifact_cadence(data, label: path)
         return data
@@ -2669,7 +2672,8 @@ module RetroState
 
       archived = archived_candidates
       total = archived.length
-      baseline = completed_total
+      latest = audits.max_by { |_audit_path, audit| audit.fetch("completed_at") }&.last
+      baseline = completed_total || latest&.fetch("candidate_archive_count", 0) || 0
       total = [total, baseline].max
       {
         "schema_version" => SCHEMA_VERSION,
@@ -3474,6 +3478,34 @@ module RetroState
       end
       store.validate
 
+      # Legacy counts describe retained files, so only the latest count bootstraps migration.
+      legacy = Store.new(File.join(tmp, "legacy-audit-counts"))
+      legacy.init
+      [["LA-20260701-aaaaaa", "2026-07-01T12:00:00Z", 20],
+        ["LA-20260801-bbbbbb", "2026-08-01T12:00:00Z", 1]].each do |audit_id, completed_at, count|
+        data, body = parse_document(learning_audit_template)
+        data.merge!("audit_kind" => "skill-repository", "audit_id" => audit_id,
+          "completed_at" => completed_at, "candidate_archive_count" => count)
+        path = File.join(legacy.root, "audits/learning-process", "#{audit_id}.md")
+        File.write(path, render_document(data, body))
+      end
+      expected_cadence = {
+        "schema_version" => 1, "record_type" => ARTIFACT_CADENCE_RECORD_TYPE,
+        "candidate_archives_total" => 1, "last_completed_artifact_audit_total" => 1,
+        COUNTED_CANDIDATE_IDS_FIELD => []
+      }
+      unless legacy.send(:artifact_cadence_state) == expected_cadence
+        raise "legacy migration used an older retained-file count"
+      end
+      legacy.validate
+      legacy.send(:write_artifact_cadence, expected_cadence)
+      before = legacy.snapshot
+      unless legacy.send(:artifact_cadence_state) == expected_cadence
+        raise "legacy history overrode durable monotonic cadence"
+      end
+      legacy.validate
+      raise "legacy reconciliation wrote state" unless legacy.snapshot == before
+
       # Publication is the audit commit point; readers and retries reconcile a lost cache update.
       store, = fixture.call("audit-recovery")
       data, body = parse_document(ledger_template)
@@ -3507,12 +3539,91 @@ module RetroState
       run.call(0, "validate")
       raise "published audit failed to reset effective cadence" if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
       store.close_ledger(ledger_id, rationale: "The action completed after audit publication.")
-      retried = run.call(0, "record-audit", "--file", audit_input).strip
+      audit_id = File.basename(original_audit, ".md")
+      retried = run.call(0, "record-audit", "--id", audit_id).strip
       unless retried == original_audit && store.audits.length == 1 && File.binread(original_audit) == original_bytes
         raise "audit recovery created another identity or changed its committed record"
       end
+
+      10.times do
+        candidate_id, = route_candidate.call(store)
+        store.process(candidate_id, decide.call(candidate_id, "reject"))
+      end
+      raise "later candidate processing failed to make an audit due" unless store.artifact_audit_status.fetch(:due)
+      before = store.snapshot
+      2.times do
+        retried = run.call(0, "record-audit", "--id", audit_id).strip
+        unless retried == original_audit && store.audits.length == 1 &&
+            store.artifact_audit_status.fetch(:archives_since) == 10 && store.snapshot == before
+          raise "audit recovery after another writer changed identity, cutoff, or state"
+        end
+      end
+      run.call(1, "record-audit", "--id", "LA-20000101-000000", error: "audit not found")
+      run.call(1, "record-audit", "--id", "invalid", error: "invalid audit_id")
+      [[], ["--id", audit_id, "--file", audit_input], ["--id", audit_id, "--id", audit_id]].each do |arguments|
+        out, err, status = Open3.capture3(
+          RbConfig.ruby, File.expand_path(__FILE__), "record-audit", *arguments, "--root", store.root
+        )
+        unless status.exitstatus == 2 && out.empty? && err.include?("retro-state.rb:")
+          raise "audit recording accepted an ambiguous or incomplete invocation"
+        end
+      end
+      raise "refused audit recovery changed state" unless store.snapshot == before
       File.unlink(original_audit)
-      raise "deleting cached audit rewound cadence" if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
+      raise "deleting cached audit rewound cadence" unless store.artifact_audit_status.fetch(:archives_since) == 10
+      store.validate
+
+      # A fresh audit remains distinct even when its payload matches an interrupted publication.
+      store, = fixture.call("fresh-audit-identity")
+      data, body = parse_document(learning_audit_template)
+      data["audit_kind"] = "skill-repository"
+      input = write.call("fresh-audit.md", data, body)
+      child = start.call(:audit_record_written) do |fault|
+        Store.new(store.root, fault_injector: fault).record_audit(input)
+      end
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      old_audit = store.audits.fetch(0).fetch(3)
+      10.times do
+        candidate_id, = route_candidate.call(store)
+        store.process(candidate_id, decide.call(candidate_id, "reject"))
+      end
+      before = store.snapshot
+      recovered = self_test_cli(store.root).call(0, "record-audit", "--id", File.basename(old_audit, ".md")).strip
+      unless recovered == old_audit && store.audits.length == 1 &&
+          store.artifact_audit_status.fetch(:archives_since) == 10 && store.snapshot == before
+        raise "first recovery after a cadence writer changed the original audit cutoff"
+      end
+      fresh = store.record_audit(input)
+      raise "fresh audit was mistaken for recovery" unless fresh != old_audit && store.audits.length == 2
+      before = store.snapshot
+      store.recover_audit(File.basename(old_audit, ".md"))
+      unless store.snapshot == before && store.artifact_audit_status.fetch(:archives_since).zero?
+        raise "recovering an older audit rewound a newer completed audit"
+      end
+      data["audit_kind"] = "learning-process"
+      other = store.record_audit(write.call("process-audit.md", data, body))
+      before = store.snapshot
+      self_test_cli(store.root).call(1, "record-audit", "--id", File.basename(other, ".md"),
+        error: "audit recovery requires a skill-repository audit")
+      raise "wrong-kind audit recovery changed state" unless store.snapshot == before
+      store.validate
+
+      # Fresh recording must not infer a retry from matching content and an unfinished cache write.
+      store, = fixture.call("fresh-audit-pending-cache")
+      failed = Store.new(store.root, fault_injector: lambda do |point|
+        raise Error, "after publication" if point == :audit_record_written
+      end)
+      begin
+        failed.record_audit(input)
+        raise "audit cache interruption was not injected"
+      rescue Error => e
+        raise unless e.message == "after publication"
+      end
+      old_audit = store.audits.fetch(0).fetch(3)
+      fresh = self_test_cli(store.root).call(0, "record-audit", "--file", input).strip
+      raise "matching content merged a fresh audit into recovery" unless fresh != old_audit && store.audits.length == 2
       store.validate
     ensure
       workers.each do |pid, events, release|
@@ -5157,7 +5268,8 @@ def usage(command = nil)
       record-ledger --file PATH         Store a maintenance ledger entry
       close-ledger --id ID --rationale TEXT
                                         Close a maintenance ledger entry
-      record-audit --file PATH          Store a completed sanitized system audit
+      record-audit --file PATH          Store a fresh completed sanitized system audit
+      record-audit --id LA-ID           Recover a committed artifact audit's cadence cache
       audits                            List completed system audits
       artifact-audit-status [--archive-threshold N]
                                         Report machine-owned artifact-audit cadence
@@ -5209,7 +5321,7 @@ def reject_inapplicable_options!(command, provided)
     "record-draft" => %w[--root --file],
     "record-ledger" => %w[--root --file],
     "close-ledger" => %w[--root --id --rationale],
-    "record-audit" => %w[--root --file],
+    "record-audit" => %w[--root --file --id],
     "audits" => %w[--root],
     "artifact-audit-status" => %w[--root --archive-threshold],
     "review-queue" => %w[--root],
@@ -5321,6 +5433,15 @@ begin
   end
   if command == "prepare-decision" && !verdict
     raise OptionParser::MissingArgument, "--verdict VERDICT"
+  end
+  if command == "record-audit"
+    raise OptionParser::MissingArgument, "--file PATH or --id LA-ID" unless input_path || record_id
+    if input_path && record_id
+      raise OptionParser::InvalidArgument, "choose --file for a fresh audit or --id for recovery"
+    end
+    if record_id && !record_ids.one?
+      raise OptionParser::InvalidArgument, "exactly one --id is required for audit recovery"
+    end
   end
 
   case command
@@ -5492,9 +5613,7 @@ begin
 
       puts store.close_ledger(record_id, rationale: rationale)
     when "record-audit"
-      raise RetroState::Error, "record-audit requires --file PATH" unless input_path
-
-      puts store.record_audit(input_path)
+      puts(record_id ? store.recover_audit(record_id) : store.record_audit(input_path))
     when "audits"
       store.audits.each { |row| puts row.join("\t") }
     when "artifact-audit-status"

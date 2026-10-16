@@ -489,10 +489,16 @@ The default audit becomes due after ten newly archived candidate reports; use
 Only successfully recording a completed `skill-repository` audit resets the
 baseline. Atomic publication of that audit is the commit point. If its following
 cadence-cache update is interrupted, readers reconcile the baseline from completed
-audits; retry `record-audit` with the same input to finish the pending cache update
-without creating another audit identity. Failure before publication leaves the
-audit due. After a lost response, inspect `audits` and `artifact-audit-status`
-before resubmitting. Due state
+audits with monotonic totals. Legacy retained-file counts are used only for
+initial migration from the latest audit; they cannot override a persisted cache.
+After a lost response, inspect `audits` and `show --id LA-ID`, then use
+`record-audit --id LA-ID` to recover that committed artifact audit's cache update.
+Recovery preserves its identity and original cutoff, even after other writers
+advance cadence, and repeated recovery makes no changes when the cache is current.
+It requires an existing artifact audit with a monotonic total; it never creates
+a missing audit. `--file` always records a fresh completed audit, and cannot be
+combined with recovery's `--id`. Failure before publication leaves the audit due.
+Due state
 authorizes only the report described by
 `prompts/skill-repository-retrospective.md`; it never authorizes source edits or
 automatic corpus rewrites.
