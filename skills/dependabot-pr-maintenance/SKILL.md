@@ -39,9 +39,11 @@ Use this for automated dependency update pull requests.
 - For SHA-pinned GitHub Actions updates, stale red checks, patch-based combined
   validation, or batch merges, read
   [pinned-actions-and-stale-ci.md](references/pinned-actions-and-stale-ci.md).
-- For checkout-preservation evidence, use
+- For filesystem checkout discovery and checkout-preservation evidence, use
   `${HOME}/.agents/skills/dependabot-pr-maintenance/scripts/checkout-state.py`
-  `snapshot` then `compare`; see `--help`. Save private snapshots outside inspected checkouts.
+  `discover ROOT...`, or `snapshot` then `compare`; see `--help` and `discover --help`.
+  Discovery reports candidates and rejected markers; errors mean an incomplete
+  inventory. Save private snapshots outside inspected checkouts.
 
 ## Safety Checks
 

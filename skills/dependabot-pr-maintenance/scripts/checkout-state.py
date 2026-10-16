@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot or compare explicit Git checkouts without writing to them."""
+"""Discover, snapshot or compare Git checkouts without writing to them."""
 
 import argparse
 import hashlib
@@ -17,6 +17,70 @@ ENV.update(GIT_OPTIONAL_LOCKS='0', GIT_NO_LAZY_FETCH='1', GIT_TERMINAL_PROMPT='0
 FIELDS = {'head', 'branch', 'refs', 'stashes', 'indexes', 'tracked', 'untracked'}
 OID = re.compile(r'(?:[0-9a-f]{40}|[0-9a-f]{64})\Z')
 SHA256 = re.compile(r'[0-9a-f]{64}\Z')
+
+
+def checkout_marker(marker):
+    mode = marker.lstat().st_mode
+    if stat.S_ISDIR(mode):
+        kind, git_dir = 'directory', marker
+    elif stat.S_ISREG(mode):
+        with marker.open('rb') as stream:
+            content = stream.read(65537)
+        if len(content) > 65536:
+            raise ValueError('gitfile exceeds 64 KiB')
+        if not content.startswith(b'gitdir: '):
+            raise ValueError('expected gitdir: path in gitfile')
+        target = content[8:].rstrip(b'\r\n')
+        if not target or b'\0' in target:
+            raise ValueError('empty or invalid gitfile target')
+        kind, git_dir = 'gitfile', marker.parent / os.fsdecode(target)
+    else:
+        raise ValueError('expected a .git directory or regular gitfile; marker symlinks are skipped')
+    try:
+        if not stat.S_ISREG((git_dir / 'HEAD').stat().st_mode):
+            raise ValueError('expected a regular HEAD file in Git directory')
+    except (FileNotFoundError, NotADirectoryError):
+        raise ValueError('Git directory or HEAD file is missing') from None
+    return kind
+
+
+def discover(paths):
+    result = {'roots': [], 'candidates': [], 'rejected_markers': [], 'errors': []}
+    roots = set()
+    for raw in sorted(set(paths)):
+        try:
+            root = Path(raw).expanduser().resolve(strict=True)
+            if not root.is_dir():
+                raise ValueError('expected a directory root')
+            roots.add(str(root))
+        except (OSError, ValueError, RuntimeError) as error:
+            result['errors'].append({'path': raw, 'reason': str(error)})
+    result['roots'] = sorted(roots)
+    pending, visited = list(reversed(result['roots'])), set()
+    while pending:
+        directory = pending.pop()
+        if directory in visited:
+            continue
+        visited.add(directory)
+        try:
+            with os.scandir(directory) as stream:
+                entries = sorted(stream, key=lambda entry: entry.name)
+            for entry in entries:
+                try:
+                    if entry.name == '.git':
+                        kind = checkout_marker(Path(entry.path))
+                        result['candidates'].append({'path': directory, 'marker': kind})
+                    elif entry.is_dir(follow_symlinks=False):
+                        pending.append(entry.path)
+                except ValueError as error:
+                    result['rejected_markers'].append({'path': entry.path, 'reason': str(error)})
+                except OSError as error:
+                    result['errors'].append({'path': entry.path, 'reason': str(error)})
+        except OSError as error:
+            result['errors'].append({'path': directory, 'reason': str(error)})
+    for field in ('candidates', 'rejected_markers', 'errors'):
+        result[field].sort(key=lambda entry: (entry['path'], entry.get('reason', '')))
+    return result
 
 
 def git(root, *args, accepted=(0,)):
@@ -175,21 +239,38 @@ def baseline(stream):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=(
-        'Python 3.9+ and Git required. JSON on stdout; exit 0 complete/unchanged, '
+        'Python 3.9+ required; snapshot/compare also require Git. JSON on stdout; exit 0 complete/unchanged, '
         '1 differences or inspection errors, 2 usage. Save private snapshots outside inspected '
         'checkouts. Hashes cover file bytes/modes, symlink targets, index, HEAD/branch, '
         'heads/tags/remotes/stash refs and stash order. Ignored files, empty directories, '
-        'timestamps, config and object storage are excluded. No discovery, network, restoration '
-        'or atomic/concurrent-change attribution. Shared-index layouts (including leftover '
-        'sharedindex.* files), submodules and nested repositories are refused.'
+        'timestamps, config and object storage are excluded. No network, restoration '
+        'or atomic/concurrent-change attribution. Snapshot/compare refuse shared-index layouts (including leftover '
+        'sharedindex.* files), submodules and nested repositories.'
     ))
     commands = parser.add_subparsers(dest='operation', required=True)
+    scan = commands.add_parser('discover', help='find checkout candidates beneath explicit roots, without Git',
+                               description=(
+        'Filesystem-only recursive scan. Explicit roots resolve symlinks; descendant symlinks '
+        'are skipped. Include nested checkouts; prune .git directories. Candidates require a '
+        '.git directory or gitfile (up to 64 KiB) pointing to a directory with a regular HEAD file. '
+        'Gitfile targets may lie outside roots. No Git validity, remote or package checks. '
+        'JSON lists canonical roots, sorted/deduplicated candidates (path, marker), '
+        'rejected_markers and errors. Rejected markers alone are complete (exit 0); '
+        'root/traversal/read errors make the inventory incomplete (exit 1).'
+    ))
+    scan.add_argument('roots', nargs='+', help='directory roots; overlaps and aliases collapse')
     take = commands.add_parser('snapshot', help='print state for explicit checkout roots')
     take.add_argument('checkouts', nargs='+', help='checkout root paths; duplicates collapse')
     compare = commands.add_parser('compare', help='compare current checkouts with a complete snapshot')
     compare.add_argument('--file', required=True, help='snapshot JSON path, or - for stdin')
     args = parser.parse_args()
     result = {'schema_version': 1, 'operation': args.operation, 'status': 'complete', 'errors': []}
+    if args.operation == 'discover':
+        result.update(discover(args.roots))
+        if result['errors']:
+            result['status'] = 'incomplete'
+        print(json.dumps(result, ensure_ascii=True, indent=2, sort_keys=True))
+        return int(bool(result['errors']))
     old = None
     try:
         if args.operation == 'compare':

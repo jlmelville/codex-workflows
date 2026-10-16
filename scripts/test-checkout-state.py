@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise checkout snapshots, comparisons, and inspection preservation."""
+"""Exercise filesystem discovery, checkout state, and inspection preservation."""
 
 import json
 import os
@@ -75,6 +75,114 @@ class CheckoutStateTests(unittest.TestCase):
 
     def compare(self, saved, status=0):
         return json.loads(self.invoke('compare', '--file', '-', input_text=json.dumps(saved), status=status).stdout)
+
+    def test_discover_nested_gitfiles_overlaps_and_aliases_without_git(self):
+        nested = self.repo / 'nested checkout\n'
+        nested.mkdir()
+        self.git('init', '--quiet', repo=nested)
+        linked = self.root / 'linked checkout'
+        self.git('worktree', 'add', '--quiet', '--detach', str(linked), 'HEAD')
+        alias = self.root / 'alias'
+        alias.symlink_to(self.repo, target_is_directory=True)
+        hidden = self.repo / '.git/hidden/.git'
+        hidden.mkdir(parents=True)
+        (hidden / 'HEAD').write_text('ref: refs/heads/hidden\n')
+        saved = json.loads(self.invoke('discover', self.root, alias, self.repo, self.root,
+                                       env=dict(os.environ, PATH='')).stdout)
+        self.assertEqual(saved, {
+            'schema_version': 1, 'operation': 'discover', 'status': 'complete', 'errors': [],
+            'roots': sorted(map(str, (self.root, self.repo))), 'rejected_markers': [],
+            'candidates': sorted([
+                {'path': str(self.repo), 'marker': 'directory'},
+                {'path': str(nested), 'marker': 'directory'},
+                {'path': str(linked), 'marker': 'gitfile'},
+            ], key=lambda entry: entry['path']),
+        })
+
+    def test_discover_skips_descendant_symlinks_but_accepts_explicit_alias_root(self):
+        scope = self.root / 'scope'
+        scope.mkdir()
+        alias = scope / 'alias'
+        alias.symlink_to(self.repo, target_is_directory=True)
+        (scope / 'loop').symlink_to(scope, target_is_directory=True)
+        (scope / 'broken').symlink_to(self.root / 'absent', target_is_directory=True)
+        empty = json.loads(self.invoke('discover', scope).stdout)
+        self.assertEqual(empty['candidates'], [])
+        self.assertEqual(empty['errors'], [])
+        self.assertEqual(empty['status'], 'complete')
+        found = json.loads(self.invoke('discover', alias).stdout)
+        self.assertEqual(found['candidates'], [{'path': str(self.repo), 'marker': 'directory'}])
+
+    def test_discover_relative_gitfile_and_rejected_markers(self):
+        scope = self.root / 'scope'
+        scope.mkdir()
+        valid = scope / 'relative gitfile'
+        valid.mkdir()
+        # The Git directory is outside the discovery root; only its HEAD metadata is checked.
+        (valid / '.git').write_text('gitdir: ../../checkout with spaces/.git\r\n')
+        markers = {
+            'header': b'not a gitfile\n', 'empty': b'gitdir: \n',
+            'missing': b'gitdir: absent\n', 'nul': b'gitdir: bad\0target\n',
+            'large': b'gitdir: ' + b'x' * 65536,
+        }
+        for name, content in markers.items():
+            directory = scope / name
+            directory.mkdir()
+            (directory / '.git').write_bytes(content)
+        no_head = scope / 'no-head/.git'
+        no_head.mkdir(parents=True)
+        symlink = scope / 'symlink'
+        symlink.mkdir()
+        (symlink / '.git').symlink_to(self.repo / '.git', target_is_directory=True)
+        special = scope / 'special'
+        special.mkdir()
+        os.mkfifo(special / '.git')
+        saved = json.loads(self.invoke('discover', scope).stdout)
+        self.assertEqual(saved['candidates'], [{'path': str(valid), 'marker': 'gitfile'}])
+        self.assertEqual(saved['status'], 'complete')
+        self.assertEqual(saved['errors'], [])
+        expected = sorted(str(scope / name / '.git')
+                          for name in (*markers, 'no-head', 'symlink', 'special'))
+        self.assertEqual([entry['path'] for entry in saved['rejected_markers']], expected)
+        self.assertTrue(all(entry['reason'] for entry in saved['rejected_markers']))
+
+    def test_discover_root_errors_are_incomplete_and_keep_candidates(self):
+        missing = self.root / 'missing'
+        file_root = self.repo / 'clean'
+        saved = json.loads(self.invoke('discover', missing, file_root, self.repo, status=1).stdout)
+        self.assertEqual(saved['status'], 'incomplete')
+        self.assertEqual(saved['roots'], [str(self.repo)])
+        self.assertEqual(saved['candidates'], [{'path': str(self.repo), 'marker': 'directory'}])
+        self.assertEqual([entry['path'] for entry in saved['errors']], sorted(map(str, (missing, file_root))))
+
+    def test_discover_traversal_and_marker_read_errors_are_reported(self):
+        blocked = self.root / 'blocked'
+        blocked.mkdir()
+        unreadable = self.root / 'unreadable'
+        unreadable.mkdir()
+        (unreadable / '.git').write_text('gitdir: absent\n')
+        namespace = runpy.run_path(str(SCRIPT))
+        scan = namespace['discover']
+        original_scandir, original_open = os.scandir, Path.open
+        def scandir(path):
+            if Path(path) == blocked:
+                raise PermissionError('fixture traversal denied')
+            return original_scandir(path)
+        def open_file(path, *args, **kwargs):
+            if path == unreadable / '.git':
+                raise PermissionError('fixture marker read denied')
+            return original_open(path, *args, **kwargs)
+        before = self.tree()
+        with patch('os.scandir', side_effect=scandir), patch.object(Path, 'open', open_file), \
+                patch('subprocess.run', side_effect=AssertionError('discovery must not execute commands')):
+            saved = scan([str(self.root)])
+        self.assertEqual(self.tree(), before)
+        self.assertEqual(saved['candidates'], [{'path': str(self.repo), 'marker': 'directory'}])
+        self.assertEqual(saved['rejected_markers'], [])
+        self.assertEqual(saved['errors'], [
+            {'path': str(blocked), 'reason': 'fixture traversal denied'},
+            {'path': str(unreadable / '.git'), 'reason': 'fixture marker read denied'},
+        ])
 
     def test_snapshot_roundtrip_and_deduplication(self):
         alias = self.root / 'alias'
@@ -244,11 +352,14 @@ class CheckoutStateTests(unittest.TestCase):
         saved = self.take()
         saved['checkouts'].append(saved['checkouts'][0])
         self.assertIn('duplicate', self.compare(saved, status=1)['errors'][0]['reason'])
-        for args in ([], ['snapshot'], ['compare'], ['compare', '--file', '-', 'extra']):
+        for args in ([], ['discover'], ['snapshot'], ['compare'], ['compare', '--file', '-', 'extra']):
             result = self.invoke(*args, status=2)
             self.assertEqual(result.stdout, '')
             self.assertIn('usage:', result.stderr)
         self.assertIn('Ignored files', self.invoke('--help').stdout)
+        help_text = self.invoke('discover', '--help').stdout
+        for text in ('Filesystem-only', 'symlinks', 'nested checkouts', 'rejected_markers', 'incomplete'):
+            self.assertIn(text, help_text)
 
     def test_index_change_during_inspection_is_incomplete(self):
         namespace = runpy.run_path(str(SCRIPT))

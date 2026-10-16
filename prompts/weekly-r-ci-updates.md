@@ -89,8 +89,10 @@ temporary resources created by this run.
 
 ## Discover the batch
 
-- Discover local Git repositories beneath `checkout_roots`, resolve their
-  GitHub identities from remotes, and deduplicate by host and `owner/name`.
+- Use `checkout-state.py discover ROOT...` from the installed helper above for
+  filesystem candidates beneath `checkout_roots`; inspect rejected markers and
+  report incomplete inventories. Resolve candidates' GitHub identities from
+  remotes and deduplicate by host and `owner/name`.
   Maintain only repositories on `github_host` whose owners appear in
   `repository_owners`.
 - Include repositories without local checkouts by discovering repositories for
