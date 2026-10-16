@@ -238,6 +238,19 @@ skips the broader learning-process review.
 The repository prompt examines the public skill corpus itself. Its audit is
 report-only unless the invoking task separately authorizes source changes.
 
+For a focused question about how the learning machinery affects ordinary work,
+or to explore another machine's local evidence, use:
+
+> Use `prompts/learning-process-investigation.md` to investigate the learning
+> process using this machine's evidence. Report findings before making changes.
+
+This prompt and `$learning-process-review` provide direct and supervised routes
+to the same focused investigation. Use it for a concrete unresolved question or
+within an existing process review when deeper downstream tracing would help;
+it adds no cadence and does not complete the broader review or public artifact
+audit. The broader skill retains responsibility for authorized drains and
+review follow-up.
+
 Run the first process review after 10 papercuts or 14 calendar days after
 enabling capture. Thereafter use the next trigger recorded by the previous
 review; absent one, the default is five new papercuts or 14 calendar days after

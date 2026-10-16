@@ -38,6 +38,14 @@ due-cadence report and keep private state out of its findings.
 
 ## Private Learning-State Review
 
+For a focused question about process effects on ordinary work, or an exploratory
+investigation of a machine's downstream evidence, follow
+[`prompts/learning-process-investigation.md`](../../prompts/learning-process-investigation.md).
+This is a report-only route unless the invoking request authorizes follow-up;
+it does not complete a full review or reset cadence. A broader review may use
+the same prompt for deeper downstream inquiry and fold findings into its
+existing report without adding another pass.
+
 For papercut closure, candidate or verification health, drain decisions, or a
 broader process retrospective, read
 [private-learning-state-review.md](references/private-learning-state-review.md).
