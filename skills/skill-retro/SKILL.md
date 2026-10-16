@@ -66,10 +66,14 @@ for a read-only pull query:
 Read selected records with `show --id ID` through the same helper.
 
 For the same materially involved destinations, also use a bounded
-`accepted-records --destination TEXT` query to find active supported outcomes
-whose recorded support leaves a relevant stronger claim unresolved. Read
-selected records and their applied verification proposals; `supported` covers
-the evidenced claim, not every expected benefit. Route further support only
+`accepted-records --destination TEXT` query. Select a small set of active
+supported outcomes whose listed expected behavior bears on actual task decisions
+or evidence; if none is plausibly relevant, stop. Read each selected record with
+`show --id ID`, then use the same command for any proposals named in
+`applied_verification_proposal_ids` to establish the supported claim and remaining
+opportunity before judging task evidence. Query rows alone do not establish those
+limits; `supported` covers the evidenced claim, not every expected benefit.
+Route further support only
 when evidence matches the recorded opportunity and materially adds to existing
 support, using the same accepted identity and a concrete `supplemental_reason`.
 Another conforming task or a different claim label alone is insufficient.
