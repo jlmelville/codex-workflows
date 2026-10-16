@@ -46,23 +46,27 @@ def checkout_marker(marker):
 
 def discover(paths):
     result = {'roots': [], 'candidates': [], 'rejected_markers': [], 'errors': []}
-    roots = set()
+    roots = {}
     for raw in sorted(set(paths)):
         try:
             root = Path(raw).expanduser().resolve(strict=True)
-            if not root.is_dir():
+            info = root.stat()
+            if not stat.S_ISDIR(info.st_mode):
                 raise ValueError('expected a directory root')
-            roots.add(str(root))
+            identity = (info.st_dev, info.st_ino)
+            roots[identity] = min(str(root), roots.get(identity, str(root)))
         except (OSError, ValueError, RuntimeError) as error:
             result['errors'].append({'path': raw, 'reason': str(error)})
-    result['roots'] = sorted(roots)
+    result['roots'] = sorted(roots.values())
     pending, visited = list(reversed(result['roots'])), set()
     while pending:
         directory = pending.pop()
-        if directory in visited:
-            continue
-        visited.add(directory)
         try:
+            info = os.stat(directory)
+            identity = (info.st_dev, info.st_ino)
+            if identity in visited:
+                continue
+            visited.add(identity)
             with os.scandir(directory) as stream:
                 entries = sorted(stream, key=lambda entry: entry.name)
             for entry in entries:
@@ -251,7 +255,8 @@ def main():
     scan = commands.add_parser('discover', help='find checkout candidates beneath explicit roots, without Git',
                                description=(
         'Filesystem-only recursive scan. Explicit roots resolve symlinks; descendant symlinks '
-        'are skipped. Include nested checkouts; prune .git directories. Candidates require a '
+        'are skipped. Deduplicate directories by device/inode. Include nested checkouts; '
+        'prune .git directories. Candidates require a '
         '.git directory or gitfile (up to 64 KiB) pointing to a directory with a regular HEAD file. '
         'Gitfile targets may lie outside roots. No Git validity, remote or package checks. '
         'JSON lists canonical roots, sorted/deduplicated candidates (path, marker), '

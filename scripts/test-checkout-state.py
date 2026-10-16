@@ -113,6 +113,35 @@ class CheckoutStateTests(unittest.TestCase):
         found = json.loads(self.invoke('discover', alias).stdout)
         self.assertEqual(found['candidates'], [{'path': str(self.repo), 'marker': 'directory'}])
 
+    def test_discover_deduplicates_filesystem_identity_despite_distinct_resolved_paths(self):
+        alias = self.root / 'alias'
+        alias.symlink_to(self.repo, target_is_directory=True)
+        rejected = self.repo / 'rejected'
+        rejected.mkdir()
+        (rejected / '.git').write_text('cache marker\n')
+        scan = runpy.run_path(str(SCRIPT))['discover']
+        original_resolve = Path.resolve
+        def resolve(path, *args, **kwargs):
+            # Model case-only aliases that survive resolve on a case-insensitive filesystem.
+            # The symlink supplies a shared device/inode on Linux too.
+            return path if path == alias else original_resolve(path, *args, **kwargs)
+        before = self.tree()
+        with patch.object(Path, 'resolve', resolve):
+            direct = scan([str(self.repo), str(alias)])
+            self.assertEqual(direct, scan([str(alias), str(self.repo)]))
+            overlap = scan([str(self.repo), str(alias), str(self.root)])
+            self.assertEqual(overlap, scan([str(self.root), str(alias), str(self.repo)]))
+        self.assertEqual(self.tree(), before)
+        self.assertEqual(direct['roots'], [str(alias)])
+        self.assertEqual(overlap['roots'], [str(self.root), str(alias)])
+        for saved, representative in ((direct, alias), (overlap, self.repo)):
+            self.assertEqual(saved['candidates'], [{'path': str(representative), 'marker': 'directory'}])
+            self.assertEqual(saved['rejected_markers'], [{
+                'path': str(representative / 'rejected/.git'),
+                'reason': 'expected gitdir: path in gitfile',
+            }])
+            self.assertEqual(saved['errors'], [])
+
     def test_discover_relative_gitfile_and_rejected_markers(self):
         scope = self.root / 'scope'
         scope.mkdir()
@@ -357,7 +386,7 @@ class CheckoutStateTests(unittest.TestCase):
             self.assertEqual(result.stdout, '')
             self.assertIn('usage:', result.stderr)
         self.assertIn('Ignored files', self.invoke('--help').stdout)
-        help_text = self.invoke('discover', '--help').stdout
+        help_text = ' '.join(self.invoke('discover', '--help').stdout.split())
         for text in ('Filesystem-only', 'symlinks', 'nested checkouts', 'rejected_markers', 'incomplete'):
             self.assertIn(text, help_text)
 
