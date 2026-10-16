@@ -28,8 +28,11 @@ work itself.
    sketch a representative task from the consumer's side before settling the interface. Include the
    operation that exposes a consequential ownership, sequencing, or lifecycle decision. Use the sketch
    to challenge unnecessary caller knowledge and machinery while preserving accepted constraints.
-4. Hold the owner's objective, constraints, and non-goals fixed during review while allowing the
-   chosen approach to be challenged. Assess discoveries against that accepted contract, including
+4. Hold the owner's objective, constraints, and non-goals fixed. Frame work items as required
+   outcomes or uncertainties to resolve; choose or revise methods by their expected contribution
+   to that contract and total cost, including reconstruction, maintenance, and owner attention.
+   A method's presence in a plan alone does not make it an accepted constraint.
+   Assess discoveries against that accepted contract, including
    behavior to preserve and applicable, named safety and authority boundaries. Add a plan item only
    when omitting it would leave an obligation unmet or required evidence missing. Usefulness, a
    reviewer's suggestion, or possible future value alone does not justify it. For consequential
