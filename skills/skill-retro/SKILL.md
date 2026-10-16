@@ -65,6 +65,15 @@ for a read-only pull query:
 
 Read selected records with `show --id ID` through the same helper.
 
+For the same materially involved destinations, also use a bounded
+`accepted-records --destination TEXT` query to find active supported outcomes
+whose recorded support leaves a relevant stronger claim unresolved. Read
+selected records and their applied verification proposals; `supported` covers
+the evidenced claim, not every expected benefit. Route further support only
+when evidence matches the recorded opportunity and materially adds to existing
+support, using the same accepted identity and a concrete `supplemental_reason`.
+Another conforming task or a different claim label alone is insufficient.
+
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query through the same helper to find the
 applicable identity, including a supported record, and read its recorded
