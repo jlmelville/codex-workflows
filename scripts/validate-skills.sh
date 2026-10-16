@@ -41,6 +41,23 @@ run_check() {
   return "${check_status}"
 }
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required to validate bundled scripts" >&2
+  exit 1
+fi
+if ! run_check python3 - "${repo_dir}/skills/r-performance-workflow/scripts/subprocess-evidence.py" <<'PY'
+import runpy
+import sys
+
+try:
+    runpy.run_path(sys.argv[1])["check_process_inspection"]()
+except ValueError as error:
+    sys.exit(str(error))
+PY
+then
+  exit 1
+fi
+
 ruby_policy_checker="${repo_dir}/scripts/check-ruby-runtime.sh"
 if [[ ! -x "${ruby_policy_checker}" ]]; then
   echo "${ruby_policy_checker}: missing or not executable" >&2

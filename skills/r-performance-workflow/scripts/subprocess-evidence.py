@@ -183,7 +183,31 @@ def observe(args):
     return (128 - code if code < 0 else code) if code is not None else 1
 
 
+def process_state(pid):
+    result = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)],
+                            capture_output=True, text=True, timeout=5)
+    state = result.stdout.strip()
+    # Both Linux and macOS ps return 1 without a diagnostic when no PID matches.
+    if result.returncode == 1 and not state and not result.stderr.strip():
+        return ""
+    if result.returncode != 0 or not state:
+        diagnostic = result.stderr.strip() or "no process state returned"
+        raise ValueError(f"ps failed (status {result.returncode}): {diagnostic}")
+    return state
+
+
+def check_process_inspection():
+    try:
+        if not process_state(os.getpid()):
+            raise ValueError("ps did not report the current process")
+    except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+        raise ValueError("Lifecycle validation requires process inspection via ps. "
+                         "Rerun with authorized process-inspection access outside the restricted "
+                         f"sandbox if needed. Detail: {error}") from error
+
+
 def self_test():
+    check_process_inspection()
     script = str(Path(__file__).resolve())
     with tempfile.TemporaryDirectory(prefix="subprocess-evidence-test.") as temporary:
         root = Path(temporary).resolve()
@@ -254,8 +278,7 @@ def self_test():
                 # An adopted zombie may await the host's reaper, but it cannot continue work.
                 deadline = time.monotonic() + 5
                 while time.monotonic() < deadline:
-                    state = subprocess.run(["ps", "-o", "stat=", "-p", str(worker_pid)],
-                                           capture_output=True, text=True).stdout.strip()
+                    state = process_state(worker_pid)
                     if not state or state.startswith("Z"):
                         break
                     time.sleep(0.05)

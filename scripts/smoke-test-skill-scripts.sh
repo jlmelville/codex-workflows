@@ -198,6 +198,7 @@ RS
 
 run_evidence_helper_smoke() {
   require_command python3
+  python3 "${repo_dir}/scripts/test-subprocess-evidence.py"
   python3 "${repo_dir}/skills/r-performance-workflow/scripts/subprocess-evidence.py" --help >/dev/null
   python3 "${repo_dir}/skills/r-performance-workflow/scripts/subprocess-evidence.py" --self-test >/dev/null
   python3 "${repo_dir}/skills/r-docs-pkgdown/scripts/render-rmd-review.py" --help >/dev/null
