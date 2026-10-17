@@ -12,6 +12,10 @@ for observations that meet their admission rules. Noticing or proposing an
 improvement does not require a record or a new rule, and need not add a separate
 review pass.
 
+Reuse guidance already in the current context. Load additional references only when their conditions
+apply, in bounded sections that avoid truncation while retaining necessary context. Re-read when
+guidance changes or required content is no longer available.
+
 **Test the shared premise.** When successive fixes share an assumption but make
 no useful progress against the same constraint, test that assumption before
 extending the approach. Choose a small observation that distinguishes it from
