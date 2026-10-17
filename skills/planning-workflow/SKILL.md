@@ -37,9 +37,8 @@ work itself.
    when omitting it would leave an obligation unmet or required evidence missing. Usefulness, a
    reviewer's suggestion, or possible future value alone does not justify it. For consequential
    uncertainty within scope, own the investigation: identify the decision, choose methods and evidence,
-   and establish the necessary access and feedback. Use the smallest adequate check
-   that preserves the behavior in question, and stop when the evidence supports a decision. Seek
-   direction before materially expanding goals, behavior, acceptance criteria, or authority.
+   and establish the necessary access and feedback. Seek direction before materially expanding goals,
+   behavior, acceptance criteria, or authority.
    Before an existing safeguard requires replacing an approach or adding a parallel path, identify
    how it is enforced and where it applies. Strengthening it or widening its scope requires separate,
    proportionate evidence; the existing safeguard does not itself authorize either expansion.
@@ -76,7 +75,8 @@ artifact, observation, or owner decision that bears on that requirement. State
 what the result establishes and which consequential requirement remains unverified.
 When a plausible mistake could pass the proposed check, use
 [acceptance-evidence.md](references/acceptance-evidence.md) to construct a
-distinguishing fixture or observe the relevant boundary.
+distinguishing fixture or observe the relevant boundary. Stop checking once the evidence supports the
+decision.
 
 Invest early in verification tooling in proportion to consequential uncertainty
 about setup, control, or observation. Reuse existing tooling or add the smallest
