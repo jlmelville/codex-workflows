@@ -43,6 +43,28 @@ directly.
   refactor can preserve intermediate values too; numerical differences are not
   required to prove execution.
 
+## Persistence And Recovery
+
+Match recovery evidence to the promised boundary. Persisted progress, execution success, and domain
+success are separate claims.
+
+For resumable or checkpointed runners, cross outer process outcome, persisted completeness, and
+domain status so complete rows cannot mask a failed execution. Inventory every execution-determining
+input consumed after resume; mutate one representative per input class after serialization and
+require incompatible state to be rejected before workers start.
+
+When process-death recovery is promised, synchronize on a persisted completion marker, terminate
+the actual child before its owning operation returns, and restart the public workflow in a fresh
+process. Use execution markers to distinguish retained complete domain units from unfinished units
+that may repeat. When cleanup survival is promised, remove exactly the advertised disposable state
+and repeat the recovery check. Caught errors and successful serialization alone do not exercise
+abrupt death; retained progress does not imply exactly-once execution.
+
+These cases do not require resume checks for non-resumable operations with no persisted status or
+post-serialization execution inputs. Ordinary error-return or save/load contracts need evidence at
+those boundaries; they do not require process termination or cleanup deletion unless those recovery
+guarantees are promised.
+
 ## Doubles And Real Boundaries
 
 Install a double at the binding production code actually uses, and verify that

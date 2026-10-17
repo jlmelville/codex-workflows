@@ -83,6 +83,9 @@ When verification uncovers non-obvious operating knowledge worth reusing, or a
 change or observed drift affects an existing verification recipe, use
 `$agent-instructions-maintenance`.
 
+For resumable or checkpointed runners, or promised process-death or cleanup recovery, use the shared
+[persistence and recovery cases](../planning-workflow/references/acceptance-evidence.md#persistence-and-recovery).
+
 For Python CLIs that accept arbitrary numeric vectors, or for cross-language
 objective, gradient, Hessian, or autograd comparisons, read
 [numerical-validation.md](references/numerical-validation.md).

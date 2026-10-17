@@ -68,9 +68,9 @@ when replacement coverage is uncertain.
 ## Refactor Safety Nets
 
 When a fixture could let a plausible mistake pass, use the shared
-[acceptance-evidence cases](../planning-workflow/references/acceptance-evidence.md)
-for stale-first selection, unequal identifiers, nonempty preservation baselines,
-effect boundaries, and doubles paired with real adapters.
+[acceptance-evidence cases](../planning-workflow/references/acceptance-evidence.md).
+For resumable or checkpointed runners, or promised process-death or cleanup recovery, use its
+[persistence and recovery cases](../planning-workflow/references/acceptance-evidence.md#persistence-and-recovery).
 
 Before refactoring state machines, hook dispatchers, staged pipelines, caches,
 or lifecycle controllers, add small synthetic contract tests before changing
