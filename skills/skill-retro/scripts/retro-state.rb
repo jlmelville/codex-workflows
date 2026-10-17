@@ -1966,7 +1966,7 @@ module RetroState
 
       destination_query = destination&.downcase
       text_query = text&.downcase
-      accepted_records.each_with_object([]) do |(path, data), rows|
+      accepted_records(include_body: true).each_with_object([]) do |(path, data, body), rows|
         recorded_destination = data.fetch("destination")
         next if destination_query && !recorded_destination.downcase.include?(destination_query)
 
@@ -1979,7 +1979,8 @@ module RetroState
           data.fetch("trigger"),
           data.fetch("non_trigger"),
           recorded_destination,
-          data.fetch("verification_opportunity")
+          data.fetch("verification_opportunity"),
+          body
         ].join("\n").downcase
         next if text_query && !searchable.include?(text_query)
 
@@ -2641,11 +2642,11 @@ module RetroState
       end
     end
 
-    def accepted_records
+    def accepted_records(include_body: false)
       Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort.map do |path|
         data, body = RetroState.read_document(path)
         RetroState.validate_accepted(data, body, label: path, assigned: true)
-        [path, data]
+        include_body ? [path, data, body] : [path, data]
       end
     end
 
@@ -4387,7 +4388,9 @@ module RetroState
         raise "conflicting candidate archive was overwritten or its inbox record was removed"
       end
 
-      accepted_text = accepted_template.sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
+      accepted_text = accepted_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
+        .sub("# Accepted candidate", "# Make plan-item admission counterfactual and contract-relative")
       File.write(accepted, accepted_text)
       accepted_path = store.record_accepted(accepted)
       raise "accepted record missing" unless File.file?(accepted_path)
@@ -4406,7 +4409,31 @@ module RetroState
       end
       text_rows = store.accepted_records_query(text: "SANITIZED SUMMARY")
       unless text_rows.map(&:first) == [accepted_id]
-        raise "accepted record was not discoverable by semantic text"
+        raise "accepted record was not discoverable by metadata text"
+      end
+      lookup_snapshot = store.snapshot
+      ["PLAN-ITEM ADMISSION", "counterfactual", "CURATED EVIDENCE"].each do |query|
+        unless store.accepted_records_query(text: query) == destination_rows
+          raise "accepted record heading or body was not discoverable: #{query}"
+        end
+      end
+      unless store.accepted_records_query(destination: "unrelated destination", text: "counterfactual").empty?
+        raise "body lookup ignored the destination filter"
+      end
+      unless store.accepted_records_query(text: "unrelated heading phrase").empty?
+        raise "body lookup returned an unrelated accepted record"
+      end
+      raise "accepted-record lookup changed state" unless store.snapshot == lookup_snapshot
+
+      accepted_bytes = File.binread(accepted_path)
+      File.write(accepted_path, accepted_bytes + "\nauth.json\n")
+      begin
+        store.accepted_records_query(text: "counterfactual")
+        raise "body lookup bypassed accepted-record privacy validation"
+      rescue Error => e
+        raise unless e.message.include?("forbidden Codex auth file")
+      ensure
+        File.binwrite(accepted_path, accepted_bytes)
       end
       begin
         store.accepted_records_query
@@ -4598,7 +4625,7 @@ module RetroState
       supported_rows = store.accepted_records_query(text: "sanitized summary")
       unless supported_rows.map(&:first) == [accepted_id] &&
           supported_rows.first.fetch(2) == "supported"
-        raise "supported accepted record was not discoverable by semantic text"
+        raise "supported accepted record was not discoverable by metadata text"
       end
       supported_destination_rows = store.accepted_records_query(destination: "public source")
       unless supported_destination_rows.map(&:first) == [accepted_id] &&
@@ -5261,7 +5288,7 @@ def usage(command = nil)
                                         Replace a curated record; preserve identity, acceptance
                                         date, and prior implementation commits
       accepted-records [--destination TEXT] [--text TEXT]
-                                        Find accepted identities across all states
+                                        Match case-insensitive substrings in destinations or metadata/body
       verification-opportunities [--destination TEXT]
                                         List unverified outcomes; final column is pending support IDs:claims
       record-draft --file PATH          Store an uninstalled draft

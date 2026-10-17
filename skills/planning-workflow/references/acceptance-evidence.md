@@ -1,6 +1,7 @@
 # Distinguishing Acceptance Evidence
 
-Use these cases when a proposed check could succeed despite a plausible mistake.
+Use these cases with the [acceptance guidance](../SKILL.md#proportionality-and-acceptance)
+when a proposed check could succeed despite a plausible mistake.
 Choose a fixture that distinguishes the intended behavior from that mistake.
 When the distinction is non-obvious, demonstrate that the test fails for the
 mistake it guards against; attribute the failure to the assertion, not broken

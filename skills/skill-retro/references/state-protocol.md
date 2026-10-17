@@ -229,7 +229,9 @@ candidate independently. Verdicts are `accept`, `defer`, `reject`, `split`,
 implementation batch before editing source.
 
 Query `accepted-records` before a possible repeat or destination-repair verdict.
-It searches all dispositions and states by destination or semantic text, unlike the unverified-only evidence queue.
+It searches all dispositions and states by case-insensitive literal substring:
+`--destination` matches destinations; `--text` matches selected metadata and the Markdown body,
+including headings. The evidence queue includes only unverified outcomes.
 
 Use `prepare-decision --id ID --verdict VERDICT`, complete the draft, then use `process` to
 attach the decision and move the record from inbox to archive. The intake

@@ -1,7 +1,7 @@
 # Sentence-Admission Cases
 
-Use these cases to resolve content-selection boundaries, not as wording
-templates.
+Use these cases with the [sentence-admission guidance](../SKILL.md#admit-sentences-by-reader-value)
+to resolve content-selection boundaries, not as wording templates.
 
 ## Unsupported Contrast
 
