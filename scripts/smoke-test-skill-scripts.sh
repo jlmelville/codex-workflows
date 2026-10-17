@@ -703,7 +703,7 @@ EOF_COMMAND
   grep -Fq 'air format . --check' "${log}"
   grep -Fq 'lintr::lint_package()' "${log}"
   grep -Fq \
-    'Rscript -e devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")' \
+    'Rscript -e check <- devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")' \
     "${log}"
 
   mv "${fake_bin}/air" "${fake_bin}/air.saved"
@@ -1475,6 +1475,7 @@ run_ci_tool_parity_smoke
 run_retro_state_smoke
 run_patch_identity_smoke
 python3 "${repo_dir}/scripts/test-patch-identity.py"
+python3 "${repo_dir}/scripts/test-r-package-check.py"
 python3 "${repo_dir}/scripts/test-session-sample.py"
 python3 "${repo_dir}/scripts/test-session-messages.py"
 

@@ -10,7 +10,7 @@ import unittest
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'skills/planning-workflow/scripts/patch-identity.rb'
-DIFF_OPTIONS = ['--binary', '--no-ext-diff', '--full-index', '--no-color',
+DIFF_OPTIONS = ['--binary', '--no-ext-diff', '--no-textconv', '--full-index', '--no-color',
                 '--src-prefix=a/', '--dst-prefix=b/']
 
 
@@ -120,6 +120,38 @@ class PatchIdentityTests(unittest.TestCase):
         self.assertNotEqual(deleted, original)
         self.write('R/renamed.R', 'modified\n')
         self.assertNotIn(self.digest(self.scopes), (original, deleted))
+
+    def test_textconv_cannot_hide_tracked_or_untracked_bytes(self):
+        self.write('.gitattributes', '*.bin diff=mask\n')
+        self.write('tests/tracked.bin', b'\x00baseline')
+        self.git('add', '.gitattributes', 'tests/tracked.bin')
+        self.git('-c', 'core.hooksPath=' + os.devnull, '-c', 'commit.gpgsign=false',
+                 'commit', '--quiet', '-m', 'textconv fixture')
+        self.git('config', 'diff.mask.textconv',
+                 "sh -c 'printf invoked >> .git/textconv-marker; printf masked'")
+        self.write('tests/tracked.bin', b'\x00first')
+        self.write('tests/new.bin', b'\x00first')
+
+        # Prove that the converter hides this change before testing the helper.
+        self.assertEqual(self.git('diff', '--no-ext-diff', '--', 'tests/tracked.bin'), b'')
+        marker = self.root / '.git/textconv-marker'
+        self.assertTrue(marker.exists())
+        marker.unlink()
+        modes = {'whole': self.whole + ['--include-untracked', 'tests/new.bin'],
+                 'scoped': self.scopes}
+        for mode, args in modes.items():
+            with self.subTest(mode=mode):
+                original = self.digest(args)
+                self.assertEqual(self.digest(args), original)
+                for path in ('tests/tracked.bin', 'tests/new.bin'):
+                    with self.subTest(path=path):
+                        self.write(path, b'\x00second')
+                        self.assertNotEqual(self.digest(args), original)
+                        self.write(path, b'\x00first')
+                        self.assertEqual(self.digest(args), original)
+                self.write('scratch/note-0.txt', 'changed excluded content\n')
+                self.assertEqual(self.digest(args), original)
+                self.assertFalse(marker.exists(), 'helper invoked a text converter')
 
     def test_ignored_files_need_explicit_decisions(self):
         original = self.digest(self.scopes)

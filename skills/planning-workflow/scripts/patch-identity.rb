@@ -126,7 +126,7 @@ module PatchIdentity
 
       tracked_paths = capture("git", "diff", "--name-only", "--no-ext-diff", "-z", "--", *pathspecs).split("\0")
       tracked_patch = capture(
-        "git", "diff", "--binary", "--no-ext-diff", "--full-index", "--no-color",
+        "git", "diff", "--binary", "--no-ext-diff", "--no-textconv", "--full-index", "--no-color",
         "--src-prefix=a/", "--dst-prefix=b/", "--", *pathspecs
       )
       digest = Digest::SHA256.new
@@ -144,7 +144,7 @@ module PatchIdentity
 
       included.sort.each do |path|
         patch = capture(
-          "git", "diff", "--no-index", "--binary", "--no-ext-diff", "--full-index", "--no-color",
+          "git", "diff", "--no-index", "--binary", "--no-ext-diff", "--no-textconv", "--full-index", "--no-color",
           "--src-prefix=a/", "--dst-prefix=b/", "--", File::NULL, path,
           accepted: [0, 1]
         )

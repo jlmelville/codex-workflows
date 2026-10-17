@@ -72,7 +72,8 @@ fi
 air format . --check
 
 Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'
-Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")'
+# shellcheck disable=SC2016  # R evaluates the check result's status field.
+Rscript -e 'check <- devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note"); if (!isTRUE(check$status == 0L)) stop("R CMD check did not complete successfully", call. = FALSE)'
 
 if [[ "${mode}" == "full" ]]; then
   exit 0
