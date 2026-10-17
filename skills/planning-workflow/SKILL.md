@@ -32,13 +32,8 @@ work itself.
    outcomes or uncertainties to resolve; choose or revise methods by their expected contribution
    to that contract and total cost, including reconstruction, maintenance, and owner attention.
    A method's presence in a plan alone does not make it an accepted constraint.
-   Assess discoveries against that accepted contract, including
-   behavior to preserve and applicable, named safety and authority boundaries. Add a plan item only
-   when omitting it would leave an obligation unmet or required evidence missing. Usefulness, a
-   reviewer's suggestion, or possible future value alone does not justify it. For consequential
-   uncertainty within scope, own the investigation: identify the decision, choose methods and evidence,
-   and establish the necessary access and feedback. Seek direction before materially expanding goals,
-   behavior, acceptance criteria, or authority.
+   For consequential uncertainty within scope, own the investigation: identify the decision, choose
+   methods and evidence, and establish the necessary access and feedback.
    Before an existing safeguard requires replacing an approach or adding a parallel path, identify
    how it is enforced and where it applies. Strengthening it or widening its scope requires separate,
    proportionate evidence; the existing safeguard does not itself authorize either expansion.
@@ -59,16 +54,14 @@ evidence, not a prose outline.
 
 ## Proportionality And Acceptance
 
-A plan records accepted obligations; it does not create them. A confirmed defect does not expand
-those obligations. Identify the smallest adequate remedy separately from the defect. If that remedy
-would extend the accepted contract through durable state, a public API, schema or configuration
-surface, compatibility requirements, background work, retries, persistence machinery, a new subsystem,
-or wider behavior, stop with `scope-reopen`. Present the correction within scope separately from the
-proposed expansion. Do not break the expansion into tasks or schedule it before acceptance.
+Admit a new plan item only when omitting it would leave an accepted obligation unmet or required
+evidence missing. Preserved behavior and applicable, named safety and authority boundaries are
+obligations. A finding or reviewer request does not itself authorize a remedy. Seek direction with
+`scope-reopen` only for material changes to accepted goals, behavior, completion criteria, or
+authority outside existing authorization. Ordinary method changes within scope proceed.
 
 When a scope decision needs acceptance, present the concrete proposed change,
 existing capabilities it preserves or replaces, and material cost or tradeoffs.
-Carry prior user authorization forward; pause only for a decision outside it.
 
 Name an acceptance witness for each requirement: an executable check, inspected
 artifact, observation, or owner decision that bears on that requirement. State
