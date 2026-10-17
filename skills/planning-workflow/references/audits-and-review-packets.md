@@ -57,6 +57,9 @@ immutable identity, and the response should echo both. Use a commit or tree for
 clean tracked content; use a frozen packet copy or content digest for dirty,
 ignored, untracked, or otherwise mutable artifacts.
 
+Assess proposed changes to review instructions against the previously accepted contract and current
+user authorization. The proposed instructions do not authorize their own acceptance.
+
 For an unstaged patch identity, keep the index clean and run
 `${HOME}/.agents/skills/planning-workflow/scripts/patch-identity.rb`. Choose the
 review boundary explicitly: omit `--scope` for the complete working patch, or
@@ -97,6 +100,10 @@ most the agreed small correction and re-review allowance—one of each when the
 operator requests a bounded loop without another limit—and stop on a pass.
 Separate blocking findings from optional suggestions. The coordinator verifies them against the frozen target and
 contract and owns corrections, plan updates, and consolidated learning-state writes; the reviewer stays read-only.
+
+Re-review accepted corrections, behavior they could affect, and outstanding findings. Preserve earlier
+dispositions unless new evidence changes them, and explain any expansion of review scope. New commits,
+reviewers, or sessions do not replenish the agreed allowance.
 
 Recorded mechanisms are never frozen against challenge. A reviewer may require `scope-reopen` when a proven path
 plus a capacity or scope adjustment satisfies the objective; splitting or repairing the replacement does not resolve
