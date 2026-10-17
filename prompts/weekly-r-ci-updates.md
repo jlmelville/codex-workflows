@@ -6,6 +6,11 @@ entry point. Require `github_host`, `github_account`, `repository_owners`,
 settings before starting. Repository owners and merge authority must be
 explicit; do not infer them from the authenticated account.
 
+Optional `repositories` is a nonempty list of exact `owner/name` identities on
+`github_host`; each owner must appear in `repository_owners`. Ask for correction
+before discovery if the list is empty, malformed, or outside those owners.
+Omitting this setting retains owner-wide discovery.
+
 Find qualifying GitHub Actions dependency updates in R package repositories
 within that scope. Review mode validates and reports without changing GitHub
 state. Merge mode also performs the authorized updates and merges below. Leave
@@ -94,12 +99,14 @@ temporary resources created by this run.
   report incomplete inventories. Resolve candidates' GitHub identities from
   remotes and deduplicate by host and `owner/name`.
   Maintain only repositories on `github_host` whose owners appear in
-  `repository_owners`.
-- Include repositories without local checkouts by discovering repositories for
-  every configured owner on GitHub. Skip archived repositories. Confirm R
-  package identity using the root `DESCRIPTION` on the current remote default
-  branch; GitHub's primary-language label can miss packages with substantial
-  C++ code.
+  `repository_owners` and, when supplied, whose identities appear in
+  `repositories`.
+- Include repositories without local checkouts. When `repositories` is
+  supplied, query each listed repository directly instead of listing all
+  repositories for its owner. Otherwise discover repositories for every
+  configured owner on GitHub. Skip archived repositories. Confirm R package
+  identity using the root `DESCRIPTION` on the current remote default branch;
+  GitHub's primary-language label can miss packages with substantial C++ code.
 - Paginate repository and open-PR listings. Serialize GitHub listing/search
   requests and follow the skill's rate-limit and network retry guidance. Record
   discovery failures instead of treating them as empty results.
@@ -132,8 +139,10 @@ required by the batch skill and report any post-merge failure explicitly.
 ## Report
 
 Summarize discovery coverage, including repositories with no eligible updates
-and any gaps. Give a compact table of PR links, dependency changes, outcome,
-validation results, and merge commit or concrete blocker. In review mode,
+and any gaps. When `repositories` is supplied, account for every listed
+repository, including access failures and exclusions. Give a compact table of
+PR links, dependency changes, outcome, validation results, and merge commit or
+concrete blocker. In review mode,
 identify candidates ready to merge without claiming they were merged.
 Distinguish merged, blocked, pending, and out-of-scope items. Confirm local
 checkouts were preserved and identify follow-up work.

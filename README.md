@@ -198,6 +198,11 @@ organizations. Review mode validates and reports without changing GitHub state.
 Set `mode: merge` to authorize the scoped branch updates, CI reruns, fixes, and
 merges described in the prompt.
 
+Optionally add `repositories: [OWNER/REPOSITORY, OWNER/ANOTHER_REPOSITORY]` to
+limit maintenance to those exact GitHub repositories, including ones without
+local checkouts. Each owner must appear in `repository_owners`; an empty or
+invalid list requires correction. Omit `repositories` for owner-wide discovery.
+
 For repeated use, keep a small local entry-point file containing the invocation
 and your settings. Reference the shared prompt by its absolute path when
 running outside this repository, and start the maintenance chat in your checkout
