@@ -21,13 +21,14 @@ the existing accepted identity and archives provenance; rejection archives
 without changing accepted state.
 Verification processing does not advance candidate artifact-audit cadence.
 
-Drain contradictions by correcting source and marking the old outcome
-`superseded`, removing guidance and marking it `reverted`, or creating an
-explicit residual ledger with owner, trigger, next action, and close condition.
-Preserve contradictory evidence and the accepted identity. A new identity is
-justified only when a corrected decision is itself accepted; use the
-[candidate route](candidate-judgment.md) for that change. Before creating a
-residual ledger, read the protocol's
+Resolve contradictions by correcting source and marking the old outcome `superseded`, removing
+guidance and marking it `reverted`, or recording a justified retention under the protocol. Retain
+guidance when the observed failure does not warrant changing it and no further action remains;
+preserve `verification: contradicted`, valid positive evidence, and the accepted identity. For work
+that remains, create a residual ledger with owner, trigger, next action, and close condition.
+A new identity is justified only when a corrected decision is itself accepted; use the
+[candidate route](candidate-judgment.md) for that change. Before creating a residual ledger, read
+the protocol's
 [Drafts, Ledgers, And Cleanup](../../skill-retro/references/state-protocol.md#drafts-ledgers-and-cleanup).
 When the current task authorizes verification processing alone, report source
 or residual-action proposals that still need authority. Finish authorized state

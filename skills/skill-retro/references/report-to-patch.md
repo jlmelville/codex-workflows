@@ -99,8 +99,8 @@ For a correction, keep recurrence and replacement separate. Update the existing
 accepted identity with preserved contradiction evidence. Create a new accepted
 identity only when the correction candidate changes the decision; let
 `record-accepted` derive its `supersedes_accepted_ids` from the archived
-candidate. Do not close a residual contradiction ledger until the old accepted
-record is marked `superseded` or `reverted`.
+candidate. Close a residual contradiction ledger only after the old accepted record is `superseded`,
+`reverted`, or explicitly retained under the state protocol; preserve its contradiction evidence.
 
 For implementation drift under a still-valid decision, update the existing
 accepted record after publication with the repaired destination and commit.

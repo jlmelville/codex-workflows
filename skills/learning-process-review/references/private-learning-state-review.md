@@ -81,7 +81,7 @@ public audit may report risk, not unobserved behavioral incidents.
 Supervise whether triage adds incident-shaped rules without changing a decision,
 retrospectives find compressible clusters, accepted compression lands, casebooks
 become provenance dumps, and contradicted guidance reaches correction, removal,
-or an executable residual ledger.
+an explicit justified retention, or an executable residual ledger.
 
 Inspect the artifact-audit report and actions without repeating its item-level
 work. When `artifact-audit-status` is due, use the parent route under the

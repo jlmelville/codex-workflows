@@ -424,14 +424,29 @@ new or updated contradicted record must supply it. Once present, verification
 cannot move away from `contradicted`; its summary, false assertion, timestamp,
 and prior decisive evidence cannot be removed. Later evidence may be appended.
 
-Drain a contradiction by correcting source guidance and marking the old record
-`superseded`, removing the guidance and marking it `reverted`, or assigning an
-open residual ledger with an owner, trigger, next action, and close condition.
-Until one of those actions occurs, the contradicted accepted record is itself
-visible in `review-queue`; after assignment, only the executable residual
-ledger remains live. A residual ledger cannot close while its accepted record
-remains unresolved. Preserve `verification: contradicted` on the old identity
-after either terminal disposition.
+Resolve a contradiction by correcting guidance and marking the old record `superseded`, removing
+guidance and marking it `reverted`, or retaining still-valid guidance after reviewing the failure.
+For retention, use `prepare-accepted-update` and `update-accepted` to add:
+
+```yaml
+contradiction:
+  # Preserve the existing contradiction fields and evidence.
+  resolution:
+    outcome: retained
+    rationale: "Why the guidance remains appropriate despite the observed failure."
+    resolved_at: "YYYY-MM-DDTHH:MM:SSZ"
+```
+
+Retention requires an authorized judgment that no source change or further action is warranted. It
+does not establish successful application: preserve `verification: contradicted`, valid positive
+evidence, and proposal provenance. The timestamp cannot predate the contradiction. Material new
+evidence may reopen review by removing the resolution through `update-accepted`; preserve the
+contradiction itself.
+
+Until resolved, the record remains in `review-queue`. Assigning an open residual ledger with an
+owner, trigger, next action, and close condition transfers the live action to that ledger; it does
+not resolve it. A residual ledger cannot close until its accepted record is superseded, reverted, or
+explicitly retained. Preserve `verification: contradicted` after resolution.
 
 When archived correction candidates name earlier outcomes, `record-accepted`
 derives and preserves `supersedes_accepted_ids`.

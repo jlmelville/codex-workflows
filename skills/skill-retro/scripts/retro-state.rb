@@ -889,11 +889,32 @@ module RetroState
     unless contradiction["recorded_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
       raise Error, "#{label}: contradiction recorded_at must be a UTC timestamp"
     end
+    if contradiction.key?("resolution")
+      resolution = contradiction["resolution"]
+      unless resolution.is_a?(Hash)
+        raise Error, "#{label}: contradiction resolution must be a mapping"
+      end
+      require_fields(resolution, %w[outcome rationale resolved_at], "#{label} contradiction resolution")
+      unless resolution["outcome"] == "retained"
+        raise Error, "#{label}: contradiction resolution outcome must be retained"
+      end
+      unless resolution["resolved_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+        raise Error, "#{label}: contradiction resolution resolved_at must be a UTC timestamp"
+      end
+      if resolution["resolved_at"] < contradiction["recorded_at"]
+        raise Error, "#{label}: contradiction resolution must not predate the contradiction"
+      end
+    end
     residual_id = contradiction["residual_ledger_id"]
     return unless residual_id
     return if residual_id.match?(/\ALE-\d{8}-[a-f0-9]{6}\z/)
 
     raise Error, "#{label}: invalid contradiction residual_ledger_id"
+  end
+
+  def contradiction_resolved?(accepted)
+    TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"]) ||
+      accepted.dig("contradiction", "resolution", "outcome") == "retained"
   end
 
   def validate_accepted_transition(current, replacement, label)
@@ -2019,7 +2040,7 @@ module RetroState
 
         blocking_accepted_id = accepted_records.find do |_accepted_path, accepted|
           accepted.dig("contradiction", "residual_ledger_id") == ledger_id &&
-            !TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"])
+            !RetroState.contradiction_resolved?(accepted)
         end&.last&.fetch("accepted_id")
         if blocking_accepted_id
           raise Error,
@@ -2074,11 +2095,11 @@ module RetroState
 
       accepted_records.each do |path, data|
         next unless data["verification"] == "contradicted"
-        next if TERMINAL_CONTRADICTION_DISPOSITIONS.include?(data["disposition"])
+        next if RetroState.contradiction_resolved?(data)
         residual_id = data.dig("contradiction", "residual_ledger_id")
         next if residual_id && action_reference_open?(residual_id)
 
-        trigger = "Correct or remove contradicted guidance, or assign an executable residual ledger action."
+        trigger = "Review the contradiction: retain with rationale, correct or remove guidance, or assign a residual ledger."
         rows << ["contradiction", data.fetch("accepted_id"), trigger, path]
       end
 
@@ -2397,7 +2418,7 @@ module RetroState
         end
         ledger, ledger_body = RetroState.read_document(residual_path)
         RetroState.validate_ledger_entry(ledger, ledger_body, label: residual_path, assigned: true)
-        if !TERMINAL_CONTRADICTION_DISPOSITIONS.include?(data["disposition"]) && ledger["status"] != "open"
+        if !RetroState.contradiction_resolved?(data) && ledger["status"] != "open"
           errors << "#{path}: unresolved contradiction requires an open residual ledger: #{residual_id}"
         end
       rescue Error => e
@@ -2485,7 +2506,7 @@ module RetroState
       end
       ledger, ledger_body = RetroState.read_document(residual_path)
       RetroState.validate_ledger_entry(ledger, ledger_body, label: residual_path, assigned: true)
-      return if TERMINAL_CONTRADICTION_DISPOSITIONS.include?(accepted["disposition"])
+      return if RetroState.contradiction_resolved?(accepted)
       return if ledger["status"] == "open"
 
       raise Error, "unresolved contradiction requires an open residual ledger: #{residual_id}"
@@ -3175,6 +3196,49 @@ module RetroState
       File.write(input, replacement)
       store.update_accepted(accepted_id, input)
       raise "accepted update did not round-trip" unless read_document(accepted_path) == [original, original_body]
+
+      retained, retained_body = parse_document(replacement)
+      resolution = {
+        "outcome" => "retained",
+        "rationale" => "The failure limits the evidence claim; the existing guidance remains appropriate.",
+        "resolved_at" => retained.fetch("contradiction").fetch("recorded_at")
+      }
+      invalid_resolutions = [
+        ["retained", "resolution must be a mapping"],
+        [resolution.merge("outcome" => "ignored"), "outcome must be retained"],
+        [resolution.merge("rationale" => ""), "rationale must be a non-empty string"],
+        [resolution.merge("resolved_at" => "tomorrow"), "resolved_at must be a UTC timestamp"],
+        [resolution.merge("resolved_at" => "2000-01-01T00:00:00Z"), "must not predate"]
+      ]
+      before = store.snapshot
+      invalid_resolutions.each do |invalid, message|
+        retained["contradiction"]["resolution"] = invalid
+        File.write(input, render_document(retained, retained_body))
+        run.call(1, "update-accepted", "--id", accepted_id, "--file", input, error: message)
+        raise "invalid retention resolution wrote state" unless store.snapshot == before
+      end
+      retained["contradiction"]["resolution"] = resolution
+      File.write(input, render_document(retained, retained_body))
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", input)
+      resolved, resolved_body = read_document(accepted_path)
+      unless resolved.dig("contradiction", "resolution") == resolution
+        raise "retention resolution was not recorded"
+      end
+      resolved["contradiction"].delete("resolution")
+      unless [resolved, resolved_body] == [original, original_body]
+        raise "retention resolution changed prior evidence or provenance"
+      end
+      if store.review_queue.any? { |type, row_id, _trigger, _path| type == "contradiction" && row_id == accepted_id }
+        raise "retained contradiction remained in review queue"
+      end
+      resolved_snapshot = store.snapshot
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", input)
+      raise "retention resolution retry changed state" unless store.snapshot == resolved_snapshot
+      File.write(input, replacement)
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", input)
+      unless store.review_queue.any? { |type, row_id, _trigger, _path| type == "contradiction" && row_id == accepted_id }
+        raise "removing the resolution did not reopen contradiction review"
+      end
       legacy = without_keys(original, "contradiction")
       File.write(accepted_path, render_document(legacy, original_body))
       legacy_input, = parse_document(run.call(0, "prepare-accepted-update", "--id", accepted_id))
@@ -4882,6 +4946,45 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("unresolved contradicted record")
       end
+
+      File.write(ledger, ledger_template)
+      retained_ledger_path = store.record_ledger(ledger)
+      retained_ledger_id = File.basename(retained_ledger_path, ".md")
+      retained_ledger_data = contradicted_data.merge(
+        "contradiction" => contradicted_data.fetch("contradiction").merge(
+          "residual_ledger_id" => retained_ledger_id,
+          "resolution" => {
+            "outcome" => "retained",
+            "rationale" => "Review found that the existing guidance remains appropriate despite the failure.",
+            "resolved_at" => "2026-07-15T12:04:00Z"
+          }
+        )
+      )
+      File.write(accepted, render_document(retained_ledger_data, rejected_accepted_body))
+      store.update_accepted(accepted_id, accepted)
+      store.close_ledger(retained_ledger_id, rationale: "Guidance retained with the contradiction preserved.")
+      store.validate
+      unless read_document(retained_ledger_path).first.fetch("status") == "closed" &&
+          read_document(accepted_path).first.fetch("verification") == "contradicted"
+        raise "retained resolution did not close the residual action while preserving contradiction"
+      end
+      closed_residual_snapshot = store.snapshot
+      File.write(
+        accepted,
+        render_document(
+          retained_ledger_data.merge(
+            "contradiction" => without_keys(retained_ledger_data.fetch("contradiction"), "resolution")
+          ),
+          rejected_accepted_body
+        )
+      )
+      begin
+        store.update_accepted(accepted_id, accepted)
+        raise "reopened contradiction accepted a closed residual ledger"
+      rescue Error => e
+        raise unless e.message.include?("unresolved contradiction requires an open residual ledger")
+      end
+      raise "invalid residual reopening changed state" unless store.snapshot == closed_residual_snapshot
       superseded_text = render_document(
         ledger_contradicted_data.merge("disposition" => "superseded"),
         rejected_accepted_body
