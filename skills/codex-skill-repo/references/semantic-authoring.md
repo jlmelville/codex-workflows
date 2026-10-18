@@ -64,6 +64,13 @@ entry point use the same prompt, say that they are two routes to one mechanism,
 show the literal path relative to the repository root, and distinguish the
 skill's broader supervision or follow-up from the direct prompt's scope.
 
+When recurring prompts need stable personal inputs, keep repeat invocations short
+by reusing approved settings stored outside Git. Assist first-use setup using
+available evidence and ask only about unresolved choices. Reuse scope and action
+authority only when the user has approved them. Keep invocation overrides
+temporary unless the user asks to save them. Let each owning prompt specify its
+storage format and location, and save configuration rather than credentials.
+
 ## Bounded Forward-Testing
 
 For a complex or risky skill change, an occasional independent attempt at a
