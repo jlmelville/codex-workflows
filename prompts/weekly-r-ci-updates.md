@@ -1,10 +1,24 @@
 # R CI dependency maintenance
 
-Run this task now using the settings supplied by the invoking message or local
-entry point. Require `github_host`, `github_account`, `repository_owners`,
-`checkout_roots`, and `mode` (`review` or `merge`). Ask for missing or unresolved
-settings before starting. Repository owners and merge authority must be
-explicit; do not infer them from the authenticated account.
+Run this task now. Load saved settings from
+`${XDG_CONFIG_HOME:-$HOME/.config}/codex-workflows/weekly-r-ci-updates.yaml`
+when present, then apply overrides supplied by the invoking message or local
+entry point. Overrides apply only to this run unless the user asks to save them.
+
+Require `github_host`, `github_account`, `repository_owners`, `checkout_roots`,
+and `mode` (`review` or `merge`). On first use, inspect available CLI account
+metadata and user-supplied context, including any existing local entry point.
+Suggest settings from that evidence and ask one concise question covering only
+unresolved choices. Default to `review` when mode is unspecified. Repository
+owners and merge authority must come from user instructions or saved settings;
+do not infer them from the authenticated account. Confirm inferred owners and
+any proposed merge mode before using them.
+
+On first use, save the resolved settings as YAML at the path above, outside Git
+worktrees, so later invocations need no setup. Save configuration only, never
+credentials. If saving is blocked, report it and continue the authorized run
+with the resolved settings. An existing local entry point can remain as a
+shortcut to this shared prompt.
 
 Optional `repositories` is a nonempty list of exact `owner/name` identities on
 `github_host`; each owner must appear in `repository_owners`. Ask for correction
