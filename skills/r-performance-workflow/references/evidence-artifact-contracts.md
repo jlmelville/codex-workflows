@@ -50,6 +50,11 @@ must be joined. Treat complete-file hashing and byte-stable no-op reruns as
 high-assurance or reproducibility checks when file identity itself matters, not
 as universal cache-validity requirements.
 
+Keep acquisition identity separate from reporting schemas and transformations. For a reporting-only
+change, retain completed primary evidence and produce a new derived artifact. When a shared producer
+hash changes, establish its effect on acquisition semantics before invalidating reuse. Version
+changed acquisition separately while preserving earlier evidence and provenance.
+
 For portable persisted artifacts, store relative paths with an explicit owner
 root and verify reading them from a different working directory. Machine-local
 absolute paths are a separate contract. Check case-fold uniqueness only when

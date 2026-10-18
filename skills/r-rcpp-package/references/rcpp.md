@@ -51,6 +51,10 @@ changing the release contract.
 ## Formatting
 
 - Format hand-maintained C++ files with the repo's `.clang-format`.
+- For local/CI formatting parity, resolve and align clang-format versions as
+  well as configuration. Reproduce a mismatch with the CI version before
+  changing style, and update both environments together when accepting a
+  formatter upgrade.
 - Do not manually format generated `src/RcppExports.cpp` unless the repo has
   explicitly decided to do so.
 - Keep generated-file refresh separate from broad formatting commits so review

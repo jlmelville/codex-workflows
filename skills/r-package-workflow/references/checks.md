@@ -128,6 +128,11 @@ line or expression that emits the warning.
 
 ## Final Validation Bundles
 
+When building a source package from a Git worktree, exclude its `.git` pointer file with an anchored
+`.Rbuildignore` entry such as `^\.git$` and inspect the built tarball before installation or checks.
+A clean export is an alternative when it includes the exact intended source. `git archive` includes
+committed files, so stage accepted uncommitted edits separately when they belong in the candidate.
+
 For package-wide cleanup, release-like checks, or package-wide infrastructure
 and documentation work, run this bundle, adding applicable repository gates.
 Require 0 errors, 0 warnings, and 0 repository-attributable notes before claiming
