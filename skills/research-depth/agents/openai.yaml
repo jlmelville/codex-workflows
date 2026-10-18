@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Depth"
+  short_description: "Deepen research with expert methods and outside evidence"
+  default_prompt: "Use $research-depth to deepen this research task while preserving its objective: identify overlooked expert moves, primary material, methods, and independent validation, then rewrite the prompt."

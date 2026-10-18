@@ -27,6 +27,8 @@ skill	r-rcpp-package	160	800	11771	67304
 skill	r-test-hygiene	160	1086	8321	55573
 skill	repo-bootstrap	160	800	10112	74112
 skill	repo-update-preflight	160	800	12990	76990
+# Accepted scope: requested research-depth skill with a bounded expert-method brief and optional evidence examples.
+skill	research-depth	90	150	6000	10000
 skill	ruby-script-quality	160	800	9458	72640
 skill	shell-script-quality	160	800	8172	72172
 # Accepted scope: pause and detour evidence, journey review, admission, and record-construction guidance.
@@ -43,4 +45,5 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Reviewed addition: pending-support protocol and supplemental-evidence adjudication.
 # Reviewed addition: the existing checkpoint's source-destination discovery clarification.
 # Reviewed addition: scoped patch-identity boundary and ignored-file guidance.
-repository	instructional-markdown	-	10213	-	515753
+# Reviewed addition: research-depth adds 146 lines and 9662 normalized characters; prior findings remain.
+repository	instructional-markdown	-	10359	-	525415
