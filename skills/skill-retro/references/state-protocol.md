@@ -351,6 +351,10 @@ intended-outcome
 comparative-improvement
 ```
 
+For supplemental support discovery, use `accepted-records --active-supported --destination TEXT`.
+The filter includes only `accepted` and `implemented` dispositions with `verification: supported`;
+omit it for broader investigations.
+
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query to locate the
 applicable identity, including a supported record, then read its exact

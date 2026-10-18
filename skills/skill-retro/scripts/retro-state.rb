@@ -1958,7 +1958,7 @@ module RetroState
       end
     end
 
-    def accepted_records_query(destination: nil, text: nil)
+    def accepted_records_query(destination: nil, text: nil, active_supported: false)
       ensure_initialized
       if RetroState.blank?(destination) && RetroState.blank?(text)
         raise Error, "accepted-records requires --destination TEXT or --text TEXT"
@@ -1967,6 +1967,10 @@ module RetroState
       destination_query = destination&.downcase
       text_query = text&.downcase
       accepted_records(include_body: true).each_with_object([]) do |(path, data, body), rows|
+        if active_supported
+          next unless %w[accepted implemented].include?(data["disposition"])
+          next unless data["verification"] == "supported"
+        end
         recorded_destination = data.fetch("destination")
         next if destination_query && !recorded_destination.downcase.include?(destination_query)
 
@@ -4407,6 +4411,9 @@ module RetroState
           destination_rows.first.fetch(2) == "unverified"
         raise "unverified accepted record was not discoverable by destination"
       end
+      unless store.accepted_records_query(destination: "public source", active_supported: true).empty?
+        raise "supplemental lookup included an unverified outcome"
+      end
       text_rows = store.accepted_records_query(text: "SANITIZED SUMMARY")
       unless text_rows.map(&:first) == [accepted_id]
         raise "accepted record was not discoverable by metadata text"
@@ -4614,7 +4621,7 @@ module RetroState
       unless store.artifact_audit_status == cadence_before_verification
         raise "verification proposal changed candidate artifact-audit cadence"
       end
-      supported_accepted, = read_document(accepted_path)
+      supported_accepted, supported_accepted_body = read_document(accepted_path)
       raise "verification proposal was not applied" unless supported_accepted["verification"] == "supported"
       unless supported_accepted["verification_basis"] == "deterministic-test"
         raise "verification proposal basis was not applied"
@@ -4638,6 +4645,46 @@ module RetroState
       if store.verification_opportunities(destination: "public source").map(&:first).include?(accepted_id)
         raise "supported accepted record remained in the unverified opportunity query"
       end
+
+      lookup_cli = self_test_cli(root)
+      lookup_cli.call(1, "accepted-records", "--active-supported", error: "requires --destination TEXT or --text TEXT")
+      lookup_cli.call(2, "snapshot", "--active-supported", error: "--active-supported is not valid")
+      unless lookup_cli.call(0, "accepted-records", "--help").include?("--active-supported")
+        raise "accepted-record lookup help omitted its supplemental filter"
+      end
+      lookup_snapshot = store.snapshot
+      lookup_bytes = File.binread(accepted_path)
+      begin
+        {
+          "accepted" => [accepted_id], "implemented" => [accepted_id],
+          "no-change" => [], "superseded" => [], "reverted" => []
+        }.each do |disposition, expected_ids|
+          File.write(
+            accepted_path,
+            render_document(supported_accepted.merge("disposition" => disposition), supported_accepted_body)
+          )
+          before_query = store.snapshot
+          filtered = lookup_cli.call(
+            0, "accepted-records", "--active-supported",
+            "--destination", "PUBLIC SOURCE", "--text", "COUNTERFACTUAL"
+          )
+          unless filtered.lines.map { |line| line.split("\t").first } == expected_ids
+            raise "supplemental CLI lookup selected the wrong outcomes for #{disposition}"
+          end
+          broad = lookup_cli.call(0, "accepted-records", "--text", "COUNTERFACTUAL")
+          unless broad.split("\t").first(3) == [accepted_id, disposition, "supported"]
+            raise "default CLI lookup hid an outcome for #{disposition}"
+          end
+          raise "accepted-record lookup changed state" unless store.snapshot == before_query
+        end
+      ensure
+        File.binwrite(accepted_path, lookup_bytes)
+      end
+      unless lookup_cli.call(0, "accepted-records", "--active-supported", "--destination", "unrelated").empty? &&
+          lookup_cli.call(0, "accepted-records", "--active-supported", "--destination", "public source", "--text", "unrelated").empty?
+        raise "supplemental CLI lookup ignored a destination or text filter"
+      end
+      raise "supplemental lookup changed state" unless store.snapshot == lookup_snapshot
 
       File.write(verification_proposal, supported_proposal_text)
       begin
@@ -4782,6 +4829,10 @@ module RetroState
               [supported_proposal_id, supplemental_id, supported_contradiction_id] &&
           prior_evidence_preserved
         raise "supported contradiction did not preserve accepted identity and evidence"
+      end
+      unless store.accepted_records_query(destination: "public source", active_supported: true).empty? &&
+          store.accepted_records_query(destination: "public source").first.fetch(2) == "contradicted"
+        raise "accepted-record lookup lost the supplemental or broad contradiction boundary"
       end
       contradiction_bytes = File.binread(accepted_path)
       File.write(verification_proposal, supplemental_text)
@@ -5246,6 +5297,19 @@ def usage(command = nil)
       Exit 0 for matches, 1 for unexpected changes or operational errors, 2 for usage.
       Errors go to stderr without JSON; unexpected changes produce JSON without stderr.
     TEXT
+  when "accepted-records"
+    <<~TEXT
+      Usage: retro-state.rb accepted-records [--destination TEXT] [--text TEXT]
+                                           [--active-supported] [--root DIR]
+
+      Match case-insensitive substrings in destinations and metadata/body text.
+      Requires --destination or --text; both filters may be combined.
+      Default: include all dispositions and verification states.
+      --active-supported: include only supported records whose disposition is
+      accepted or implemented. Omit it for broader investigations.
+
+      Print TSV: identity, disposition, verification, destination, expected behavior, path.
+    TEXT
   end
   if details
     return details + "\n--root defaults to #{RetroState::STATE_ENV}. These commands do not write state.\n"
@@ -5287,7 +5351,7 @@ def usage(command = nil)
       update-accepted --id ID --file PATH
                                         Replace a curated record; preserve identity, acceptance
                                         date, and prior implementation commits
-      accepted-records [--destination TEXT] [--text TEXT]
+      accepted-records [--destination TEXT] [--text TEXT] [--active-supported]
                                         Match case-insensitive substrings in destinations or metadata/body
       verification-opportunities [--destination TEXT]
                                         List unverified outcomes; final column is pending support IDs:claims
@@ -5343,7 +5407,7 @@ def reject_inapplicable_options!(command, provided)
     "reconsider" => %w[--root --id --decision],
     "record-accepted" => %w[--root --file],
     "update-accepted" => %w[--root --id --file],
-    "accepted-records" => %w[--root --destination --text],
+    "accepted-records" => %w[--root --destination --text --active-supported],
     "verification-opportunities" => %w[--root --destination],
     "record-draft" => %w[--root --file],
     "record-ledger" => %w[--root --file],
@@ -5397,6 +5461,7 @@ related_papercut_id = nil
 related_candidate_id = nil
 destination_filter = nil
 text_filter = nil
+active_supported = false
 archive_threshold = RetroState::ARTIFACT_AUDIT_ARCHIVE_THRESHOLD
 archive_threshold_explicit = false
 parser = OptionParser.new do |opts|
@@ -5416,6 +5481,7 @@ parser = OptionParser.new do |opts|
   opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
   opts.on("--destination TEXT") { |value| destination_filter = value }
   opts.on("--text TEXT") { |value| text_filter = value }
+  opts.on("--active-supported") { active_supported = true }
   opts.on("--archive-threshold N", Integer) do |value|
     archive_threshold = value
     archive_threshold_explicit = true
@@ -5445,6 +5511,7 @@ begin
       "--related-candidate-id" => !related_candidate_id.nil?,
       "--destination" => !destination_filter.nil?,
       "--text" => !text_filter.nil?,
+      "--active-supported" => active_supported,
       "--archive-threshold" => archive_threshold_explicit
     }
   )
@@ -5619,7 +5686,9 @@ begin
 
       puts store.update_accepted(record_id, input_path)
     when "accepted-records"
-      store.accepted_records_query(destination: destination_filter, text: text_filter).each do |row|
+      store.accepted_records_query(
+        destination: destination_filter, text: text_filter, active_supported: active_supported
+      ).each do |row|
         puts row.join("\t")
       end
     when "verification-opportunities"
