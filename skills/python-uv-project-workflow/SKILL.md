@@ -95,8 +95,8 @@ objective, gradient, Hessian, or autograd comparisons, read
 
 ## Notebooks And Artifacts
 
-Use `$notebook-inspection` when the task touches `.ipynb` files, generated
-plots, stored outputs, or notebook examples. Treat notebooks as examples and
+Use `$notebook-inspection` for `.ipynb` files, notebook examples, and their
+generated plots or stored outputs. Treat notebooks as examples and
 exploratory records, not the primary implementation surface, unless the user is
 specifically working on the notebook.
 

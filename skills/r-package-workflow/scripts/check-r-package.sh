@@ -20,6 +20,12 @@ cpp11::cpp_register(). Initialize a new binding through r-rcpp-package first.
 USAGE
 }
 
+if (($# > 1)); then
+  echo "check-r-package.sh: expected at most one mode argument" >&2
+  usage >&2
+  exit 2
+fi
+
 mode="${1:-fast}"
 if [[ "${mode}" == "-h" || "${mode}" == "--help" ]]; then
   usage

@@ -101,6 +101,48 @@ class RPackageCheckTests(unittest.TestCase):
                 self.assertIn('fixture check found a NOTE', result.stderr)
                 self.assertIn('fixture raw check output', result.stdout)
 
+    def test_argument_contract_before_work(self):
+        with tempfile.TemporaryDirectory(prefix='arguments-', dir=self.root) as tmp:
+            package = Path(tmp)
+            (package / 'DESCRIPTION').write_text('Package: fixture\nVersion: 0.0.0\n')
+            (package / 'src').mkdir()
+            (package / 'src/RcppExports.cpp').write_text('// fixture\n')
+            fake_bin = package / 'bin'
+            fake_bin.mkdir()
+            calls = package / 'calls'
+            for name in ('Rscript', 'air'):
+                command = fake_bin / name
+                command.write_text(
+                    '#!/bin/sh\n'
+                    'printf "%s %s\\n" "${0##*/}" "$*" >> "$R_PACKAGE_CHECK_CALLS"\n')
+                command.chmod(0o755)
+            env = dict(self.env, PATH=str(fake_bin) + os.pathsep + self.env['PATH'],
+                       R_PACKAGE_CHECK_CALLS=str(calls))
+
+            for args in ([], ['fast'], ['full'], ['ci'], ['-h'], ['--help']):
+                with self.subTest(valid=args):
+                    calls.unlink(missing_ok=True)
+                    result = subprocess.run([str(SCRIPT), *args], cwd=package, env=env,
+                                            capture_output=True, text=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    if args in (['-h'], ['--help']):
+                        self.assertIn('Usage:', result.stdout)
+                        self.assertFalse(calls.exists())
+                    else:
+                        self.assertIn('Rscript -e Rcpp::compileAttributes()', calls.read_text())
+
+            for mode in ('fast', 'full', 'ci', '-h', '--help'):
+                with self.subTest(invalid=mode):
+                    calls.unlink(missing_ok=True)
+                    result = subprocess.run([str(SCRIPT), mode, '--unexpected'],
+                                            cwd=package, env=env, capture_output=True,
+                                            text=True, timeout=10)
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertEqual(result.stdout, '')
+                    self.assertIn('expected at most one mode argument', result.stderr)
+                    self.assertIn('Usage:', result.stderr)
+                    self.assertFalse(calls.exists(), calls.read_text() if calls.exists() else '')
+
 
 if __name__ == '__main__':
     unittest.main()
