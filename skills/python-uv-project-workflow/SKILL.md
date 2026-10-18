@@ -22,6 +22,9 @@ changes.
 
 - Keep behavior fixes, broad formatting, dependency changes, and generated
   artifacts in separate phases unless the user requests a combined sweep.
+- For API, component boundary, or operator workflow design changes, use the
+  [consumer-task sketch](../planning-workflow/SKILL.md#first-decisions) before
+  settling the interface. This does not require a persistent plan.
 - Keep comments and documentation about durable contracts or tradeoffs, not
   prompts, conversations, agents, temporary plans, or implementation history.
 - When large arrays or sparse data are involved, inspect allocation and storage
