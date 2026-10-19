@@ -3,6 +3,18 @@
 Use this for numerical packages where ordinary line coverage can still miss
 stale scientific metadata, dispatch inconsistencies, or derivative bugs.
 
+## Comparison Semantics And Error Budgets
+
+During numerical CI diagnosis, inspect the equality backend, scale, and aggregation before changing
+production arithmetic or tolerances. Edition-2 testthat comparisons can reach `all.equal()`, whose
+default numeric comparison can scale a mean difference over differing entries. A smaller maximum
+error can therefore fail an aggregate criterion that accepts a larger one; suppressing near-zero
+entries can change its scale without fixing remaining differences.
+
+Match the comparison to the scientific error budget. Assert dimensions and discrete fields exactly,
+check finiteness, and express an absolute per-entry bound directly when that is the contract.
+Require independent defect evidence before changing production arithmetic to make the test pass.
+
 ## Returned Scientific Metadata
 
 When public functions return known minima, optima, reference values, or problem
