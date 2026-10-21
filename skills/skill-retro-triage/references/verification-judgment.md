@@ -16,8 +16,9 @@ supplement adds beyond existing support; its presence or a different claim
 label alone is insufficient. Reject stale,
 duplicate, overclaimed, mismatched, or insufficient evidence.
 
-When processing is authorized, use `prepare-decision --id ID --verdict VERDICT`,
-complete the rationale, then use `process-verification`. Application updates
+When processing is authorized, use `prepare-decision --id ID --verdict VERDICT` with a reviewed
+`--rationale TEXT`, or fill the blank afterward. Review the decision, then use
+`process-verification`. Application updates
 the existing accepted identity and archives provenance; rejection archives
 without changing accepted state.
 Verification processing does not advance candidate artifact-audit cadence.

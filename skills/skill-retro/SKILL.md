@@ -56,14 +56,16 @@ chat-only reminder.
 For ordinary opportunistic confirmation, query destinations of guidance that materially shaped task
 or workflow decisions, even when unchanged. For learning-state authority decisions, include
 `skills/skill-retro/assets/global-agents-learning.md`. Use the installed helper's read-only
-discovery. Repeat `--destination` for several destinations and see `--help` for pagination:
+discovery. Repeat `--destination` for several destinations; use optional `--text` filters to narrow
+expected behavior or opportunities before paging. See `--help` for matching and pagination:
 
 ```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-context --destination TEXT
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-context --destination TEXT --compact
 ```
 
 Discovery includes active unverified and supported outcomes. Select a small set whose expected
-behavior bears on actual task decisions or evidence; if none is plausibly relevant, stop. Follow
+behavior bears on actual task decisions or evidence; if none is plausibly relevant, stop. Literal
+filters may omit relevant outcomes; adjust or omit terms when broader coverage is needed. Follow
 `next_offset` when more relevant records remain. Expand selected identities with
 `verification-context --id ID` through the same helper to read the accepted record and its applied
 and pending proposals together. Establish the exact opportunity, supported claim, and remaining

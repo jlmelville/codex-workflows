@@ -75,8 +75,9 @@ Prefer existing tools to reconstructing their mechanics inline:
 
 - Use `${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb` for read-only
   queries and record inspection. Start with `review-queue` for all intake; use bounded
-  `verification-context` discovery and selected-ID expansion for accepted outcomes and proposal
-  evidence. Inspect current help before choosing commands; summaries alone do not establish claims.
+  `verification-context` discovery (`--compact` and optional `--text`), then selected-ID
+  expansion for accepted outcomes and proposal evidence. Inspect current help before choosing
+  commands; literal filters limit coverage and summaries alone do not establish claims.
 - Use [select-session-sample.py](../skills/learning-process-review/scripts/select-session-sample.py)
   for a ledger's fixed cohort, honoring its eligibility rules and completion
   boundaries. Freeze the private manifest before reading outcomes; do not

@@ -86,8 +86,9 @@ the current record shape and field vocabularies. This protocol owns the
 decisions those interfaces cannot make: authority, evidence, operation ordering,
 identity, privacy, and recovery.
 
-For state-preservation checks, use `snapshot` and then `compare`; save the
-snapshot outside the state root. See each command's `--help` for flags.
+For state-preservation checks, save a `snapshot` outside the state root and run `compare`.
+For authorized candidate processing, repeat `--allow-action process:RC-ID` to include each
+candidate's bookkeeping. Omit allowances for read-only work; see `--help` for exact scope.
 
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.
@@ -233,8 +234,9 @@ It searches all dispositions and states by case-insensitive literal substring:
 `--destination` matches destinations; `--text` matches selected metadata and the Markdown body,
 including headings. This complete identity lookup also covers inactive outcomes.
 
-Use `prepare-decision --id ID --verdict VERDICT`, complete the draft, then use `process` to
-attach the decision and move the record from inbox to archive. The intake
+Use `prepare-decision --id ID --verdict VERDICT` with an already-reviewed `--rationale TEXT`, or
+fill the blank rationale afterward. Review the completed decision, then use `process` to attach
+it and move the record from inbox to archive. The intake
 digest and original intake fields remain in the archived document. For a
 deferred verdict, first state the `unresolved_decision` that current evidence
 cannot justify. Post-implementation behavioral uncertainty is not a deferral:
@@ -343,10 +345,12 @@ evidence may support conformance to the guidance or occurrence of the intended
 outcome. Neither basis establishes comparative improvement without an observed
 comparator.
 
-Use `verification-context --destination TEXT` for bounded discovery across destinations materially
-involved in a completed task. Repeat filters to combine destinations without duplicate identities.
-It includes active outcomes in every verification state. See `--help` for limits, pagination, and
-output fields; follow `next_offset` when more relevant records remain. Expand accepted or proposal
+Use `verification-context --destination TEXT --compact` for bounded discovery across destinations
+materially involved in a completed task. Repeat destinations to combine them without duplicate
+identities; optional `--text` filters narrow expected behavior or opportunities before pagination.
+It includes active outcomes in every verification state. Literal filters may omit relevant outcomes;
+adjust or omit terms when broader coverage is needed. See `--help` for matching and pagination;
+follow `next_offset` when more relevant records remain. Expand accepted or proposal
 IDs, including proposal IDs directly from `review-queue`, with `verification-context --id ID`.
 It retrieves the target accepted record and selected, applied, and pending proposals together.
 Read their exact opportunities, claims, and evidence before constructing support. Legacy support
@@ -385,8 +389,8 @@ A different task or claim label alone is insufficient. Omit redundant support;
 preserve useful supplements and contradictions. Route one proposal per file.
 A query hit creates no obligation; routing authority creates only a new inbox file.
 
-Triage selects proposals from `review-queue`, prepares `apply` or
-`reject` using `prepare-decision`, completes the rationale, and records the result with
+Triage selects proposals from `review-queue`, prepares `apply` or `reject` using `prepare-decision`
+with a reviewed rationale, and records the result with
 `process-verification`. Apply only to an `accepted` or `implemented` target and
 only for these transitions:
 
