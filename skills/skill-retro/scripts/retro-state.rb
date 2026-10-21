@@ -1456,25 +1456,15 @@ module RetroState
       end
 
       records = show(record_ids).fetch("records")
-      candidates = records.map do |record|
-        id = record.fetch("id")
-        path = File.join(root, record.fetch("path"))
-        unless path == candidate_path("archive", id)
-          raise Error, "prepare-accepted requires archived candidates: #{id}"
-        end
-        data = record.fetch("frontmatter")
-        RetroState.validate_candidate(data, record.fetch("body"), label: path, routed: true, archived: true)
-        raise Error, "record identity does not match #{id}" unless data.fetch("candidate_id") == id
+      candidates = records.map { |record| validate_archived_candidate_record(record) }
+      ancestry = candidates.to_h { |candidate| [candidate.fetch("candidate_id"), candidate] }
+      resolve_candidate = lambda do |id|
+        next unless id.match?(/\ARC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/) && File.file?(candidate_path("archive", id))
 
-        data
-      end
-      ancestry = if candidates.any? { |candidate| candidate.dig("triage", "verdict") == "merge" }
-        archived_candidates.to_h { |_path, candidate| [candidate.fetch("candidate_id"), candidate] }
-      else
-        {}
+        ancestry[id] = validate_archived_candidate_record(show([id]).fetch("records").first)
       end
       candidates.each do |candidate|
-        unless accepted_publication_expected?(candidate.fetch("triage"), ancestry, uncertain: false)
+        unless accepted_publication_expected?(candidate.fetch("triage"), ancestry, uncertain: false, &resolve_candidate)
           raise Error, "candidate has no accepted publication outcome: #{candidate.fetch("candidate_id")}"
         end
       end
@@ -1487,7 +1477,7 @@ module RetroState
         destination verification_opportunity redaction_review
       ].each { |field| draft[field] = "" }
       draft["decisive_evidence"] = []
-      context = candidates.map do |candidate|
+      context = ancestry.values.map do |candidate|
         candidate.slice(
           "candidate_id", "title", "evidence_lineage", "evidence_lineage_note",
           "observation", "decisive_evidence", "proposed_destination", "triage"
@@ -2089,27 +2079,20 @@ module RetroState
       end
       unless record_ids.empty?
         selected = show(record_ids).fetch("records")
+        documents = selected.to_h { |record| [record.fetch("id"), record] }
+        read = ->(id) { documents[id] ||= show([id]).fetch("records").first }
+        validated_proposals = {}
+        proposal = ->(id) { validated_proposals[id] ||= validate_verification_record(read.call(id)) }
         proposals = selected.select { |record| record.fetch("id").start_with?("VP-") }
-        proposals.each do |record|
-          id = record.fetch("id")
-          path = File.join(root, record.fetch("path"))
-          archived = path == verification_path("archive", id)
-          unless archived || path == verification_path("inbox", id)
-            raise Error, "verification proposal must be in verifications/inbox or archive: #{id}"
-          end
-          RetroState.validate_verification_proposal(
-            record.fetch("frontmatter"), record.fetch("body"), label: id, routed: true, archived: archived
-          )
-          unless record.dig("frontmatter", "verification_proposal_id") == id
-            raise Error, "record identity does not match #{id}"
-          end
-        end
+        proposals.each { |record| proposal.call(record.fetch("id")) }
         target_ids = selected.map do |record|
           record.fetch("id").start_with?("VP-") ? record.fetch("frontmatter").fetch("target_accepted_id") : record.fetch("id")
         end
-        records = show(target_ids).fetch("records")
+        records = target_ids.uniq.map { |id| read.call(id) }
         proposals_by_target = proposals.group_by { |record| record.fetch("frontmatter").fetch("target_accepted_id") }
-        pending = pending_verification_records.group_by { |_path, data| data.fetch("target_accepted_id") }
+        pending = Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort
+          .map { |path| proposal.call(File.basename(path, ".md")) }
+          .group_by { |record| record.fetch("frontmatter").fetch("target_accepted_id") }
         details = records.map do |record|
           id = record.fetch("id")
           data = record.fetch("frontmatter")
@@ -2117,9 +2100,8 @@ module RetroState
             raise Error, "verification-context requires accepted record IDs: #{id}"
           end
           RetroState.validate_accepted(data, record.fetch("body"), label: id, assigned: true)
-          validate_accepted_external_references!(data, accepted_id: id)
+          validate_accepted_external_references!(data, accepted_id: id, &proposal)
           applied_ids = data.fetch("applied_verification_proposal_ids", [])
-          pending_ids = pending.fetch(id, []).map { |_path, proposal| proposal.fetch("verification_proposal_id") }
           selected_proposals = proposals_by_target.fetch(id, [])
           selected_proposals.each do |proposal|
             if proposal.dig("frontmatter", "triage", "verdict") == "apply" && !applied_ids.include?(proposal.fetch("id"))
@@ -2129,8 +2111,8 @@ module RetroState
           {
             "accepted" => record,
             "selected_verification_proposals" => selected_proposals,
-            "applied_verification_proposals" => applied_ids.empty? ? [] : show(applied_ids).fetch("records"),
-            "pending_verification_proposals" => pending_ids.empty? ? [] : show(pending_ids).fetch("records")
+            "applied_verification_proposals" => applied_ids.map { |proposal_id| proposal.call(proposal_id) },
+            "pending_verification_proposals" => pending.fetch(id, [])
           }
         end
         return {"root" => root, "mode" => "detail", "records" => details}
@@ -2286,7 +2268,7 @@ module RetroState
       rows
     end
 
-    def accepted_publication_expected?(triage, candidates_by_id, visited_ids = [], uncertain: true)
+    def accepted_publication_expected?(triage, candidates_by_id, visited_ids = [], uncertain: true, &resolve_candidate)
       verdict = triage.fetch("verdict")
       return true if %w[accept split].include?(verdict)
       return false unless verdict == "merge"
@@ -2297,12 +2279,13 @@ module RetroState
       related_ids.any? do |id|
         next false if visited_ids.include?(id)
 
-        related = candidates_by_id[id]
+        related = candidates_by_id[id] || resolve_candidate&.call(id)
         related ? accepted_publication_expected?(
           related.fetch("triage"),
           candidates_by_id,
           visited_ids + [id],
-          uncertain: uncertain
+          uncertain: uncertain,
+          &resolve_candidate
         ) : uncertain
       end
     end
@@ -2619,6 +2602,36 @@ module RetroState
 
     private
 
+    def validate_archived_candidate_record(record)
+      id = record.fetch("id")
+      path = File.join(root, record.fetch("path"))
+      unless path == candidate_path("archive", id)
+        raise Error, "prepare-accepted requires archived candidates: #{id}"
+      end
+      data = record.fetch("frontmatter")
+      RetroState.validate_candidate(data, record.fetch("body"), label: path, routed: true, archived: true)
+      raise Error, "record identity does not match #{id}" unless data.fetch("candidate_id") == id
+
+      data
+    end
+
+    def validate_verification_record(record)
+      id = record.fetch("id")
+      path = File.join(root, record.fetch("path"))
+      archived = path == verification_path("archive", id)
+      unless archived || path == verification_path("inbox", id)
+        raise Error, "verification proposal must be in verifications/inbox or archive: #{id}"
+      end
+      RetroState.validate_verification_proposal(
+        record.fetch("frontmatter"), record.fetch("body"), label: id, routed: true, archived: archived
+      )
+      unless record.dig("frontmatter", "verification_proposal_id") == id
+        raise Error, "record identity does not match #{id}"
+      end
+
+      record
+    end
+
     def validate_candidate_supersession!(candidate)
       supersedes_id = candidate["supersedes_accepted_id"]
       return unless supersedes_id
@@ -2627,6 +2640,7 @@ module RetroState
       raise Error, "candidate supersedes missing accepted record: #{supersedes_id}"
     end
 
+    # Context retrieval supplies a reader to share its already validated proposal documents.
     def validate_accepted_external_references!(accepted, accepted_id: nil)
       accepted.fetch("supersedes_accepted_ids", []).each do |superseded_id|
         next if File.file?(accepted_path(superseded_id))
@@ -2642,14 +2656,11 @@ module RetroState
         unless File.file?(proposal_path)
           raise Error, "accepted record references unarchived verification proposal: #{proposal_id}"
         end
-        proposal, proposal_body = RetroState.read_document(proposal_path)
-        RetroState.validate_verification_proposal(
-          proposal,
-          proposal_body,
-          label: proposal_path,
-          routed: true,
-          archived: true
-        )
+        record = block_given? ? yield(proposal_id) : validate_verification_record(show([proposal_id]).fetch("records").first)
+        unless File.join(root, record.fetch("path")) == proposal_path
+          raise Error, "accepted record references unarchived verification proposal: #{proposal_id}"
+        end
+        proposal = record.fetch("frontmatter")
         unless proposal.dig("triage", "verdict") == "apply" &&
             proposal["target_accepted_id"] == accepted_id
           raise Error, "accepted record references mismatched verification proposal: #{proposal_id}"
@@ -3395,6 +3406,22 @@ module RetroState
           mixed.first.fetch("selected_verification_proposals").last.dig("frontmatter", "triage", "verdict") == "reject"
         raise "mixed verification IDs lost order, deduplication, or selected archived evidence"
       end
+      read_counts = Hash.new(0)
+      original_reader = method(:read_document)
+      define_singleton_method(:read_document) do |path|
+        read_counts[path] += 1
+        original_reader.call(path)
+      end
+      begin
+        2.times do |index|
+          store.verification_context(record_ids: [queue_id, supported_id, applied_id, rejected_id])
+          unless !read_counts.empty? && read_counts.values.all? { |count| count == index + 1 }
+            raise "verification context reread documents within a call or retained documents between calls"
+          end
+        end
+      ensure
+        define_singleton_method(:read_document, original_reader)
+      end
       %w[review-queue verification-context].each do |command|
         raise "missing context help" unless run.call(0, command, "--help").include?("Usage: retro-state.rb #{command}")
       end
@@ -3431,8 +3458,25 @@ module RetroState
       run.call(1, "verification-context", "--id", supported_id, "--id", applied_id, error: "mismatched verification proposal")
       run.call(1, "verification-context", "--id", applied_id, error: "does not reference applied proposal")
       File.write(proposal_path, proposal_original)
+      false_id = "VP-20000101T000000Z-000000"
+      false_path = File.join(root, "verifications", "archive", "#{false_id}.md")
+      File.rename(proposal_path, false_path)
+      data, body = parse_document(original)
+      data["applied_verification_proposal_ids"] = [false_id]
+      File.write(path, render_document(data, body))
+      mismatched = store.snapshot
+      run.call(1, "verification-context", "--id", supported_id, error: "record identity does not match")
+      File.write(input, run.call(0, "prepare-accepted-update", "--id", supported_id))
+      run.call(1, "update-accepted", "--id", supported_id, "--file", input, error: "record identity does not match")
+      raise "mismatched proposal refusal wrote state" unless store.snapshot == mismatched
+      File.rename(false_path, proposal_path)
+      File.write(path, original)
       pending_path = File.join(root, "verifications", "inbox", "#{queue_id}.md")
       pending_original = File.read(pending_path)
+      false_pending_path = File.join(root, "verifications", "inbox", "#{false_id}.md")
+      File.rename(pending_path, false_pending_path)
+      run.call(1, "verification-context", "--id", supported_id, error: "record identity does not match")
+      File.rename(false_pending_path, pending_path)
       File.write(pending_path, pending_original.sub("Distinct", "Tampered"))
       run.call(1, "verification-context", "--id", supported_id, "--id", queue_id, error: "intake fields changed after routing")
       File.write(pending_path, pending_original)
@@ -3455,7 +3499,7 @@ module RetroState
         File.write(input, render_document(data, body))
         input
       end
-      archive = lambda do |verdict, related_ids = []|
+      archive = lambda do |verdict, related_ids = [], rationale = "Reviewed narrow outcome; the original proposal is not authoritative."|
         candidate, body = parse_document(candidate_template)
         candidate["observation"] = "Known prior observation."
         candidate["decisive_evidence"] = ["Literal \\& and \\1 evidence."]
@@ -3463,12 +3507,13 @@ module RetroState
         path = store.route(write.call(candidate, body))
         id = File.basename(path, ".md")
         decision, body = parse_document(store.prepare_decision(id, verdict))
-        decision["rationale"] = "Reviewed narrow outcome; the original proposal is not authoritative."
+        decision["rationale"] = rationale
         decision["related_candidate_ids"] = related_ids
         store.process(id, write.call(decision, body))
         id
       end
-      accepted_origin = archive.call("accept")
+      accepted_rationale = "Accepted scope is restricted to the reviewed narrow boundary."
+      accepted_origin = archive.call("accept", [], accepted_rationale)
       split_origin = archive.call("split")
       merged_origin = archive.call("merge", [accepted_origin])
       merged_chain = archive.call("merge", [merged_origin])
@@ -3485,7 +3530,7 @@ module RetroState
       File.write(cycle_path, render_document(cycle, cycle_body))
       deferred_origin = archive.call("defer")
       before = store.snapshot
-      command = ["prepare-accepted", "--id", accepted_origin, "--id", split_origin, "--id", accepted_origin,
+      command = ["prepare-accepted", "--id", accepted_origin, "--id", split_origin, "--id", accepted_origin, "--id", merged_chain,
         "--commit", "ABCDEF0", "--commit", "1234567", "--commit", "abcdef0", "--commit", "A" * 40]
       output = run.call(0, *command)
       draft, body = parse_document(output)
@@ -3493,7 +3538,7 @@ module RetroState
         source_report_summary expected_behavior observed_behavior trigger non_trigger
         destination verification_opportunity redaction_review
       ]
-      unless draft.fetch("originating_candidate_ids") == [accepted_origin, split_origin] &&
+      unless draft.fetch("originating_candidate_ids") == [accepted_origin, split_origin, merged_chain] &&
           draft.fetch("implementation_commits") == ["abcdef0", "1234567", "a" * 40] &&
           draft.values_at("disposition", "verification", "verification_basis") == %w[accepted unverified none] &&
           blank_fields.all? { |field| draft.fetch(field) == "" } && draft.fetch("decisive_evidence").empty? &&
@@ -3507,9 +3552,22 @@ module RetroState
         raise "new accepted preparation lost prior evidence or reviewed scope"
       end
       [merged_origin, merged_chain].each do |id|
-        merged, = parse_document(run.call(0, "prepare-accepted", "--id", id, "--commit", "abcdef0"))
-        raise "publication-bound merge was lost" unless merged.fetch("originating_candidate_ids") == [id]
+        prepared = run.call(0, "prepare-accepted", "--id", id, "--id", merged_origin, "--commit", "abcdef0")
+        merged, = parse_document(prepared)
+        unless merged.fetch("originating_candidate_ids") == [id, merged_origin].uniq &&
+            prepared.scan(accepted_rationale).length == 1
+          raise "publication-bound merge lost or duplicated the resolving acceptance context"
+        end
       end
+      unrelated_path = File.join(root, "retrospectives", "archive", "#{deferred_origin}.md")
+      unrelated_original = File.read(unrelated_path)
+      File.write(unrelated_path, "---\ninvalid: [\n---\n")
+      isolated = store.snapshot
+      unrelated_probe = run.call(0, "prepare-accepted", "--id", merged_chain, "--commit", "abcdef0")
+      unless unrelated_probe.include?(accepted_rationale) && store.snapshot == isolated
+        raise "merged preparation depended on unrelated archive state or wrote state"
+      end
+      File.write(unrelated_path, unrelated_original)
       queue_ids = run.call(0, "review-queue").lines.map { |line| line.split("\t") }
         .select { |row| row.first == "accepted-publication" }.map { |row| row[1] }
       unless [empty_merge, missing_merge, uncertain_chain].all? { |id| queue_ids.include?(id) } &&
@@ -3537,6 +3595,7 @@ module RetroState
       original = File.read(path)
       File.write(path, original.sub("Known prior observation.", "Tampered prior observation."))
       run.call(1, *command, error: "intake fields changed after routing")
+      run.call(1, "prepare-accepted", "--id", merged_chain, "--commit", "abcdef0", error: "intake fields changed after routing")
       File.write(path, "---\ninvalid: [\n---\n")
       run.call(1, *command, error: "invalid YAML frontmatter")
       File.write(path, original)
@@ -3554,11 +3613,11 @@ module RetroState
       accepted_path = run.call(0, "record-accepted", "--file", input).strip
       accepted_id = File.basename(accepted_path, ".md")
       recorded, recorded_body = read_document(accepted_path)
-      unless recorded.fetch("originating_candidate_ids") == [accepted_origin, split_origin] &&
+      unless recorded.fetch("originating_candidate_ids") == [accepted_origin, split_origin, merged_chain] &&
           recorded.fetch("implementation_commits") == ["abcdef0", "1234567", "a" * 40] &&
           recorded.fetch("decisive_evidence") == ["Reviewed fixture implementation evidence."] &&
           recorded_body.include?("# Curated accepted outcome") &&
-          ["Known prior observation.", "Complete the blank outcome fields", "Prior candidate context"].none? { |text| File.read(accepted_path).include?(text) }
+          ["Known prior observation.", accepted_rationale, "Complete the blank outcome fields", "Prior candidate context"].none? { |text| File.read(accepted_path).include?(text) }
         raise "completed accepted draft lost curated content or retained preparation comments"
       end
       before = store.snapshot
@@ -5843,6 +5902,9 @@ def usage(command = nil)
       Print an incomplete Markdown/YAML draft for a new accepted record. Select archived
       candidates with accept/split verdicts or merge ancestry reaching a known accept/split.
       Missing or empty ancestry stays visible in review-queue but cannot establish acceptance.
+      Read only selected origins and merge ancestors needed to resolve acceptance. Comments
+      retain their evidence and reviewed triage, including the resolving acceptance rationale;
+      originating_candidate_ids still contains only the explicitly selected origins.
       Multiple origins and split outcomes remain supported; existing accepted records do
       not consume an origin.
 
@@ -5929,6 +5991,8 @@ def usage(command = nil)
       complete {id, path, frontmatter, body} records, including original evidence and
       claims. Historical dispositions remain inspectable by ID. Legacy support without
       proposal provenance returns an empty applied list; do not infer a stronger claim.
+      Expanded proposals must match their record IDs and locations. Accepted and proposal
+      documents are read once per invocation and reused; later calls read anew.
       Choose destinations or IDs; pagination applies only to discovery. Does not judge
       relevance, opportunity match, supplementation, or effectiveness. Use validate
       separately for full state validation; reads are not an atomic snapshot.

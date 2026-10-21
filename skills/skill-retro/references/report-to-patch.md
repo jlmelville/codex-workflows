@@ -82,10 +82,10 @@ After the public commit exists, read
 [Accepted Records And Verification](state-protocol.md#accepted-records-and-verification).
 For a new outcome, use `prepare-accepted --id RC-ID --commit SHA`; repeat origins and commits when
 needed, and see `--help`. Complete the blank outcome fields and judge the final destination and
-evidence, then submit with `record-accepted`. Preparation notes and prior context are comments that
-recording discards automatically. The draft preserves known linkage without treating the original
-proposal as the implemented outcome. For an existing identity, use `prepare-accepted-update` and
-`update-accepted` instead.
+evidence, then submit with `record-accepted`. Preparation comments include the resolving ancestor
+decisions for merged origins and are discarded automatically on recording. The draft preserves
+explicitly selected linkage without treating the original proposal as the implemented outcome.
+For an existing identity, use `prepare-accepted-update` and `update-accepted` instead.
 
 Store sanitized evidence, destination, trigger and non-trigger, verification opportunity,
 disposition, verification state and basis, applied proposal provenance, and known public commits.
