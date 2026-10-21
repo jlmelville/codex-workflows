@@ -23,7 +23,6 @@ this repository's retrospective state, run from the source repository root:
 ```sh
 # From the source repository root:
 ./skills/skill-retro/scripts/retro-state.rb validate
-./skills/skill-retro/scripts/retro-state.rb pending
 ./skills/skill-retro/scripts/retro-state.rb review-queue
 ```
 

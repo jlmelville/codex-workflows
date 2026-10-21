@@ -10,12 +10,11 @@ public artifact audits use the parent route and no private-state evidence.
 2. Read
    `${HOME}/.agents/skills/skill-retro/references/state-protocol.md` before any
    state mutation.
-3. Start with the installed helper; use `show --id ID` for record contents:
+3. Start with the installed helper's complete inventory; use `show --id ID` for record contents or
+   `verification-context --id ID` for an accepted outcome and its proposal evidence:
 
    ```sh
-   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts
-   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
-   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending-verifications
+   "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" review-queue
    "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
    ```

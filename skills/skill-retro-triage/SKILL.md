@@ -28,18 +28,17 @@ after integration. Use the source helper from the reconciled repository;
 outside it, use the installed helper. Resolve state compatibility before
 judging or mutating records with a stale installed copy.
 
-For live intake, validate state and inspect `review-queue` before proposing a
-batch. Inspect its deferrals, publication gaps, contradictions, drafts,
-ledgers, and cadence without loading unrelated history. Query `pending` for
-candidates or `pending-verifications` for verification work, or both for a
-complete intake review. From the source repository root:
+For live intake, validate state and inspect `review-queue` before proposing a batch. It includes
+candidates, papercuts, verification proposals, deferrals, publication gaps, contradictions, drafts,
+ledgers, and due cadence. Select records relevant to the review without loading unrelated history.
+From the source repository root:
 
 ```sh
 ./skills/skill-retro/scripts/retro-state.rb validate
 ./skills/skill-retro/scripts/retro-state.rb review-queue
 ```
 
-Also list open `papercuts` and review a bounded cluster relevant to the batch
+From the queue's open papercuts, review a bounded cluster relevant to the batch
 through [papercut drain](references/papercut-drain.md). This pilot brings fresh
 observations into ordinary triage; a complete backlog drain is not a
 prerequisite for candidate or verification work. The route preserves read-only

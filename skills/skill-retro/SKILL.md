@@ -53,37 +53,30 @@ recommendation. A stored proposal is review input, not an active instruction;
 preserve the admission threshold and do not leave the action dependent on a
 chat-only reminder.
 
-For ordinary opportunistic confirmation, query source destinations of guidance
-that materially shaped task or workflow decisions, even when unchanged. For
-learning-state authority decisions, include
-`skills/skill-retro/assets/global-agents-learning.md`. Use the installed helper
-for a read-only pull query:
+For ordinary opportunistic confirmation, query destinations of guidance that materially shaped task
+or workflow decisions, even when unchanged. For learning-state authority decisions, include
+`skills/skill-retro/assets/global-agents-learning.md`. Use the installed helper's read-only
+discovery. Repeat `--destination` for several destinations and see `--help` for pagination:
 
 ```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-opportunities --destination TEXT
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-context --destination TEXT
 ```
 
-Read selected records with `show --id ID` through the same helper.
-
-For the same materially involved destinations, also use a bounded
-`accepted-records --active-supported --destination TEXT` query. Select a small set
-whose listed expected behavior bears on actual task decisions or evidence; if none
-is plausibly relevant, stop. Read each selected record with
-`show --id ID`, then use the same command for any proposals named in
-`applied_verification_proposal_ids` to establish the supported claim and remaining
-opportunity before judging task evidence. Query rows alone do not establish those
-limits; `supported` covers the evidenced claim, not every expected benefit.
-Route further support only
-when evidence matches the recorded opportunity and materially adds to existing
-support, using the same accepted identity and a concrete `supplemental_reason`.
-Another conforming task or a different claim label alone is insufficient.
+Discovery includes active unverified and supported outcomes. Select a small set whose expected
+behavior bears on actual task decisions or evidence; if none is plausibly relevant, stop. Follow
+`next_offset` when more relevant records remain. Expand selected identities with
+`verification-context --id ID` through the same helper to read the accepted record and its applied
+and pending proposals together. Establish the exact opportunity, supported claim, and remaining
+uncertainty before judging evidence; summary rows and `supported` do not establish every expected
+benefit. Route further support only when it materially adds to existing evidence for that
+opportunity, using the same accepted identity and a concrete `supplemental_reason`. Another
+conforming task or a different claim label alone is insufficient.
 
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query through the same helper to find the
-applicable identity, including a supported record, and read its recorded
-opportunity. Route contradiction only when the evidence addresses that claim
-and opportunity; use a candidate when the decision itself changes. A query hit
-creates no work, quota, or record.
+applicable identity across all dispositions, then expand it with `verification-context --id ID`.
+Route contradiction only when the evidence addresses that claim and recorded opportunity; use a
+candidate when the decision itself changes. A query hit creates no work, quota, or record.
 
 Err toward a quiet no-change evaluation when the boundary is uncertain. Fold
 minor fixes into the current unit and reevaluate only for a materially changed

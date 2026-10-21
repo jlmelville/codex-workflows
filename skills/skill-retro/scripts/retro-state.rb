@@ -2020,6 +2020,69 @@ module RetroState
       end
     end
 
+    def verification_context(destinations: [], record_ids: [], limit: 20, offset: 0)
+      ensure_initialized
+      if destinations.empty? == record_ids.empty?
+        raise Error, "verification-context requires destinations or accepted IDs, separately"
+      end
+      unless record_ids.empty?
+        records = show(record_ids).fetch("records")
+        pending = pending_verification_records.group_by { |_path, data| data.fetch("target_accepted_id") }
+        details = records.map do |record|
+          id = record.fetch("id")
+          data = record.fetch("frontmatter")
+          unless File.join(root, record.fetch("path")) == accepted_path(id) && data["accepted_id"] == id
+            raise Error, "verification-context requires accepted record IDs: #{id}"
+          end
+          RetroState.validate_accepted(data, record.fetch("body"), label: id, assigned: true)
+          validate_accepted_external_references!(data, accepted_id: id)
+          applied_ids = data.fetch("applied_verification_proposal_ids", [])
+          pending_ids = pending.fetch(id, []).map { |_path, proposal| proposal.fetch("verification_proposal_id") }
+          {
+            "accepted" => record,
+            "applied_verification_proposals" => applied_ids.empty? ? [] : show(applied_ids).fetch("records"),
+            "pending_verification_proposals" => pending_ids.empty? ? [] : show(pending_ids).fetch("records")
+          }
+        end
+        return {"root" => root, "mode" => "detail", "records" => details}
+      end
+
+      if destinations.any? { |destination| destination.strip.empty? }
+        raise Error, "verification-context destinations must not be blank"
+      end
+      unless limit.is_a?(Integer) && limit.positive? && offset.is_a?(Integer) && offset >= 0
+        raise Error, "verification-context requires a positive limit and nonnegative offset"
+      end
+      queries = destinations.map(&:downcase).uniq
+      matches = accepted_records.select do |_path, data|
+        %w[accepted implemented].include?(data["disposition"]) &&
+          queries.any? { |query| data.fetch("destination").downcase.include?(query) }
+      end
+      pending = pending_verification_records.group_by { |_path, data| data.fetch("target_accepted_id") }
+      records = matches.drop(offset).first(limit).map do |path, data|
+        id = data.fetch("accepted_id")
+        summary = data.slice(
+          "disposition", "verification", "verification_basis", "destination",
+          "expected_behavior", "verification_opportunity"
+        )
+        summary.merge(
+          "id" => id,
+          "path" => path.delete_prefix(root + File::SEPARATOR),
+          "applied_verification_proposal_ids" => data.fetch("applied_verification_proposal_ids", []),
+          "pending_verification_proposals" => pending.fetch(id, []).map do |_proposal_path, proposal|
+            proposal.slice("verification_proposal_id", "proposed_verification", "claim")
+          end
+        )
+      end
+      next_offset = offset + records.length
+      {
+        "root" => root, "mode" => "discovery", "destinations" => destinations.uniq,
+        "total" => matches.length, "limit" => limit, "offset" => offset,
+        "next_offset" => (next_offset < matches.length) ? next_offset : nil,
+        "records" => records
+      }
+    end
+
     def record_draft(input_path)
       record_auxiliary(input_path, "draft", "drafts", "draft_id", "SD") do |data, body, label, assigned|
         RetroState.validate_draft(data, body, label: label, assigned: assigned)
@@ -2068,6 +2131,12 @@ module RetroState
       ensure_initialized
       rows = []
 
+      pending.each do |candidate_id, title, path|
+        rows << ["candidate", candidate_id, "Review candidate: #{title.gsub(/\s+/, " ").strip}", path]
+      end
+      papercuts.each do |papercut_id, _kind, _impact, observation, path|
+        rows << ["papercut", papercut_id, "Review papercut: #{observation}", path]
+      end
       pending_verifications.each do |proposal_id, accepted_id, proposed_state, _title, path|
         trigger = "Adjudicate proposed #{proposed_state} evidence for #{accepted_id}."
         rows << ["verification-proposal", proposal_id, trigger, path]
@@ -3112,6 +3181,153 @@ module RetroState
     end
   end
 
+  def verification_context_self_test
+    Dir.mktmpdir("retro-verification-context-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = self_test_cli(root)
+      input = File.join(tmp, "input.md")
+      write = lambda do |data, body|
+        File.write(input, render_document(data, body))
+        input
+      end
+      decide = lambda do |id, verdict|
+        data, body = parse_document(store.prepare_decision(id, verdict))
+        data["rationale"] = "Disposable context fixture."
+        write.call(data, body)
+      end
+
+      candidate, body = parse_document(candidate_template)
+      candidate["title"] = "Queue\ncandidate\tfixture"
+      candidate_path = store.route(write.call(candidate, body))
+      candidate_id = File.basename(candidate_path, ".md")
+      papercut, body = parse_document(papercut_template)
+      papercut_path = store.record_papercut(papercut, body, label: "context fixture")
+      papercut_id = File.basename(papercut_path, ".md")
+      before = store.snapshot
+      rows = run.call(0, "review-queue").lines.map { |line| line.chomp.split("\t") }
+      unless rows.map { |row| row.first(2) } == [["candidate", candidate_id], ["papercut", papercut_id]] &&
+          rows.all? { |row| row.length == 4 }
+        raise "review queue did not expose complete, stable intake rows"
+      end
+      raise "review queue wrote state" unless store.snapshot == before
+      store.process(candidate_id, decide.call(candidate_id, "no-change"))
+      store.close_papercut(papercut_id, outcome: "no-action", rationale: "Fixture closed.")
+      raise "review queue retained closed intake" unless run.call(0, "review-queue").empty?
+
+      create_accepted = lambda do |destination, disposition = "implemented", verification = "unverified"|
+        File.write(input, candidate_template)
+        candidate_id = File.basename(store.route(input), ".md")
+        store.process(candidate_id, decide.call(candidate_id, "accept"))
+        data, body = parse_document(accepted_template)
+        data["originating_candidate_ids"] = [candidate_id]
+        data["destination"] = destination
+        data["disposition"] = disposition
+        data["verification"] = verification
+        data["verification_basis"] = (verification == "unverified") ? "none" : "later-session"
+        File.basename(store.record_accepted(write.call(data, body)), ".md")
+      end
+      unverified_id = create_accepted.call("Shared domain first")
+      supported_id = create_accepted.call("Other domain second")
+      retired_id = create_accepted.call("Shared domain retired", "reverted")
+      legacy_id = create_accepted.call("Shared domain legacy", "accepted", "supported")
+      propose = lambda do |id, state = "supported", supplemental = false|
+        data, body = parse_document(verification_proposal_template)
+        data["target_accepted_id"] = id
+        data["proposed_verification"] = state
+        data["claim"] = "intended-outcome"
+        data["decisive_evidence"] = ["Distinct #{id} #{state} evidence."]
+        data["what_is_false"] = "Fixture assertion failed." if state == "contradicted"
+        data["supplemental_reason"] = "A distinct fixture boundary." if supplemental
+        File.basename(store.route_verification(write.call(data, body)), ".md")
+      end
+      applied_id = propose.call(supported_id)
+      store.process_verification(applied_id, decide.call(applied_id, "apply"))
+      pending_ids = [propose.call(supported_id, "supported", true), propose.call(supported_id, "contradicted")]
+      propose.call(unverified_id)
+      before = store.snapshot
+      query = ["verification-context", "--destination", "SHARED", "--destination", "other", "--destination", "shared"]
+      first = JSON.parse(run.call(0, *query, "--limit", "1"))
+      ids = first.fetch("records").map { |record| record.fetch("id") }
+      offset = first.fetch("next_offset")
+      while offset
+        page = JSON.parse(run.call(0, *query, "--limit", "1", "--offset", offset.to_s))
+        ids.concat(page.fetch("records").map { |record| record.fetch("id") })
+        offset = page.fetch("next_offset")
+      end
+      unless first.fetch("total") == 3 && ids == [unverified_id, supported_id, legacy_id].sort
+        raise "verification discovery lost, duplicated, or reordered active outcomes"
+      end
+      all = JSON.parse(run.call(0, *query))
+      summary = all.fetch("records").find { |record| record["id"] == supported_id }
+      legacy_summary = all.fetch("records").find { |record| record["id"] == legacy_id }
+      unless all.fetch("limit") == 20 && all.fetch("next_offset").nil? &&
+          summary.fetch("verification") == "supported" && summary.key?("verification_opportunity") &&
+          summary.fetch("applied_verification_proposal_ids") == [applied_id] &&
+          legacy_summary.fetch("applied_verification_proposal_ids").empty? &&
+          summary.fetch("pending_verification_proposals").map { |proposal| proposal.fetch("verification_proposal_id") }.sort == pending_ids.sort
+        raise "verification discovery omitted evidence context or pagination limits"
+      end
+      empty = JSON.parse(run.call(0, "verification-context", "--destination", "unrelated"))
+      past_end = JSON.parse(run.call(0, *query, "--offset", "99"))
+      unless empty.fetch("total").zero? && empty.fetch("records").empty? &&
+          past_end.fetch("records").empty? && past_end.fetch("next_offset").nil?
+        raise "empty verification discovery reported misleading coverage"
+      end
+      detail = JSON.parse(run.call(0, "verification-context", "--id", supported_id, "--id", unverified_id, "--id", supported_id))
+      records = detail.fetch("records")
+      applied = records.first.fetch("applied_verification_proposals")
+      unless records.map { |record| record.dig("accepted", "id") } == [supported_id, unverified_id] &&
+          applied.first.fetch("id") == applied_id && applied.first.dig("frontmatter", "claim") == "intended-outcome" &&
+          !applied.first.fetch("body").empty? &&
+          records.first.fetch("pending_verification_proposals").map { |proposal| proposal.fetch("id") }.sort == pending_ids.sort
+        raise "verification details lost selected order, claim, original evidence, or pending proposals"
+      end
+      historical = JSON.parse(run.call(0, "verification-context", "--id", retired_id, "--id", legacy_id))
+      unless historical.fetch("records").first.dig("accepted", "frontmatter", "disposition") == "reverted" &&
+          historical.fetch("records").last.fetch("applied_verification_proposals").empty?
+        raise "verification detail hid historical or legacy evidence limits"
+      end
+      %w[review-queue verification-context].each do |command|
+        raise "missing context help" unless run.call(0, command, "--help").include?("Usage: retro-state.rb #{command}")
+      end
+      run.call(2, "verification-context", error: "choose --destination TEXT or --id SCR-ID")
+      run.call(2, *query, "--id", supported_id, error: "choose --destination TEXT or --id SCR-ID")
+      run.call(2, "verification-context", "--destination", " ", error: "--destination must not be blank")
+      run.call(2, *query, "--limit", "0", error: "--limit must be positive")
+      run.call(2, *query, "--offset", "-1", error: "--offset must be nonnegative")
+      run.call(2, *query, "--limit", "bad", error: "invalid argument")
+      run.call(2, "verification-context", "--id", supported_id, "--limit", "1", error: "apply only to destination discovery")
+      run.call(2, "review-queue", "--limit", "1", error: "--limit is not valid")
+      run.call(1, "verification-context", "--id", "../escape", error: "invalid record ID")
+      run.call(1, "verification-context", "--id", candidate_id, error: "invalid accepted_id")
+      run.call(1, "verification-context", "--id", supported_id, "--id", "SCR-20000101-000000", error: "record not found")
+      raise "context retrieval wrote state" unless store.snapshot == before
+
+      path = File.join(root, "retrospectives", "accepted", "#{supported_id}.md")
+      original = File.read(path)
+      File.write(path, "---\ninvalid: [\n---\n")
+      run.call(1, "verification-context", "--id", supported_id, error: "invalid YAML frontmatter")
+      File.write(path, original)
+      data, body = read_document(path)
+      data["applied_verification_proposal_ids"] = ["VP-20000101T000000Z-000000"]
+      File.write(path, render_document(data, body))
+      run.call(1, "verification-context", "--id", supported_id, error: "unarchived verification proposal")
+      File.write(path, original)
+      proposal_path = File.join(root, "verifications", "archive", "#{applied_id}.md")
+      proposal_original = File.read(proposal_path)
+      proposal, body = read_document(proposal_path)
+      proposal["target_accepted_id"] = unverified_id
+      proposal["intake_digest"] = Digest::SHA256.hexdigest(render_document(without_keys(proposal, "intake_digest", "triage"), body))
+      File.write(proposal_path, render_document(proposal, body))
+      run.call(1, "verification-context", "--id", supported_id, error: "mismatched verification proposal")
+      File.write(proposal_path, proposal_original)
+      raise "failed context retrieval wrote state" unless store.snapshot == before
+      store.validate
+    end
+  end
+
   def preparation_self_test
     Dir.mktmpdir("retro-preparation-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
@@ -3713,6 +3929,7 @@ module RetroState
   def self_test
     transition_recovery_self_test
     inspection_self_test
+    verification_context_self_test
     preparation_self_test
     Dir.mktmpdir("retro-state-self-test.") do |tmp|
       root = File.join(tmp, "state")
@@ -5413,6 +5630,40 @@ def usage(command = nil)
 
       Print TSV: identity, disposition, verification, destination, expected behavior, path.
     TEXT
+  when "verification-context"
+    <<~TEXT
+      Usage: retro-state.rb verification-context --destination TEXT [--destination TEXT ...]
+                                                [--limit N] [--offset N] [--root DIR]
+             retro-state.rb verification-context --id SCR-ID [--id SCR-ID ...] [--root DIR]
+
+      Discovery matches any case-insensitive destination substring, once per accepted
+      identity. Includes accepted/implemented outcomes in every verification state.
+      Print JSON {root, mode, destinations, total, limit, offset, next_offset, records}.
+      Default limit: 20; positive --limit and nonnegative --offset page stable ID order.
+      Summaries include the exact opportunity, verification basis, applied proposal IDs,
+      and pending proposal IDs/states/claims. Follow next_offset when more relevant
+      records remain; do not treat the first page as complete coverage.
+
+      With explicit IDs, print JSON {root, mode, records}: each record contains accepted,
+      applied_verification_proposals, and pending_verification_proposals. These contain
+      complete {id, path, frontmatter, body} records, including original evidence and
+      claims. Historical dispositions remain inspectable by ID. Legacy support without
+      proposal provenance returns an empty applied list; do not infer a stronger claim.
+      Choose destinations or IDs; pagination applies only to discovery. Does not judge
+      relevance, opportunity match, supplementation, or effectiveness. Use validate
+      separately for full state validation; reads are not an atomic snapshot.
+    TEXT
+  when "review-queue"
+    <<~TEXT
+      Usage: retro-state.rb review-queue [--root DIR]
+
+      Print TSV: type, identity, review trigger or intake summary, path.
+      Includes pending candidates, open papercuts, verification proposals, deferrals,
+      contradictions, drafts, ledgers, publication gaps, and a due artifact audit.
+      Detailed intake commands remain available as filtered views. Queue presence
+      neither authorizes processing nor requires draining unrelated intake. Use
+      validate separately for full state validation.
+    TEXT
   end
   if details
     return details + "\n--root defaults to #{RetroState::STATE_ENV}. These commands do not write state.\n"
@@ -5458,6 +5709,8 @@ def usage(command = nil)
                                         Match case-insensitive substrings in destinations or metadata/body
       verification-opportunities [--destination TEXT]
                                         List unverified outcomes; final column is pending support IDs:claims
+      verification-context --destination TEXT ... | --id SCR-ID ...
+                                        Page active outcomes or retrieve selected verification evidence
       record-draft --file PATH          Store an uninstalled draft
       record-ledger --file PATH         Store a maintenance ledger entry
       close-ledger --id ID --rationale TEXT
@@ -5467,7 +5720,7 @@ def usage(command = nil)
       audits                            List completed system audits
       artifact-audit-status [--archive-threshold N]
                                         Report machine-owned artifact-audit cadence
-      review-queue                      List unresolved executable learning work
+      review-queue                      List all intake and unresolved executable learning work
       validate                          Validate the configured live state
       self-test                         Exercise the protocol in a temporary directory
 
@@ -5512,6 +5765,7 @@ def reject_inapplicable_options!(command, provided)
     "update-accepted" => %w[--root --id --file],
     "accepted-records" => %w[--root --destination --text --active-supported],
     "verification-opportunities" => %w[--root --destination],
+    "verification-context" => %w[--root --destination --id --limit --offset],
     "record-draft" => %w[--root --file],
     "record-ledger" => %w[--root --file],
     "close-ledger" => %w[--root --id --rationale],
@@ -5541,7 +5795,7 @@ commands = %w[
   close-papercut route pending process
   route-verification pending-verifications process-verification
   reconsider record-accepted update-accepted record-draft record-ledger close-ledger
-  accepted-records verification-opportunities record-audit audits artifact-audit-status
+  accepted-records verification-opportunities verification-context record-audit audits artifact-audit-status
   review-queue validate self-test
 ]
 unless commands.include?(command)
@@ -5563,8 +5817,13 @@ verdict = nil
 related_papercut_id = nil
 related_candidate_id = nil
 destination_filter = nil
+destination_filters = []
 text_filter = nil
 active_supported = false
+context_limit = 20
+context_offset = 0
+context_limit_explicit = false
+context_offset_explicit = false
 archive_threshold = RetroState::ARTIFACT_AUDIT_ARCHIVE_THRESHOLD
 archive_threshold_explicit = false
 parser = OptionParser.new do |opts|
@@ -5582,9 +5841,20 @@ parser = OptionParser.new do |opts|
   opts.on("--verdict VERDICT") { |value| verdict = value }
   opts.on("--related-papercut-id ID") { |value| related_papercut_id = value }
   opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
-  opts.on("--destination TEXT") { |value| destination_filter = value }
+  opts.on("--destination TEXT") do |value|
+    destination_filter = value
+    destination_filters << value
+  end
   opts.on("--text TEXT") { |value| text_filter = value }
   opts.on("--active-supported") { active_supported = true }
+  opts.on("--limit N", Integer) do |value|
+    context_limit = value
+    context_limit_explicit = true
+  end
+  opts.on("--offset N", Integer) do |value|
+    context_offset = value
+    context_offset_explicit = true
+  end
   opts.on("--archive-threshold N", Integer) do |value|
     archive_threshold = value
     archive_threshold_explicit = true
@@ -5615,6 +5885,8 @@ begin
       "--destination" => !destination_filter.nil?,
       "--text" => !text_filter.nil?,
       "--active-supported" => active_supported,
+      "--limit" => context_limit_explicit,
+      "--offset" => context_offset_explicit,
       "--archive-threshold" => archive_threshold_explicit
     }
   )
@@ -5630,6 +5902,20 @@ begin
   end
   if command == "prepare-decision" && !verdict
     raise OptionParser::MissingArgument, "--verdict VERDICT"
+  end
+  if command == "verification-context"
+    if destination_filters.empty? == record_ids.empty?
+      raise OptionParser::InvalidArgument, "choose --destination TEXT or --id SCR-ID"
+    end
+    if destination_filters.any? { |destination| destination.strip.empty? }
+      raise OptionParser::InvalidArgument, "--destination must not be blank"
+    end
+    unless context_limit.positive? && context_offset >= 0
+      raise OptionParser::InvalidArgument, "--limit must be positive and --offset must be nonnegative"
+    end
+    if !record_ids.empty? && (context_limit_explicit || context_offset_explicit)
+      raise OptionParser::InvalidArgument, "--limit and --offset apply only to destination discovery"
+    end
   end
   if command == "record-audit"
     raise OptionParser::MissingArgument, "--file PATH or --id LA-ID" unless input_path || record_id
@@ -5798,6 +6084,11 @@ begin
       store.verification_opportunities(destination: destination_filter).each do |row|
         puts row.join("\t")
       end
+    when "verification-context"
+      puts JSON.pretty_generate(store.verification_context(
+        destinations: destination_filters, record_ids: record_ids,
+        limit: context_limit, offset: context_offset
+      ))
     when "record-draft"
       raise RetroState::Error, "record-draft requires --file PATH" unless input_path
 

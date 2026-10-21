@@ -223,7 +223,7 @@ accepted identity.
 
 ## Triage And Archive
 
-Triage reads `pending`, re-reads the named destination, and judges every
+Triage inspects `review-queue`, re-reads the named destination, and judges every
 candidate independently. Verdicts are `accept`, `defer`, `reject`, `split`,
 `merge`, or `no-change`. By default, present verdicts and the proposed public
 implementation batch before editing source.
@@ -231,7 +231,7 @@ implementation batch before editing source.
 Query `accepted-records` before a possible repeat or destination-repair verdict.
 It searches all dispositions and states by case-insensitive literal substring:
 `--destination` matches destinations; `--text` matches selected metadata and the Markdown body,
-including headings. The evidence queue includes only unverified outcomes.
+including headings. This complete identity lookup also covers inactive outcomes.
 
 Use `prepare-decision --id ID --verdict VERDICT`, complete the draft, then use `process` to
 attach the decision and move the record from inbox to archive. The intake
@@ -282,9 +282,11 @@ trigger. The helper continues to validate assigned legacy records that predate
 this contract, but every new helper-created actor and every replacement
 deferral must use it.
 
-Use `review-queue` to list pending verification proposals, open archived
-deferrals, contradicted accepted outcomes, drafts, ledger actions, accepted
-publication gaps, and a due artifact audit. An `accepted-publication` row means
+Use `review-queue` as the complete intake and action inventory: pending candidates, open papercuts,
+verification proposals, archived deferrals, contradicted accepted outcomes, drafts, ledger actions,
+accepted publication gaps, and a due artifact audit. Detailed intake commands remain available for
+focused views. Queue presence does not authorize processing or require draining unrelated intake.
+An `accepted-publication` row means
 an archived `accept` or
 `split`, or a `merge` into a publication-bound related outcome, is absent from
 every accepted record. A merge into only deferred, rejected, or no-change
@@ -332,14 +334,18 @@ evidence may support conformance to the guidance or occurrence of the intended
 outcome. Neither basis establishes comparative improvement without an observed
 comparator.
 
-Use `verification-opportunities --destination TEXT` as a pull query only for
-destinations materially involved in a completed task. Its final column lists
-pending support IDs and claims; the first four columns remain identity,
-destination, opportunity, and path. Read pending support before constructing
-another positive proposal. Another conforming task alone need not add evidence
-that changes adjudication. When the task produces decisive evidence for the
-target's exact opportunity, create `template verification` and route it with
-`route-verification`. A proposal names one
+Use `verification-context --destination TEXT` for bounded discovery across destinations materially
+involved in a completed task. Repeat filters to combine destinations without duplicate identities.
+It includes active outcomes in every verification state. See `--help` for limits, pagination, and
+output fields; follow `next_offset` when more relevant records remain. Expand selected identities
+with `verification-context --id ID` to retrieve the accepted record and complete applied and pending
+proposals together. Read their exact opportunities, claims, and evidence before constructing
+support. Legacy support without proposal provenance remains limited to the retained evidence.
+The command retrieves context without judging relevance, opportunity match, or supplementation.
+
+When the task produces decisive evidence for the target's exact opportunity, create
+`template verification` and route it with `route-verification`. Another conforming task alone need
+not add evidence that changes adjudication. A proposal names one
 `target_accepted_id`, proposes `supported` or `contradicted`, selects
 `later-session` or `deterministic-test`, records the opportunity match and
 observation, and classifies its claim as one of:
@@ -351,14 +357,13 @@ intended-outcome
 comparative-improvement
 ```
 
-For supplemental support discovery, use `accepted-records --active-supported --destination TEXT`.
-The filter includes only `accepted` and `implemented` dispositions with `verification: supported`;
-omit it for broader investigations.
+The narrower `verification-opportunities` and `accepted-records --active-supported` views remain
+available; ordinary checkpoints use `verification-context` to avoid reconstructing their join.
 
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query to locate the
-applicable identity, including a supported record, then read its exact
-`verification_opportunity`. Route a contradiction only when the evidence
+applicable identity across all dispositions, then expand it with `verification-context --id ID`.
+Route a contradiction only when the evidence
 addresses that record's claim and opportunity. Use a candidate when the
 decision itself changes.
 
@@ -370,7 +375,7 @@ A different task or claim label alone is insufficient. Omit redundant support;
 preserve useful supplements and contradictions. Route one proposal per file.
 A query hit creates no obligation; routing authority creates only a new inbox file.
 
-Triage lists proposals with `pending-verifications`, prepares `apply` or
+Triage selects proposals from `review-queue`, prepares `apply` or
 `reject` using `prepare-decision`, completes the rationale, and records the result with
 `process-verification`. Apply only to an `accepted` or `implemented` target and
 only for these transitions:
