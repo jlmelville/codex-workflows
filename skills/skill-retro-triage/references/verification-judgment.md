@@ -1,9 +1,9 @@
 # Verification Judgment
 
 Use for verification proposals and contradicted accepted outcomes. Apply the
-parent skill's authority and shared evidence rules. Use `verification-context --id ID` to read the
-target accepted record, its exact opportunity, and applied and pending proposals together, then read
-the protocol's
+parent skill's authority and shared evidence rules. Pass an accepted ID or a proposal ID from
+`review-queue` to `verification-context --id ID` to read the target, its exact opportunity, and
+selected, applied, and pending proposals together, then read the protocol's
 [Accepted Records And Verification](../../skill-retro/references/state-protocol.md#accepted-records-and-verification)
 for evidence bases, typed decisions, eligible transitions, and identity rules.
 

@@ -325,9 +325,10 @@ Basis:        none | later-session | deterministic-test
 After the public commit exists, use `prepare-accepted --id RC-ID --commit SHA` for a new outcome.
 It prepares known linkage and prior candidate context while leaving outcome judgments incomplete;
 see `--help` for multiple origins, split outcomes, commits, and defaults. Complete the blank fields,
-curate evidence and preparation context, verify the final destination and public commit, and review
-redaction before submitting with `record-accepted`. Preparation writes no state and establishes
-neither implementation nor behavioral verification. For an existing identity, use
+curate evidence, verify the final destination and public commit, and review redaction before
+submitting with `record-accepted`. Recording automatically discards preparation comments and prior
+context. Preparation writes no state and establishes neither implementation nor behavioral
+verification. For an existing identity, use
 `prepare-accepted-update` and `update-accepted` under the rules below.
 
 Static validation of a prose or trigger edit can justify `implemented`; it does
@@ -345,10 +346,11 @@ comparator.
 Use `verification-context --destination TEXT` for bounded discovery across destinations materially
 involved in a completed task. Repeat filters to combine destinations without duplicate identities.
 It includes active outcomes in every verification state. See `--help` for limits, pagination, and
-output fields; follow `next_offset` when more relevant records remain. Expand selected identities
-with `verification-context --id ID` to retrieve the accepted record and complete applied and pending
-proposals together. Read their exact opportunities, claims, and evidence before constructing
-support. Legacy support without proposal provenance remains limited to the retained evidence.
+output fields; follow `next_offset` when more relevant records remain. Expand accepted or proposal
+IDs, including proposal IDs directly from `review-queue`, with `verification-context --id ID`.
+It retrieves the target accepted record and selected, applied, and pending proposals together.
+Read their exact opportunities, claims, and evidence before constructing support. Legacy support
+without proposal provenance remains limited to the retained evidence.
 The command retrieves context without judging relevance, opportunity match, or supplementation.
 
 When the task produces decisive evidence for the target's exact opportunity, create
