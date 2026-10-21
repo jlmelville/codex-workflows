@@ -1447,6 +1447,70 @@ module RetroState
       RetroState.render_document(decision, decision_body)
     end
 
+    def prepare_accepted(record_ids, commits)
+      raise Error, "prepare-accepted requires candidate IDs and public commit SHAs" if record_ids.empty? || commits.empty?
+      unless commits.all? { |commit| commit.match?(/\A[0-9a-fA-F]{7,64}\z/) }
+        raise Error, "prepare-accepted requires hexadecimal commit SHAs of 7 to 64 characters"
+      end
+
+      records = show(record_ids).fetch("records")
+      candidates = records.map do |record|
+        id = record.fetch("id")
+        path = File.join(root, record.fetch("path"))
+        unless path == candidate_path("archive", id)
+          raise Error, "prepare-accepted requires archived candidates: #{id}"
+        end
+        data = record.fetch("frontmatter")
+        RetroState.validate_candidate(data, record.fetch("body"), label: path, routed: true, archived: true)
+        raise Error, "record identity does not match #{id}" unless data.fetch("candidate_id") == id
+
+        data
+      end
+      ancestry = if candidates.any? { |candidate| candidate.dig("triage", "verdict") == "merge" }
+        archived_candidates.to_h { |_path, candidate| [candidate.fetch("candidate_id"), candidate] }
+      else
+        {}
+      end
+      candidates.each do |candidate|
+        unless accepted_publication_expected?(candidate.fetch("triage"), ancestry)
+          raise Error, "candidate has no accepted publication outcome: #{candidate.fetch("candidate_id")}"
+        end
+      end
+
+      draft, = RetroState.parse_document(RetroState.accepted_template)
+      draft["originating_candidate_ids"] = records.map { |record| record.fetch("id") }
+      draft["implementation_commits"] = commits.map(&:downcase).uniq
+      %w[
+        source_report_summary expected_behavior observed_behavior trigger non_trigger
+        destination verification_opportunity redaction_review
+      ].each { |field| draft[field] = "" }
+      draft["decisive_evidence"] = []
+      context = candidates.map do |candidate|
+        candidate.slice(
+          "candidate_id", "title", "evidence_lineage", "evidence_lineage_note",
+          "observation", "decisive_evidence", "proposed_destination", "triage"
+        )
+      end
+      body = <<~MARKDOWN
+        # Accepted record draft
+
+        Complete the blank outcome fields, curate decisive evidence, and review redaction before
+        submitting with record-accepted. Verify the supplied public commits and final destination.
+        Defaults remain accepted and unverified; source publication alone establishes no benefit.
+
+        ## Prior candidate context
+
+        This context preserves intake evidence and reviewed triage. Proposed destinations may have
+        been narrowed during review. It does not establish the implemented outcome or verification.
+        Curate or remove this preparation context before recording the final accepted document.
+
+        ```yaml
+        #{YAML.dump(context).rstrip}
+        ```
+      MARKDOWN
+      RetroState.render_document(draft, body)
+    end
+
     def prepare_accepted_update(id)
       record = show([id]).fetch("records").first
       data = record.fetch("frontmatter")
@@ -3328,6 +3392,112 @@ module RetroState
     end
   end
 
+  def accepted_preparation_self_test
+    Dir.mktmpdir("retro-accepted-preparation-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = self_test_cli(root)
+      input = File.join(tmp, "input.md")
+      write = lambda do |data, body|
+        File.write(input, render_document(data, body))
+        input
+      end
+      archive = lambda do |verdict, related_ids = []|
+        candidate, body = parse_document(candidate_template)
+        candidate["observation"] = "Known prior observation."
+        candidate["proposed_destination"] = "Original broad proposal, subject to review."
+        path = store.route(write.call(candidate, body))
+        id = File.basename(path, ".md")
+        decision, body = parse_document(store.prepare_decision(id, verdict))
+        decision["rationale"] = "Reviewed narrow outcome; the original proposal is not authoritative."
+        decision["related_candidate_ids"] = related_ids
+        store.process(id, write.call(decision, body))
+        id
+      end
+      accepted_origin = archive.call("accept")
+      split_origin = archive.call("split")
+      merged_origin = archive.call("merge", [accepted_origin])
+      rejected_origin = archive.call("reject")
+      nonpublication_merge = archive.call("merge", [rejected_origin])
+      deferred_origin = archive.call("defer")
+      before = store.snapshot
+      command = ["prepare-accepted", "--id", accepted_origin, "--id", split_origin, "--id", accepted_origin,
+        "--commit", "ABCDEF0", "--commit", "1234567", "--commit", "abcdef0"]
+      output = run.call(0, *command)
+      draft, body = parse_document(output)
+      blank_fields = %w[
+        source_report_summary expected_behavior observed_behavior trigger non_trigger
+        destination verification_opportunity redaction_review
+      ]
+      unless draft.fetch("originating_candidate_ids") == [accepted_origin, split_origin] &&
+          draft.fetch("implementation_commits") == %w[abcdef0 1234567] &&
+          draft.values_at("disposition", "verification", "verification_basis") == %w[accepted unverified none] &&
+          blank_fields.all? { |field| draft.fetch(field) == "" } && draft.fetch("decisive_evidence").empty? &&
+          !draft.key?("accepted_id") && !draft.key?("accepted_at")
+        raise "new accepted preparation inferred outcome judgments or lost explicit linkage"
+      end
+      unless body.include?("Known prior observation.") && body.include?("Reviewed narrow outcome") &&
+          body.include?("Original broad proposal") && body.include?("decisive_evidence")
+        raise "new accepted preparation lost prior evidence or reviewed scope"
+      end
+      merged, = parse_document(run.call(0, "prepare-accepted", "--id", merged_origin, "--commit", "abcdef0"))
+      raise "publication-bound merge was lost" unless merged.fetch("originating_candidate_ids") == [merged_origin]
+      File.write(input, output)
+      run.call(1, "record-accepted", "--file", input, error: "source_report_summary must be a non-empty string")
+      run.call(2, "prepare-accepted", "--commit", "abcdef0", error: "missing argument: --id RC-ID")
+      run.call(2, "prepare-accepted", "--id", accepted_origin, error: "missing argument: --commit SHA")
+      run.call(2, "prepare-accepted-update", "--id", accepted_origin, "--commit", "abcdef0", error: "--commit is not valid")
+      ["HEAD", "abcdef", "g" * 40, "a" * 65, ""].each do |invalid|
+        run.call(1, "prepare-accepted", "--id", accepted_origin, "--commit", invalid, error: "hexadecimal commit SHAs")
+      end
+      [rejected_origin, nonpublication_merge, deferred_origin].each do |id|
+        run.call(1, "prepare-accepted", "--id", id, "--commit", "abcdef0", error: "no accepted publication outcome")
+      end
+      run.call(1, "prepare-accepted", "--id", "../escape", "--commit", "abcdef0", error: "invalid record ID")
+      run.call(1, "prepare-accepted", "--id", accepted_origin, "--id", "RC-20000101T000000Z-000000",
+        "--commit", "abcdef0", error: "record not found")
+      raise "new accepted preparation wrote state" unless store.snapshot == before
+
+      path = File.join(root, "retrospectives", "archive", "#{accepted_origin}.md")
+      original = File.read(path)
+      File.write(path, original.sub("Known prior observation.", "Tampered prior observation."))
+      run.call(1, *command, error: "intake fields changed after routing")
+      File.write(path, "---\ninvalid: [\n---\n")
+      run.call(1, *command, error: "invalid YAML frontmatter")
+      File.write(path, original)
+      raise "failed accepted preparation wrote state" unless store.snapshot == before
+
+      template, = parse_document(accepted_template)
+      blank_fields.each { |field| draft[field] = template.fetch(field) }
+      draft["decisive_evidence"] = ["Reviewed fixture implementation evidence."]
+      accepted_path = store.record_accepted(write.call(draft, "# Curated accepted outcome\n"))
+      accepted_id = File.basename(accepted_path, ".md")
+      recorded, = read_document(accepted_path)
+      unless recorded.fetch("originating_candidate_ids") == [accepted_origin, split_origin] &&
+          recorded.fetch("implementation_commits") == %w[abcdef0 1234567]
+        raise "completed accepted draft did not round-trip explicit linkage"
+      end
+      before = store.snapshot
+      another, = parse_document(run.call(0, "prepare-accepted", "--id", split_origin, "--commit", "abcdef1"))
+      unless another.fetch("originating_candidate_ids") == [split_origin]
+        raise "new accepted preparation consumed a split origin"
+      end
+      run.call(1, "prepare-accepted", "--id", accepted_id, "--commit", "abcdef0", error: "invalid candidate_id")
+      File.write(input, candidate_template)
+      pending_id = File.basename(store.route(input), ".md")
+      before_pending = store.snapshot
+      run.call(1, "prepare-accepted", "--id", pending_id, "--commit", "abcdef0", error: "requires archived candidates")
+      raise "pending-origin refusal wrote state" unless store.snapshot == before_pending
+      File.unlink(File.join(root, "retrospectives", "inbox", "#{pending_id}.md"))
+      unless run.call(0, "prepare-accepted", "--help").include?("Usage: retro-state.rb prepare-accepted") &&
+          store.snapshot == before
+        raise "accepted preparation changed state or omitted focused help"
+      end
+      store.validate
+    end
+  end
+
   def preparation_self_test
     Dir.mktmpdir("retro-preparation-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
@@ -3930,6 +4100,7 @@ module RetroState
     transition_recovery_self_test
     inspection_self_test
     verification_context_self_test
+    accepted_preparation_self_test
     preparation_self_test
     Dir.mktmpdir("retro-state-self-test.") do |tmp|
       root = File.join(tmp, "state")
@@ -5581,6 +5752,26 @@ def usage(command = nil)
       Rationale is blank: fill it, any defer fields, and related IDs before review.
       Submit separately through process, reconsider, or process-verification.
     TEXT
+  when "prepare-accepted"
+    <<~TEXT
+      Usage: retro-state.rb prepare-accepted --id RC-ID [--id RC-ID ...]
+                                            --commit SHA [--commit SHA ...] [--root DIR]
+
+      Print an incomplete Markdown/YAML draft for a new accepted record. Select archived
+      publication-bound candidates; accept/split verdicts and qualifying merge ancestry
+      use the same publication rules as review-queue. Multiple origins and split outcomes
+      remain supported; existing accepted records do not consume an origin.
+
+      Deduplicate selected IDs and commits. Commit SHAs must be 7-64 hexadecimal digits;
+      this checks their shape, not existence, publication, or relationship to the outcome.
+      No Git command or network access runs, and no accepted identity is allocated.
+      Defaults: disposition accepted, verification unverified, basis none. Outcome fields,
+      decisive evidence, and redaction review remain incomplete and cannot be recorded as-is.
+      The body includes prior evidence and reviewed triage as preparation context; proposed
+      destinations are not treated as final. Complete and curate the draft after verifying
+      the public commits, then submit separately with record-accepted --file PATH.
+      Use prepare-accepted-update for an existing accepted identity.
+    TEXT
   when "prepare-accepted-update"
     <<~TEXT
       Usage: retro-state.rb prepare-accepted-update --id SCR-ID [--root DIR]
@@ -5680,6 +5871,8 @@ def usage(command = nil)
       compare --file PATH              Compare inventory; optional --allow-path PATH
       prepare-decision --id ID --verdict VERDICT
                                         Print an editable candidate or verification decision
+      prepare-accepted --id RC-ID ... --commit SHA ...
+                                        Prepare a new accepted-record draft from archived candidates
       prepare-accepted-update --id ID  Print an editable accepted-record replacement
       init                              Initialize the configured state root
       template TYPE                    Print a papercut, papercut-repair, candidate, decision,
@@ -5743,6 +5936,7 @@ def reject_inapplicable_options!(command, provided)
     "snapshot" => %w[--root],
     "compare" => %w[--root --file --allow-path],
     "prepare-decision" => %w[--root --id --verdict],
+    "prepare-accepted" => %w[--root --id --commit],
     "prepare-accepted-update" => %w[--root --id],
     "init" => %w[--root],
     "template" => [],
@@ -5790,7 +5984,7 @@ end
 command = ARGV.shift
 commands = %w[
   show snapshot compare
-  prepare-decision prepare-accepted-update
+  prepare-decision prepare-accepted prepare-accepted-update
   init template record-papercut prepare-papercut-repair repair-papercut papercuts
   close-papercut route pending process
   route-verification pending-verifications process-verification
@@ -5808,6 +6002,7 @@ root_override = nil
 input_path = nil
 record_id = nil
 record_ids = []
+implementation_commits = []
 allowed_paths = []
 decision_path = nil
 archive = false
@@ -5833,6 +6028,7 @@ parser = OptionParser.new do |opts|
     record_id = value
     record_ids << value
   end
+  opts.on("--commit SHA") { |value| implementation_commits << value }
   opts.on("--allow-path PATH") { |value| allowed_paths << value }
   opts.on("--decision PATH") { |value| decision_path = value }
   opts.on("--archive") { archive = true }
@@ -5874,6 +6070,7 @@ begin
       "--root" => !root_override.nil?,
       "--file" => !input_path.nil?,
       "--id" => !record_id.nil?,
+      "--commit" => !implementation_commits.empty?,
       "--allow-path" => !allowed_paths.empty?,
       "--decision" => !decision_path.nil?,
       "--archive" => archive,
@@ -5902,6 +6099,10 @@ begin
   end
   if command == "prepare-decision" && !verdict
     raise OptionParser::MissingArgument, "--verdict VERDICT"
+  end
+  if command == "prepare-accepted"
+    raise OptionParser::MissingArgument, "--id RC-ID" if record_ids.empty?
+    raise OptionParser::MissingArgument, "--commit SHA" if implementation_commits.empty?
   end
   if command == "verification-context"
     if destination_filters.empty? == record_ids.empty?
@@ -5974,6 +6175,8 @@ begin
     case command
     when "prepare-decision"
       print store.prepare_decision(record_id, verdict)
+    when "prepare-accepted"
+      print store.prepare_accepted(record_ids, implementation_commits)
     when "prepare-accepted-update"
       print store.prepare_accepted_update(record_id)
     when "show"

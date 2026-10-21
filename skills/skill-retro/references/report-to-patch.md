@@ -78,11 +78,16 @@ Activate, revise, or deprecate fired drafts.
 
 ## External Accepted Record
 
-After the public commit exists, read [Accepted Records And Verification](state-protocol.md#accepted-records-and-verification)
-and create or update a concise accepted record. Store plural `originating_candidate_ids`, sanitized evidence,
-destination, trigger and non-trigger, verification opportunity, disposition,
-verification state and basis, applied proposal provenance, and known
-implementation commits.
+After the public commit exists, read
+[Accepted Records And Verification](state-protocol.md#accepted-records-and-verification).
+For a new outcome, use `prepare-accepted --id RC-ID --commit SHA`; repeat origins and commits when
+needed, and see `--help`. Complete the blank outcome fields and judge the final destination and
+evidence. Curate the prior candidate context before submitting with `record-accepted`. The draft
+preserves known linkage without treating the original proposal as the implemented outcome. For an
+existing identity, use `prepare-accepted-update` and `update-accepted` instead.
+
+Store sanitized evidence, destination, trigger and non-trigger, verification opportunity,
+disposition, verification state and basis, applied proposal provenance, and known public commits.
 
 Keep disposition and verification independent. A static validation pass for a
 prose or routing edit does not prove the guidance worked later. Use

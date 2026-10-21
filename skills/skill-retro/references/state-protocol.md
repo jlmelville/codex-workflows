@@ -322,6 +322,14 @@ Verification: unverified | supported | contradicted
 Basis:        none | later-session | deterministic-test
 ```
 
+After the public commit exists, use `prepare-accepted --id RC-ID --commit SHA` for a new outcome.
+It prepares known linkage and prior candidate context while leaving outcome judgments incomplete;
+see `--help` for multiple origins, split outcomes, commits, and defaults. Complete the blank fields,
+curate evidence and preparation context, verify the final destination and public commit, and review
+redaction before submitting with `record-accepted`. Preparation writes no state and establishes
+neither implementation nor behavioral verification. For an existing identity, use
+`prepare-accepted-update` and `update-accepted` under the rules below.
+
 Static validation of a prose or trigger edit can justify `implemented`; it does
 not prove the guidance improved a later session. Use `deterministic-test` only
 for executable contracts actually exercised. Use `later-session` only for an
