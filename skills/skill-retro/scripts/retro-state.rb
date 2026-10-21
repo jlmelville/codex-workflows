@@ -1156,11 +1156,8 @@ module RetroState
       verdict: reject # #{VERIFICATION_PROPOSAL_VERDICTS.join(", ")}
       rationale: "Why the evidence does or does not support the target's exact opportunity."
       reviewed_at: "YYYY-MM-DDTHH:MM:SSZ"
+      # Optional adjudication notes may follow the closing frontmatter; omit when unused.
       ---
-
-      # Verification decision
-
-      Optional concise adjudication notes.
     MARKDOWN
   end
 
@@ -1214,20 +1211,18 @@ module RetroState
       reviewed_at: "YYYY-MM-DDTHH:MM:SSZ"
       related_candidate_ids: []
       review_trigger_contract_version: 1
-      unresolved_decision: "Decision that current evidence cannot justify."
+      unresolved_decision: "" # Decision that current evidence cannot justify.
       review_trigger_type: explicit-input # #{REVIEW_TRIGGER_TYPES.join(", ")}
       review_trigger_observer: skill-retro-triage # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
       review_trigger_route: review-queue
-      review_trigger_probe: "Confirm the named input is present in the current triage request."
-      review_trigger_input: "Specific evidence or decision the user must supply."
-      review_trigger: "Required for defer; remove for other verdicts."
-      next_action: "Required for defer; remove for other verdicts."
-      close_condition: "Required for defer; remove for other verdicts."
+      review_trigger_probe: "" # Exact check the observer performs.
+      review_trigger_input: "" # Specific input that must be supplied.
+      review_trigger: "" # Durable predicate that fires the action.
+      next_action: "" # Executable action after the predicate is observed.
+      close_condition: "" # Condition that resolves the action.
+      # Complete the blanks for defer; remove all deferral contract fields for other verdicts.
+      # Optional implementation-batch notes may follow the closing frontmatter; omit when unused.
       ---
-
-      # Triage decision
-
-      Optional concise implementation-batch notes.
     MARKDOWN
   end
 
@@ -3602,6 +3597,7 @@ module RetroState
         decision, body = parse_document(store.prepare_decision(id, verdict))
         decision["rationale"] = rationale
         decision["related_candidate_ids"] = related_ids
+        decision.merge!(self_test_deferral_fields) if verdict == "defer"
         store.process(id, write.call(decision, body))
         id
       end
@@ -3733,6 +3729,17 @@ module RetroState
     end
   end
 
+  def self_test_deferral_fields
+    {
+      "unresolved_decision" => "Whether the proposed guidance covers a second independent task.",
+      "review_trigger_probe" => "Inspect the current triage request for an independent task observation.",
+      "review_trigger_input" => "A second independent task observation supplied to triage.",
+      "review_trigger" => "A second independent task observation is available in the triage request.",
+      "next_action" => "Compare the new observation with the proposed guidance and choose a terminal verdict.",
+      "close_condition" => "A terminal verdict replaces this deferral."
+    }
+  end
+
   def preparation_self_test
     Dir.mktmpdir("retro-preparation-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
@@ -3741,6 +3748,10 @@ module RetroState
       run = self_test_cli(root)
       input = File.join(tmp, "input.md")
       decision_file = File.join(tmp, "decision.md")
+      {"decision" => decision_template, "verification-decision" => verification_decision_template}.each do |type, text|
+        _data, body = parse_document(text)
+        raise "#{type} template emitted placeholder notes" unless body.empty?
+      end
       File.write(input, candidate_template)
       candidate = store.route(input)
       id = File.basename(candidate, ".md")
@@ -3757,7 +3768,11 @@ module RetroState
         raise unless e.message.include?("rationale must be a non-empty string")
       end
       deferred, = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "defer"))
-      validate_review_trigger_contract(deferred, "defer scaffold", legacy_allowed: false)
+      unless self_test_deferral_fields.keys.all? { |field| deferred.fetch(field).empty? } &&
+          deferred.values_at("review_trigger_contract_version", "review_trigger_type", "review_trigger_observer", "review_trigger_route") ==
+              [1, "explicit-input", "skill-retro-triage", "review-queue"]
+        raise "deferral preparation supplied judgment or lost safe structural defaults"
+      end
       run.call(2, "prepare-decision", "--id", id, error: "missing argument: --verdict")
       run.call(2, "prepare-decision", "--id", id, "--id", id, "--verdict", "accept", error: "exactly one --id")
       run.call(1, "prepare-decision", "--id", id, "--verdict", "accept", "--rationale", " ", error: "reviewed rationale must be a non-empty string")
@@ -3785,6 +3800,20 @@ module RetroState
       end
       run.call(1, "prepare-decision", "--id", id, "--verdict", "reject", error: "not currently deferred")
 
+      ["", "# Reviewed implementation notes\n\nPreserve this deliberately supplied context."].each do |notes|
+        File.write(input, candidate_template)
+        template_id = File.basename(store.route(input), ".md")
+        raw, = parse_document(decision_template)
+        raw.merge!("candidate_id" => template_id, "verdict" => "no-change", "rationale" => rationale,
+          "reviewed_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        review_trigger_contract_fields.each { |field| raw.delete(field) }
+        path = run.call(0, "process", "--id", template_id, "--decision", "-", stdin: render_document(raw, notes)).strip
+        archived, = read_document(path)
+        if notes.empty? ? archived.fetch("triage").key?("notes") : archived.dig("triage", "notes") != notes
+          raise "raw candidate decision lost intentional notes or persisted placeholder notes"
+        end
+      end
+
       accepted, accepted_body = parse_document(accepted_template)
       accepted["originating_candidate_ids"] = [id]
       accepted["implementation_commits"] = ["abcdef0"]
@@ -3792,6 +3821,21 @@ module RetroState
       File.write(input, render_document(accepted, accepted_body))
       accepted_path = store.record_accepted(input)
       accepted_id = File.basename(accepted_path, ".md")
+      ["", "# Reviewed adjudication notes\n\nPreserve this deliberately supplied evidence boundary."].each do |notes|
+        proposal, proposal_body = parse_document(verification_proposal_template)
+        proposal["target_accepted_id"] = accepted_id
+        proposal["observation"] = "Raw decision notes boundary: #{notes.empty? ? "omitted" : "supplied"}."
+        File.write(input, render_document(proposal, proposal_body))
+        template_id = File.basename(store.route_verification(input), ".md")
+        raw, = parse_document(verification_decision_template)
+        raw.merge!("verification_proposal_id" => template_id, "verdict" => "reject", "rationale" => rationale,
+          "reviewed_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        path = run.call(0, "process-verification", "--id", template_id, "--decision", "-", stdin: render_document(raw, notes)).strip
+        archived, = read_document(path)
+        if notes.empty? ? archived.fetch("triage").key?("notes") : archived.dig("triage", "notes") != notes
+          raise "raw verification decision lost intentional notes or persisted placeholder notes"
+        end
+      end
       proposal, proposal_body = parse_document(verification_proposal_template)
       proposal["target_accepted_id"] = accepted_id
       proposal["proposed_verification"] = "contradicted"
@@ -3882,12 +3926,23 @@ module RetroState
       File.write(input, candidate_template)
       candidate = store.route(input)
       id = File.basename(candidate, ".md")
-      deferred, deferred_body = parse_document(store.prepare_decision(id, "defer"))
-      deferred["rationale"] = "Fixture deferral."
-      deferred["reviewed_at"] = "2000-01-01T00:00:00Z"
-      File.write(decision_file, render_document(deferred, deferred_body))
-      archived = store.process(id, decision_file)
       before = store.snapshot
+      prepared = run.call(0, "prepare-decision", "--id", id, "--verdict", "defer", "--rationale", "Independent evidence is still missing.")
+      run.call(1, "process", "--id", id, "--decision", "-", stdin: prepared, error: "unresolved_decision must be a non-empty string")
+      deferred, deferred_body = parse_document(prepared)
+      deferred.merge!(self_test_deferral_fields)
+      deferred["reviewed_at"] = "2000-01-01T00:00:00Z"
+      self_test_deferral_fields.each_key do |field|
+        incomplete = render_document(deferred.merge(field => ""), deferred_body)
+        run.call(1, "process", "--id", id, "--decision", "-", stdin: incomplete, error: "#{field} must be a non-empty string")
+        raise "incomplete deferral processing wrote state" unless store.snapshot == before
+      end
+      File.write(decision_file, render_document(deferred, deferred_body))
+      archived = run.call(0, "process", "--id", id, "--decision", "-", stdin: File.read(decision_file)).strip
+      before = store.snapshot
+      incomplete = run.call(0, "prepare-decision", "--id", id, "--verdict", "defer", "--rationale", "A revised deferral still needs a concrete trigger.")
+      run.call(1, "reconsider", "--id", id, "--decision", "-", stdin: incomplete, error: "unresolved_decision must be a non-empty string")
+      raise "incomplete deferral reconsideration wrote state" unless store.snapshot == before
       replacement, replacement_body = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "no-change"))
       raise "reconsideration timestamp is not newer" unless replacement.fetch("reviewed_at") > deferred.fetch("reviewed_at")
       raise "reconsideration preparation wrote state" unless store.snapshot == before
@@ -4420,6 +4475,7 @@ module RetroState
       store.init
 
       base_decision, decision_body = parse_document(decision_template)
+      base_decision.merge!(self_test_deferral_fields)
       base_decision["candidate_id"] = "RC-20260715T120000Z-000000"
       base_decision["reviewed_at"] = "2026-07-15T11:59:00Z"
       base_contract = base_decision.slice(*review_trigger_contract_fields)
@@ -5707,9 +5763,11 @@ module RetroState
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
       deferred_path = store.route(input)
       deferred_id = File.basename(deferred_path, ".md")
-      deferred_decision = decision_template
-        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
-        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:00Z")
+      deferred_data, deferred_body = parse_document(decision_template)
+      deferred_data.merge!(self_test_deferral_fields)
+      deferred_data["candidate_id"] = deferred_id
+      deferred_data["reviewed_at"] = "2026-07-15T12:05:00Z"
+      deferred_decision = render_document(deferred_data, deferred_body)
       File.write(decision, deferred_decision)
       deferred_archive_path = store.process(deferred_id, decision)
       legacy_deferred, legacy_deferred_body = read_document(deferred_archive_path)
@@ -5793,13 +5851,11 @@ module RetroState
         raise "completed artifact audit did not reset cadence"
       end
 
-      refreshed_decision = decision_template
-        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
-        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:06:00Z")
-        .sub(
-          'review_trigger: "Required for defer; remove for other verdicts."',
-          'review_trigger: "A second independent observation is recorded."'
-        )
+      refreshed_data = deferred_data.merge(
+        "reviewed_at" => "2026-07-15T12:06:00Z",
+        "review_trigger" => "A second independent observation is recorded."
+      )
+      refreshed_decision = render_document(refreshed_data, deferred_body)
       File.write(decision, refreshed_decision)
       store.reconsider(deferred_id, decision)
       refreshed_candidate, refreshed_body = read_document(deferred_archive_path)
@@ -5999,7 +6055,10 @@ def usage(command = nil)
       Verification verdicts: #{RetroState::VERIFICATION_PROPOSAL_VERDICTS.join(", ")}.
       Sets the ID and current UTC reviewed_at; reconsiderations must be newer.
       Optionally supply an already-reviewed, nonblank rationale; otherwise fill the blank.
-      No optional notes are emitted. Add notes, defer fields, and related IDs as needed.
+      Deferrals keep safe structural defaults but leave the unresolved decision and
+      substantive trigger/action fields blank. Complete them even when supplying a
+      rationale; the draft cannot be processed until they are filled.
+      Decision templates have empty bodies; add optional notes and related IDs as needed.
       Preparation does not judge the verdict. Review and submit separately through
       process, reconsider, or process-verification; --decision - reads standard input.
     TEXT

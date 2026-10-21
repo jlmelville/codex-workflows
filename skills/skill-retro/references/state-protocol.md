@@ -235,16 +235,16 @@ It searches all dispositions and states by case-insensitive literal substring:
 including headings. This complete identity lookup also covers inactive outcomes.
 
 Use `prepare-decision --id ID --verdict VERDICT` with an already-reviewed `--rationale TEXT`, or
-fill the blank rationale afterward. Review the completed decision, then use `process` to attach
-it and move the record from inbox to archive. The intake
-digest and original intake fields remain in the archived document. For a
-deferred verdict, first state the `unresolved_decision` that current evidence
-cannot justify. Post-implementation behavioral uncertainty is not a deferral:
-implement the justified outcome, keep it behaviorally `unverified`, and retain
-its destination-matched `verification_opportunity`. If processing is interrupted
-after archive creation, retry `process` with the same candidate and decision.
-The helper verifies the existing archive, completes cadence exactly once, and
-removes the inbox copy; a conflicting archive is refused.
+fill the blank rationale afterward. Deferrals remain incomplete until their substantive fields
+are filled, even with a supplied rationale. Decision templates omit optional notes; add them only
+when useful. Review the completed decision, then use `process` to attach it and move the record
+from inbox to archive. The intake digest and original intake fields remain in the archived
+document. For a deferred verdict, first state the `unresolved_decision` that current evidence cannot
+justify. Post-implementation behavioral uncertainty is not a deferral: implement the justified
+outcome, keep it behaviorally `unverified`, and retain its destination-matched
+`verification_opportunity`. If processing is interrupted after archive creation, retry `process`
+with the same candidate and decision. The helper verifies the existing archive, completes cadence
+exactly once, and removes the inbox copy; a conflicting archive is refused.
 
 Every new or reconsidered candidate deferral uses this shared liveness
 contract in addition to `unresolved_decision`. New open drafts and ledgers use
