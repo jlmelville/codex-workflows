@@ -1553,12 +1553,21 @@ module RetroState
       end
       allowed_paths.each { |path| validate_relative_path!(path) }
       allowed_paths += allowed_actions.flat_map do |action|
-        unless action.match?(/\Aprocess:RC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
-          raise Error, "expected --allow-action process:RC-ID with a valid candidate ID"
+        operation, id = action.split(":", 2)
+        raise Error, "expected --allow-action ACTION:ID" unless id
+
+        paths = case operation
+        when "process"
+          [candidate_path("inbox", id), candidate_path("archive", id),
+            artifact_cadence_path, artifact_cadence_lock_path]
+        when "close-papercut"
+          [papercut_path("inbox", id), papercut_path("archive", id)]
+        when "reconsider"
+          [candidate_path("archive", id)]
+        else
+          raise Error, "unsupported comparison action: #{operation}; use process, close-papercut, or reconsider"
         end
-        id = action.delete_prefix("process:")
-        [candidate_path("inbox", id), candidate_path("archive", id),
-          artifact_cadence_path, artifact_cadence_lock_path].map do |path|
+        paths.map do |path|
           path.delete_prefix(root + File::SEPARATOR)
         end
       end
@@ -2039,24 +2048,29 @@ module RetroState
       end
     end
 
-    def accepted_records_query(destination: nil, text: nil, active_supported: false)
+    def accepted_records_query(destinations: [], texts: [], active_supported: false)
       ensure_initialized
-      if RetroState.blank?(destination) && RetroState.blank?(text)
+      if destinations.empty? && texts.empty?
         raise Error, "accepted-records requires --destination TEXT or --text TEXT"
       end
+      if (destinations + texts).any? { |query| query.strip.empty? }
+        raise Error, "accepted-records filters must not be blank"
+      end
 
-      destination_query = destination&.downcase
-      text_query = text&.downcase
+      destination_queries = destinations.map(&:downcase).uniq
+      text_queries = texts.map(&:downcase).uniq
       accepted_records(include_body: true).each_with_object([]) do |(path, data, body), rows|
         if active_supported
           next unless %w[accepted implemented].include?(data["disposition"])
           next unless data["verification"] == "supported"
         end
         recorded_destination = data.fetch("destination")
-        next if destination_query && !recorded_destination.downcase.include?(destination_query)
+        next unless destination_queries.empty? || destination_queries.any? { |query| recorded_destination.downcase.include?(query) }
 
         searchable = [
           data.fetch("accepted_id"),
+          *data.fetch("originating_candidate_ids"),
+          *data.fetch("implementation_commits"),
           data.fetch("source_report_summary"),
           data.fetch("expected_behavior"),
           data.fetch("observed_behavior"),
@@ -2067,7 +2081,7 @@ module RetroState
           data.fetch("verification_opportunity"),
           body
         ].join("\n").downcase
-        next if text_query && !searchable.include?(text_query)
+        next unless text_queries.empty? || text_queries.any? { |query| searchable.include?(query) }
 
         rows << [
           data.fetch("accepted_id"),
@@ -3304,8 +3318,18 @@ module RetroState
       second_id = File.basename(store.route(input), ".md")
       File.write(snapshot_file, JSON.generate(store.snapshot))
       run.call(2, "snapshot", "--allow-action", "process:#{candidate_id}", error: "--allow-action is not valid")
-      ["process", "reconsider:#{candidate_id}", "process:#{papercut_id}", "process:../escape", "process:#{candidate_id}:extra"].each do |action|
-        run.call(1, "compare", "--file", snapshot_file, "--allow-action", action, error: "expected --allow-action process:RC-ID")
+      {
+        "process" => "expected --allow-action ACTION:ID",
+        "process-verification:#{papercut_id}" => "unsupported comparison action",
+        "process:#{papercut_id}" => "invalid candidate_id",
+        "process:../escape" => "invalid candidate_id",
+        "process:#{candidate_id}:extra" => "invalid candidate_id",
+        "close-papercut:#{candidate_id}" => "invalid papercut_id",
+        "close-papercut:../escape" => "invalid papercut_id",
+        "reconsider:#{papercut_id}" => "invalid candidate_id",
+        "reconsider:" => "invalid candidate_id"
+      }.each do |action, error|
+        run.call(1, "compare", "--file", snapshot_file, "--allow-action", action, error: error)
       end
       baseline = File.read(snapshot_file)
       run.call(0, "compare", "--file", snapshot_file, "--allow-action", "process:#{candidate_id}")
@@ -3335,8 +3359,46 @@ module RetroState
       raise "process allowance hid unrelated state" unless unexpected.fetch("unexpected") == [".kept"]
       run.call(0, "compare", "--file", snapshot_file, *actions, "--allow-path", ".kept")
       unchanged = store.snapshot
-      run.call(1, "compare", "--file", snapshot_file, *actions, "--allow-action", "invalid", error: "expected --allow-action process:RC-ID")
+      run.call(1, "compare", "--file", snapshot_file, *actions, "--allow-action", "invalid", error: "expected --allow-action ACTION:ID")
       raise "action comparison wrote state" unless store.snapshot == unchanged
+
+      papercut_ids = 2.times.map do |index|
+        data, body = parse_document(papercut_template)
+        data["observation"] = "Comparison closure fixture #{index}."
+        File.basename(store.record_papercut(data, body, label: "comparison fixture"), ".md")
+      end
+      deferred_id = File.basename(store.route(input), ".md")
+      decision, body = parse_document(store.prepare_decision(deferred_id, "defer", rationale: "An independent observation is missing."))
+      decision.merge!(self_test_deferral_fields)
+      decision["reviewed_at"] = "2000-01-01T00:00:00Z"
+      run.call(0, "process", "--id", deferred_id, "--decision", "-", stdin: render_document(decision, body))
+      File.write(snapshot_file, JSON.generate(store.snapshot))
+      papercut_ids.each do |id|
+        run.call(0, "close-papercut", "--id", id, "--outcome", "no-action", "--rationale", "Reviewed comparison fixture.")
+      end
+      decision = store.prepare_decision(deferred_id, "no-change", rationale: "A reviewed terminal outcome.")
+      run.call(0, "reconsider", "--id", deferred_id, "--decision", "-", stdin: decision)
+      paths = papercut_ids.flat_map { |id| ["papercuts/inbox/#{id}.md", "papercuts/archive/#{id}.md"] }
+      strict = JSON.parse(run.call(1, "compare", "--file", snapshot_file))
+      unless strict.fetch("unexpected") == (paths + ["retrospectives/archive/#{deferred_id}.md"]).sort
+        raise "closure and reconsideration changed unexpected bookkeeping"
+      end
+      actions = papercut_ids.flat_map { |id| ["--allow-action", "close-papercut:#{id}"] }
+      actions += ["--allow-action", "reconsider:#{deferred_id}"]
+      run.call(0, "compare", "--file", snapshot_file, *actions)
+      partial = JSON.parse(run.call(1, "compare", "--file", snapshot_file, "--allow-action", "reconsider:#{deferred_id}"))
+      raise "reconsideration allowance hid papercut changes" unless partial.fetch("unexpected") == paths.sort
+      cadence = File.join(root, "audits/learning-process/artifact-cadence.yml")
+      original = File.binread(cadence)
+      File.binwrite(cadence, original + "\n")
+      unexpected = JSON.parse(run.call(1, "compare", "--file", snapshot_file, *actions))
+      unless unexpected.fetch("unexpected") == ["audits/learning-process/artifact-cadence.yml"]
+        raise "closure or reconsideration allowance hid unrelated cadence changes"
+      end
+      File.binwrite(cadence, original)
+      before_compare = store.snapshot
+      run.call(0, "compare", "--file", snapshot_file, *actions)
+      raise "closure or reconsideration comparison wrote state" unless store.snapshot == before_compare
     end
   end
 
@@ -3384,9 +3446,11 @@ module RetroState
         data["destination"] = destination
         data["expected_behavior"] = "Exact [#{destination}] outcome."
         data["verification_opportunity"] = "Check #{destination} in a later task."
+        data["implementation_commits"] = [Digest::SHA256.hexdigest(destination)[0, 40]]
         data["disposition"] = disposition
         data["verification"] = verification
         data["verification_basis"] = (verification == "unverified") ? "none" : "later-session"
+        body += "\nBody-only fixture [#{destination}].\n"
         File.basename(store.record_accepted(write.call(data, body)), ".md")
       end
       unverified_id = create_accepted.call("Shared domain first")
@@ -3410,6 +3474,38 @@ module RetroState
       store.process_verification(rejected_id, decide.call(rejected_id, "reject"))
       propose.call(unverified_id)
       before = store.snapshot
+      accepted = store.show([unverified_id, supported_id]).fetch("records")
+      origin = accepted.first.fetch("frontmatter").fetch("originating_candidate_ids").first
+      commit = accepted.last.fetch("frontmatter").fetch("implementation_commits").first
+      lookup = lambda do |*arguments|
+        run.call(0, "accepted-records", *arguments).lines.map { |line| line.split("\t").first }
+      end
+      {
+        origin.upcase => unverified_id,
+        commit.upcase => supported_id,
+        retired_id => retired_id,
+        "BODY-ONLY fixture [Shared domain retired]" => retired_id
+      }.each do |text, id|
+        raise "accepted identity, provenance, or body lookup missed #{id}" unless lookup.call("--text", text) == [id]
+      end
+      lookup_destinations = ["--destination", "SHARED", "--destination", "other", "--destination", "shared"]
+      unless lookup.call(*lookup_destinations) == [unverified_id, supported_id, retired_id, legacy_id].sort
+        raise "multi-destination identity lookup lost states, dispositions, order, or deduplication"
+      end
+      lookup_texts = ["--text", origin, "--text", commit, "--text", "Body-only fixture [Shared domain retired]", "--text", origin.upcase]
+      unless lookup.call(*lookup_texts) == [unverified_id, supported_id, retired_id].sort &&
+          lookup.call(*lookup_texts, "--destination", "other") == [supported_id] &&
+          lookup.call(*lookup_texts, *lookup_destinations, "--active-supported") == [supported_id]
+        raise "multi-text identity lookup failed OR matching, group intersection, deduplication, or supported filtering"
+      end
+      unless lookup.call("--destination", "shared", "--text", "Other domain second").empty? &&
+          lookup.call("--text", ".*").empty?
+        raise "accepted identity lookup ignored destination scope or literal matching"
+      end
+      run.call(1, "accepted-records", "--text", "", error: "filters must not be blank")
+      run.call(1, "accepted-records", "--destination", " ", error: "filters must not be blank")
+      run.call(1, "accepted-records", *lookup_texts, "--destination", "", error: "filters must not be blank")
+      run.call(1, "accepted-records", *lookup_destinations, "--text", " ", error: "filters must not be blank")
       query = ["verification-context", "--destination", "SHARED", "--destination", "other", "--destination", "shared"]
       first = JSON.parse(run.call(0, *query, "--limit", "1"))
       ids = first.fetch("records").map { |record| record.fetch("id") }
@@ -5162,28 +5258,28 @@ module RetroState
       accepted_id = File.basename(accepted_path, ".md")
       accepted_data, = read_document(accepted_path)
       original_accepted_at = accepted_data.fetch("accepted_at")
-      destination_rows = store.accepted_records_query(destination: "PUBLIC SOURCE")
+      destination_rows = store.accepted_records_query(destinations: ["PUBLIC SOURCE"])
       unless destination_rows.map(&:first) == [accepted_id] &&
           destination_rows.first.fetch(2) == "unverified"
         raise "unverified accepted record was not discoverable by destination"
       end
-      unless store.accepted_records_query(destination: "public source", active_supported: true).empty?
+      unless store.accepted_records_query(destinations: ["public source"], active_supported: true).empty?
         raise "supplemental lookup included an unverified outcome"
       end
-      text_rows = store.accepted_records_query(text: "SANITIZED SUMMARY")
+      text_rows = store.accepted_records_query(texts: ["SANITIZED SUMMARY"])
       unless text_rows.map(&:first) == [accepted_id]
         raise "accepted record was not discoverable by metadata text"
       end
       lookup_snapshot = store.snapshot
       ["PLAN-ITEM ADMISSION", "counterfactual", "CURATED EVIDENCE"].each do |query|
-        unless store.accepted_records_query(text: query) == destination_rows
+        unless store.accepted_records_query(texts: [query]) == destination_rows
           raise "accepted record heading or body was not discoverable: #{query}"
         end
       end
-      unless store.accepted_records_query(destination: "unrelated destination", text: "counterfactual").empty?
+      unless store.accepted_records_query(destinations: ["unrelated destination"], texts: ["counterfactual"]).empty?
         raise "body lookup ignored the destination filter"
       end
-      unless store.accepted_records_query(text: "unrelated heading phrase").empty?
+      unless store.accepted_records_query(texts: ["unrelated heading phrase"]).empty?
         raise "body lookup returned an unrelated accepted record"
       end
       raise "accepted-record lookup changed state" unless store.snapshot == lookup_snapshot
@@ -5191,7 +5287,7 @@ module RetroState
       accepted_bytes = File.binread(accepted_path)
       File.write(accepted_path, accepted_bytes + "\nauth.json\n")
       begin
-        store.accepted_records_query(text: "counterfactual")
+        store.accepted_records_query(texts: ["counterfactual"])
         raise "body lookup bypassed accepted-record privacy validation"
       rescue Error => e
         raise unless e.message.include?("forbidden Codex auth file")
@@ -5385,17 +5481,17 @@ module RetroState
       unless supported_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id]
         raise "accepted record did not retain applied verification proposal identity"
       end
-      supported_rows = store.accepted_records_query(text: "sanitized summary")
+      supported_rows = store.accepted_records_query(texts: ["sanitized summary"])
       unless supported_rows.map(&:first) == [accepted_id] &&
           supported_rows.first.fetch(2) == "supported"
         raise "supported accepted record was not discoverable by metadata text"
       end
-      supported_destination_rows = store.accepted_records_query(destination: "public source")
+      supported_destination_rows = store.accepted_records_query(destinations: ["public source"])
       unless supported_destination_rows.map(&:first) == [accepted_id] &&
           supported_destination_rows.first.fetch(2) == "supported"
         raise "supported accepted record was not discoverable by destination"
       end
-      unless store.accepted_records_query(destination: "unrelated destination").empty?
+      unless store.accepted_records_query(destinations: ["unrelated destination"]).empty?
         raise "unrelated destination supplied a false accepted-record match"
       end
       if store.verification_opportunities(destination: "public source").map(&:first).include?(accepted_id)
@@ -5586,8 +5682,8 @@ module RetroState
           prior_evidence_preserved
         raise "supported contradiction did not preserve accepted identity and evidence"
       end
-      unless store.accepted_records_query(destination: "public source", active_supported: true).empty? &&
-          store.accepted_records_query(destination: "public source").first.fetch(2) == "contradicted"
+      unless store.accepted_records_query(destinations: ["public source"], active_supported: true).empty? &&
+          store.accepted_records_query(destinations: ["public source"]).first.fetch(2) == "contradicted"
         raise "accepted-record lookup lost the supplemental or broad contradiction boundary"
       end
       contradiction_bytes = File.binread(accepted_path)
@@ -6115,14 +6211,16 @@ def usage(command = nil)
   when "compare"
     <<~TEXT
       Usage: retro-state.rb compare --file PATH [--allow-path PATH ...]
-                                   [--allow-action process:RC-ID ...] [--root DIR]
+                                   [--allow-action ACTION:ID ...] [--root DIR]
 
       Compare this state root with snapshot JSON; --file - reads standard input.
       Print JSON {root, unchanged, matches, added, removed, modified, unexpected}.
       --allow-path permits an exact root-relative path to change; no globs or subtree
-      matching. Repeat --allow-action process:RC-ID for reviewed candidate processing:
-      permits that candidate's inbox/archive paths and the cadence cache and lock paths.
-      Only candidate process is supported. Both allowance flags combine and repeat.
+      matching. Supported --allow-action forms and exact permitted paths:
+        process:RC-ID         Candidate inbox/archive plus cadence cache and lock.
+        close-papercut:PC-ID  Papercut inbox/archive.
+        reconsider:RC-ID      Candidate archive only.
+      Both allowance flags combine and repeat. IDs must match the operation's type.
       Allowed paths need not change; allowances do not prove the operation occurred or
       validate its result. Default: no changes permitted. Unrelated changes still fail.
       Exit 0 for matches, 1 for unexpected changes or operational errors, 2 for usage.
@@ -6130,11 +6228,14 @@ def usage(command = nil)
     TEXT
   when "accepted-records"
     <<~TEXT
-      Usage: retro-state.rb accepted-records [--destination TEXT] [--text TEXT]
+      Usage: retro-state.rb accepted-records [--destination TEXT ...] [--text TEXT ...]
                                            [--active-supported] [--root DIR]
 
-      Match case-insensitive substrings in destinations and metadata/body text.
-      Requires --destination or --text; both filters may be combined.
+      Match case-insensitive literal substrings in destinations and metadata/body text,
+      including accepted IDs, originating candidate IDs, and implementation commits.
+      Repeat either flag to match any term within its group; both groups must match
+      when combined. Results are deduplicated in stable ID order.
+      Requires --destination or --text; terms must not be blank.
       Default: include all dispositions and verification states.
       --active-supported: include only supported records whose disposition is
       accepted or implemented. Omit it for broader investigations.
@@ -6202,7 +6303,7 @@ def usage(command = nil)
     Commands:
       show --id ID [--id ID ...]       Inspect selected records as JSON
       snapshot                         Print a JSON state inventory
-      compare --file PATH              Compare inventory; exact path or process allowances
+      compare --file PATH              Compare inventory; exact path or action allowances
       prepare-decision --id ID --verdict VERDICT
                                         Print an editable candidate or verification decision
       prepare-accepted --id RC-ID ... --commit SHA ...
@@ -6232,7 +6333,7 @@ def usage(command = nil)
       update-accepted --id ID --file PATH
                                         Replace a curated record; preserve identity, acceptance
                                         date, and prior implementation commits
-      accepted-records [--destination TEXT] [--text TEXT] [--active-supported]
+      accepted-records [--destination TEXT ...] [--text TEXT ...] [--active-supported]
                                         Match case-insensitive substrings in destinations or metadata/body
       verification-opportunities [--destination TEXT]
                                         List unverified outcomes; final column is pending support IDs:claims
@@ -6348,7 +6449,6 @@ related_papercut_id = nil
 related_candidate_id = nil
 destination_filter = nil
 destination_filters = []
-text_filter = nil
 text_filters = []
 context_compact = false
 active_supported = false
@@ -6379,10 +6479,7 @@ parser = OptionParser.new do |opts|
     destination_filter = value
     destination_filters << value
   end
-  opts.on("--text TEXT") do |value|
-    text_filter = value
-    text_filters << value
-  end
+  opts.on("--text TEXT") { |value| text_filters << value }
   opts.on("--compact") { context_compact = true }
   opts.on("--active-supported") { active_supported = true }
   opts.on("--limit N", Integer) do |value|
@@ -6423,7 +6520,7 @@ begin
       "--related-papercut-id" => !related_papercut_id.nil?,
       "--related-candidate-id" => !related_candidate_id.nil?,
       "--destination" => !destination_filter.nil?,
-      "--text" => !text_filter.nil?,
+      "--text" => !text_filters.empty?,
       "--compact" => context_compact,
       "--active-supported" => active_supported,
       "--limit" => context_limit_explicit,
@@ -6626,7 +6723,7 @@ begin
       puts store.update_accepted(record_id, input_path)
     when "accepted-records"
       store.accepted_records_query(
-        destination: destination_filter, text: text_filter, active_supported: active_supported
+        destinations: destination_filters, texts: text_filters, active_supported: active_supported
       ).each do |row|
         puts row.join("\t")
       end

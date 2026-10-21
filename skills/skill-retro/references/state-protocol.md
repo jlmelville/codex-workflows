@@ -87,8 +87,9 @@ decisions those interfaces cannot make: authority, evidence, operation ordering,
 identity, privacy, and recovery.
 
 For state-preservation checks, save a `snapshot` outside the state root and run `compare`.
-For authorized candidate processing, repeat `--allow-action process:RC-ID` to include each
-candidate's bookkeeping. Omit allowances for read-only work; see `--help` for exact scope.
+For authorized processing, papercut closure, or reconsideration, repeat `--allow-action ACTION:ID`
+to include each selected record's exact footprint and any bookkeeping. Omit allowances for read-only
+work; see `--help` for supported forms and scope.
 
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.
@@ -229,10 +230,11 @@ candidate independently. Verdicts are `accept`, `defer`, `reject`, `split`,
 `merge`, or `no-change`. By default, present verdicts and the proposed public
 implementation batch before editing source.
 
-Query `accepted-records` before a possible repeat or destination-repair verdict.
-It searches all dispositions and states by case-insensitive literal substring:
-`--destination` matches destinations; `--text` matches selected metadata and the Markdown body,
-including headings. This complete identity lookup also covers inactive outcomes.
+Query `accepted-records` before a possible repeat or destination-repair verdict. It searches all
+dispositions and states by case-insensitive literal substring: `--destination` matches destinations;
+`--text` includes selected metadata, originating candidate IDs, public commits, and the Markdown
+body. Repeat either filter to combine terms; see `--help` for matching rules. This identity lookup
+also covers inactive outcomes.
 
 Use `prepare-decision --id ID --verdict VERDICT` with an already-reviewed `--rationale TEXT`, or
 fill the blank rationale afterward. Deferrals remain incomplete until their substantive fields
