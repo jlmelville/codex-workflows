@@ -1446,6 +1446,47 @@ module RetroState
       RetroState.render_document(decision, "")
     end
 
+    def prepare_verification(id, verification)
+      unless VERIFICATION_PROPOSAL_STATES.include?(verification)
+        raise Error, "proposed verification must be one of #{VERIFICATION_PROPOSAL_STATES.join(", ")}"
+      end
+      # Context retrieval also accepts proposal IDs; preparation must bind an accepted ID directly.
+      accepted_path(id)
+      context = verification_context(record_ids: [id]).fetch("records").first
+      accepted = context.fetch("accepted").fetch("frontmatter")
+      pending = context.fetch("pending_verification_proposals").map { |record| record.fetch("frontmatter") }
+      draft, = RetroState.parse_document(RetroState.verification_proposal_template)
+      draft["target_accepted_id"] = id
+      draft["proposed_verification"] = verification
+      %w[title source_scope verification_basis opportunity_match claim observation redaction_review].each do |field|
+        draft[field] = ""
+      end
+      draft["decisive_evidence"] = []
+      draft["what_is_false"] = "" if verification == "contradicted"
+      if verification == "supported" && (accepted.fetch("verification") == "supported" ||
+          pending.any? { |proposal| proposal.fetch("proposed_verification") == "supported" })
+        draft["supplemental_reason"] = ""
+      end
+      validate_verification_target_state!(accepted, draft)
+      prior = accepted.slice(
+        "accepted_id", "destination", "expected_behavior", "verification_opportunity",
+        "verification", "verification_basis", "applied_verification_proposal_ids"
+      ).merge("pending_verification_proposals" => pending.map do |proposal|
+        proposal.slice("verification_proposal_id", "proposed_verification", "claim")
+      end)
+      notes = <<~TEXT
+        Complete every blank field, curate evidence, and review redaction before route-verification.
+        Read applied and pending evidence through verification-context before judging supplementation.
+        Preparation writes no state, supplies no evidence claim, and does not establish eligibility
+        at routing time. These comments are discarded automatically when the proposal is routed.
+
+        Target context:
+        #{YAML.dump(prior).rstrip}
+      TEXT
+      comments = notes.lines.map { |line| "# #{line}" }.join
+      RetroState.render_document(draft, "").sub(/\A---\n/) { "---\n#{comments}\n" }
+    end
+
     def prepare_accepted(record_ids, commits)
       raise Error, "prepare-accepted requires candidate IDs and public commit SHAs" if record_ids.empty? || commits.empty?
       commits = commits.map(&:downcase).uniq
@@ -1567,6 +1608,8 @@ module RetroState
           [papercut_path("inbox", id), papercut_path("archive", id)]
         when "reconsider"
           [candidate_path("archive", id)]
+        when "record-accepted"
+          [accepted_path(id)]
         when "update-accepted"
           [accepted_path(id), artifact_cadence_lock_path]
         when "process-verification"
@@ -3353,6 +3396,8 @@ module RetroState
         "unknown:#{papercut_id}" => "unsupported comparison action",
         "process-verification:#{papercut_id}" => "invalid verification_proposal_id",
         "process-verification:../escape" => "invalid verification_proposal_id",
+        "record-accepted:#{candidate_id}" => "invalid accepted_id",
+        "record-accepted:../escape" => "invalid accepted_id",
         "update-accepted:#{candidate_id}" => "invalid accepted_id",
         "update-accepted:../escape" => "invalid accepted_id",
         "process:#{papercut_id}" => "invalid candidate_id",
@@ -3447,8 +3492,19 @@ module RetroState
         File.write(input, text)
         input
       end
+      snapshot_file = File.join(tmp, "before.json")
+      compare = lambda do |status, *arguments, error: nil, baseline: snapshot_file|
+        before = store.snapshot
+        result = run.call(status, "compare", "--file", baseline, *arguments, error: error)
+        raise "metadata comparison wrote state" unless store.snapshot == before
+        result
+      end
       origin = File.basename(store.route(write.call(candidate_template)), ".md")
+      processing_snapshot = File.join(tmp, "before-processing.json")
+      File.write(processing_snapshot, JSON.generate(store.snapshot))
       store.process(origin, write.call(store.prepare_decision(origin, "accept", rationale: "Comparison fixture.")))
+      creation_snapshot = File.join(tmp, "before-creation.json")
+      File.write(creation_snapshot, JSON.generate(store.snapshot))
       targets = 2.times.map do |index|
         data, body = parse_document(accepted_template)
         data["originating_candidate_ids"] = [origin]
@@ -3456,19 +3512,29 @@ module RetroState
         data["implementation_commits"] = ["abcdef0"]
         File.basename(store.record_accepted(write.call(render_document(data, body))), ".md")
       end
+      creation_actions = targets.flat_map { |id| ["--allow-action", "record-accepted:#{id}"] }
+      compare.call(0, *creation_actions, *creation_actions, baseline: creation_snapshot)
+      unless JSON.parse(compare.call(1, *creation_actions.first(2), baseline: creation_snapshot)).fetch("unexpected") ==
+          ["retrospectives/accepted/#{targets.last}.md"]
+        raise "accepted creation allowance hid another record"
+      end
+      compare.call(0, *creation_actions, "--allow-action", "process:#{origin}", baseline: processing_snapshot)
+      %w[artifact-cadence.lock artifact-cadence.yml].each do |name|
+        relative = "audits/learning-process/#{name}"
+        path = File.join(root, relative)
+        original = File.binread(path)
+        File.binwrite(path, original + "\n")
+        unless JSON.parse(compare.call(1, *creation_actions, baseline: creation_snapshot)).fetch("unexpected") == [relative]
+          raise "accepted creation allowance hid unrelated writer bookkeeping"
+        end
+        File.binwrite(path, original)
+      end
       proposals = targets.map do |target|
         data, body = parse_document(verification_proposal_template)
         data["target_accepted_id"] = target
         File.basename(store.route_verification(write.call(render_document(data, body))), ".md")
       end
-      snapshot_file = File.join(tmp, "before.json")
       File.write(snapshot_file, JSON.generate(store.snapshot))
-      compare = lambda do |status, *arguments, error: nil, baseline: snapshot_file|
-        before = store.snapshot
-        result = run.call(status, "compare", "--file", baseline, *arguments, error: error)
-        raise "metadata comparison wrote state" unless store.snapshot == before
-        result
-      end
       lock_relative = "audits/learning-process/artifact-cadence.lock"
       lock_path = File.join(root, lock_relative)
       operation_snapshot = File.join(tmp, "operation-before.json")
@@ -3823,6 +3889,124 @@ module RetroState
       run.call(1, "verification-context", "--id", queue_id, error: "record not found")
       File.rename("#{path}.hidden", path)
       raise "failed context retrieval wrote state" unless store.snapshot == before
+      store.validate
+    end
+  end
+
+  def verification_preparation_self_test
+    Dir.mktmpdir("retro-verification-preparation-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = self_test_cli(root)
+      input = File.join(tmp, "input.md")
+      write = ->(text) {
+        File.write(input, text)
+        input
+      }
+      origin = File.basename(store.route(write.call(candidate_template)), ".md")
+      store.process(origin, write.call(store.prepare_decision(origin, "accept", rationale: "Preparation fixture.")))
+      targets = 2.times.map do |index|
+        data, body = parse_document(accepted_template)
+        data["originating_candidate_ids"] = [origin]
+        data["verification_opportunity"] = "Exercise preparation target #{index}."
+        File.basename(store.record_accepted(write.call(render_document(data, body))), ".md")
+      end
+      prepare = lambda do |status, *arguments, error: nil|
+        before = store.snapshot
+        result = run.call(status, "prepare-verification", *arguments, error: error)
+        raise "verification preparation wrote state" unless store.snapshot == before
+        result
+      end
+      prepare.call(2, "--verification", "supported", error: "missing argument: --id")
+      prepare.call(2, "--id", targets.first, error: "missing argument: --verification")
+      prepare.call(2, "--id", targets.first, "--id", targets.first, "--verification", "supported", error: "exactly one --id")
+      prepare.call(2, "--id", targets.first, "--verification", "supported", "--verification", "contradicted",
+        error: "supply --verification at most once")
+      prepare.call(2, "--id", targets.first, "--verification", "supported", "--commit", "abcdef0", error: "--commit is not valid")
+      prepare.call(1, "--id", targets.first, "--verification", "unverified", error: "proposed verification must be one of")
+      prepare.call(1, "--id", origin, "--verification", "supported", error: "invalid accepted_id")
+      prepare.call(1, "--id", "../escape", "--verification", "supported", error: "invalid accepted_id")
+      prepare.call(1, "--id", "SCR-20000101-000000", "--verification", "supported", error: "record not found")
+      raise "missing verification preparation help" unless prepare.call(0, "--help").include?("Usage: retro-state.rb prepare-verification")
+      run.call(2, "show", "--id", targets.first, "--verification", "supported", error: "--verification is not valid")
+
+      drafts = %w[supported contradicted].to_h do |state|
+        text = prepare.call(0, "--id", targets.first, "--verification", state)
+        data, body = parse_document(text)
+        blank_fields = %w[title source_scope verification_basis opportunity_match claim observation redaction_review]
+        unless data.values_at("target_accepted_id", "proposed_verification", "decisive_evidence") == [targets.first, state, []] &&
+            blank_fields.all? { |field| data.fetch(field) == "" } && body.empty? &&
+            %w[verification_proposal_id created_at intake_digest triage supplemental_reason].none? { |field| data.key?(field) } &&
+            ((state == "contradicted") ? data.fetch("what_is_false") == "" : !data.key?("what_is_false")) &&
+            text.include?("Exercise preparation target 0.") && !text.include?("Exercise preparation target 1.")
+          raise "verification preparation invented judgment or lost target context"
+        end
+        before = store.snapshot
+        run.call(1, "route-verification", "--file", "-", stdin: text, error: "title must be a non-empty string")
+        raise "incomplete verification routing wrote state" unless store.snapshot == before
+        [state, text]
+      end
+      complete = lambda do |text|
+        data, = parse_document(text)
+        data.merge!(
+          "title" => "Reviewed: \"literal\" proposal.", "source_scope" => "Temporary preparation fixture.",
+          "verification_basis" => "deterministic-test", "claim" => "executable-correctness",
+          "opportunity_match" => "Exercises the selected fixture opportunity.",
+          "observation" => "A reviewed observation.\nA bounded second line with \\literal text.",
+          "decisive_evidence" => ["A bounded fixture check."], "redaction_review" => "Reviewed sanitized fixture."
+        )
+        data["what_is_false"] = "The fixture expectation failed." if data.key?("what_is_false")
+        data["supplemental_reason"] = "A distinct fixture boundary." if data.key?("supplemental_reason")
+        comments = text.lines.drop(1).take_while { |line| line.start_with?("#") || line.strip.empty? }.join
+        render_document(data, "").sub(/\A---\n/) { "---\n#{comments}" }
+      end
+      completed = complete.call(drafts.fetch("supported"))
+      proposal_id = File.basename(run.call(0, "route-verification", "--file", "-", stdin: completed).strip, ".md")
+      routed_path = File.join(root, "verifications/inbox/#{proposal_id}.md")
+      routed, routed_body = read_document(routed_path)
+      expected, = parse_document(completed)
+      unless without_keys(routed, "verification_proposal_id", "created_at", "intake_digest") == expected &&
+          routed_body.empty? && !File.read(routed_path).include?("# Target context:")
+        raise "routing persisted preparation comments or changed curated evidence"
+      end
+      prepare.call(1, "--id", proposal_id, "--verification", "supported", error: "invalid accepted_id")
+      pending = prepare.call(0, "--id", targets.first, "--verification", "supported")
+      unless parse_document(pending).first.fetch("supplemental_reason") == "" && pending.include?(proposal_id)
+        raise "pending support preparation lost the supplementation requirement or context"
+      end
+      before = store.snapshot
+      out, err, result = Open3.capture3(RbConfig.ruby, File.expand_path(__FILE__),
+        "route-verification", "--root", root, "--file", "-", stdin_data: completed)
+      unless result.exitstatus == 2 && err.include?("support already pending") && parse_document(out).first == expected
+        raise "stale verification routing lost its refusal or paste-ready fallback"
+      end
+      raise "stale verification routing wrote state" unless store.snapshot == before
+      decision = store.prepare_decision(proposal_id, "apply", rationale: "Reviewed fixture evidence.")
+      run.call(0, "process-verification", "--id", proposal_id, "--decision", "-", stdin: decision)
+      supported = prepare.call(0, "--id", targets.first, "--verification", "supported")
+      unless parse_document(supported).first.fetch("supplemental_reason") == "" && supported.include?(proposal_id)
+        raise "supported target preparation lost applied provenance or supplementation"
+      end
+
+      contradiction, = parse_document(complete.call(drafts.fetch("contradicted")))
+      contradiction["target_accepted_id"] = targets.last
+      id = File.basename(store.route_verification(write.call(render_document(contradiction, ""))), ".md")
+      only_contradiction, = parse_document(prepare.call(0, "--id", targets.last, "--verification", "supported"))
+      raise "pending contradiction required supplemental support" if only_contradiction.key?("supplemental_reason")
+      decision = store.prepare_decision(id, "reject", rationale: "Reviewed fixture rejection.")
+      store.process_verification(id, write.call(decision))
+      id = File.basename(run.call(0, "route-verification", "--file", "-",
+        stdin: complete.call(drafts.fetch("contradicted"))).strip, ".md")
+      decision = store.prepare_decision(id, "apply", rationale: "Reviewed fixture contradiction.")
+      store.process_verification(id, write.call(decision))
+      %w[supported contradicted].each do |state|
+        prepare.call(1, "--id", targets.first, "--verification", state, error: "verification target state contradicted cannot receive")
+      end
+      terminal, body = parse_document(store.prepare_accepted_update(targets.last))
+      terminal["disposition"] = "reverted"
+      store.update_accepted(targets.last, write.call(render_document(terminal, body)))
+      prepare.call(1, "--id", targets.last, "--verification", "contradicted", error: "verification target disposition is not accepted or implemented")
       store.validate
     end
   end
@@ -4682,6 +4866,7 @@ module RetroState
     inspection_self_test
     metadata_comparison_self_test
     verification_context_self_test
+    verification_preparation_self_test
     accepted_preparation_self_test
     preparation_self_test
     Dir.mktmpdir("retro-state-self-test.") do |tmp|
@@ -6341,6 +6526,21 @@ def usage(command = nil)
       Preparation does not judge the verdict. Review and submit separately through
       process, reconsider, or process-verification; --decision - reads standard input.
     TEXT
+  when "prepare-verification"
+    <<~TEXT
+      Usage: retro-state.rb prepare-verification --id SCR-ID --verification STATE [--root DIR]
+
+      Print an editable Markdown/YAML proposal for the chosen accepted target and proposed
+      supported or contradicted state. The target must currently be accepted or implemented,
+      with an eligible verification transition. Context comments include its exact opportunity
+      and applied/pending proposal IDs; use verification-context to review their evidence.
+      Basis, claim, opportunity match, observation, evidence, title, scope, and redaction review
+      remain blank. Contradiction adds blank what_is_false; support adds blank supplemental_reason
+      when the target is supported or support is pending. Judge these fields deliberately.
+      The draft cannot be routed until completed. Review it, then submit separately through
+      route-verification --file PATH. Routing rechecks current eligibility and supplementation;
+      preparation comments are discarded. Preparation supplies no evidence or routing authority.
+    TEXT
   when "prepare-accepted"
     <<~TEXT
       Usage: retro-state.rb prepare-accepted --id RC-ID [--id RC-ID ...]
@@ -6409,6 +6609,7 @@ def usage(command = nil)
         process:RC-ID               Candidate inbox/archive plus cadence cache and lock.
         close-papercut:PC-ID         Papercut inbox/archive.
         reconsider:RC-ID            Candidate archive only.
+        record-accepted:SCR-ID       New accepted record only; no writer lock or cadence cache.
         update-accepted:SCR-ID       Accepted record plus writer lock.
         process-verification:VP-ID   Proposal inbox/archive plus writer lock; target for apply.
       The shared writer lock is audits/learning-process/artifact-cadence.lock.
@@ -6502,6 +6703,8 @@ def usage(command = nil)
       compare --file PATH              Compare inventory; exact path or action allowances
       prepare-decision --id ID --verdict VERDICT
                                         Print an editable candidate or verification decision
+      prepare-verification --id SCR-ID --verification STATE
+                                        Prepare a new verification proposal for the chosen target
       prepare-accepted --id RC-ID ... --commit SHA ...
                                         Prepare a new accepted-record draft from archived candidates
       prepare-accepted-update --id ID  Print an editable accepted-record replacement
@@ -6567,6 +6770,7 @@ def reject_inapplicable_options!(command, provided)
     "snapshot" => %w[--root],
     "compare" => %w[--root --file --allow-path --allow-action],
     "prepare-decision" => %w[--root --id --verdict --rationale],
+    "prepare-verification" => %w[--root --id --verification],
     "prepare-accepted" => %w[--root --id --commit],
     "prepare-accepted-update" => %w[--root --id --commit --destination],
     "init" => %w[--root],
@@ -6615,7 +6819,7 @@ end
 command = ARGV.shift
 commands = %w[
   show snapshot compare
-  prepare-decision prepare-accepted prepare-accepted-update
+  prepare-decision prepare-verification prepare-accepted prepare-accepted-update
   init template record-papercut prepare-papercut-repair repair-papercut papercuts
   close-papercut route pending process
   route-verification pending-verifications process-verification
@@ -6641,6 +6845,7 @@ archive = false
 outcome = nil
 rationale = nil
 verdict = nil
+proposed_verification = nil
 related_papercut_id = nil
 related_candidate_id = nil
 destination_filter = nil
@@ -6669,6 +6874,11 @@ parser = OptionParser.new do |opts|
   opts.on("--outcome OUTCOME") { |value| outcome = value }
   opts.on("--rationale TEXT") { |value| rationale = value }
   opts.on("--verdict VERDICT") { |value| verdict = value }
+  opts.on("--verification STATE") do |value|
+    raise OptionParser::InvalidArgument, "supply --verification at most once" if proposed_verification
+
+    proposed_verification = value
+  end
   opts.on("--related-papercut-id ID") { |value| related_papercut_id = value }
   opts.on("--related-candidate-id ID") { |value| related_candidate_id = value }
   opts.on("--destination TEXT") do |value|
@@ -6713,6 +6923,7 @@ begin
       "--outcome" => !outcome.nil?,
       "--rationale" => !rationale.nil?,
       "--verdict" => !verdict.nil?,
+      "--verification" => !proposed_verification.nil?,
       "--related-papercut-id" => !related_papercut_id.nil?,
       "--related-candidate-id" => !related_candidate_id.nil?,
       "--destination" => !destination_filter.nil?,
@@ -6730,12 +6941,15 @@ begin
   if command == "compare" && !input_path
     raise OptionParser::MissingArgument, "--file PATH"
   end
-  if %w[prepare-decision prepare-accepted-update].include?(command)
+  if %w[prepare-decision prepare-verification prepare-accepted-update].include?(command)
     raise OptionParser::MissingArgument, "--id ID" unless record_id
     raise OptionParser::InvalidArgument, "exactly one --id is required" unless record_ids.one?
   end
   if command == "prepare-decision" && !verdict
     raise OptionParser::MissingArgument, "--verdict VERDICT"
+  end
+  if command == "prepare-verification" && !proposed_verification
+    raise OptionParser::MissingArgument, "--verification STATE"
   end
   if command == "prepare-accepted-update" && destination_filters.length > 1
     raise OptionParser::InvalidArgument, "supply --destination at most once"
@@ -6818,6 +7032,8 @@ begin
     case command
     when "prepare-decision"
       print store.prepare_decision(record_id, verdict, rationale: rationale)
+    when "prepare-verification"
+      print store.prepare_verification(record_id, proposed_verification)
     when "prepare-accepted"
       print store.prepare_accepted(record_ids, implementation_commits)
     when "prepare-accepted-update"

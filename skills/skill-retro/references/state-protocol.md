@@ -360,9 +360,11 @@ Read their exact opportunities, claims, and evidence before constructing support
 without proposal provenance remains limited to the retained evidence.
 The command retrieves context without judging relevance, opportunity match, or supplementation.
 
-When the task produces decisive evidence for the target's exact opportunity, create
-`template verification` and route it with `route-verification`. Another conforming task alone need
-not add evidence that changes adjudication. A proposal names one
+When the task produces decisive evidence for the target's exact opportunity, use
+`prepare-verification --id SCR-ID --verification STATE` for the chosen target and proposed state.
+Complete the blank evidence and judgment fields, review the proposal, then submit separately with
+`route-verification`; see `--help` for context, conditional fields, and eligibility checks.
+Another conforming task alone need not add evidence that changes adjudication. A proposal names one
 `target_accepted_id`, proposes `supported` or `contradicted`, selects
 `later-session` or `deterministic-test`, records the opportunity match and
 observation, and classifies its claim as one of:
