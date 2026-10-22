@@ -1463,7 +1463,9 @@ module RetroState
       accepted_path(id)
       context = verification_context(record_ids: [id]).fetch("records").first
       accepted = context.fetch("accepted").fetch("frontmatter")
-      pending = context.fetch("pending_verification_proposals").map { |record| record.fetch("frontmatter") }
+      pending_ids = context.fetch("pending_verification_proposal_ids")
+      pending = context.fetch("verification_proposals")
+        .select { |record| pending_ids.include?(record.fetch("id")) }.map { |record| record.fetch("frontmatter") }
       draft, = RetroState.parse_document(RetroState.verification_proposal_template)
       draft["target_accepted_id"] = id
       draft["proposed_verification"] = verification
@@ -2204,12 +2206,12 @@ module RetroState
               raise Error, "verification target does not reference applied proposal: #{proposal.fetch("id")}"
             end
           end
-          {
-            "accepted" => record,
-            "selected_verification_proposals" => selected_proposals,
-            "applied_verification_proposals" => applied_ids.map { |proposal_id| proposal.call(proposal_id) },
-            "pending_verification_proposals" => pending.fetch(id, [])
-          }.merge(verification_claim_summary(data, &proposal))
+          verification_detail(
+            record,
+            selected: selected_proposals,
+            applied: applied_ids.map { |proposal_id| proposal.call(proposal_id) },
+            pending: pending.fetch(id, [])
+          ).merge(verification_claim_summary(data, compact: true, &proposal))
         end
         return {"root" => root, "mode" => "detail", "records" => details}
       end
@@ -2710,6 +2712,51 @@ module RetroState
     end
 
     private
+
+    def verification_detail(accepted, selected:, applied:, pending:)
+      texts = {"observations" => {}, "evidence" => {}}
+      references = {"observations" => {}, "evidence" => {}}
+      intern = lambda do |pool, text|
+        references.fetch(pool)[text] ||= begin
+          reference = "#{pool}-#{texts.fetch(pool).length + 1}"
+          texts.fetch(pool)[reference] = text
+          reference
+        end
+      end
+      project_fields = lambda do |fields, observation_field, observation_texts = nil|
+        fields.dup.tap do |copy|
+          observation = copy.delete(observation_field)
+          if observation_texts
+            copy["#{observation_field}_refs"] = observation_texts.map { |text| intern.call("observations", text) }
+          else
+            copy["#{observation_field}_ref"] = intern.call("observations", observation)
+          end
+          copy["decisive_evidence_refs"] = copy.delete("decisive_evidence").map { |text| intern.call("evidence", text) }
+        end
+      end
+      applied_observations = applied.map { |record| record.fetch("frontmatter").fetch("observation") }.uniq
+      project = lambda do |record|
+        fields = record.fetch("frontmatter")
+        observation_field = (fields["record_type"] == "accepted") ? "observed_behavior" : "observation"
+        observation_texts = if observation_field == "observed_behavior"
+          observation = fields.fetch(observation_field)
+          (observation == applied_observations.join("\n\n")) ? applied_observations : [observation]
+        end
+        projected = project_fields.call(fields, observation_field, observation_texts)
+        if observation_field == "observed_behavior" && fields["contradiction"]
+          projected["contradiction"] = project_fields.call(fields.fetch("contradiction"), "summary")
+        end
+        record.merge("frontmatter" => projected)
+      end
+      proposals = (selected + applied + pending).uniq { |record| record.fetch("id") }
+      {
+        "accepted" => project.call(accepted),
+        "verification_proposals" => proposals.map { |record| project.call(record) },
+        "selected_verification_proposal_ids" => selected.map { |record| record.fetch("id") },
+        "applied_verification_proposal_ids" => applied.map { |record| record.fetch("id") },
+        "pending_verification_proposal_ids" => pending.map { |record| record.fetch("id") }
+      }.merge(texts)
+    end
 
     def verification_claim_summary(accepted, compact: false)
       applied = accepted.fetch("applied_verification_proposal_ids", []).map do |id|
@@ -3719,7 +3766,11 @@ module RetroState
         data["claim"] = claim
         data["verification_basis"] = basis
         data["observation"] = "#{claim} #{state} fixture scope for #{id}."
-        data["decisive_evidence"] = ["Distinct #{id} #{state} evidence."]
+        data["decisive_evidence"] = ["Shared context evidence.", "Distinct #{id} #{state} evidence."]
+        data["decisive_evidence"] << "Shared context evidence!" if supplemental
+        data["opportunity_match"] = "Only this #{claim} fixture scope is exercised; comparative improvement is unverified."
+        data["contradiction"] = "Unrelated proposal metadata must remain unchanged."
+        body += "\nBody-only limit: caller recovery is untested.\n"
         data["what_is_false"] = "Fixture assertion failed." if state == "contradicted"
         data["supplemental_reason"] = "A distinct fixture boundary." if supplemental
         File.basename(store.route_verification(write.call(data, body)), ".md")
@@ -3868,35 +3919,80 @@ module RetroState
       end
       detail = JSON.parse(run.call(0, "verification-context", "--id", supported_id, "--id", unverified_id, "--id", supported_id))
       records = detail.fetch("records")
-      applied = records.first.fetch("applied_verification_proposals")
+      applied = records.first.fetch("verification_proposals")
+        .select { |proposal| records.first.fetch("applied_verification_proposal_ids").include?(proposal.fetch("id")) }
       unless records.map { |record| record.dig("accepted", "id") } == [supported_id, unverified_id] &&
           applied.first.fetch("id") == applied_id && applied.first.dig("frontmatter", "claim") == "intended-outcome" &&
           !applied.first.fetch("body").empty? &&
-          records.first.fetch("pending_verification_proposals").map { |proposal| proposal.fetch("id") }.sort == pending_ids.sort
+          records.first.fetch("pending_verification_proposal_ids").sort == pending_ids.sort
         raise "verification details lost selected order, claim, original evidence, or pending proposals"
       end
-      unless records.first.fetch("supported_claims") == supported_claims &&
+      unless records.first.fetch("supported_claims") == supported_claims.map { |claim| claim.slice(*compact_claim_fields) } &&
           records.first.fetch("unverified_claims") == remaining_claims
         raise "verification detail and discovery disagree about claim scope"
       end
       historical = JSON.parse(run.call(0, "verification-context", "--id", retired_id, "--id", legacy_id))
       unless historical.fetch("records").first.dig("accepted", "frontmatter", "disposition") == "reverted" &&
-          historical.fetch("records").last.fetch("applied_verification_proposals").empty?
+          historical.fetch("records").last.fetch("applied_verification_proposal_ids").empty?
         raise "verification detail hid historical or legacy evidence limits"
       end
       queue_id = run.call(0, "review-queue").lines.map { |line| line.split("\t") }
         .find { |row| row.first == "verification-proposal" && pending_ids.include?(row[1]) }.fetch(1)
       queued = JSON.parse(run.call(0, "verification-context", "--id", queue_id)).fetch("records")
       unless queued.one? && queued.first.dig("accepted", "id") == supported_id &&
-          queued.first.fetch("pending_verification_proposals").any? { |record| record.fetch("id") == queue_id }
+          queued.first.fetch("pending_verification_proposal_ids").include?(queue_id)
         raise "verification context could not consume a queue proposal ID directly"
       end
       mixed = JSON.parse(run.call(0, "verification-context", "--id", queue_id, "--id", unverified_id,
         "--id", supported_id, "--id", applied_id, "--id", rejected_id, "--id", queue_id)).fetch("records")
       unless mixed.map { |record| record.dig("accepted", "id") } == [supported_id, unverified_id] &&
-          mixed.first.fetch("selected_verification_proposals").map { |record| record.fetch("id") } == [queue_id, applied_id, rejected_id] &&
-          mixed.first.fetch("selected_verification_proposals").last.dig("frontmatter", "triage", "verdict") == "reject"
+          mixed.first.fetch("selected_verification_proposal_ids") == [queue_id, applied_id, rejected_id] &&
+          mixed.first.fetch("verification_proposals").find { |record| record.fetch("id") == rejected_id }.dig("frontmatter", "triage", "verdict") == "reject"
         raise "mixed verification IDs lost order, deduplication, or selected archived evidence"
+      end
+      restore_fields = lambda do |context, fields, observation_field|
+        fields.dup.tap do |copy|
+          references = copy.delete("#{observation_field}_refs")
+          copy[observation_field] = if references
+            references.map { |reference| context.fetch("observations").fetch(reference) }.join("\n\n")
+          else
+            context.fetch("observations").fetch(copy.delete("#{observation_field}_ref"))
+          end
+          copy["decisive_evidence"] = copy.delete("decisive_evidence_refs")
+            .map { |reference| context.fetch("evidence").fetch(reference) }
+        end
+      end
+      [*records, *mixed, *historical.fetch("records"),
+        *JSON.parse(run.call(0, "verification-context", "--id", contradicted_id)).fetch("records")].each do |context|
+        proposals = context.fetch("verification_proposals")
+        ids = proposals.map { |record| record.fetch("id") }
+        roles = %w[selected applied pending].map { |role| context.fetch("#{role}_verification_proposal_ids") }
+        unless ids == roles.flatten.uniq && ids.uniq == ids
+          raise "expanded verification context repeated a proposal or lost its role"
+        end
+        %w[observations evidence].each do |pool|
+          texts = context.fetch(pool).values
+          raise "expanded verification context repeated exact text" unless texts.uniq == texts
+        end
+        [context.fetch("accepted"), *proposals].each do |record|
+          fields = record.fetch("frontmatter")
+          field = (fields["record_type"] == "accepted") ? "observed_behavior" : "observation"
+          restored = restore_fields.call(context, fields, field)
+          if field == "observed_behavior" && fields["contradiction"]
+            restored["contradiction"] = restore_fields.call(context, fields.fetch("contradiction"), "summary")
+          end
+          original = store.show([record.fetch("id")]).fetch("records").first
+          unless record.merge("frontmatter" => restored) == original
+            raise "expanded context lost source evidence, opportunity match, triage rationale, body limits, or provenance"
+          end
+        end
+      end
+      normalized = records.first
+      unless normalized.fetch("evidence").values.count("Shared context evidence.") == 1 &&
+          normalized.fetch("evidence").value?("Shared context evidence!") &&
+          normalized.fetch("accepted").fetch("frontmatter").fetch("observed_behavior_refs").length == 2 &&
+          normalized.fetch("observations").length == 3
+        raise "expanded deduplication merged distinct evidence or repeated the accepted observation rollup"
       end
       read_counts = Hash.new(0)
       original_reader = method(:read_document)
@@ -6783,13 +6879,22 @@ def usage(command = nil)
 
       IDs may be accepted records (SCR-*) or inbox/archived verification proposals (VP-*).
       Proposal IDs resolve to their target; mixed IDs deduplicate targets in selected order.
-      Print JSON {root, mode, records}: each record contains accepted,
-      selected_verification_proposals, applied_verification_proposals, and
-      pending_verification_proposals. Selected proposals retain explicitly requested VP IDs,
-      including rejected proposals absent in the applied and pending lists. These contain
-      complete {id, path, frontmatter, body} records, including original evidence and
-      claims. Historical dispositions remain inspectable by ID. Legacy support without
-      proposal provenance returns an empty applied list; do not infer a stronger claim.
+      Print JSON {root, mode, records}. Each result contains an accepted projection and
+      verification_proposals with one {id, path, frontmatter, body} projection per proposal.
+      selected_verification_proposal_ids, applied_verification_proposal_ids, and
+      pending_verification_proposal_ids preserve roles and ordering without repeating
+      documents. Explicitly selected rejected proposals remain included.
+      observations and evidence dictionaries hold exact text once per result. Projected
+      observed_behavior_refs, observation_ref, summary_ref, and decisive_evidence_refs
+      point into those dictionaries. Accepted observed_behavior_refs reconstruct the
+      original text by joining the referenced observations with two newlines; an exact
+      applied-observation rollup reuses its component references. Distinct wording stays
+      distinct. These references are local to the result, not persistent record IDs.
+      Opportunity matches, triage rationales, source notes, and claim limits remain intact.
+      Detail claim summaries carry IDs, claim types, and bases; their observations live
+      in the referenced proposals. Source digests describe the original documents, which
+      remain available verbatim through show --id ID. Historical dispositions remain
+      inspectable; legacy support without proposal provenance has no applied IDs.
       Expanded proposals must match their record IDs and locations. Accepted and proposal
       documents are read once per invocation and reused; later calls read anew.
       Choose destinations or IDs; text filters, compact output, and pagination apply only
