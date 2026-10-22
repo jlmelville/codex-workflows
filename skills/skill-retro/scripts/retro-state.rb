@@ -4097,6 +4097,95 @@ module RetroState
     end
   end
 
+  def verification_evidence_curation_self_test
+    Dir.mktmpdir("retro-evidence-curation-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = self_test_cli(root)
+      input = File.join(tmp, "input.md")
+      write = lambda do |data, body|
+        File.write(input, render_document(data, body))
+        input
+      end
+      File.write(input, candidate_template)
+      candidate_id = File.basename(store.route(input), ".md")
+      File.write(input, store.prepare_decision(candidate_id, "accept", rationale: "Disposable curation fixture."))
+      store.process(candidate_id, input)
+
+      implementation_evidence = "The profiling implementation passed its static checks."
+      overlapping_summaries = [
+        "The smoke recovered every native sample using retained debug information.",
+        "Recovery preserved the measured inputs and did not acquire another profile."
+      ]
+      remaining_claims = ["Ordinary later-use effectiveness.", "Comparative improvement."]
+      data, body = parse_document(accepted_template)
+      data["originating_candidate_ids"] = [candidate_id]
+      data["disposition"] = "implemented"
+      data["implementation_commits"] = ["a" * 40]
+      data["decisive_evidence"] = [implementation_evidence, *overlapping_summaries]
+      data["unverified_claims"] = remaining_claims
+      accepted_id = File.basename(store.record_accepted(write.call(data, body)), ".md")
+
+      data, body = parse_document(verification_proposal_template)
+      data["target_accepted_id"] = accepted_id
+      data["claim"] = "executable-correctness"
+      data["verification_basis"] = "deterministic-test"
+      data["observation"] = "The prompted smoke recovered native source locations; caller recovery was untested."
+      data["opportunity_match"] = "Only the capture and recovery mechanics witness was exercised."
+      proposal_evidence = [
+        "The smoke captured 19 samples; all 7 native samples resolved using matching debug information.",
+        "Capture and binary hashes stayed identical before and after source recovery.",
+        "No profiling reacquisition was used; later use and comparative benefit remain unverified."
+      ]
+      data["decisive_evidence"] = proposal_evidence
+      body += "\nCaller stacks, inclusive costs, and allocation behavior were not tested.\n"
+      proposal_id = File.basename(store.route_verification(write.call(data, body)), ".md")
+      File.write(input, store.prepare_decision(proposal_id, "apply", rationale: "Support only the tested mechanics."))
+      store.process_verification(proposal_id, input)
+
+      original = store.show([accepted_id]).fetch("records").first
+      original_proposal = store.show([proposal_id]).fetch("records").first
+      context = JSON.parse(run.call(0, "verification-context", "--id", accepted_id)).fetch("records").first
+      unless (overlapping_summaries - context.fetch("evidence").values).empty?
+        raise "verification context silently inferred semantic evidence equivalence"
+      end
+      snapshot = File.join(tmp, "before.json")
+      File.write(snapshot, JSON.generate(store.snapshot))
+      File.write(input, run.call(0, "prepare-accepted-update", "--id", accepted_id))
+      replacement, body = read_document(input)
+      replacement["decisive_evidence"] -= overlapping_summaries
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, body))
+
+      curated = store.show([accepted_id]).fetch("records").first
+      unless curated == original.merge("frontmatter" => original.fetch("frontmatter").merge(
+          "decisive_evidence" => [implementation_evidence, *proposal_evidence]
+        )) && store.show([proposal_id]).fetch("records").first == original_proposal
+        raise "evidence curation changed identity, claim limits, opportunity, proposal provenance, or triage"
+      end
+      comparison = JSON.parse(run.call(0, "compare", "--file", snapshot, "--allow-action", "update-accepted:#{accepted_id}"))
+      raise "evidence curation changed unrelated state" unless comparison.fetch("matches")
+
+      before = store.snapshot
+      detail = JSON.parse(run.call(0, "verification-context", "--id", accepted_id)).fetch("records").first
+      proposal = detail.fetch("verification_proposals").fetch(0)
+      accepted_refs = detail.fetch("accepted").fetch("frontmatter").fetch("decisive_evidence_refs")
+      proposal_refs = proposal.fetch("frontmatter").fetch("decisive_evidence_refs")
+      unless detail.fetch("evidence").values == [implementation_evidence, *proposal_evidence] &&
+          accepted_refs.drop(1) == proposal_refs &&
+          detail.fetch("applied_verification_proposal_ids") == [proposal_id] &&
+          detail.fetch("unverified_claims") == remaining_claims &&
+          detail.fetch("supported_claims") == context.fetch("supported_claims") &&
+          detail.fetch("observations") == context.fetch("observations") &&
+          proposal == context.fetch("verification_proposals").first.merge("frontmatter" =>
+            context.fetch("verification_proposals").first.fetch("frontmatter").merge("decisive_evidence_refs" => proposal_refs))
+        raise "curated expanded evidence repeated summaries or lost shared references, provenance, or claim limits"
+      end
+      raise "curated context retrieval wrote state" unless store.snapshot == before
+      store.validate
+    end
+  end
+
   def verification_preparation_self_test
     Dir.mktmpdir("retro-verification-preparation-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
@@ -5070,6 +5159,7 @@ module RetroState
     inspection_self_test
     metadata_comparison_self_test
     verification_context_self_test
+    verification_evidence_curation_self_test
     verification_preparation_self_test
     accepted_preparation_self_test
     preparation_self_test
@@ -6889,7 +6979,10 @@ def usage(command = nil)
       point into those dictionaries. Accepted observed_behavior_refs reconstruct the
       original text by joining the referenced observations with two newlines; an exact
       applied-observation rollup reuses its component references. Distinct wording stays
-      distinct. These references are local to the result, not persistent record IDs.
+      distinct. Consolidate redundant paraphrases through prepare-accepted-update and
+      update-accepted, reusing precise applied-proposal evidence while retaining unique
+      facts and claim limits. Proposal archives preserve their original evidence and triage.
+      These references are local to the result, not persistent record IDs.
       Opportunity matches, triage rationales, source notes, and claim limits remain intact.
       Detail claim summaries carry IDs, claim types, and bases; their observations live
       in the referenced proposals. Source digests describe the original documents, which
