@@ -111,6 +111,18 @@ trace objectives, directional derivatives, parameter displacement, and initial-s
 Compare expected objective and parameter changes with their floating-point spacing. Distinguish an uninformative
 interpolation initializer from an acceptance condition that no representable step can satisfy.
 
+## Native CPU Profiling
+
+Before substantial native CPU profiling, smoke-test capture through report generation on a known
+workload. Confirm the symbol, source-location, and caller detail required by the claim;
+command availability and successful sample collection alone do not establish attribution capability.
+
+If attribution fails, distinguish capture limitations from missing reporting support or debug
+information. Preserve valid samples and matching binaries or debug information when reporting can be
+repaired without new acquisition. When only sampled instruction pointers can be resolved to source,
+label that attribution as exclusive; it does not establish callers, inclusive costs, or allocation
+behavior.
+
 ## Allocation Evidence
 
 Name the allocation profiler, warmup or JIT policy, and allocation class it can

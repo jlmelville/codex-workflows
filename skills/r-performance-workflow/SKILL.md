@@ -115,7 +115,7 @@ Capture enough metadata for a future agent to interpret the result:
 - baseline/current labels and result table.
 
 Use base R `system.time()` when adding benchmark dependencies is undesirable.
-For the bundled evidence script, callback selected-point traces,
+For the bundled evidence script, callback selected-point traces, native CPU profile attribution,
 allocation-evidence limits, workload-scoped gates, abstraction probes, or
 bounded exploratory grids, follow the
 [benchmark evidence guidance](references/benchmark-evidence.md). For resumable
