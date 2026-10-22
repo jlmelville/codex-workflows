@@ -1568,7 +1568,7 @@ module RetroState
         when "reconsider"
           [candidate_path("archive", id)]
         when "update-accepted"
-          [accepted_path(id)]
+          [accepted_path(id), artifact_cadence_lock_path]
         when "process-verification"
           archive = verification_path("archive", id)
           record = show([id]).fetch("records").first
@@ -1576,7 +1576,7 @@ module RetroState
             raise Error, "process-verification allowance requires a completed archived proposal: #{id}"
           end
           proposal = validate_verification_record(record).fetch("frontmatter")
-          footprint = [verification_path("inbox", id), archive]
+          footprint = [verification_path("inbox", id), archive, artifact_cadence_lock_path]
           if proposal.fetch("triage").fetch("verdict") == "apply"
             target = validate_accepted_record(show([proposal.fetch("target_accepted_id")]).fetch("records").first)
             footprint << File.join(root, target.fetch("path"))
@@ -3463,18 +3463,27 @@ module RetroState
       end
       snapshot_file = File.join(tmp, "before.json")
       File.write(snapshot_file, JSON.generate(store.snapshot))
-      compare = lambda do |status, *arguments, error: nil|
+      compare = lambda do |status, *arguments, error: nil, baseline: snapshot_file|
         before = store.snapshot
-        result = run.call(status, "compare", "--file", snapshot_file, *arguments, error: error)
+        result = run.call(status, "compare", "--file", baseline, *arguments, error: error)
         raise "metadata comparison wrote state" unless store.snapshot == before
         result
       end
+      lock_relative = "audits/learning-process/artifact-cadence.lock"
+      lock_path = File.join(root, lock_relative)
+      operation_snapshot = File.join(tmp, "operation-before.json")
       actions = proposals.flat_map { |id| ["--allow-action", "process-verification:#{id}"] }
       compare.call(1, *actions.first(2), error: "requires a completed archived proposal")
       compare.call(1, "--allow-action", "process-verification:VP-20000101T000000Z-000000", error: "record not found")
       proposals.zip(%w[apply reject]).each do |id, verdict|
+        File.unlink(lock_path)
+        File.write(operation_snapshot, JSON.generate(store.snapshot))
         decision = store.prepare_decision(id, verdict, rationale: "Reviewed comparison fixture.")
         run.call(0, "process-verification", "--id", id, "--decision", "-", stdin: decision)
+        result = JSON.parse(compare.call(0, "--allow-action", "process-verification:#{id}", baseline: operation_snapshot))
+        unless result.fetch("added").include?(lock_relative)
+          raise "verification #{verdict} comparison did not cover writer lock creation"
+        end
       end
       proposal_paths = proposals.map { |id| ["verifications/inbox/#{id}.md", "verifications/archive/#{id}.md"] }
       applied_target_path = "retrospectives/accepted/#{targets.first}.md"
@@ -3490,11 +3499,16 @@ module RetroState
       end
       prepared = run.call(0, "prepare-accepted-update", "--id", targets.last,
         "--commit", "BCDEF12", "--destination", "Reviewed comparison destination.")
+      File.unlink(lock_path)
+      File.write(operation_snapshot, JSON.generate(store.snapshot))
       run.call(0, "update-accepted", "--id", targets.last, "--file", "-", stdin: prepared)
+      update_action = ["--allow-action", "update-accepted:#{targets.last}"]
+      unless JSON.parse(compare.call(0, *update_action, baseline: operation_snapshot)).fetch("added").include?(lock_relative)
+        raise "accepted update comparison did not cover writer lock creation"
+      end
       unless JSON.parse(compare.call(1, *actions)).fetch("unexpected") == [rejected_target_path]
         raise "rejected verification allowance hid accepted-record changes"
       end
-      update_action = ["--allow-action", "update-accepted:#{targets.last}"]
       compare.call(0, *actions, *update_action)
       unless JSON.parse(compare.call(1, *update_action)).fetch("unexpected") == strict.fetch("unexpected")
         raise "accepted update allowance hid unrelated record changes"
@@ -6395,8 +6409,10 @@ def usage(command = nil)
         process:RC-ID               Candidate inbox/archive plus cadence cache and lock.
         close-papercut:PC-ID         Papercut inbox/archive.
         reconsider:RC-ID            Candidate archive only.
-        update-accepted:SCR-ID       Accepted record only.
-        process-verification:VP-ID   Proposal inbox/archive; accepted target for apply.
+        update-accepted:SCR-ID       Accepted record plus writer lock.
+        process-verification:VP-ID   Proposal inbox/archive plus writer lock; target for apply.
+      The shared writer lock is audits/learning-process/artifact-cadence.lock.
+      Accepted updates and verification processing permit no cadence cache changes.
       Verification allowances require a validated, completed archived proposal; missing
       or ambiguous records fail. Rejections permit no accepted-record changes. Use exact
       --allow-path allowances for interrupted verification recovery.

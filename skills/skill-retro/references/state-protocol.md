@@ -88,8 +88,8 @@ identity, privacy, and recovery.
 
 For state-preservation checks, save a `snapshot` outside the state root and run `compare`.
 For supported authorized state operations, repeat `--allow-action ACTION:ID`
-to include each selected record's exact footprint and any bookkeeping. Omit allowances for read-only
-work; see `--help` for supported forms and scope.
+to include each selected record's exact footprint and required writer bookkeeping.
+Omit allowances for read-only work; see `--help` for supported forms and scope.
 
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.
