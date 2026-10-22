@@ -4118,13 +4118,15 @@ module RetroState
         "The smoke recovered every native sample using retained debug information.",
         "Recovery preserved the measured inputs and did not acquire another profile."
       ]
+      additional_context = "Acquisitions used one thread and a fixed seed; system-library samples were not inspected."
       remaining_claims = ["Ordinary later-use effectiveness.", "Comparative improvement."]
-      data, body = parse_document(accepted_template)
+      data, = parse_document(accepted_template)
       data["originating_candidate_ids"] = [candidate_id]
       data["disposition"] = "implemented"
       data["implementation_commits"] = ["a" * 40]
       data["decisive_evidence"] = [implementation_evidence, *overlapping_summaries]
       data["unverified_claims"] = remaining_claims
+      body = "# Profiling fixture\n\n#{([implementation_evidence] + overlapping_summaries + remaining_claims + [additional_context]).join("\n\n")}\n"
       accepted_id = File.basename(store.record_accepted(write.call(data, body)), ".md")
 
       data, body = parse_document(verification_proposal_template)
@@ -4153,14 +4155,15 @@ module RetroState
       snapshot = File.join(tmp, "before.json")
       File.write(snapshot, JSON.generate(store.snapshot))
       File.write(input, run.call(0, "prepare-accepted-update", "--id", accepted_id))
-      replacement, body = read_document(input)
+      replacement, = read_document(input)
       replacement["decisive_evidence"] -= overlapping_summaries
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, body))
+      curated_body = "# Additional acquisition context\n\n#{additional_context}\n"
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
 
       curated = store.show([accepted_id]).fetch("records").first
       unless curated == original.merge("frontmatter" => original.fetch("frontmatter").merge(
           "decisive_evidence" => [implementation_evidence, *proposal_evidence]
-        )) && store.show([proposal_id]).fetch("records").first == original_proposal
+        ), "body" => curated_body) && store.show([proposal_id]).fetch("records").first == original_proposal
         raise "evidence curation changed identity, claim limits, opportunity, proposal provenance, or triage"
       end
       comparison = JSON.parse(run.call(0, "compare", "--file", snapshot, "--allow-action", "update-accepted:#{accepted_id}"))
@@ -4171,6 +4174,11 @@ module RetroState
       proposal = detail.fetch("verification_proposals").fetch(0)
       accepted_refs = detail.fetch("accepted").fetch("frontmatter").fetch("decisive_evidence_refs")
       proposal_refs = proposal.fetch("frontmatter").fetch("decisive_evidence_refs")
+      unless detail.fetch("accepted").fetch("body") == curated_body &&
+          JSON.generate(detail).scan(Regexp.new(Regexp.escape(additional_context))).length == 1 &&
+          (overlapping_summaries + remaining_claims + [implementation_evidence]).none? { |text| curated_body.include?(text) }
+        raise "expanded accepted prose repeated structured evidence or claim limits, or lost body-only context"
+      end
       unless detail.fetch("evidence").values == [implementation_evidence, *proposal_evidence] &&
           accepted_refs.drop(1) == proposal_refs &&
           detail.fetch("applied_verification_proposal_ids") == [proposal_id] &&
@@ -6981,7 +6989,10 @@ def usage(command = nil)
       applied-observation rollup reuses its component references. Distinct wording stays
       distinct. Consolidate redundant paraphrases through prepare-accepted-update and
       update-accepted, reusing precise applied-proposal evidence while retaining unique
-      facts and claim limits. Proposal archives preserve their original evidence and triage.
+      facts and claim limits. Curate accepted bodies to retain additional context, removing
+      prose already covered by structured observations, evidence, and claim scopes.
+      Preserve body-only facts and limits; no prose is automatically filtered or summarized.
+      Proposal archives preserve their original evidence and triage.
       These references are local to the result, not persistent record IDs.
       Opportunity matches, triage rationales, source notes, and claim limits remain intact.
       Detail claim summaries carry IDs, claim types, and bases; their observations live
