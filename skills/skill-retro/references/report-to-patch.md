@@ -85,7 +85,8 @@ needed, and see `--help`. Complete the blank outcome fields and judge the final 
 evidence, then submit with `record-accepted`. Preparation comments include the resolving ancestor
 decisions for merged origins and are discarded automatically on recording. The draft preserves
 explicitly selected linkage without treating the original proposal as the implemented outcome.
-For an existing identity, use `prepare-accepted-update` and `update-accepted` instead.
+For an existing identity, supply known commits and any changed destination to
+`prepare-accepted-update`, review the replacement, and submit with `update-accepted` instead.
 
 Store sanitized evidence, destination, trigger and non-trigger, verification opportunity,
 disposition, verification state and basis, applied proposal provenance, and known public commits.

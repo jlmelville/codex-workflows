@@ -1497,15 +1497,18 @@ module RetroState
       RetroState.render_document(draft, "# Accepted candidate\n").sub(/\A---\n/) { "---\n#{comments}\n" }
     end
 
-    def prepare_accepted_update(id)
-      record = show([id]).fetch("records").first
+    def prepare_accepted_update(id, commits: [], destination: nil)
+      if !destination.nil? && (!destination.is_a?(String) || destination.strip.empty?)
+        raise Error, "destination must be a non-empty string"
+      end
+      record = validate_accepted_record(show([id]).fetch("records").first)
       data = record.fetch("frontmatter")
       body = record.fetch("body")
-      path = File.join(root, record.fetch("path"))
-      raise Error, "accepted record must be in retrospectives/accepted: #{id}" unless path == accepted_path(id)
-
-      RetroState.validate_accepted(data, body, label: path, assigned: true)
-      raise Error, "record identity does not match #{id}" unless data.fetch("accepted_id") == id
+      unless commits.empty?
+        data["implementation_commits"] = (data.fetch("implementation_commits") + commits.map(&:downcase)).uniq
+      end
+      data["destination"] = destination unless destination.nil?
+      RetroState.validate_accepted(data, body, label: id, assigned: true) unless commits.empty? && destination.nil?
 
       RetroState.render_document(RetroState.without_keys(data, "accepted_id", "accepted_at"), body)
     end
@@ -1564,8 +1567,23 @@ module RetroState
           [papercut_path("inbox", id), papercut_path("archive", id)]
         when "reconsider"
           [candidate_path("archive", id)]
+        when "update-accepted"
+          [accepted_path(id)]
+        when "process-verification"
+          archive = verification_path("archive", id)
+          record = show([id]).fetch("records").first
+          unless File.join(root, record.fetch("path")) == archive
+            raise Error, "process-verification allowance requires a completed archived proposal: #{id}"
+          end
+          proposal = validate_verification_record(record).fetch("frontmatter")
+          footprint = [verification_path("inbox", id), archive]
+          if proposal.fetch("triage").fetch("verdict") == "apply"
+            target = validate_accepted_record(show([proposal.fetch("target_accepted_id")]).fetch("records").first)
+            footprint << File.join(root, target.fetch("path"))
+          end
+          footprint
         else
-          raise Error, "unsupported comparison action: #{operation}; use process, close-papercut, or reconsider"
+          raise Error, "unsupported comparison action: #{operation}; see compare --help"
         end
         paths.map do |path|
           path.delete_prefix(root + File::SEPARATOR)
@@ -2637,6 +2655,18 @@ module RetroState
 
     private
 
+    def validate_accepted_record(record)
+      id = record.fetch("id")
+      path = File.join(root, record.fetch("path"))
+      raise Error, "accepted record must be in retrospectives/accepted: #{id}" unless path == accepted_path(id)
+
+      data = record.fetch("frontmatter")
+      RetroState.validate_accepted(data, record.fetch("body"), label: path, assigned: true)
+      raise Error, "record identity does not match #{id}" unless data.fetch("accepted_id") == id
+
+      record
+    end
+
     def validate_archived_candidate_record(record)
       id = record.fetch("id")
       path = File.join(root, record.fetch("path"))
@@ -3320,7 +3350,11 @@ module RetroState
       run.call(2, "snapshot", "--allow-action", "process:#{candidate_id}", error: "--allow-action is not valid")
       {
         "process" => "expected --allow-action ACTION:ID",
-        "process-verification:#{papercut_id}" => "unsupported comparison action",
+        "unknown:#{papercut_id}" => "unsupported comparison action",
+        "process-verification:#{papercut_id}" => "invalid verification_proposal_id",
+        "process-verification:../escape" => "invalid verification_proposal_id",
+        "update-accepted:#{candidate_id}" => "invalid accepted_id",
+        "update-accepted:../escape" => "invalid accepted_id",
         "process:#{papercut_id}" => "invalid candidate_id",
         "process:../escape" => "invalid candidate_id",
         "process:#{candidate_id}:extra" => "invalid candidate_id",
@@ -3399,6 +3433,113 @@ module RetroState
       before_compare = store.snapshot
       run.call(0, "compare", "--file", snapshot_file, *actions)
       raise "closure or reconsideration comparison wrote state" unless store.snapshot == before_compare
+    end
+  end
+
+  def metadata_comparison_self_test
+    Dir.mktmpdir("retro-metadata-comparison-self-test.") do |tmp|
+      root = File.join(File.realpath(tmp), "state")
+      store = Store.new(root)
+      store.init
+      run = self_test_cli(root)
+      input = File.join(tmp, "input.md")
+      write = lambda do |text|
+        File.write(input, text)
+        input
+      end
+      origin = File.basename(store.route(write.call(candidate_template)), ".md")
+      store.process(origin, write.call(store.prepare_decision(origin, "accept", rationale: "Comparison fixture.")))
+      targets = 2.times.map do |index|
+        data, body = parse_document(accepted_template)
+        data["originating_candidate_ids"] = [origin]
+        data["destination"] = "Comparison target #{index}."
+        data["implementation_commits"] = ["abcdef0"]
+        File.basename(store.record_accepted(write.call(render_document(data, body))), ".md")
+      end
+      proposals = targets.map do |target|
+        data, body = parse_document(verification_proposal_template)
+        data["target_accepted_id"] = target
+        File.basename(store.route_verification(write.call(render_document(data, body))), ".md")
+      end
+      snapshot_file = File.join(tmp, "before.json")
+      File.write(snapshot_file, JSON.generate(store.snapshot))
+      compare = lambda do |status, *arguments, error: nil|
+        before = store.snapshot
+        result = run.call(status, "compare", "--file", snapshot_file, *arguments, error: error)
+        raise "metadata comparison wrote state" unless store.snapshot == before
+        result
+      end
+      actions = proposals.flat_map { |id| ["--allow-action", "process-verification:#{id}"] }
+      compare.call(1, *actions.first(2), error: "requires a completed archived proposal")
+      compare.call(1, "--allow-action", "process-verification:VP-20000101T000000Z-000000", error: "record not found")
+      proposals.zip(%w[apply reject]).each do |id, verdict|
+        decision = store.prepare_decision(id, verdict, rationale: "Reviewed comparison fixture.")
+        run.call(0, "process-verification", "--id", id, "--decision", "-", stdin: decision)
+      end
+      proposal_paths = proposals.map { |id| ["verifications/inbox/#{id}.md", "verifications/archive/#{id}.md"] }
+      applied_target_path = "retrospectives/accepted/#{targets.first}.md"
+      rejected_target_path = "retrospectives/accepted/#{targets.last}.md"
+      strict = JSON.parse(compare.call(1))
+      unless strict.fetch("unexpected") == (proposal_paths.flatten + [applied_target_path]).sort
+        raise "verification processing changed unexpected paths"
+      end
+      compare.call(0, *actions)
+      unless JSON.parse(compare.call(1, *actions.first(2))).fetch("unexpected") == proposal_paths.last.sort &&
+          JSON.parse(compare.call(1, *actions.last(2))).fetch("unexpected") == (proposal_paths.first + [applied_target_path]).sort
+        raise "verification allowance hid another proposal or target"
+      end
+      prepared = run.call(0, "prepare-accepted-update", "--id", targets.last,
+        "--commit", "BCDEF12", "--destination", "Reviewed comparison destination.")
+      run.call(0, "update-accepted", "--id", targets.last, "--file", "-", stdin: prepared)
+      unless JSON.parse(compare.call(1, *actions)).fetch("unexpected") == [rejected_target_path]
+        raise "rejected verification allowance hid accepted-record changes"
+      end
+      update_action = ["--allow-action", "update-accepted:#{targets.last}"]
+      compare.call(0, *actions, *update_action)
+      unless JSON.parse(compare.call(1, *update_action)).fetch("unexpected") == strict.fetch("unexpected")
+        raise "accepted update allowance hid unrelated record changes"
+      end
+      cadence = File.join(root, "audits/learning-process/artifact-cadence.yml")
+      original_cadence = File.binread(cadence)
+      File.binwrite(cadence, original_cadence + "\n")
+      unless JSON.parse(compare.call(1, *actions, *update_action)).fetch("unexpected") == ["audits/learning-process/artifact-cadence.yml"]
+        raise "metadata allowance hid unrelated cadence changes"
+      end
+      compare.call(0, *actions, *update_action, "--allow-path", "audits/learning-process/artifact-cadence.yml")
+      File.binwrite(cadence, original_cadence)
+
+      archive = File.join(root, proposal_paths.first.last)
+      original = File.binread(archive)
+      File.binwrite(archive, "---\ninvalid: [\n---\n")
+      compare.call(1, *actions, error: "invalid YAML frontmatter")
+      data, body = parse_document(original)
+      File.write(archive, render_document(without_keys(data, "triage"), body))
+      compare.call(1, *actions, error: "missing triage mapping")
+      data["target_accepted_id"] = targets.last
+      File.write(archive, render_document(data, body))
+      compare.call(1, *actions, error: "intake fields changed after routing")
+      File.binwrite(archive, original)
+      duplicate = File.join(root, proposal_paths.first.first)
+      FileUtils.cp(archive, duplicate)
+      compare.call(1, *actions, error: "record ID is ambiguous")
+      File.unlink(duplicate)
+
+      target = File.join(root, applied_target_path)
+      original_target = File.binread(target)
+      File.rename(target, "#{target}.hidden")
+      compare.call(1, *actions, error: "record not found")
+      File.rename("#{target}.hidden", target)
+      duplicate = File.join(root, "retrospectives/inbox/#{targets.first}.md")
+      FileUtils.cp(target, duplicate)
+      compare.call(1, *actions, error: "record ID is ambiguous")
+      File.unlink(duplicate)
+      data, body = parse_document(original_target)
+      data["accepted_id"] = targets.last
+      File.write(target, render_document(data, body))
+      compare.call(1, *actions, error: "record identity does not match")
+      File.binwrite(target, original_target)
+      compare.call(0, *actions, *update_action)
+      store.validate
     end
   end
 
@@ -3763,7 +3904,7 @@ module RetroState
       run.call(1, "record-accepted", "--file", input, error: "source_report_summary must be a non-empty string")
       run.call(2, "prepare-accepted", "--commit", "abcdef0", error: "missing argument: --id RC-ID")
       run.call(2, "prepare-accepted", "--id", accepted_origin, error: "missing argument: --commit SHA")
-      run.call(2, "prepare-accepted-update", "--id", accepted_origin, "--commit", "abcdef0", error: "--commit is not valid")
+      run.call(1, "prepare-accepted-update", "--id", accepted_origin, "--commit", "abcdef0", error: "invalid accepted_id")
       ["HEAD", "abcdef", "g" * 40, "a" * 41, "a" * 64, ""].each do |invalid|
         run.call(1, "prepare-accepted", "--id", accepted_origin, "--commit", invalid, error: "hexadecimal commit SHAs")
       end
@@ -3962,6 +4103,29 @@ module RetroState
       unless updated == without_keys(original, "accepted_id", "accepted_at") && updated_body == original_body
         raise "accepted preparation lost metadata or body"
       end
+      new_commit = "b" * 40
+      destination = "Curated: \"destination\", with \\literal text.\nSecond destination line."
+      [
+        [["--commit", "ABCDEF0", "--commit", new_commit.upcase, "--commit", new_commit],
+          {"implementation_commits" => ["abcdef0", new_commit]}],
+        [["--destination", destination], {"destination" => destination}],
+        [["--commit", new_commit, "--destination", destination],
+          {"implementation_commits" => ["abcdef0", new_commit], "destination" => destination}]
+      ].each do |arguments, changes|
+        prepared, body = parse_document(run.call(0, "prepare-accepted-update", "--id", accepted_id, *arguments))
+        unless prepared == updated.merge(changes) && body == original_body
+          raise "metadata preparation changed unrelated fields or failed to preserve supplied values"
+        end
+      end
+      ["HEAD", "abcdef", "g" * 40, "a" * 41, "", " "].each do |invalid|
+        run.call(1, "prepare-accepted-update", "--id", accepted_id, "--commit", invalid, error: "implementation_commits")
+      end
+      ["", " "].each do |invalid|
+        run.call(1, "prepare-accepted-update", "--id", accepted_id, "--destination", invalid, error: "destination must be a non-empty string")
+      end
+      run.call(2, "prepare-accepted-update", "--id", accepted_id, "--destination", "first", "--destination", "second",
+        error: "supply --destination at most once")
+      run.call(1, "prepare-accepted-update", "--id", accepted_id, "--destination", "/tmp/auth.json", error: "forbidden Codex auth file")
       %w[prepare-decision prepare-accepted-update].each do |command|
         raise "missing preparation help" unless run.call(0, command, "--help").include?("Usage: retro-state.rb #{command}")
       end
@@ -4017,6 +4181,10 @@ module RetroState
       File.write(accepted_path, render_document(legacy, original_body))
       legacy_input, = parse_document(run.call(0, "prepare-accepted-update", "--id", accepted_id))
       raise "preparation invented legacy contradiction evidence" if legacy_input.key?("contradiction")
+      legacy_input, = parse_document(run.call(0, "prepare-accepted-update", "--id", accepted_id, "--commit", new_commit))
+      unless legacy_input == without_keys(legacy, "accepted_id", "accepted_at").merge("implementation_commits" => ["abcdef0", new_commit])
+        raise "metadata overrides invented legacy evidence or changed unrelated fields"
+      end
       File.write(accepted_path, render_document(original, original_body))
 
       File.write(input, candidate_template)
@@ -4498,6 +4666,7 @@ module RetroState
   def self_test
     transition_recovery_self_test
     inspection_self_test
+    metadata_comparison_self_test
     verification_context_self_test
     accepted_preparation_self_test
     preparation_self_test
@@ -6185,11 +6354,17 @@ def usage(command = nil)
     TEXT
   when "prepare-accepted-update"
     <<~TEXT
-      Usage: retro-state.rb prepare-accepted-update --id SCR-ID [--root DIR]
+      Usage: retro-state.rb prepare-accepted-update --id SCR-ID
+                                                   [--commit SHA ...] [--destination TEXT]
+                                                   [--root DIR]
 
       Print the accepted record as editable Markdown/YAML, removing only accepted_id
-      and accepted_at. Preserves all other metadata and the body, including evidence,
-      verification, opportunity, lineage, and commits; legacy gaps remain visible.
+      and accepted_at by default. Repeat --commit to append 7-40 hexadecimal commit SHAs,
+      normalized to lowercase and deduplicated while preserving prior commits.
+      Supply --destination once to replace it with a nonblank curated destination string.
+      Other metadata and the body, including evidence, verification, opportunity, and
+      lineage, are preserved; legacy gaps remain visible. No Git or network check runs;
+      verify publication and the final destination yourself. Preparation writes no state.
       Review edits, then submit separately through update-accepted --id ID --file PATH.
     TEXT
   when "show"
@@ -6217,9 +6392,14 @@ def usage(command = nil)
       Print JSON {root, unchanged, matches, added, removed, modified, unexpected}.
       --allow-path permits an exact root-relative path to change; no globs or subtree
       matching. Supported --allow-action forms and exact permitted paths:
-        process:RC-ID         Candidate inbox/archive plus cadence cache and lock.
-        close-papercut:PC-ID  Papercut inbox/archive.
-        reconsider:RC-ID      Candidate archive only.
+        process:RC-ID               Candidate inbox/archive plus cadence cache and lock.
+        close-papercut:PC-ID         Papercut inbox/archive.
+        reconsider:RC-ID            Candidate archive only.
+        update-accepted:SCR-ID       Accepted record only.
+        process-verification:VP-ID   Proposal inbox/archive; accepted target for apply.
+      Verification allowances require a validated, completed archived proposal; missing
+      or ambiguous records fail. Rejections permit no accepted-record changes. Use exact
+      --allow-path allowances for interrupted verification recovery.
       Both allowance flags combine and repeat. IDs must match the operation's type.
       Allowed paths need not change; allowances do not prove the operation occurred or
       validate its result. Default: no changes permitted. Unrelated changes still fail.
@@ -6372,7 +6552,7 @@ def reject_inapplicable_options!(command, provided)
     "compare" => %w[--root --file --allow-path --allow-action],
     "prepare-decision" => %w[--root --id --verdict --rationale],
     "prepare-accepted" => %w[--root --id --commit],
-    "prepare-accepted-update" => %w[--root --id],
+    "prepare-accepted-update" => %w[--root --id --commit --destination],
     "init" => %w[--root],
     "template" => [],
     "record-papercut" => %w[--root --file],
@@ -6541,6 +6721,9 @@ begin
   if command == "prepare-decision" && !verdict
     raise OptionParser::MissingArgument, "--verdict VERDICT"
   end
+  if command == "prepare-accepted-update" && destination_filters.length > 1
+    raise OptionParser::InvalidArgument, "supply --destination at most once"
+  end
   if command == "prepare-accepted"
     raise OptionParser::MissingArgument, "--id RC-ID" if record_ids.empty?
     raise OptionParser::MissingArgument, "--commit SHA" if implementation_commits.empty?
@@ -6622,7 +6805,7 @@ begin
     when "prepare-accepted"
       print store.prepare_accepted(record_ids, implementation_commits)
     when "prepare-accepted-update"
-      print store.prepare_accepted_update(record_id)
+      print store.prepare_accepted_update(record_id, commits: implementation_commits, destination: destination_filter)
     when "show"
       puts JSON.pretty_generate(store.show(record_ids))
     when "snapshot"

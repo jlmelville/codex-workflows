@@ -87,7 +87,7 @@ decisions those interfaces cannot make: authority, evidence, operation ordering,
 identity, privacy, and recovery.
 
 For state-preservation checks, save a `snapshot` outside the state root and run `compare`.
-For authorized processing, papercut closure, or reconsideration, repeat `--allow-action ACTION:ID`
+For supported authorized state operations, repeat `--allow-action ACTION:ID`
 to include each selected record's exact footprint and any bookkeeping. Omit allowances for read-only
 work; see `--help` for supported forms and scope.
 
@@ -333,7 +333,8 @@ Complete the blank fields, curate evidence, verify the final destination and pub
 review redaction before submitting with `record-accepted`. Recording automatically discards
 preparation comments and prior context. Preparation writes no state and establishes neither
 implementation nor behavioral verification. For an existing identity, use `prepare-accepted-update`
-and `update-accepted` under the rules below.
+with chosen `--commit` and `--destination` overrides as needed; see `--help` for their scope.
+Review the prepared replacement, then submit with `update-accepted` under the rules below.
 
 Static validation of a prose or trigger edit can justify `implemented`; it does
 not prove the guidance improved a later session. Use `deterministic-test` only
