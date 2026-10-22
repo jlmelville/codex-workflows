@@ -2236,9 +2236,9 @@ module RetroState
       records = matches.drop(offset).first(limit).map do |path, data|
         id = data.fetch("accepted_id")
         validate_accepted_external_references!(data, accepted_id: id, &proposal)
-        claims = verification_claim_summary(data, &proposal)
+        claims = verification_claim_summary(data, compact: compact, &proposal)
         if compact
-          next data.slice("verification", "verification_basis", "expected_behavior", "verification_opportunity")
+          next data.slice("verification", "verification_basis")
             .merge("id" => id).merge(claims)
         end
         summary = data.slice(
@@ -2711,13 +2711,15 @@ module RetroState
 
     private
 
-    def verification_claim_summary(accepted)
+    def verification_claim_summary(accepted, compact: false)
       applied = accepted.fetch("applied_verification_proposal_ids", []).map do |id|
         yield(id).fetch("frontmatter")
       end
+      fields = %w[verification_proposal_id claim verification_basis]
+      fields << "observation" unless compact
       claims_for = lambda do |state|
         claims = applied.select { |proposal| proposal["proposed_verification"] == state }.map do |proposal|
-          proposal.slice("verification_proposal_id", "claim", "verification_basis", "observation")
+          proposal.slice(*fields)
         end
         (claims.empty? && accepted["verification"] == state) ? nil : claims
       end
@@ -3784,7 +3786,9 @@ module RetroState
       summary = all.fetch("records").find { |record| record["id"] == supported_id }
       legacy_summary = all.fetch("records").find { |record| record["id"] == legacy_id }
       unless all.fetch("limit") == 20 && all.fetch("next_offset").nil? &&
-          summary.fetch("verification") == "supported" && summary.key?("verification_opportunity") &&
+          summary.fetch("verification") == "supported" &&
+          summary.fetch("expected_behavior") == "Exact [Other domain second] outcome." &&
+          summary.fetch("verification_opportunity") == "Check Other domain second in a later task." &&
           summary.fetch("applied_verification_proposal_ids") == [applied_id, supplemental_id] &&
           legacy_summary.fetch("applied_verification_proposal_ids").empty? &&
           summary.fetch("pending_verification_proposals").map { |proposal| proposal.fetch("verification_proposal_id") }.sort == pending_ids.sort
@@ -3813,10 +3817,23 @@ module RetroState
         raise "text filtering failed OR matching, deduplication, case folding, or filtering before pagination"
       end
       compact = JSON.parse(run.call(0, *query, "--compact"))
-      compact_fields = %w[id verification verification_basis expected_behavior verification_opportunity supported_claims contradicted_claims unverified_claims]
+      compact_fields = %w[id verification verification_basis supported_claims contradicted_claims unverified_claims]
+      compact_claim_fields = %w[verification_proposal_id claim verification_basis]
+      expected_compact = all.fetch("records").map do |record|
+        record.slice(*compact_fields).tap do |summary|
+          %w[supported_claims contradicted_claims].each do |field|
+            summary[field] = summary[field]&.map { |claim| claim.slice(*compact_claim_fields) }
+          end
+        end
+      end
       unless without_keys(compact, "records") == without_keys(all, "records") &&
-          compact.fetch("records") == all.fetch("records").map { |record| record.slice(*compact_fields) }
+          compact.fetch("records") == expected_compact &&
+          compact.fetch("records").all? { |record| record.keys.sort == compact_fields.sort }
         raise "compact discovery changed coverage or omitted its decision fields"
+      end
+      compact_support = compact.fetch("records").find { |record| record["id"] == supported_id }.fetch("supported_claims")
+      unless compact_support.all? { |claim| claim.keys.sort == compact_claim_fields.sort }
+        raise "compact discovery retained prose or lost claim identity, type, or basis"
       end
       [[], ["--compact"]].each do |mode|
         contested = JSON.parse(run.call(0, "verification-context", "--destination", "Contested claim", *mode))
@@ -3826,6 +3843,11 @@ module RetroState
             contested.fetch("contradicted_claims").map { |claim| claim.fetch("verification_proposal_id") } == [negative_id] &&
             contested.fetch("unverified_claims") == []
           raise "verification discovery hid contradictory evidence or conflated absent and empty remaining claims"
+        end
+        unless %w[supported_claims contradicted_claims].all? do |field|
+          contested.fetch(field).all? { |claim| claim.key?("observation") == mode.empty? }
+        end
+          raise "verification claim prose did not follow the compact versus expanded boundary"
         end
       end
       [
@@ -6743,16 +6765,19 @@ def usage(command = nil)
       and pending proposal IDs/states/claims. Follow next_offset when more relevant
       records remain; do not treat the first page as complete coverage.
       Both discovery formats include supported_claims and contradicted_claims from
-      validated applied proposals, each with verification_proposal_id, claim,
-      verification_basis, and observation. These describe scoped evidence, not category-wide
+      validated applied proposals, each with verification_proposal_id, claim, and
+      verification_basis. Noncompact discovery also includes each observation.
+      These describe scoped evidence, not category-wide
       support; pending and rejected proposals never establish support. Positive evidence
       remains visible alongside contradictions. A legacy supported/contradicted status
       without matching typed provenance has null for that claim list, not invented claims.
       unverified_claims copies the accepted record's optional list of remaining scopes;
       null means unassessed, [] means assessed with no declared unverified scopes.
       Prose is not parsed to infer claims, and proposal application does not clear that list.
-      --compact includes these three claim lists plus id, verification, verification_basis,
-      expected_behavior, and verification_opportunity, with the same pagination.
+      --compact includes only id, verification, verification_basis, and these three claim
+      lists per record, with the same pagination and filtering. It omits expected_behavior,
+      verification_opportunity, and claim observations. Use noncompact discovery or --id
+      for that prose and the evidence scope.
       The overall verification field does not certify every claim. Expand selected IDs
       before judging evidence.
 
