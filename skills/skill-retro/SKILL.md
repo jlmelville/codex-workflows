@@ -64,8 +64,9 @@ expected behavior or opportunities before paging. See `--help` for matching and 
 ```
 
 Within a continuous task, reuse still-current discovery results and selected accepted/proposal
-context across follow-up fixes and reviews. Refresh when relevant guidance, learning state, or
-task evidence changes enough to affect the judgment, or needed context is unavailable or stale.
+context across follow-up fixes and reviews. Reevaluate the judgment when task evidence materially
+changes. Refresh only affected context when relevant guidance, learning state, or lookup scope
+changes, or when needed context is unavailable or stale.
 
 Discovery includes active unverified and supported outcomes. Select a small set whose expected
 behavior bears on actual task decisions or evidence; if none is plausibly relevant, stop. Literal
