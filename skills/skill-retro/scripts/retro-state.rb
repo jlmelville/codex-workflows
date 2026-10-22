@@ -814,6 +814,13 @@ module RetroState
     require_string_array(data, "originating_candidate_ids", label)
     require_string_array(data, "decisive_evidence", label)
     require_string_array(data, "implementation_commits", label, allow_empty: true)
+    if data.key?("unverified_claims")
+      require_string_array(data, "unverified_claims", label, allow_empty: true)
+      claims = data.fetch("unverified_claims")
+      if claims.any? { |claim| claim.strip.empty? } || claims.uniq.length != claims.length
+        raise Error, "#{label}: unverified_claims must contain distinct, nonblank strings"
+      end
+    end
     if data.key?("applied_verification_proposal_ids")
       require_string_array(data, "applied_verification_proposal_ids", label)
       proposal_ids = data["applied_verification_proposal_ids"]
@@ -1247,6 +1254,8 @@ module RetroState
       verification: unverified
       verification_basis: none
       implementation_commits: []
+      # Optional unverified_claims lists remaining claim scopes. Omit when unassessed;
+      # use [] only when assessed and no declared claims remain unverified.
       # Correction outcomes may add supersedes_accepted_ids. Contradicted
       # records must add a contradiction mapping; see state-protocol.md.
       ---
@@ -2160,15 +2169,16 @@ module RetroState
       if destinations.empty? == record_ids.empty?
         raise Error, "verification-context requires destinations or record IDs, separately"
       end
+      documents = {}
+      read = ->(id) { documents[id] ||= show([id]).fetch("records").first }
+      validated_proposals = {}
+      proposal = ->(id) { validated_proposals[id] ||= validate_verification_record(read.call(id)) }
       unless record_ids.empty?
         unless texts.empty? && !compact
           raise Error, "text filters and compact output apply only to destination discovery"
         end
         selected = show(record_ids).fetch("records")
-        documents = selected.to_h { |record| [record.fetch("id"), record] }
-        read = ->(id) { documents[id] ||= show([id]).fetch("records").first }
-        validated_proposals = {}
-        proposal = ->(id) { validated_proposals[id] ||= validate_verification_record(read.call(id)) }
+        documents.merge!(selected.to_h { |record| [record.fetch("id"), record] })
         proposals = selected.select { |record| record.fetch("id").start_with?("VP-") }
         proposals.each { |record| proposal.call(record.fetch("id")) }
         target_ids = selected.map do |record|
@@ -2199,7 +2209,7 @@ module RetroState
             "selected_verification_proposals" => selected_proposals,
             "applied_verification_proposals" => applied_ids.map { |proposal_id| proposal.call(proposal_id) },
             "pending_verification_proposals" => pending.fetch(id, [])
-          }
+          }.merge(verification_claim_summary(data, &proposal))
         end
         return {"root" => root, "mode" => "detail", "records" => details}
       end
@@ -2225,14 +2235,17 @@ module RetroState
       pending = compact ? {} : pending_verification_records.group_by { |_path, data| data.fetch("target_accepted_id") }
       records = matches.drop(offset).first(limit).map do |path, data|
         id = data.fetch("accepted_id")
+        validate_accepted_external_references!(data, accepted_id: id, &proposal)
+        claims = verification_claim_summary(data, &proposal)
         if compact
-          next data.slice("verification", "expected_behavior", "verification_opportunity").merge("id" => id)
+          next data.slice("verification", "verification_basis", "expected_behavior", "verification_opportunity")
+            .merge("id" => id).merge(claims)
         end
         summary = data.slice(
           "disposition", "verification", "verification_basis", "destination",
           "expected_behavior", "verification_opportunity"
         )
-        summary.merge(
+        summary.merge(claims).merge(
           "id" => id,
           "path" => path.delete_prefix(root + File::SEPARATOR),
           "applied_verification_proposal_ids" => data.fetch("applied_verification_proposal_ids", []),
@@ -2697,6 +2710,23 @@ module RetroState
     end
 
     private
+
+    def verification_claim_summary(accepted)
+      applied = accepted.fetch("applied_verification_proposal_ids", []).map do |id|
+        yield(id).fetch("frontmatter")
+      end
+      claims_for = lambda do |state|
+        claims = applied.select { |proposal| proposal["proposed_verification"] == state }.map do |proposal|
+          proposal.slice("verification_proposal_id", "claim", "verification_basis", "observation")
+        end
+        (claims.empty? && accepted["verification"] == state) ? nil : claims
+      end
+      {
+        "supported_claims" => claims_for.call("supported"),
+        "contradicted_claims" => claims_for.call("contradicted"),
+        "unverified_claims" => accepted["unverified_claims"]
+      }
+    end
 
     def validate_accepted_record(record)
       id = record.fetch("id")
@@ -3658,7 +3688,7 @@ module RetroState
       store.close_papercut(papercut_id, outcome: "no-action", rationale: "Fixture closed.")
       raise "review queue retained closed intake" unless run.call(0, "review-queue").empty?
 
-      create_accepted = lambda do |destination, disposition = "implemented", verification = "unverified"|
+      create_accepted = lambda do |destination, disposition = "implemented", verification = "unverified", unverified_claims = nil|
         File.write(input, candidate_template)
         candidate_id = File.basename(store.route(input), ".md")
         store.process(candidate_id, decide.call(candidate_id, "accept"))
@@ -3671,18 +3701,22 @@ module RetroState
         data["disposition"] = disposition
         data["verification"] = verification
         data["verification_basis"] = (verification == "unverified") ? "none" : "later-session"
+        data["unverified_claims"] = unverified_claims unless unverified_claims.nil?
         body += "\nBody-only fixture [#{destination}].\n"
         File.basename(store.record_accepted(write.call(data, body)), ".md")
       end
       unverified_id = create_accepted.call("Shared domain first")
-      supported_id = create_accepted.call("Other domain second")
+      remaining_claims = ["Ordinary later-use effectiveness.", "Comparative improvement."]
+      supported_id = create_accepted.call("Other domain second", "implemented", "unverified", remaining_claims)
       retired_id = create_accepted.call("Shared domain retired", "reverted")
       legacy_id = create_accepted.call("Shared domain legacy", "accepted", "supported")
-      propose = lambda do |id, state = "supported", supplemental = false|
+      propose = lambda do |id, state = "supported", supplemental = false, claim = "intended-outcome", basis = "later-session"|
         data, body = parse_document(verification_proposal_template)
         data["target_accepted_id"] = id
         data["proposed_verification"] = state
-        data["claim"] = "intended-outcome"
+        data["claim"] = claim
+        data["verification_basis"] = basis
+        data["observation"] = "#{claim} #{state} fixture scope for #{id}."
         data["decisive_evidence"] = ["Distinct #{id} #{state} evidence."]
         data["what_is_false"] = "Fixture assertion failed." if state == "contradicted"
         data["supplemental_reason"] = "A distinct fixture boundary." if supplemental
@@ -3690,10 +3724,17 @@ module RetroState
       end
       applied_id = propose.call(supported_id)
       store.process_verification(applied_id, decide.call(applied_id, "apply"))
+      supplemental_id = propose.call(supported_id, "supported", true, "executable-correctness", "deterministic-test")
+      store.process_verification(supplemental_id, decide.call(supplemental_id, "apply"))
       pending_ids = [propose.call(supported_id, "supported", true), propose.call(supported_id, "contradicted")]
       rejected_id = propose.call(supported_id, "supported", true)
       store.process_verification(rejected_id, decide.call(rejected_id, "reject"))
       propose.call(unverified_id)
+      contradicted_id = create_accepted.call("Contested claim fixture", "implemented", "unverified", [])
+      positive_id = propose.call(contradicted_id)
+      store.process_verification(positive_id, decide.call(positive_id, "apply"))
+      negative_id = propose.call(contradicted_id, "contradicted")
+      store.process_verification(negative_id, decide.call(negative_id, "apply"))
       before = store.snapshot
       accepted = store.show([unverified_id, supported_id]).fetch("records")
       origin = accepted.first.fetch("frontmatter").fetch("originating_candidate_ids").first
@@ -3744,10 +3785,23 @@ module RetroState
       legacy_summary = all.fetch("records").find { |record| record["id"] == legacy_id }
       unless all.fetch("limit") == 20 && all.fetch("next_offset").nil? &&
           summary.fetch("verification") == "supported" && summary.key?("verification_opportunity") &&
-          summary.fetch("applied_verification_proposal_ids") == [applied_id] &&
+          summary.fetch("applied_verification_proposal_ids") == [applied_id, supplemental_id] &&
           legacy_summary.fetch("applied_verification_proposal_ids").empty? &&
           summary.fetch("pending_verification_proposals").map { |proposal| proposal.fetch("verification_proposal_id") }.sort == pending_ids.sort
         raise "verification discovery omitted evidence context or pagination limits"
+      end
+      supported_claims = summary.fetch("supported_claims")
+      unless supported_claims.map { |claim| claim.fetch("verification_proposal_id") } == [applied_id, supplemental_id] &&
+          supported_claims.map { |claim| claim.fetch("claim") } == %w[intended-outcome executable-correctness] &&
+          supported_claims.map { |claim| claim.fetch("verification_basis") } == %w[later-session deterministic-test] &&
+          supported_claims.all? { |claim| claim.fetch("observation").include?("fixture scope") } &&
+          summary.fetch("unverified_claims") == remaining_claims && summary.fetch("contradicted_claims").empty?
+        raise "verification discovery conflated partial support, pending evidence, or remaining claim scopes"
+      end
+      unverified_summary = all.fetch("records").find { |record| record["id"] == unverified_id }
+      unless legacy_summary.fetch("supported_claims").nil? && legacy_summary.fetch("unverified_claims").nil? &&
+          unverified_summary.fetch("supported_claims").empty? && unverified_summary.fetch("unverified_claims").nil?
+        raise "verification discovery invented legacy support or inferred remaining claims"
       end
       filtered_query = query + ["--text", "[SHARED domain FIRST]", "--text", "check OTHER domain second", "--text", "[SHARED domain FIRST]"]
       filtered = JSON.parse(run.call(0, *filtered_query, "--limit", "1", "--compact"))
@@ -3759,9 +3813,20 @@ module RetroState
         raise "text filtering failed OR matching, deduplication, case folding, or filtering before pagination"
       end
       compact = JSON.parse(run.call(0, *query, "--compact"))
+      compact_fields = %w[id verification verification_basis expected_behavior verification_opportunity supported_claims contradicted_claims unverified_claims]
       unless without_keys(compact, "records") == without_keys(all, "records") &&
-          compact.fetch("records") == all.fetch("records").map { |record| record.slice("id", "verification", "expected_behavior", "verification_opportunity") }
+          compact.fetch("records") == all.fetch("records").map { |record| record.slice(*compact_fields) }
         raise "compact discovery changed coverage or omitted its decision fields"
+      end
+      [[], ["--compact"]].each do |mode|
+        contested = JSON.parse(run.call(0, "verification-context", "--destination", "Contested claim", *mode))
+          .fetch("records").fetch(0)
+        unless contested.fetch("verification") == "contradicted" &&
+            contested.fetch("supported_claims").map { |claim| claim.fetch("verification_proposal_id") } == [positive_id] &&
+            contested.fetch("contradicted_claims").map { |claim| claim.fetch("verification_proposal_id") } == [negative_id] &&
+            contested.fetch("unverified_claims") == []
+          raise "verification discovery hid contradictory evidence or conflated absent and empty remaining claims"
+        end
       end
       [
         ["--destination", "shared", "--text", "Other domain second"],
@@ -3787,6 +3852,10 @@ module RetroState
           !applied.first.fetch("body").empty? &&
           records.first.fetch("pending_verification_proposals").map { |proposal| proposal.fetch("id") }.sort == pending_ids.sort
         raise "verification details lost selected order, claim, original evidence, or pending proposals"
+      end
+      unless records.first.fetch("supported_claims") == supported_claims &&
+          records.first.fetch("unverified_claims") == remaining_claims
+        raise "verification detail and discovery disagree about claim scope"
       end
       historical = JSON.parse(run.call(0, "verification-context", "--id", retired_id, "--id", legacy_id))
       unless historical.fetch("records").first.dig("accepted", "frontmatter", "disposition") == "reverted" &&
@@ -3820,6 +3889,11 @@ module RetroState
             raise "verification context reread documents within a call or retained documents between calls"
           end
         end
+        read_counts.clear
+        store.verification_context(destinations: ["Other domain second"], compact: true)
+        unless !read_counts.empty? && read_counts.values.all? { |count| count == 1 }
+          raise "compact discovery reread accepted or applied proposal documents"
+        end
       ensure
         define_singleton_method(:read_document, original_reader)
       end
@@ -3843,6 +3917,13 @@ module RetroState
       run.call(1, "verification-context", "--id", supported_id, "--id", "SCR-20000101-000000", error: "record not found")
       raise "context retrieval wrote state" unless store.snapshot == before
 
+      ["not-an-array", [nil], [""], [" "], ["duplicate", "duplicate"]].each do |claims|
+        data, body = parse_document(store.prepare_accepted_update(supported_id))
+        data["unverified_claims"] = claims
+        run.call(1, "update-accepted", "--id", supported_id, "--file", write.call(data, body), error: "unverified_claims")
+      end
+      raise "invalid remaining-claim metadata wrote state" unless store.snapshot == before
+
       path = File.join(root, "retrospectives", "accepted", "#{supported_id}.md")
       original = File.read(path)
       File.write(path, "---\ninvalid: [\n---\n")
@@ -3852,6 +3933,7 @@ module RetroState
       data["applied_verification_proposal_ids"] = ["VP-20000101T000000Z-000000"]
       File.write(path, render_document(data, body))
       run.call(1, "verification-context", "--id", supported_id, error: "unarchived verification proposal")
+      run.call(1, "verification-context", "--destination", "Other domain second", "--compact", error: "unarchived verification proposal")
       File.write(path, original)
       proposal_path = File.join(root, "verifications", "archive", "#{applied_id}.md")
       proposal_original = File.read(proposal_path)
@@ -3860,8 +3942,12 @@ module RetroState
       proposal["intake_digest"] = Digest::SHA256.hexdigest(render_document(without_keys(proposal, "intake_digest", "triage"), body))
       File.write(proposal_path, render_document(proposal, body))
       run.call(1, "verification-context", "--id", supported_id, error: "mismatched verification proposal")
+      run.call(1, "verification-context", "--destination", "Other domain second", error: "mismatched verification proposal")
       run.call(1, "verification-context", "--id", supported_id, "--id", applied_id, error: "mismatched verification proposal")
       run.call(1, "verification-context", "--id", applied_id, error: "does not reference applied proposal")
+      File.write(proposal_path, proposal_original)
+      File.write(proposal_path, proposal_original.sub("Distinct", "Tampered"))
+      run.call(1, "verification-context", "--destination", "Other domain second", "--compact", error: "intake fields changed after routing")
       File.write(proposal_path, proposal_original)
       false_id = "VP-20000101T000000Z-000000"
       false_path = File.join(root, "verifications", "archive", "#{false_id}.md")
@@ -6656,8 +6742,19 @@ def usage(command = nil)
       Summaries include the exact opportunity, verification basis, applied proposal IDs,
       and pending proposal IDs/states/claims. Follow next_offset when more relevant
       records remain; do not treat the first page as complete coverage.
-      --compact returns only id, verification, expected_behavior, verification_opportunity
-      per record, with the same pagination. Expand selected IDs before judging evidence.
+      Both discovery formats include supported_claims and contradicted_claims from
+      validated applied proposals, each with verification_proposal_id, claim,
+      verification_basis, and observation. These describe scoped evidence, not category-wide
+      support; pending and rejected proposals never establish support. Positive evidence
+      remains visible alongside contradictions. A legacy supported/contradicted status
+      without matching typed provenance has null for that claim list, not invented claims.
+      unverified_claims copies the accepted record's optional list of remaining scopes;
+      null means unassessed, [] means assessed with no declared unverified scopes.
+      Prose is not parsed to infer claims, and proposal application does not clear that list.
+      --compact includes these three claim lists plus id, verification, verification_basis,
+      expected_behavior, and verification_opportunity, with the same pagination.
+      The overall verification field does not certify every claim. Expand selected IDs
+      before judging evidence.
 
       IDs may be accepted records (SCR-*) or inbox/archived verification proposals (VP-*).
       Proposal IDs resolve to their target; mixed IDs deduplicate targets in selected order.

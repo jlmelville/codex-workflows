@@ -348,6 +348,12 @@ evidence may support conformance to the guidance or occurrence of the intended
 outcome. Neither basis establishes comparative improvement without an observed
 comparator.
 
+Accepted records may declare `unverified_claims` as a list of distinct, nonblank remaining claim
+scopes. Omit it when those scopes have not been assessed; an explicit empty list means none remain
+declared. Keep these scopes narrower than broad claim categories when evidence covers only one
+boundary. Curate the list with `prepare-accepted-update` and `update-accepted` when a reviewed outcome
+changes what remains; proposal application preserves it because resolving a scope requires judgment.
+
 Use `verification-context --destination TEXT --compact` for bounded discovery across destinations
 materially involved in a completed task. Repeat destinations to combine them without duplicate
 identities; optional `--text` filters narrow expected behavior or opportunities before pagination.
@@ -358,6 +364,9 @@ IDs, including proposal IDs directly from `review-queue`, with `verification-con
 It retrieves the target accepted record and selected, applied, and pending proposals together.
 Read their exact opportunities, claims, and evidence before constructing support. Legacy support
 without proposal provenance remains limited to the retained evidence.
+Both discovery formats expose applied support and contradiction scopes plus declared unverified
+claims; do not read the overall status as support for every expected benefit. Missing claim metadata
+is unknown, not evidence that every claim has been verified. See command help for the output contract.
 The command retrieves context without judging relevance, opportunity match, or supplementation.
 
 When the task produces decisive evidence for the target's exact opportunity, use
