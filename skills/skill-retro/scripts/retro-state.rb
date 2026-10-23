@@ -859,7 +859,7 @@ module RetroState
         end
       end
       sources = view.fetch("prose").map do |entry|
-        unless entry.is_a?(Hash) && [%w[source text], %w[limits source text]].include?(entry.keys.sort) &&
+        unless entry.is_a?(Hash) && (entry.keys - %w[source text limits evidence]).empty? &&
             entry["source"].is_a?(String) && !entry["source"].strip.empty? && entry["text"].is_a?(String)
           raise Error, "#{label}: verification_context prose requires exact source and retained text strings"
         end
@@ -870,9 +870,27 @@ module RetroState
             raise Error, "#{label}: verification_context prose limits must name distinct declared boundaries"
           end
         end
+        if entry.key?("evidence")
+          texts = entry.fetch("evidence")
+          unless texts.is_a?(Array) && !texts.empty? && texts.uniq == texts &&
+              texts.all? { |text| text.is_a?(String) && !text.strip.empty? }
+            raise Error, "#{label}: verification_context evidence must contain distinct, nonblank source strings"
+          end
+        end
         entry.fetch("source")
       end
       raise Error, "#{label}: verification_context prose sources must be distinct" unless sources.uniq == sources
+
+      entries = view.fetch("prose").to_h { |entry| [entry.fetch("source"), entry] }
+      visited = []
+      visit = lambda do |source, active|
+        raise Error, "#{label}: cyclic verification_context evidence references" if active.include?(source)
+        next if visited.include?(source)
+
+        entries.fetch(source, {}).fetch("evidence", []).each { |target| visit.call(target, active + [source]) }
+        visited << source
+      end
+      sources.each { |source| visit.call(source, []) }
     end
     if data.key?("applied_verification_proposal_ids")
       require_string_array(data, "applied_verification_proposal_ids", label)
@@ -2841,11 +2859,23 @@ module RetroState
           used << value
           entry = replacements.fetch(value)
           text = entry.fetch("text")
-          if entry.key?("limits")
-            links = entry.fetch("limits").map do |name|
+          if entry.key?("limits") || entry.key?("evidence")
+            links = entry.fetch("limits", []).map do |name|
               reference.call("/claim_limits/#{name.gsub("~", "~0").gsub("/", "~1")}")
             end
-            {"claim_limits_refs" => links}.tap { |copy| copy["text"] = text unless text.empty? }
+            {}.tap do |copy|
+              copy["claim_limits_refs"] = links if entry.key?("limits")
+              if entry.key?("evidence")
+                copy["evidence_refs"] = entry.fetch("evidence").map do |source|
+                  id = references.fetch("evidence")[source]
+                  unless id
+                    raise Error, "stale verification_context evidence source; review curation with prepare-accepted-update"
+                  end
+                  reference.call("/evidence/#{id}")
+                end
+              end
+              copy["text"] = text unless text.empty?
+            end
           else
             limits = reference.call("/claim_limits")
             text.empty? ? limits : {"text" => text, "claim_limits" => limits}
@@ -4346,17 +4376,21 @@ module RetroState
       data["unverified_claims"] = remaining_claims
       body = "# Profiling fixture\n\n#{([implementation_evidence] + overlapping_summaries + remaining_claims + [additional_context]).join("\n\n")}\n"
       accepted_id = File.basename(store.record_accepted(write.call(data, body)), ".md")
+      other_data, other_body = parse_document(accepted_template)
+      other_data["originating_candidate_ids"] = [candidate_id]
+      other_id = File.basename(store.record_accepted(write.call(other_data, other_body)), ".md")
 
       data, body = parse_document(verification_proposal_template)
       data["target_accepted_id"] = accepted_id
       data["claim"] = "executable-correctness"
       data["verification_basis"] = "deterministic-test"
       data["source_scope"] = "Prompted Linux R-to-C profiling fixture"
-      data["observation"] = "The prompted smoke recovered native source locations; caller recovery was untested."
+      data["observation"] = "The prompted smoke recovered all 7 native samples and the follow-up recovered all 31 native samples; caller recovery was untested."
       data["opportunity_match"] = "Capture and recovery matched the recorded witness; ordinary benefit was not tested."
       data["source_note"] = "Only the tested recovery is supported; caller inference is untested."
       proposal_evidence = [
         "The smoke captured 19 samples; all 7 native samples resolved using matching debug information.",
+        "The follow-up captured 43 samples; all 31 native samples resolved to function and source lines.",
         "Capture and binary hashes stayed identical before and after source recovery.",
         "No profiling reacquisition was used; later use and comparative benefit remain unverified."
       ]
@@ -4435,6 +4469,9 @@ module RetroState
         [curated_body, "# Additional acquisition context\n\nAcquisitions used one thread and a fixed seed.\n"]
       ].map { |source, text| {"source" => source, "text" => text} }
       prose.find { |entry| entry["source"] == proposal_fields.fetch("source_scope") }["limits"] = ["exercise_context"]
+      observation_entry = prose.find { |entry| entry["source"] == proposal_fields.fetch("observation") }
+      observation_entry["evidence"] = proposal_evidence.first(2)
+      observation_entry["limits"] = ["supported/scope~", "untested", "unverified_claims"]
       prose.find { |entry| entry["source"] == proposal_evidence.last }["limits"] = ["supported/scope~", "unverified_claims"]
       view = {"claim_limits" => limits, "prose" => prose}
       replacement["verification_context"] = view
@@ -4469,8 +4506,29 @@ module RetroState
           expanded.fetch("accepted").dig("body", "text").include?("one thread and a fixed seed") &&
           detail.fetch("evidence").value?(implementation_evidence) &&
           retained_evidence.fetch("claim_limits_refs") == expected_limits_refs &&
-          proposal_evidence.first(2).all? { |text| detail.fetch("evidence").value?(text) }
+          proposal_evidence.first(3).all? { |text| detail.fetch("evidence").value?(text) }
         raise "canonical limits lost unique evidence, acquisition context, opportunity match, rationale, or scope"
+      end
+      observation = detail.fetch("observations").values.first
+      unless observation.keys.sort == %w[claim_limits_refs evidence_refs text] &&
+          observation.fetch("claim_limits_refs") == [
+            expected_limits_refs.first,
+            {"$ref" => "#/records/0/claim_limits/untested"},
+            expected_limits_refs.last
+          ] &&
+          observation.fetch("evidence_refs") == proposal_refs.first(2).map { |id| {"$ref" => "#/records/0/evidence/#{id}"} } &&
+          fields.dig("observation_ref") == "observations-1" &&
+          expanded.fetch("observations").values.first.fetch("evidence_refs") == proposal_evidence.first(2) &&
+          [7, 31].all? { |count| JSON.generate(output).scan(/\b#{count} native samples\b/).length == 1 }
+        raise "expanded observation repeated sample totals or lost scoped evidence references"
+      end
+      mixed = JSON.parse(run.call(0, "verification-context", "--id", other_id, "--id", accepted_id))
+      mixed_refs = proposal_refs.first(2).map { |id| {"$ref" => "#/records/1/evidence/#{id}"} }
+      mixed_observation = mixed.fetch("records").last.fetch("observations").values.first
+      resolved_observation = resolve_context_references(mixed).fetch("records").last.fetch("observations").values.first
+      unless mixed_observation.fetch("evidence_refs") == mixed_refs &&
+          resolved_observation.fetch("evidence_refs") == proposal_evidence.first(2)
+        raise "scoped evidence references escaped their record in a multi-record result"
       end
       outside = []
       collect = lambda do |value|
@@ -4492,6 +4550,15 @@ module RetroState
       unless store.snapshot == before && store.show([proposal_id]).fetch("records").first == original_proposal
         raise "claim-limit projection wrote state or changed proposal provenance"
       end
+      evidence_only = JSON.parse(JSON.generate(replacement))
+      entry = evidence_only.fetch("verification_context").fetch("prose").find { |item| item.key?("evidence") }
+      entry.delete("limits")
+      entry["text"] = ""
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(evidence_only, curated_body))
+      only_refs = JSON.parse(run.call(0, "verification-context", "--id", accepted_id)).fetch("records").first
+        .fetch("observations").values.first
+      raise "evidence-only curation added unrelated limits or retained prose" unless only_refs == observation.slice("evidence_refs")
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
       stale = JSON.parse(JSON.generate(replacement))
       stale.fetch("verification_context").fetch("prose").first["source"] += " Changed."
       run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(stale, curated_body))
@@ -4499,6 +4566,30 @@ module RetroState
       run.call(1, "verification-context", "--id", accepted_id, error: "stale verification_context prose source")
       raise "stale claim-limit projection wrote state" unless store.snapshot == before
       run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
+      stale_evidence = JSON.parse(JSON.generate(replacement))
+      stale_evidence.fetch("verification_context").fetch("prose").find { |entry| entry.key?("evidence") }.fetch("evidence")[0] += " Changed."
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(stale_evidence, curated_body))
+      before = store.snapshot
+      run.call(1, "verification-context", "--id", accepted_id, error: "stale verification_context evidence source")
+      raise "stale evidence reference retrieval wrote state" unless store.snapshot == before
+      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
+      ["not-an-array", [], [" "], [nil], [proposal_evidence.first, proposal_evidence.first]].each do |targets|
+        before = store.snapshot
+        invalid = JSON.parse(JSON.generate(replacement))
+        invalid.fetch("verification_context").fetch("prose").first["evidence"] = targets
+        run.call(1, "update-accepted", "--id", accepted_id, "--file", write.call(invalid, curated_body),
+          error: "verification_context evidence")
+        raise "invalid evidence reference wrote state" unless store.snapshot == before
+      end
+      [[{"source" => "one", "text" => "", "evidence" => ["one"]}],
+        [{"source" => "one", "text" => "", "evidence" => ["two"]},
+          {"source" => "two", "text" => "", "evidence" => ["one"]}]].each do |cycle|
+        before = store.snapshot
+        invalid = replacement.merge("verification_context" => view.merge("prose" => cycle))
+        run.call(1, "update-accepted", "--id", accepted_id, "--file", write.call(invalid, curated_body),
+          error: "cyclic verification_context evidence")
+        raise "cyclic evidence reference wrote state" unless store.snapshot == before
+      end
       [nil, {"claim_limits" => {"scope" => ""}, "prose" => []},
         {"claim_limits" => {"unverified_claims" => remaining_claims}, "prose" => []},
         view.merge("prose" => [prose.first, prose.first]),
@@ -7336,9 +7427,12 @@ def usage(command = nil)
       prose is a list of {source: EXACT_ORIGINAL_TEXT, text: RETAINED_UNIQUE_PROSE} entries.
       Optional limits: [NAME, ...] selects distinct declared boundaries and renders
       claim_limits_refs pointing to those fields, preserving each contribution's scope.
-      Each matching source string renders as {text, claim_limits: {$ref: POINTER}};
-      without limits selection it links the whole object; empty retained text renders
-      only the selected references. Retain unique evidence,
+      Optional evidence: [EXACT_ORIGINAL_EVIDENCE, ...] renders evidence_refs pointing only
+      to those entries in this record's evidence dictionary. Keep shared measurements in
+      the evidence and retain unique observations in text. Missing targets and cycles are
+      refused; proposal archives remain unchanged.
+      Without either selector, curation links the whole claim_limits object. Empty retained
+      text leaves only references. Retain unique evidence,
       provenance, opportunity requirements, matches, and decision reasons in the prose.
       Every declared source must match retrieved text or expanded retrieval refuses stale
       curation. This is explicit reviewed display curation, with no inferred equivalence.
