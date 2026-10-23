@@ -4385,7 +4385,7 @@ module RetroState
       data["claim"] = "executable-correctness"
       data["verification_basis"] = "deterministic-test"
       data["source_scope"] = "Prompted Linux R-to-C profiling fixture"
-      data["observation"] = "The prompted smoke recovered all 7 native samples and the follow-up recovered all 31 native samples; caller recovery was untested."
+      data["observation"] = "The prompted smoke recovered all 7 native samples and the follow-up recovered all 31 native samples; captures and binary were preserved byte-for-byte; the report smoke preceded the larger acquisition; caller recovery was untested."
       data["opportunity_match"] = "Capture and recovery matched the recorded witness; ordinary benefit was not tested."
       data["source_note"] = "Only the tested recovery is supported; caller inference is untested."
       proposal_evidence = [
@@ -4459,7 +4459,7 @@ module RetroState
       prose = [
         [proposal_fields.fetch("source_note"), ""],
         [proposal_fields.fetch("source_scope"), "Linux R-to-C profiling fixture"],
-        [proposal_fields.fetch("observation"), "The smoke recovered native source locations."],
+        [proposal_fields.fetch("observation"), "The smoke recovered native source locations. The report smoke preceded the larger acquisition."],
         [proposal_fields.fetch("opportunity_match"), "Capture and recovery matched the recorded witness."],
         [proposal_fields.dig("triage", "rationale"), "Recovered sources and stable hashes justify support."],
         [proposal_evidence.last, "No profiling reacquisition was used."],
@@ -4470,7 +4470,7 @@ module RetroState
       ].map { |source, text| {"source" => source, "text" => text} }
       prose.find { |entry| entry["source"] == proposal_fields.fetch("source_scope") }["limits"] = ["exercise_context"]
       observation_entry = prose.find { |entry| entry["source"] == proposal_fields.fetch("observation") }
-      observation_entry["evidence"] = proposal_evidence.first(2)
+      observation_entry["evidence"] = proposal_evidence.first(3)
       observation_entry["limits"] = ["supported/scope~", "untested", "unverified_claims"]
       prose.find { |entry| entry["source"] == proposal_evidence.last }["limits"] = ["supported/scope~", "unverified_claims"]
       view = {"claim_limits" => limits, "prose" => prose}
@@ -4516,18 +4516,25 @@ module RetroState
             {"$ref" => "#/records/0/claim_limits/untested"},
             expected_limits_refs.last
           ] &&
-          observation.fetch("evidence_refs") == proposal_refs.first(2).map { |id| {"$ref" => "#/records/0/evidence/#{id}"} } &&
+          observation.fetch("evidence_refs") == proposal_refs.first(3).map { |id| {"$ref" => "#/records/0/evidence/#{id}"} } &&
           fields.dig("observation_ref") == "observations-1" &&
-          expanded.fetch("observations").values.first.fetch("evidence_refs") == proposal_evidence.first(2) &&
+          expanded.fetch("observations").values.first.fetch("evidence_refs") == proposal_evidence.first(3) &&
           [7, 31].all? { |count| JSON.generate(output).scan(/\b#{count} native samples\b/).length == 1 }
-        raise "expanded observation repeated sample totals or lost scoped evidence references"
+        raise "expanded observation repeated sample totals or lost scoped acquisition and preservation evidence"
+      end
+      preservation_evidence = proposal_evidence.fetch(2)
+      unless observation.fetch("text") == "The smoke recovered native source locations. The report smoke preceded the larger acquisition." &&
+          !JSON.generate(output).include?("preserved byte-for-byte") &&
+          JSON.generate(output).scan(Regexp.new(Regexp.escape(preservation_evidence))).length == 1 &&
+          detail.fetch("evidence").fetch(proposal_refs.fetch(2)) == preservation_evidence
+        raise "expanded preservation evidence was duplicated or lost unique observations"
       end
       mixed = JSON.parse(run.call(0, "verification-context", "--id", other_id, "--id", accepted_id))
-      mixed_refs = proposal_refs.first(2).map { |id| {"$ref" => "#/records/1/evidence/#{id}"} }
+      mixed_refs = proposal_refs.first(3).map { |id| {"$ref" => "#/records/1/evidence/#{id}"} }
       mixed_observation = mixed.fetch("records").last.fetch("observations").values.first
       resolved_observation = resolve_context_references(mixed).fetch("records").last.fetch("observations").values.first
       unless mixed_observation.fetch("evidence_refs") == mixed_refs &&
-          resolved_observation.fetch("evidence_refs") == proposal_evidence.first(2)
+          resolved_observation.fetch("evidence_refs") == proposal_evidence.first(3)
         raise "scoped evidence references escaped their record in a multi-record result"
       end
       outside = []
