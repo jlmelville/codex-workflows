@@ -10,6 +10,7 @@ end
 
 require "json"
 require "optparse"
+require_relative "lib/verification-context-reviews"
 
 module VerificationContextCheck
   class InputError < StandardError; end
@@ -351,6 +352,8 @@ module VerificationContextCheck
       candidate["qualifiers"].map { |value| value["numbers"] } == [["-1.2"], ["1.2"]]
 
     provenance_self_test
+    require_relative "test-verification-context-reviews"
+    VerificationContextReviewTests.run
 
     require "open3"
     require "tmpdir"
@@ -469,17 +472,21 @@ module VerificationContextCheck
 end
 
 if $PROGRAM_NAME == __FILE__
-  options = {file: "-", self_test: false}
+  options = {file: "-", self_test: false, reviews: nil, prepare_reviews: false, require_reviewed: false}
   parser = OptionParser.new do |opts|
-    opts.banner = "Usage: check-verification-context.rb [--file JSON|-] [--self-test]"
+    opts.banner = "Usage: check-verification-context.rb [--file JSON|-] [--reviews PATH] [--require-reviewed | --prepare-reviews]"
     opts.separator "Read expanded verification-context JSON; write a JSON audit without modifying input or state."
     opts.separator "Evidence, observations, document bodies, and claim limits are compared within each record."
     opts.separator "Opportunity, rationale, requirement, and provenance fields keep separate roles."
     opts.separator "References are checked and listed without expanding them into repeated prose."
     opts.separator "Overlap diagnostics show direct citing paths and wording-based role hints; identity and independence are not inferred."
-    opts.separator "Exit 0: audit complete; 1: exact duplicates or reference errors; 2: invalid input/usage."
+    opts.separator "Review manifests annotate factual findings; scope-role overlaps remain informational. No files are written."
+    opts.separator "Exit 0: audit complete; 1: exact duplicates, reference errors, current duplicate verdicts, or failed review gate; 2: invalid input/usage."
     opts.separator "Lexical overlaps require review and do not fail the check. No semantic completeness is claimed."
     opts.on("--file PATH", "JSON input path, or - for standard input (default)") { |value| options[:file] = value }
+    opts.on("--reviews PATH", "Read external review manifest (never rewritten)") { |value| options[:reviews] = value }
+    opts.on("--prepare-reviews", "Print manifest: preserve current reviews, blank new/stale judgments, retain inactive entries") { options[:prepare_reviews] = true }
+    opts.on("--require-reviewed", "Also fail for unreviewed, stale, or inactive findings; current unresolved provenance stays visible") { options[:require_reviewed] = true }
     opts.on("--self-test", "Run disposable checker fixtures") { options[:self_test] = true }
     opts.on("-h", "--help", "Show help") {
       puts opts
@@ -489,13 +496,26 @@ if $PROGRAM_NAME == __FILE__
   begin
     parser.parse!
     raise OptionParser::InvalidArgument, "unexpected argument: #{ARGV.first}" unless ARGV.empty?
+    if options[:prepare_reviews] && options[:require_reviewed]
+      raise OptionParser::InvalidArgument, "--prepare-reviews cannot combine with --require-reviewed"
+    end
+    if options[:reviews] == "-" || (options[:self_test] && (options[:reviews] || options[:prepare_reviews] || options[:require_reviewed]))
+      raise OptionParser::InvalidArgument, "--reviews needs a file path; --self-test runs alone"
+    end
     if options[:self_test]
       VerificationContextCheck.self_test
     else
       source = (options[:file] == "-") ? $stdin.read : File.read(options[:file], encoding: "UTF-8")
-      report = VerificationContextCheck.run(JSON.parse(source))
-      puts JSON.pretty_generate(report)
-      exit 1 if report.dig("summary", "exact_duplicates").positive? || report.dig("summary", "reference_errors").positive?
+      document = JSON.parse(source)
+      report = VerificationContextCheck.run(document)
+      output = report
+      if options[:reviews] || options[:prepare_reviews] || options[:require_reviewed]
+        manifest = options[:reviews] ? JSON.parse(File.read(options[:reviews], encoding: "UTF-8")) : {"schema_version" => 1, "reviews" => []}
+        reviews = VerificationContextCheck::ReviewManifest.new(document, report, manifest)
+        output = options[:prepare_reviews] ? reviews.prepare : reviews.annotate
+      end
+      puts JSON.pretty_generate(output)
+      exit 1 if !options[:prepare_reviews] && VerificationContextCheck::ReviewManifest.failed?(output, require_reviewed: options[:require_reviewed])
     end
   rescue OptionParser::ParseError, VerificationContextCheck::InputError, JSON::ParserError,
     Errno::ENOENT, Errno::ENOTDIR, Errno::EISDIR, Errno::EACCES => e

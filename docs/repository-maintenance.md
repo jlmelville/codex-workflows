@@ -240,6 +240,56 @@ Successful validation emits one stable summary line. Subordinate pass/fail
 output is captured and replayed on failure; actionable CI-tool parity mismatches
 remain visible even in quiet mode.
 
+### Verification-context overlap reviews
+
+The repository-only `scripts/check-verification-context.rb` audits expanded verification-context
+JSON. It reports literal duplication, lexical review candidates, citation provenance, and broken
+references. To remember human judgments, pass an external JSON manifest with `--reviews`.
+
+Keep manifests beneath `CODEX_WORKFLOWS_STATE_DIR`, conventionally in
+`audits/verification-context-overlaps/` with one file per accepted ID. They are disposable local
+operational state and must stay out of Git. The checker validates its own manifest format;
+`retro-state.rb validate` continues to validate the separate learning records.
+
+With `context_json` naming the expanded input, prepare a draft on standard output:
+
+```sh
+./scripts/check-verification-context.rb --file "${context_json}" --prepare-reviews
+```
+
+Save the draft externally and fill each review's `verdict`, `rationale`, and UTC `reviewed_at`.
+Verdicts are `distinct_evidence`, `distinct_context`, `unresolved_provenance`, and `duplicate`.
+Each review binds an unordered pair of record-relative paths to an accepted ID. A current unresolved
+judgment preserves uncertainty; it does not establish distinct artifacts or independent evidence.
+
+Bindings hash the complete endpoint entries, scoped reference targets, direct citation membership,
+citing-document provenance, canonical claim limits, and explicit `context_paths`. Add
+record-relative context paths when a rationale depends on other fields. After changing them,
+prepare again with `--reviews` and explicitly review the resulting blank judgment. Missing context
+paths must be fixed before preparation. Hashing preserves text, numbers, negation, and array order
+while sorting object keys and removing record-batch offsets from scoped references.
+
+Audit with the completed manifest named by `reviews_json`:
+
+```sh
+./scripts/check-verification-context.rb --file "${context_json}" --reviews "${reviews_json}" --require-reviewed
+```
+
+The optional gate fails for new, stale, or inactive findings. Current unresolved provenance remains
+visible and satisfies the review gate. Exact duplicates, broken references, and current `duplicate`
+verdicts still fail without the gate. Scope-role overlaps remain informational outside these factual
+review candidates.
+
+Changed dependencies or binding rules require fresh review. Record-batch reordering preserves
+identity; evidence or proposal renumbering requires explicit rebinding. Removed endpoints and pairs
+that stop appearing remain visible as inactive stale reviews. Remove an obsolete entry explicitly
+after review to close it. Preparation with an existing manifest retains current and inactive entries
+and blanks new or stale judgments; it never renews approval automatically. Checking and preparation
+write only standard output. New external provenance must enter the supplied JSON or declared context
+before freshness checks can detect it.
+
+### Other validation tools
+
 Review skill trigger and metadata shape with:
 
 ```sh
