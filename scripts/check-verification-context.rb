@@ -56,6 +56,50 @@ module VerificationContextCheck
      "negation" => text.downcase.scan(/\b(?:no|not|never|without|unverified|untested|unexamined)\b/).uniq}
   end
 
+  def self.claim_context(unit, references)
+    path = unit.fetch("path")
+    text = unit.fetch("text")
+    hints = []
+    hints << "historical_observation" if text.match?(/\boriginal candidate observation\b/i)
+    hints << "assertion_check" if text.match?(/\bassertions?\b[^.!?\n]*\b(?:checked|verified|validated)\b/i)
+    hints << "reported_result" if text.match?(/\b(?:acquired|collected|measured)\b/i)
+    citations = references.filter_map do |ref|
+      target = ref.fetch("target")
+      next unless path == target || path.start_with?("#{target}/")
+
+      origin = ref.fetch("path")
+      document = origin[%r{\A#/records/\d+/(?:accepted|verification_proposals/\d+)(?=/|\z)}]
+      citation = {"path" => origin, "kind" => ref.fetch("kind")}
+      citation["document_path"] = document if document
+      citation
+    end
+    context = {"path" => path, "field_role" => unit.fetch("role"), "role_hints" => hints, "citations" => citations}
+    document = path[%r{\A#/records/\d+/(?:accepted|verification_proposals/\d+)(?=/|\z)}]
+    context["document_path"] = document if document
+    context
+  end
+
+  def self.overlap_diagnostics(left, right)
+    documents = [left, right].map do |context|
+      (context.fetch("citations").filter_map { |citation| citation["document_path"] } + [context["document_path"]].compact).to_set
+    end
+    roles = [left, right].map { |context| context.fetch("role_hints") }
+    relationship = if roles.flatten.include?("historical_observation")
+      "historical_context_overlap"
+    elsif roles.permutation.any? { |result, check| result.include?("reported_result") && check.include?("assertion_check") }
+      "result_and_assertion"
+    else
+      "undetermined"
+    end
+    {"citation_relationship" => if documents.any?(&:empty?)
+                                  "unknown"
+                                else
+                                  (documents.first == documents.last) ? "same_document_set" : "different_document_sets"
+                                end,
+     "evidence_role_relationship" => relationship,
+     "artifact_identity" => "not_inferred", "independence" => "not_inferred"}
+  end
+
   def self.run(document)
     unless document.is_a?(Hash) && document["mode"] == "detail" && document["records"].is_a?(Array)
       raise InputError, "expected expanded verification-context JSON with mode detail and records array"
@@ -148,6 +192,8 @@ module VerificationContextCheck
       visited << path
     end
     visit.call("#", nil)
+    invalid_paths = errors.map { |error| error["path"] }.to_set
+    valid_references = references.reject { |ref| invalid_paths.include?(ref["path"]) }
 
     findings = []
     role_overlaps = []
@@ -203,6 +249,7 @@ module VerificationContextCheck
         qualifies = exact || !shared_passages.empty? || (shared.size >= 3 && (score >= 0.2 || shared.size >= 5))
         next unless qualifies
 
+        claim_contexts = [left, right].map { |unit| claim_context(unit, valid_references) }
         match = {"paths" => [left.fetch("path"), right.fetch("path")],
                  "kind" => if exact
                              "exact_text"
@@ -212,7 +259,9 @@ module VerificationContextCheck
                  "shared_passages" => shared_passages.to_a, "shared_terms" => shared.to_a.sort,
                  "shorter_text_coverage" => score.round(3),
                  "excerpts" => [left.fetch("text"), right.fetch("text")],
-                 "qualifiers" => [qualifiers(left.fetch("text")), qualifiers(right.fetch("text"))]}
+                 "qualifiers" => [qualifiers(left.fetch("text")), qualifiers(right.fetch("text"))],
+                 "claim_contexts" => claim_contexts,
+                 "diagnostics" => overlap_diagnostics(*claim_contexts)}
         if match["kind"] == "lexical_overlap" && (left.fetch("role") != "fact" || right.fetch("role") != "fact")
           role_overlaps << match.merge("reason" => "scope and evidence have different assertion roles; no equivalence inferred")
         else
@@ -233,16 +282,14 @@ module VerificationContextCheck
       end
       units.concat(record_units)
     end
-    invalid_paths = errors.map { |error| error["path"] }.to_set
-    grouped_refs = references.reject { |ref| invalid_paths.include?(ref["path"]) }
-      .group_by { |ref| [ref["kind"], ref["target"]] }.map do |(kind, target), refs|
+    grouped_refs = valid_references.group_by { |ref| [ref["kind"], ref["target"]] }.map do |(kind, target), refs|
       {"kind" => kind, "target" => target, "paths" => refs.map { |ref| ref.fetch("path") }}
     end
     {"summary" => {"records" => document.fetch("records").length, "text_fields" => units.length,
                    "exact_duplicates" => findings.count { |finding| finding["kind"].start_with?("exact_") },
                    "review_candidates" => findings.count { |finding| finding["kind"] == "lexical_overlap" },
                    "reference_errors" => errors.length, "references" => references.length},
-     "method" => "Compare stored text within each record. Exact text/passages ignore case and whitespace only. Lexical candidates share >=5 terms, or >=3 terms covering >=20% of the shorter term set. Words longer than five letters use five-letter prefixes (*). Lexical candidates are review leads, not semantic equivalence or deletion instructions. Context fields have separate requirement, decision, and provenance roles and are listed outside factual comparisons.",
+     "method" => "Compare stored text within each record. Exact text/passages ignore case and whitespace only. Lexical candidates share >=5 terms, or >=3 terms covering >=20% of the shorter term set. Words longer than five letters use five-letter prefixes (*). Lexical candidates are review leads, not semantic equivalence or deletion instructions. Claim contexts list direct citing field and document paths; those paths do not establish artifact identity or independence. Role hints recognize explicit original-candidate, assertion-check, and acquisition/measurement wording; they do not establish semantic roles or assertion coverage. Different roles or citations never suppress matches. Context fields have separate requirement, decision, and provenance roles and are listed outside factual comparisons.",
      "findings" => findings, "reference_errors" => errors,
      "intentional_references" => grouped_refs, "intentional_categories" => intentional,
      "role_overlaps" => role_overlaps, "context_fields" => contexts}
@@ -303,6 +350,8 @@ module VerificationContextCheck
     raise "numeric distinctions were discarded" unless candidate && candidate["kind"] == "lexical_overlap" &&
       candidate["qualifiers"].map { |value| value["numbers"] } == [["-1.2"], ["1.2"]]
 
+    provenance_self_test
+
     require "open3"
     require "tmpdir"
     command = [RbConfig.ruby, File.expand_path(__FILE__)]
@@ -337,6 +386,86 @@ module VerificationContextCheck
     end
     puts "Verification context checker tests passed."
   end
+
+  def self.provenance_self_test
+    base = "#/records/0"
+    historical = "Original candidate observation: native capture succeeded; source recovery reused the captured samples."
+    smoke = "The smoke acquired 90 captured samples; native source recovery resolved 30 samples using ELF translation."
+    followup = "The follow-up collected 420 captured samples; native source recovery resolved 310 samples using ELF translation."
+    checks = "Assertions during source recovery checked unambiguous ELF translation and native source output for captured samples. Capture and binary hashes matched."
+    fixture = {"mode" => "detail", "records" => [{
+      "accepted" => {"frontmatter" => {"originating_candidate_ids" => ["original-candidate"],
+                                       "decisive_evidence_refs" => %w[historical smoke followup checks]}},
+      "verification_proposals" => [{"frontmatter" => {"decisive_evidence_refs" => %w[smoke followup checks],
+                                                      "opportunity_match" => "The fixture exercised the mechanics witness.",
+                                                      "triage" => {"rationale" => "Keep only the tested support."}}}],
+      "observations" => {"order" => {"text" => "The smoke preceded the larger acquisition.",
+                                     "evidence_refs" => [{"$ref" => "#{base}/evidence/smoke"}]}},
+      "evidence" => {"historical" => {"text" => historical,
+                                      "claim_limits_refs" => [{"$ref" => "#{base}/claim_limits/attribution"}]},
+                     "smoke" => smoke, "followup" => followup, "checks" => checks},
+      "claim_limits" => {"supported_scope" => "Only the later tested workload and tool build.",
+                         "attribution" => "Exclusive sampled instruction-pointer attribution.",
+                         "unverified_claims" => ["Ordinary later-use effectiveness.", "Comparative improvement."]}
+    }]}
+    before = JSON.generate(fixture)
+    report = run(fixture)
+    raise "diagnostics changed evidence, scope, or provenance" unless JSON.generate(fixture) == before
+    raise "intentional links were expanded or rejected" unless report.dig("summary", "exact_duplicates").zero? && report["reference_errors"].empty?
+    find_pair = lambda do |left, right|
+      report.fetch("findings").find { |finding| finding.fetch("paths").to_set == ["#{base}/evidence/#{left}", "#{base}/evidence/#{right}"].to_set } || raise("overlap hidden: #{left}, #{right}")
+    end
+    %w[smoke followup checks].each do |name|
+      finding = find_pair.call("historical/text", name)
+      diagnostics = finding.fetch("diagnostics")
+      unless finding["kind"] == "lexical_overlap" && diagnostics == {
+        "citation_relationship" => "different_document_sets", "evidence_role_relationship" => "historical_context_overlap",
+        "artifact_identity" => "not_inferred", "independence" => "not_inferred"
+      }
+        raise "historical overlap lost unknown artifact identity or different citation origins"
+      end
+      original, later = finding.fetch("claim_contexts")
+      unless original.fetch("citations") == [{"path" => "#{base}/accepted/frontmatter/decisive_evidence_refs/0",
+                                              "kind" => "pool_link", "document_path" => "#{base}/accepted"}] &&
+          later.fetch("citations").any? { |citation| citation["document_path"] == "#{base}/verification_proposals/0" }
+        raise "direct citing document or exact field paths were lost"
+      end
+    end
+    %w[smoke followup].each do |name|
+      finding = find_pair.call(name, "checks")
+      unless finding["kind"] == "lexical_overlap" && finding.dig("diagnostics", "evidence_role_relationship") == "result_and_assertion" &&
+          finding.dig("diagnostics", "citation_relationship") == "same_document_set"
+        raise "outcome and assertion overlap was suppressed or treated as equivalent"
+      end
+    end
+    smoke_context = find_pair.call("smoke", "checks").fetch("claim_contexts").first
+    unless smoke_context.fetch("citations").include?({"path" => "#{base}/observations/order/evidence_refs/0", "kind" => "json_pointer"})
+      raise "intentional observation-to-evidence citation was lost"
+    end
+    copy = JSON.parse(before)
+    copy["records"][0]["evidence"]["historical"]["text"] = "Original candidate observation. #{smoke}"
+    repeated = run(copy).fetch("findings").find do |finding|
+      finding.fetch("paths").to_set == ["#{base}/evidence/historical/text", "#{base}/evidence/smoke"].to_set
+    end
+    raise "different provenance hid a repeated claim passage" unless repeated && repeated["kind"] == "exact_passage"
+    copy["records"][0]["evidence"]["checks"] = "Assertions checked recovery output. #{smoke}"
+    raise "assertion role hid repeated outcome prose" unless run(copy).fetch("findings").any? do |finding|
+      finding["kind"] == "exact_passage" && finding.dig("diagnostics", "evidence_role_relationship") == "result_and_assertion"
+    end
+    copy["records"][0]["evidence"]["checks"] = smoke
+    raise "different evidence roles hid an actual copy" unless run(copy).fetch("findings").any? do |finding|
+      finding["kind"] == "exact_text" && finding.fetch("paths").include?("#{base}/evidence/checks")
+    end
+    copy = JSON.parse(before)
+    copy["records"][0]["evidence"]["historical"]["text"] = historical.delete_prefix("Original candidate observation: ")
+    raise "citation origin alone was treated as a historical role" unless run(copy).fetch("findings").all? do |finding|
+      finding.dig("diagnostics", "evidence_role_relationship") != "historical_context_overlap"
+    end
+    copy["records"][0]["accepted"]["frontmatter"].delete("decisive_evidence_refs")
+    raise "missing document provenance was inferred" unless run(copy).fetch("findings").any? do |finding|
+      finding.fetch("paths").include?("#{base}/evidence/historical/text") && finding.dig("diagnostics", "citation_relationship") == "unknown"
+    end
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
@@ -347,6 +476,7 @@ if $PROGRAM_NAME == __FILE__
     opts.separator "Evidence, observations, document bodies, and claim limits are compared within each record."
     opts.separator "Opportunity, rationale, requirement, and provenance fields keep separate roles."
     opts.separator "References are checked and listed without expanding them into repeated prose."
+    opts.separator "Overlap diagnostics show direct citing paths and wording-based role hints; identity and independence are not inferred."
     opts.separator "Exit 0: audit complete; 1: exact duplicates or reference errors; 2: invalid input/usage."
     opts.separator "Lexical overlaps require review and do not fail the check. No semantic completeness is claimed."
     opts.on("--file PATH", "JSON input path, or - for standard input (default)") { |value| options[:file] = value }
