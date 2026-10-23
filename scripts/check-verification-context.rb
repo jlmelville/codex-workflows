@@ -482,11 +482,11 @@ if $PROGRAM_NAME == __FILE__
     opts.separator "Overlap diagnostics show direct citing paths and wording-based role hints; identity and independence are not inferred."
     opts.separator "Review manifests annotate factual findings; scope-role overlaps remain informational. No files are written."
     opts.separator "Exit 0: audit complete; 1: exact duplicates, reference errors, current duplicate verdicts, or failed review gate; 2: invalid input/usage."
-    opts.separator "Lexical overlaps require review and do not fail the check. No semantic completeness is claimed."
+    opts.separator "Lexical overlaps alone do not fail without --require-reviewed. No semantic completeness is claimed."
     opts.on("--file PATH", "JSON input path, or - for standard input (default)") { |value| options[:file] = value }
     opts.on("--reviews PATH", "Read external review manifest (never rewritten)") { |value| options[:reviews] = value }
     opts.on("--prepare-reviews", "Print manifest: preserve current reviews, blank new/stale judgments, retain inactive entries") { options[:prepare_reviews] = true }
-    opts.on("--require-reviewed", "Also fail for unreviewed, stale, or inactive findings; current unresolved provenance stays visible") { options[:require_reviewed] = true }
+    opts.on("--require-reviewed", "Fail for blank, new, stale, or inactive reviews and list their paths; current unresolved provenance stays visible") { options[:require_reviewed] = true }
     opts.on("--self-test", "Run disposable checker fixtures") { options[:self_test] = true }
     opts.on("-h", "--help", "Show help") {
       puts opts
@@ -515,6 +515,9 @@ if $PROGRAM_NAME == __FILE__
         output = options[:prepare_reviews] ? reviews.prepare : reviews.annotate
       end
       puts JSON.pretty_generate(output)
+      if options[:require_reviewed]
+        VerificationContextCheck::ReviewManifest.gate_diagnostics(output).each { |message| warn "check-verification-context.rb: #{message}" }
+      end
       exit 1 if !options[:prepare_reviews] && VerificationContextCheck::ReviewManifest.failed?(output, require_reviewed: options[:require_reviewed])
     end
   rescue OptionParser::ParseError, VerificationContextCheck::InputError, JSON::ParserError,

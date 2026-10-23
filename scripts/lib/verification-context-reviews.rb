@@ -48,15 +48,19 @@ module VerificationContextCheck
       manifest.fetch("reviews").each do |review|
         unless review.is_a?(Hash) && review.keys.sort == %w[accepted_id binding context_paths paths rationale reviewed_at verdict] &&
             review["accepted_id"].is_a?(String) && review["accepted_id"].match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/) &&
-            path_list?(review["paths"], size: 2) && path_list?(review["context_paths"]) &&
-            VERDICTS.include?(review["verdict"]) && review["rationale"].is_a?(String) && !review["rationale"].strip.empty? &&
-            review["reviewed_at"].is_a?(String) && review["reviewed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+            path_list?(review["paths"], size: 2) && path_list?(review["context_paths"])
           raise InputError, "review requires accepted_id, two distinct relative paths, context_paths, verdict, rationale, UTC reviewed_at, and binding"
         end
-        begin
-          Time.iso8601(review.fetch("reviewed_at"))
-        rescue ArgumentError
-          raise InputError, "invalid review timestamp"
+        unless blank_judgment?(review)
+          unless VERDICTS.include?(review["verdict"]) && review["rationale"].is_a?(String) && !review["rationale"].strip.empty? &&
+              review["reviewed_at"].is_a?(String) && review["reviewed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+            raise InputError, "review judgment must be complete or prepared blanks (verdict: null, rationale: empty string, reviewed_at: null)"
+          end
+          begin
+            Time.iso8601(review.fetch("reviewed_at"))
+          rescue ArgumentError
+            raise InputError, "invalid review timestamp"
+          end
         end
         binding = review.fetch("binding")
         unless binding.is_a?(Hash) && binding.keys.sort == %w[dependencies version] &&
@@ -68,6 +72,10 @@ module VerificationContextCheck
         identity = key(review.fetch("accepted_id"), review.fetch("paths"))
         raise InputError, "conflicting or duplicate reviews for #{identity.inspect}" unless seen.add?(identity)
       end
+    end
+
+    def blank_judgment?(review)
+      review.values_at("verdict", "rationale", "reviewed_at") == [nil, "", nil]
     end
 
     def pointer?(path)
@@ -166,6 +174,11 @@ module VerificationContextCheck
       reasons << "dependencies_changed" unless changed.empty?
       reasons << "endpoint_missing" unless review.fetch("paths").all? { |path| @records.fetch(id).fetch("nodes").key?(path) }
       reasons << "context_missing" unless review.fetch("context_paths").all? { |path| @records.fetch(id).fetch("nodes").key?(path) }
+      if blank_judgment?(review)
+        result = {"freshness" => "unreviewed", "reasons" => ["blank_judgment", *reasons]}
+        result["changed_paths"] = changed.map { |path| @records.fetch(id).fetch("base") + path } unless changed.empty?
+        return result
+      end
       judgment = review.slice("verdict", "rationale", "reviewed_at")
       return judgment.merge("freshness" => "current") if reasons.empty?
 
@@ -196,13 +209,19 @@ module VerificationContextCheck
         next if used.include?(identity) || !@records.key?(id)
 
         result = freshness(review)
+        inactive_review = if blank_judgment?(review)
+          result.merge("reasons" => result.fetch("reasons") + ["no_longer_candidate"])
+        else
+          {"freshness" => "stale", "previous_review" => review.slice("verdict", "rationale", "reviewed_at"),
+           "reasons" => (result.fetch("reasons", []) + ["no_longer_candidate"]),
+           "changed_paths" => result.fetch("changed_paths", [])}
+        end
         {"accepted_id" => id, "paths" => review.fetch("paths").map { |path| @records.fetch(id).fetch("base") + path },
-         "review" => {"freshness" => "stale", "previous_review" => review.slice("verdict", "rationale", "reviewed_at"),
-                      "reasons" => (result.fetch("reasons", []) + ["no_longer_candidate"]),
-                      "changed_paths" => result.fetch("changed_paths", [])}}
+         "review" => inactive_review}
       end
       @report.merge("review_summary" => {"candidates" => @report.fetch("findings").length, "current" => counts,
-                                         "unreviewed" => unreviewed, "stale" => stale + inactive.length, "inactive" => inactive.length},
+                                         "unreviewed" => unreviewed + inactive.count { |item| item.dig("review", "freshness") == "unreviewed" },
+                                         "stale" => stale + inactive.count { |item| item.dig("review", "freshness") == "stale" }, "inactive" => inactive.length},
         "inactive_reviews" => inactive)
     end
 
@@ -233,6 +252,17 @@ module VerificationContextCheck
       summary.fetch("exact_duplicates").positive? || summary.fetch("reference_errors").positive? ||
         (reviews && (reviews.fetch("current").fetch("duplicate").positive? ||
           (require_reviewed && (reviews.fetch("unreviewed").positive? || reviews.fetch("stale").positive?))))
+    end
+
+    def self.gate_diagnostics(report)
+      (report.fetch("findings") + report.fetch("inactive_reviews")).filter_map do |finding|
+        review = finding.fetch("review")
+        status = review.fetch("freshness")
+        next unless %w[unreviewed stale].include?(status)
+
+        detail = review.fetch("reasons", []).include?("blank_judgment") ? " (blank judgment)" : ""
+        "#{status} overlap#{detail}: #{finding.fetch("paths").join(" <-> ")}"
+      end
     end
   end
 end

@@ -275,7 +275,10 @@ Audit with the completed manifest named by `reviews_json`:
 ./scripts/check-verification-context.rb --file "${context_json}" --reviews "${reviews_json}" --require-reviewed
 ```
 
-The optional gate fails for new, stale, or inactive findings. Current unresolved provenance remains
+Prepared entries with `verdict: null`, `rationale: ""`, and `reviewed_at: null` are valid unreviewed
+entries. The optional gate exits 1 and lists the exact paths of blank, new, stale, or inactive
+overlaps on standard error while preserving the JSON report on standard output. Partial judgments
+and malformed bindings remain validation errors with exit 2. Current unresolved provenance remains
 visible and satisfies the review gate. Exact duplicates, broken references, and current `duplicate`
 verdicts still fail without the gate. Scope-role overlaps remain informational outside these factual
 review candidates.

@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "open3"
+require "tmpdir"
+
 module VerificationContextReviewTests
   ID = "SCR-20000101-000001"
   PATHS = ["/evidence/capture/text", "/evidence/checks"].freeze
@@ -77,6 +80,24 @@ module VerificationContextReviewTests
     end
     pending = manager(document).annotate
     raise "missing review bypassed the gate" unless pending.dig("review_summary", "unreviewed") == 1 && VerificationContextCheck::ReviewManifest.failed?(pending, require_reviewed: true)
+    prepared = manager(document).prepare
+    blank = manager(document, prepared).annotate
+    unless review(blank) == {"freshness" => "unreviewed", "reasons" => ["blank_judgment"]} &&
+        blank.dig("review_summary", "unreviewed") == 1 && blank.dig("review_summary", "current").values.sum.zero? &&
+        !VerificationContextCheck::ReviewManifest.failed?(blank) && VerificationContextCheck::ReviewManifest.failed?(blank, require_reviewed: true)
+      raise "prepared blank judgment was rejected, approved, or bypassed the review gate"
+    end
+    raise "preparation failed to round-trip its own blank output" unless manager(document, prepared).prepare == prepared
+    changed_blank = copy(document)
+    changed_blank["records"][0]["evidence"]["capture"]["text"] += " Changed."
+    result = review(manager(changed_blank, prepared).annotate)
+    unless result["freshness"] == "unreviewed" && result["reasons"] == %w[blank_judgment dependencies_changed] && !result.key?("previous_review")
+      raise "changed blank binding was treated as a previous judgment"
+    end
+    inactive_blank = copy(document)
+    inactive_blank["records"][0]["evidence"]["checks"] = "Purple hexagons moved sideways."
+    result = manager(inactive_blank, prepared).annotate
+    raise "inactive blank was treated as a reviewed judgment" unless result.dig("review_summary", "unreviewed") == 1 && result.dig("review_summary", "stale").zero? && result.dig("review_summary", "inactive") == 1
     reversed = copy(saved)
     reversed["reviews"][0]["paths"].reverse!
     raise "pair ordering changed identity" unless review(manager(document, reversed).annotate)["freshness"] == "current"
@@ -218,11 +239,66 @@ module VerificationContextReviewTests
     partial["reviews"] << copy(partial["reviews"].first).merge("accepted_id" => "SCR-20000101-000003")
     raise "partial input discarded another record's review" unless manager(document, partial).prepare == partial
     cli_tests(document, saved, bumped)
+    prepared_review_tests
+  end
+
+  def self.prepared_review_tests
+    document = {"mode" => "detail", "records" => Array.new(9) do |index|
+      record = fixture.fetch("records").first
+      record["accepted"]["id"] = "SCR-20000101-%06x" % (index + 1)
+      rewrite = lambda do |value|
+        case value
+        when Hash then value.each { |name, child| (name == "$ref") ? value[name] = child.sub("#/records/0/", "#/records/#{index}/") : rewrite.call(child) }
+        when Array then value.each { |child| rewrite.call(child) }
+        end
+      end
+      rewrite.call(record)
+      record
+    end}
+    prepared = manager(document).prepare
+    verdicts = %w[unresolved_provenance unresolved_provenance distinct_evidence distinct_context]
+    prepared.fetch("reviews").drop(5).each_with_index do |entry, index|
+      entry.merge!("verdict" => verdicts.fetch(index), "rationale" => "Retain the scoped reviewed judgment.", "reviewed_at" => "2000-01-01T00:00:00Z")
+    end
+    before = JSON.generate([document, prepared])
+    report = manager(document, prepared).annotate
+    expected = Array.new(5) do |index|
+      "check-verification-context.rb: unreviewed overlap (blank judgment): #/records/#{index}/evidence/capture/text <-> #/records/#{index}/evidence/checks"
+    end.join("\n") + "\n"
+    raise "prepared judgments were renewed or current reviews changed" unless manager(document, prepared).prepare == prepared && JSON.generate([document, prepared]) == before
+    raise "five prepared blanks were not classified separately from four current reviews" unless report.fetch("review_summary") == {
+      "candidates" => 9, "current" => {"distinct_evidence" => 1, "distinct_context" => 1, "unresolved_provenance" => 2, "duplicate" => 0},
+      "unreviewed" => 5, "stale" => 0, "inactive" => 0
+    }
+    Dir.mktmpdir("prepared-reviews.") do |directory|
+      source = File.join(directory, "context.json")
+      reviews = File.join(directory, "prepared.json")
+      File.write(source, JSON.generate(document))
+      File.write(reviews, JSON.generate(prepared))
+      original = Dir.children(directory).sort.to_h { |name| [name, File.binread(File.join(directory, name))] }
+      stdout, stderr, status = Open3.capture3(CHECKER, "--file", source, "--reviews", reviews, "--require-reviewed")
+      raise "prepared review gate did not exit 1 with all five exact path diagnostics" unless status.exitstatus == 1 && stderr == expected && JSON.parse(stdout) == report
+      raise "prepared review gate changed source or manifest" unless original == Dir.children(directory).sort.to_h { |name| [name, File.binread(File.join(directory, name))] }
+
+      values = ["distinct_evidence", "Reviewed rationale.", "2000-01-01T00:00:00Z"]
+      (1..6).each do |mask|
+        partial = copy(prepared)
+        %w[verdict rationale reviewed_at].each_with_index do |name, index|
+          partial["reviews"][0][name] = values[index] if mask[index] == 1
+        end
+        File.write(reviews, JSON.generate(partial))
+        stdout, stderr, status = Open3.capture3(CHECKER, "--file", source, "--reviews", reviews, "--require-reviewed")
+        raise "partially completed judgment was accepted as a prepared blank" unless status.exitstatus == 2 && stdout.empty? && stderr.include?("review judgment must be complete or prepared blanks")
+      end
+      malformed = copy(prepared)
+      malformed["reviews"][0]["binding"]["dependencies"] = {"/evidence/capture" => "invalid-digest"}
+      File.write(reviews, JSON.generate(malformed))
+      stdout, stderr, status = Open3.capture3(CHECKER, "--file", source, "--reviews", reviews, "--require-reviewed")
+      raise "blank judgment bypassed malformed binding validation" unless status.exitstatus == 2 && stdout.empty? && stderr.include?("review binding requires")
+    end
   end
 
   def self.cli_tests(document, saved, stale)
-    require "open3"
-    require "tmpdir"
     Dir.mktmpdir("verification-reviews.") do |directory|
       source = File.join(directory, "context.json")
       reviews = File.join(directory, "reviews.json")
@@ -231,10 +307,19 @@ module VerificationContextReviewTests
       baseline = Dir.children(directory).sort.to_h { |name| [name, File.binread(File.join(directory, name))] }
       run = lambda do |args, status|
         stdout, stderr, actual = Open3.capture3(CHECKER, "--file", source, *args)
-        valid_streams = (status == 2) ? stdout.empty? && stderr.start_with?("check-verification-context.rb:") : stderr.empty?
+        payload = (status == 2) ? nil : JSON.parse(stdout)
+        gate_failure = payload && args.include?("--require-reviewed") &&
+          (payload.dig("review_summary", "unreviewed").positive? || payload.dig("review_summary", "stale").positive?)
+        valid_streams = if status == 2
+          stdout.empty? && stderr.start_with?("check-verification-context.rb:")
+        elsif gate_failure
+          !stderr.empty? && stderr.lines.all? { |line| line.start_with?("check-verification-context.rb:") }
+        else
+          stderr.empty?
+        end
         raise "review CLI stream/status contract changed: #{args.inspect}: #{stderr}" unless actual.exitstatus == status && valid_streams
 
-        (status == 2) ? nil : JSON.parse(stdout)
+        payload
       end
       run.call(["--require-reviewed"], 1)
       run.call(["--reviews", reviews, "--require-reviewed"], 0)
