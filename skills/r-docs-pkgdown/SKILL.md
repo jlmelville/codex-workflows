@@ -51,9 +51,9 @@ Use this for documentation and pkgdown work in R packages.
   backend-control documentation, reference values, or inspectable result
   objects, read
   [documentation-contracts.md](references/documentation-contracts.md).
-- Edit roxygen sources rather than `man/*.Rd`, regenerate `man/*.Rd` and
-  `NAMESPACE`, and keep generated changes with their source without unrelated
-  churn.
+- Establish help and namespace ownership from repository configuration and generated headers, per
+  surface in mixed packages. Edit handwritten sources directly; regenerate roxygen-owned files from
+  their source comments and keep generated changes with their source without unrelated churn.
 - When regenerating documentation, follow the roxygen section in
   [pkgdown.md](references/pkgdown.md#roxygen) to classify source-path churn,
   generator metadata, and idempotence.
@@ -66,8 +66,8 @@ Use this for documentation and pkgdown work in R packages.
 
 When exported functions, topics, aliases, or return names are renamed:
 
-1. Edit roxygen sources first and remove stale source references.
-2. Run `roxygen2::roxygenise()`, inspect generated additions/deletions, then run
+1. Edit owning sources and remove stale references, including handwritten help or namespace files.
+2. For roxygen-owned surfaces, run `roxygen2::roxygenise()`, inspect additions/deletions, then run
    it a second time to confirm idempotence after topic or export churn.
 3. Search for stale public names across `R/`, `tests/`, `vignettes/`,
    `README*`, `NEWS*`, `_pkgdown.yml`, `NAMESPACE`, and `man/`.

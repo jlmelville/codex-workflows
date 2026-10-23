@@ -8,7 +8,8 @@ usage() {
   cat <<'USAGE'
 Usage: check-r-package.sh [fast|full|ci]
 
-Run from an R package root.
+Run from an R package root adopting testthat, plus Air and lintr for full/ci.
+For other tooling profiles, use the repository's own validation commands.
 
 Modes:
   fast  existing Rcpp or cpp11 bindings, then testthat::test_local()

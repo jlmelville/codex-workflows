@@ -151,9 +151,10 @@ patterns:
 - top-level read-only permissions,
 - `persist-credentials: false`,
 - build/deploy split with artifact handoff,
-- `contents: write` only on deploy.
+- deployment permissions matching the backend, only on deploy (`contents: write` for branch
+  publication; `pages: write` and `id-token: write` for Pages artifact deployment).
 
-Also verify remote state, not just local files:
+Verify remote state and the configured site URL; branch checks apply only to branch publication:
 
 ```sh
 gh api repos/OWNER/REPO/pages

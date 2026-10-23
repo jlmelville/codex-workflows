@@ -149,7 +149,6 @@ Review Dependabot PRs with `$dependabot-pr-maintenance`.
 
 ## Merge Safety
 
-For action update PRs, inspect the merge result against current `main`, not just
-the PR branch diff. A stale dependency branch can appear to remove newer
-workflow hardening when compared directly to `main`, even if the actual merge is
-clean.
+For action update PRs, resolve the PR's base branch from its metadata and inspect the merge result
+against that current remote base. A direct comparison of a stale head with the base can appear to
+remove newer workflow hardening even when the actual merge is clean.

@@ -9,6 +9,8 @@ new changes, failures, or unresolved concerns invalidate that evidence.
 
 ## R Behavior
 
+Use the package's configured test runner; the focused and full-test examples below assume testthat.
+
 - Focused test file: `Rscript -e 'testthat::test_local(filter = "pattern")'`
 - Focused package-style test file:
   `Rscript -e 'pkgload::load_all(); testthat::test_file("tests/testthat/test-name.R")'`
@@ -133,8 +135,9 @@ When building a source package from a Git worktree, exclude its `.git` pointer f
 A clean export is an alternative when it includes the exact intended source. `git archive` includes
 committed files, so stage accepted uncommitted edits separately when they belong in the candidate.
 
-For package-wide cleanup, release-like checks, or package-wide infrastructure
-and documentation work, run this bundle, adding applicable repository gates.
+For release-like checks or package-wide work on cleanup, infrastructure, or documentation, run full
+tests, a package check, and configured formatting/lint gates. The commands below illustrate the
+testthat/Air/lintr profile; use repository equivalents for other tooling.
 Require 0 errors, 0 warnings, and 0 repository-attributable notes before claiming
 a clean package check. A known baseline establishes attribution; it does not
 make a failing gate pass. Repair failures within the accepted scope and report

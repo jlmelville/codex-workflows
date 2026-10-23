@@ -54,13 +54,13 @@ For a red check on a narrow bot PR:
    its log, use the service's public read-only build or job API to resolve the
    current job and retrieve its raw log. Confirm the job belongs to the current
    commit before relying on a bounded diagnostic from it.
-3. Compare the failure location with the PR patch. If the failed line or command
-   is untouched, treat it as unrelated until proven otherwise.
-4. Compare the same location against current remote `main`; stale bot bases can
-   fail on code that has already been fixed.
-5. If the PR merges cleanly into current `main` and the merged state passes the
-   relevant local checks, classify the original failure as stale CI and
-   recommend rebase, rerun, or merge according to repository policy.
+3. Trace the failure through changed dependencies and actions, including failures in untouched code.
+   An unchanged failure location alone does not establish that the failure is unrelated.
+4. Compare against the current remote PR base branch resolved from PR metadata; stale bot bases can
+   fail on code already fixed there. Reproduce on that base when needed to establish attribution.
+5. When the original failure is established as stale, the PR merges cleanly into its current remote
+   base, and the merged state passes relevant checks, recommend rebase, rerun, or merge according to
+   repository policy.
 6. Do not change unrelated product or language code on a dependency bot branch
    merely to make a stale-base check green.
 

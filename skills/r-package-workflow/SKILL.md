@@ -41,9 +41,9 @@ fixes unless requested; keep required generated output with its source change.
   source attributes, and generated-file headers before selecting a generator
   or generated-file workflow. Rcpp and cpp11 use different commands and own
   different outputs.
-- Treat these as generated unless intentionally refreshed:
-  `R/RcppExports.R`, `src/RcppExports.cpp`, `R/cpp11.R`, `src/cpp11.cpp`,
-  `NAMESPACE`, `man/*.Rd`, pkgdown output under `docs/`.
+- Identify generated-file ownership from headers and configuration before editing. Regenerate
+  binding outputs, roxygen-owned `NAMESPACE` and help, and pkgdown output from source; preserve
+  hand-maintained help, namespace files, and site material, including in mixed-ownership packages.
 - When introducing top-level hidden development config files such as
   `.air.toml`, `.lintr`, or `.styler.R`, add exact anchored `.Rbuildignore`
   entries in the same phase and confirm the R CMD check hidden-file check is OK.
@@ -94,8 +94,8 @@ alone before treating it as a code regression.
 Scripts:
 
 - `${HOME}/.agents/skills/r-package-workflow/scripts/check-r-package.sh`:
-  run a local check bundle, refreshing the one existing Rcpp or cpp11 binding
-  family; use `$r-rcpp-package` to initialize or disambiguate bindings.
+  use for packages adopting testthat, plus Air and lintr in full/CI modes; otherwise use repository
+  checks. Refresh the existing binding family; use `$r-rcpp-package` to initialize or disambiguate.
 - `${HOME}/.agents/skills/r-package-workflow/scripts/audit-generated-r-files.sh`:
   list likely generated files touched in the current diff.
 

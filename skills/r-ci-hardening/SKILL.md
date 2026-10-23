@@ -41,14 +41,13 @@ historical contexts on old commits are not current activity.
 
 ## Pkgdown Deploy Pattern
 
-Prefer a two-job workflow:
+Preserve the configured publishing backend and output destination. Prefer two jobs:
 
-- `build-site`: read-only, builds docs, uploads `docs` as an artifact.
-- `deploy-site`: non-PR only, depends on `build-site`, has `contents: write`,
-  downloads the artifact, pushes to `gh-pages`.
+- `build-site`: read-only, builds and uploads the configured site output.
+- `deploy-site`: non-PR only, depends on `build-site`, publishes with backend-specific permissions.
 
-This avoids giving write credentials to dependency installation and site build
-steps.
+Keep deployment privileges out of dependency installation and build steps. The reference illustrates
+branch publication; GitHub Pages artifact deployment uses `pages: write` and `id-token: write`.
 
 ## Required Checks
 

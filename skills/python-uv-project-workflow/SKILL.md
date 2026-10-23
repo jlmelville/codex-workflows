@@ -52,9 +52,8 @@ For CI interpreter selection, package-manager migration, nested workspaces,
 resolver policy, lock metadata, or invalid dependency metadata warnings, read
 [dependency-resolution.md](references/dependency-resolution.md).
 
-When running uv in Codex, follow `$uv-sandbox-workflow` first so mutable uv
-caches and downloaded tools live under `/tmp` and network approval is requested
-when needed.
+When using uv in Codex, follow `$uv-sandbox-workflow` for writable state and active network policy.
+Preserve configured writable caches; use temporary overrides and approval only when needed.
 
 ## Tests And Validation
 

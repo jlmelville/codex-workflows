@@ -10,8 +10,9 @@ Codex environment.
 
 ## First Command
 
-Assume the default uv cache under the home directory may be read-only. Put uv's
-mutable state under `/tmp` before the first uv command:
+Use active filesystem permissions to choose writable uv state. Preserve configured writable `UV_*`
+locations and accessible defaults. When defaults are outside the writable boundary, use temporary
+locations such as these, replacing any configured unwritable location for this invocation:
 
 ```sh
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
@@ -23,17 +24,16 @@ Use these exports in the same command invocation when the shell state may not
 persist:
 
 ```sh
-UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
-UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools" \
-UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python" \
+UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}" \
+UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}" \
+UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python}" \
 uv --quiet --no-progress run --with pyyaml python script.py
 ```
 
 ## Network Decision
 
-If the command is likely to download packages, tools, lock metadata, or Python
-distributions, request network approval up front instead of trying once and
-rerunning after DNS failure. This commonly includes:
+Use active network and approval policy. Run allowed downloads normally. When network restrictions
+require approval and escalation is available, request it up front for likely downloads, including:
 
 - `uv --quiet --no-progress run --with <package> ...`
 - `uvx --quiet --no-progress <tool>` or
@@ -44,9 +44,8 @@ rerunning after DNS failure. This commonly includes:
 - `uv --quiet --no-progress python install`
 - first use of a tool or dependency in a clean `/tmp` cache
 
-If the project already has dependencies and a populated cache, a normal sandbox
-run may be enough. If it fails with DNS, registry, index, or download errors,
-rerun with escalation.
+A populated cache may permit a normal sandbox run. For network failures, retry with approval only
+when required and available; otherwise use permitted access or report the acquisition blocker.
 
 ## Project Writes
 
@@ -64,9 +63,8 @@ of the task.
 
 ## Preferred Patterns
 
-Set the writable directories in **First Command** once for the current shell.
-When shell state may not persist, use the single-invocation form shown there.
-The commands below assume those directories are already set.
+Resolve writable directories using **First Command** once for the current shell. When temporary
+overrides are needed and shell state may not persist, use its single-invocation form.
 
 If a one-off tool is already installed and acceptable for the repository,
 prefer it before `uvx` to avoid avoidable downloads. For example, run `zizmor`
@@ -92,8 +90,7 @@ instead of installing into the system Python:
 uv --quiet --no-progress run --with pyyaml python path/to/helper.py args...
 ```
 
-For project commands, keep the project as the working directory and still set
-the writable uv directories:
+For project commands, keep the project as the working directory and use the resolved writable state:
 
 ```sh
 uv --quiet --no-progress sync
@@ -119,4 +116,4 @@ will remain available across sessions.
 If `uvx --quiet --no-progress <tool>` fails with DNS, registry, or
 package-download errors, classify
 that as environment/tool acquisition failure, not as a finding from the tool
-itself. Retry with network approval or use an installed binary when available.
+itself. Use an installed binary or retry through the permitted network path described above.

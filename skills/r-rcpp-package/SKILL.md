@@ -67,6 +67,7 @@ For native assurance reviews, select conditional lanes using
 [Native Verification](references/rcpp.md#native-verification), including explicit leak evidence when
 cleanup is part of the acceptance contract.
 
+Use repository test, check, and formatting commands; the examples assume testthat and clang-format.
 Choose exactly one generation command when bindings changed:
 
 ```sh

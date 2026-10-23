@@ -25,8 +25,8 @@ Use this for automated dependency update pull requests.
 3. Read the exact patch. Do not rely only on the PR title.
 4. Identify whether the update is patch, minor, major, security, or tooling
    metadata.
-5. Check whether the branch is behind `main` and whether the displayed diff is a
-   direct branch comparison rather than the true merge result.
+5. Resolve the PR's base branch from its metadata. Check whether its head is behind the current
+   remote base and whether the displayed diff represents the true merge result.
 6. Across multiple repositories, serialize GitHub PR search and list requests or
    use explicitly bounded concurrency. Treat a connector secondary-rate-limit
    response as a retryable API condition, not evidence that the repository is
@@ -54,7 +54,7 @@ Use this for automated dependency update pull requests.
 - For major updates, check runtime requirements and breaking changes before
   merging.
 - For security updates, prioritize validation but still inspect the patch.
-- For generated bot branches that predate recent main changes, preview or test
+- For generated bot branches that predate recent base-branch changes, preview or test
   the merge result before merging.
 - If the local worktree is dirty or on unrelated work, validate patches in a
   temporary clone or worktree under `/tmp` instead of touching user changes.
