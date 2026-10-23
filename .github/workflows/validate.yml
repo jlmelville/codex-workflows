@@ -53,9 +53,15 @@ jobs:
             missing_packages+=(golang-go)
           fi
           if ((${#missing_packages[@]} > 0)); then
-            # Avoid slow Azure transfers that bypass apt's inactivity timeout.
+            # Temporary bypass for slow Azure transfers that evade apt's inactivity timeout.
             # https://github.com/actions/runner-images/issues/14823
-            sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
+            # Remove after an upstream fix reaches this image and representative hosted runs
+            # pass without the bypass; issue closure alone is insufficient.
+            apt_mirrors=/etc/apt/apt-mirrors.txt
+            if [[ -f "${apt_mirrors}" ]] &&
+              grep -Eq '^https://archive\.ubuntu\.com/ubuntu/([[:space:]]|$)' "${apt_mirrors}"; then
+              sudo sed -i '/azure\.archive\.ubuntu\.com/d' "${apt_mirrors}"
+            fi
             sudo apt-get update
             sudo apt-get install -y "${missing_packages[@]}"
           fi
