@@ -4459,7 +4459,7 @@ module RetroState
       prose = [
         [proposal_fields.fetch("source_note"), ""],
         [proposal_fields.fetch("source_scope"), "Linux R-to-C profiling fixture"],
-        [proposal_fields.fetch("observation"), "The smoke recovered native source locations. The report smoke preceded the larger acquisition."],
+        [proposal_fields.fetch("observation"), "The report smoke preceded the larger acquisition."],
         [proposal_fields.fetch("opportunity_match"), "Capture and recovery matched the recorded witness."],
         [proposal_fields.dig("triage", "rationale"), "Recovered sources and stable hashes justify support."],
         [proposal_evidence.last, "No profiling reacquisition was used."],
@@ -4522,9 +4522,14 @@ module RetroState
           [7, 31].all? { |count| JSON.generate(output).scan(/\b#{count} native samples\b/).length == 1 }
         raise "expanded observation repeated sample totals or lost scoped acquisition and preservation evidence"
       end
+      unless observation.fetch("text") == "The report smoke preceded the larger acquisition." &&
+          proposal_evidence.first(2).all? do |text|
+            JSON.generate(output).scan(Regexp.new(Regexp.escape(text))).length == 1
+          end
+        raise "source recovery was repeated or unique smoke-order evidence was lost"
+      end
       preservation_evidence = proposal_evidence.fetch(2)
-      unless observation.fetch("text") == "The smoke recovered native source locations. The report smoke preceded the larger acquisition." &&
-          !JSON.generate(output).include?("preserved byte-for-byte") &&
+      unless !JSON.generate(output).include?("preserved byte-for-byte") &&
           JSON.generate(output).scan(Regexp.new(Regexp.escape(preservation_evidence))).length == 1 &&
           detail.fetch("evidence").fetch(proposal_refs.fetch(2)) == preservation_evidence
         raise "expanded preservation evidence was duplicated or lost unique observations"
