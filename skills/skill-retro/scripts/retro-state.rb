@@ -4351,6 +4351,7 @@ module RetroState
       data["target_accepted_id"] = accepted_id
       data["claim"] = "executable-correctness"
       data["verification_basis"] = "deterministic-test"
+      data["source_scope"] = "Prompted Linux R-to-C profiling fixture"
       data["observation"] = "The prompted smoke recovered native source locations; caller recovery was untested."
       data["opportunity_match"] = "Capture and recovery matched the recorded witness; ordinary benefit was not tested."
       data["source_note"] = "Only the tested recovery is supported; caller inference is untested."
@@ -4412,8 +4413,10 @@ module RetroState
       raise "curated context retrieval wrote state" unless store.snapshot == before
 
       proposal_fields = original_proposal.fetch("frontmatter")
+      compact_before = store.verification_context(destinations: [replacement.fetch("destination")], compact: true)
       limits = {
         "supported/scope~" => "The exercised capture and source-recovery mechanics.",
+        "exercise_context" => "Deliberately prompted same-chat exercise.",
         "untested" => [
           "Caller stacks and recovery, inclusive costs, and allocation behavior were not tested.",
           "System-library samples were not inspected."
@@ -4421,7 +4424,8 @@ module RetroState
       }
       prose = [
         [proposal_fields.fetch("source_note"), ""],
-        [proposal_fields.fetch("observation"), "The prompted smoke recovered native source locations."],
+        [proposal_fields.fetch("source_scope"), "Linux R-to-C profiling fixture"],
+        [proposal_fields.fetch("observation"), "The smoke recovered native source locations."],
         [proposal_fields.fetch("opportunity_match"), "Capture and recovery matched the recorded witness."],
         [proposal_fields.dig("triage", "rationale"), "Recovered sources and stable hashes justify support."],
         [proposal_evidence.last, "No profiling reacquisition was used."],
@@ -4430,6 +4434,7 @@ module RetroState
         )],
         [curated_body, "# Additional acquisition context\n\nAcquisitions used one thread and a fixed seed.\n"]
       ].map { |source, text| {"source" => source, "text" => text} }
+      prose.find { |entry| entry["source"] == proposal_fields.fetch("source_scope") }["limits"] = ["exercise_context"]
       prose.find { |entry| entry["source"] == proposal_evidence.last }["limits"] = ["supported/scope~", "unverified_claims"]
       view = {"claim_limits" => limits, "prose" => prose}
       replacement["verification_context"] = view
@@ -4451,6 +4456,11 @@ module RetroState
         {"$ref" => "#/records/0/claim_limits/unverified_claims"}
       ]
       unless detail.fetch("claim_limits") == limits.merge("unverified_claims" => remaining_claims) &&
+          detail.fetch("verification_proposals").first.dig("frontmatter", "source_scope") == {
+            "text" => "Linux R-to-C profiling fixture",
+            "claim_limits_refs" => [{"$ref" => "#/records/0/claim_limits/exercise_context"}]
+          } &&
+          fields.dig("source_scope", "claim_limits_refs") == [limits.fetch("exercise_context")] &&
           fields.dig("opportunity_match", "text") == "Capture and recovery matched the recorded witness." &&
           fields.dig("triage", "rationale", "text") == "Recovered sources and stable hashes justify support." &&
           !detail.fetch("accepted").fetch("frontmatter").key?("verification_context") &&
@@ -4471,8 +4481,12 @@ module RetroState
         end
       end
       collect.call(detail.except("claim_limits"))
-      if outside.any? { |text| text.match?(/untested|unverified|not tested|not inspected/i) }
+      if outside.any? { |text| text.match?(/prompted|untested|unverified|not tested|not inspected/i) }
         raise "expanded prose repeated a claim limit outside its canonical field"
+      end
+      unless JSON.generate(output).scan(/prompted/i).length == 1 &&
+          store.verification_context(destinations: [replacement.fetch("destination")], compact: true) == compact_before
+        raise "prompted context was repeated or display curation changed discovery claims"
       end
       self_test_context_canonical_fields(detail)
       unless store.snapshot == before && store.show([proposal_id]).fetch("records").first == original_proposal
