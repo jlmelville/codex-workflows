@@ -4,6 +4,7 @@ set -euo pipefail
 workflow_dir=".github/workflows"
 target_explicit=false
 quiet=false
+audit_incomplete=false
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
 export UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}"
@@ -15,7 +16,8 @@ Usage: audit-actions.sh [--quiet] [WORKFLOW_DIR]
 
 Audit GitHub Actions workflows and sibling dependabot.yml/.yaml files, including
 repositories with Dependabot but no workflows. Use --quiet to suppress progress and successful
-per-action detail while preserving findings and operational diagnostics.
+per-action detail while preserving findings and operational diagnostics. Missing external tools
+remain advisory outside CI and produce an incomplete summary; the bundled pin checker is required.
 USAGE
 }
 
@@ -90,6 +92,7 @@ run_zizmor() {
 
   if ! command -v uvx >/dev/null 2>&1; then
     echo "zizmor and uvx not found; skipped zizmor." >&2
+    audit_incomplete=true
     if [[ "${CI:-false}" == "true" ]]; then
       echo "zizmor or uvx is required in CI." >&2
       return 1
@@ -107,9 +110,17 @@ run_zizmor() {
   fi
 
   cat "${output}" >&2
+  version_output="$(mktemp)"
+  if uvx --quiet --quiet --no-progress zizmor --version >"${version_output}" 2>&1; then
+    rm -f "${output}" "${version_output}"
+    echo "zizmor reported issues for ${target_label}." >&2
+    return 1
+  fi
+
   if grep -Eiq 'temporary failure|name or service not known|could not resolve|failed to resolve|dns|pypi|no such host|network is unreachable|connection (refused|reset|timed out|error)|failed to fetch|failed to download|error downloading|request failed|error sending request' "${output}"; then
     echo "uvx could not run zizmor because of network/tool download failure; rerun with network approval or use installed zizmor." >&2
-    rm -f "${output}"
+    rm -f "${output}" "${version_output}"
+    audit_incomplete=true
     if [[ "${CI:-false}" == "true" ]]; then
       echo "zizmor download/tool acquisition is required to succeed in CI." >&2
       return 1
@@ -117,19 +128,12 @@ run_zizmor() {
     return 0
   fi
 
-  version_output="$(mktemp)"
-  if [[ -s "${output}" ]] &&
-    uvx --quiet --quiet --no-progress zizmor --version >"${version_output}" 2>&1; then
-    rm -f "${output}" "${version_output}"
-    echo "zizmor reported issues for ${target_label}." >&2
-    return 1
-  fi
-
   if [[ -s "${version_output}" ]]; then
     cat "${version_output}" >&2
   fi
   rm -f "${output}" "${version_output}"
   echo "uvx could not execute zizmor; use installed zizmor or retry with fresh writable UV_CACHE_DIR, UV_TOOL_DIR, and UV_PYTHON_INSTALL_DIR." >&2
+  audit_incomplete=true
   if [[ "${CI:-false}" == "true" ]]; then
     echo "zizmor execution is required to succeed in CI." >&2
     return 1
@@ -208,9 +212,6 @@ if ((${#workflow_files[@]} > 0)); then
 
   progress "Checking nearby action pin comments..."
   action_comment_checker="${script_dir}/check-action-tag-comments.sh"
-  if [[ ! -x "${action_comment_checker}" ]]; then
-    action_comment_checker="${script_dir}/../../github-actions-hardening/scripts/check-action-tag-comments.sh"
-  fi
   if [[ -x "${action_comment_checker}" ]]; then
     comment_args=(--require-comment)
     if [[ "${quiet}" == true ]]; then
@@ -220,7 +221,8 @@ if ((${#workflow_files[@]} > 0)); then
       status=1
     fi
   else
-    echo "check-action-tag-comments.sh not found; skipped action pin comment check." >&2
+    echo "check-action-tag-comments.sh is missing or not executable; action pin comment check is required." >&2
+    status=1
   fi
 
   progress "Checking checkout credential persistence..."
@@ -249,6 +251,7 @@ if ((${#workflow_files[@]} > 0)); then
     fi
   else
     echo "actionlint not found; skipped syntax check." >&2
+    audit_incomplete=true
     if [[ "${CI:-false}" == "true" ]]; then
       echo "actionlint is required in CI." >&2
       status=1
@@ -269,8 +272,12 @@ else
   exit 0
 fi
 
-if [[ "${status}" -eq 0 && "${quiet}" == true ]]; then
-  echo "GitHub Actions audit completed."
+if [[ "${status}" -eq 0 ]]; then
+  if [[ "${audit_incomplete}" == true ]]; then
+    echo "GitHub Actions audit incomplete: one or more checks were skipped."
+  elif [[ "${quiet}" == true ]]; then
+    echo "GitHub Actions audit completed."
+  fi
 fi
 
 exit "${status}"

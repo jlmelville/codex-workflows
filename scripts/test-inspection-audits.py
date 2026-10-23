@@ -184,6 +184,89 @@ class CommandTests(unittest.TestCase):
         self.fake('actionlint', 'exit 0')
         self.fake('zizmor', 'printf "%s\\n" "$@" > scanner-args')
 
+    def isolate_actions_tools(self):
+        for name in ['bash', 'dirname', 'mktemp', 'find', 'grep', 'sed', 'cat', 'rm']:
+            (self.bin / name).symlink_to(shutil.which(name))
+        self.env['PATH'] = str(self.bin)
+
+    def fake_uvx_failure(self, message, ready):
+        self.env['FAKE_UVX_MESSAGE'] = message
+        self.env['FAKE_UVX_READY'] = str(ready).lower()
+        self.fake('uvx', '''for arg in "$@"; do
+  if [[ "$arg" == --version && "$FAKE_UVX_READY" == true ]]; then
+    echo 'zizmor 1.0.0'
+    exit 0
+  fi
+done
+printf '%s' "$FAKE_UVX_MESSAGE" >&2
+exit 14''')
+
+    def test_actions_uvx_findings_require_failure_regardless_of_output(self):
+        self.isolate_actions_tools()
+        self.fake('actionlint', 'exit 0')
+        self.workflow()
+        for ci in ['false', 'true']:
+            self.env['CI'] = ci
+            for flags in [[], ['--quiet']]:
+                for message in ['pypi.yml: template-injection', 'dns.yml: finding', '']:
+                    self.fake_uvx_failure(message, ready=True)
+                    result = self.run_command('/bin/bash', ACTIONS, *flags)
+                    self.assert_status(result, 1)
+                    self.assertIn(message, result.stderr)
+                    self.assertIn('zizmor reported issues', result.stderr)
+                    self.assertNotIn('network/tool download failure', result.stderr)
+                    self.assertNotIn('completed', result.stdout)
+                    self.assertNotIn('incomplete', result.stdout)
+
+    def test_actions_unavailable_uvx_is_advisory_only_outside_ci(self):
+        self.isolate_actions_tools()
+        self.fake('actionlint', 'exit 0')
+        self.workflow()
+        for ci in ['false', 'true']:
+            self.env['CI'] = ci
+            for flags in [[], ['--quiet']]:
+                for message in ['error: failed to download zizmor from pypi', '']:
+                    self.fake_uvx_failure(message, ready=False)
+                    result = self.run_command('/bin/bash', ACTIONS, *flags)
+                    self.assert_status(result, 1 if ci == 'true' else 0)
+                    self.assertIn(message, result.stderr)
+                    self.assertIn('uvx could not', result.stderr)
+                    self.assertNotIn('zizmor reported issues', result.stderr)
+                    self.assertNotIn('completed', result.stdout)
+                    if ci == 'false':
+                        self.assertIn('audit incomplete', result.stdout)
+
+    def test_actions_absent_tools_report_partial_local_audit(self):
+        self.isolate_actions_tools()
+        self.workflow()
+        for tool in ['actionlint', 'zizmor']:
+            self.fake_scanners()
+            (self.bin / tool).unlink()
+            for ci in ['false', 'true']:
+                self.env['CI'] = ci
+                for flags in [[], ['--quiet']]:
+                    result = self.run_command('/bin/bash', ACTIONS, *flags)
+                    self.assert_status(result, 1 if ci == 'true' else 0)
+                    self.assertIn('skipped', result.stderr)
+                    self.assertNotIn('completed', result.stdout)
+                    if ci == 'false':
+                        self.assertIn('audit incomplete', result.stdout)
+
+    def test_actions_missing_bundled_checker_is_fatal(self):
+        self.isolate_actions_tools()
+        self.fake_scanners()
+        self.workflow()
+        copied = self.root / 'skills/github-actions-hardening/scripts/audit-actions.sh'
+        copied.parent.mkdir(parents=True)
+        shutil.copy2(ACTIONS, copied)
+        for ci in ['false', 'true']:
+            self.env['CI'] = ci
+            for flags in [[], ['--quiet']]:
+                result = self.run_command('/bin/bash', copied, *flags)
+                self.assert_status(result, 1)
+                self.assertIn('action pin comment check is required', result.stderr)
+                self.assertNotIn('completed', result.stdout)
+
     def test_actions_failed_discovery_reaches_complete_command_status(self):
         self.workflow()
         self.fake_scanners()
