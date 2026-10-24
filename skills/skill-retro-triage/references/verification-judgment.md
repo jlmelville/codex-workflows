@@ -11,28 +11,35 @@ selected, applied, and pending proposals together, then read the protocol's
 [Accepted Records And Verification](../../skill-retro/references/state-protocol.md#accepted-records-and-verification)
 for evidence bases, typed decisions, eligible transitions, and identity rules.
 
-For an observation-backed proposal, use `prepare-verification` and complete its exact claim,
-opportunity match, basis and evidence under review authority. Include the original observation IDs
-in `source_observation_ids`. Preserve known guidance context and judge independence; do not infer it
-from repeated reports. The original observation needs no mature candidate copy. Record its review
-as `no-change` when no source change is needed, with the proposal ID in the rationale or notes.
-Creating the proposal and processing existing records require their applicable authority.
+Judge the evidence once. Apply only to an `accepted` or `implemented` target when it exercises the
+exact opportunity, its basis and claim match the observation, and the transition is eligible:
+`unverified` to `supported`, `unverified`/`supported` to `contradicted`, or
+`supported` to `supported` with a materially useful `supplemental_reason`. Judge what a supplement
+adds; its presence or a different claim label is insufficient. Preserve known guidance context and
+judge independence.
 
-Choose `apply` or `reject` for each proposal. Apply only to an `accepted` or
-`implemented` target when evidence exercises its exact opportunity, its basis
-and claim match the observation, and the transition is eligible: `unverified`
-to `supported`, `unverified`/`supported` to `contradicted`, or `supported` to
-`supported` with a materially useful `supplemental_reason`. Judge what the
-supplement adds beyond existing support; its presence or a different claim
-label alone is insufficient. Reject stale,
-duplicate, overclaimed, mismatched, or insufficient evidence.
+For new evidence that warrants verification, use `prepare-verification --reviewed`, complete the
+claim, opportunity match, basis, evidence and review rationale, and submit once with
+`record-verification`. Include original observation IDs in `source_observation_ids`. Processing
+needs its own authority; capture authority permits no application or observation closure.
+Preparation establishes neither an evidence claim nor acceptance.
 
-When processing is authorized, use `prepare-decision --id ID --verdict VERDICT` with a reviewed
-`--rationale TEXT`, or fill the blank afterward. Review the decision, then use
-`process-verification`. Application updates
-the existing accepted identity and archives provenance; rejection archives
-without changing accepted state.
-Verification processing does not advance candidate artifact-audit cadence.
+Optionally select fully reviewed source observations in `review.close_observation_ids`. The helper
+records their closure with the verification reference and preserves original evidence. A source
+link alone requests no closure. Leave observations open when another claim, source change or action
+still needs review. Legacy candidates and papercuts keep their existing closure paths. Closing an
+observation does not resolve the accepted record's contradiction or authorize another owner's work.
+
+When evidence is stale, redundant, overclaimed, mismatched or insufficient, record that conclusion
+on the observation without creating a proposal merely to reject it. Use deferral only for a named
+unresolved decision. Existing or explicitly requested separate proposals retain `prepare-decision`
+and `process-verification` for apply/reject judgments; rejection preserves accepted state.
+
+Keep the prepared VP identity and completed input. Retry unchanged input after interruption, or
+resume durable reviewed intent with `record-verification --id VP-ID`. The queue retains unfinished
+submissions, including selected closures. A completed retry makes no changes; conflicting input or
+closure judgments fail. Verification history itself does not advance candidate artifact cadence;
+explicit observation closures count as ordinary observation reviews.
 
 Resolve contradictions by correcting source and marking the old outcome `superseded`, removing
 guidance and marking it `reverted`, or recording a justified retention under the protocol. Retain

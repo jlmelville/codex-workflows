@@ -310,10 +310,18 @@ overlap review. Historical `verification_context` metadata remains opaque source
 controls rendering or validation. Existing overlap manifests remain historical local files and no
 longer govern review decisions. No evidence migration is required.
 
-When the task produces decisive evidence for the target's exact opportunity, use
-`prepare-verification --id SCR-ID --verification STATE` for the chosen target and proposed state.
-Complete the blank evidence and judgment fields, review the proposal, then submit separately with
-`route-verification`; see `--help` for context, conditional fields, and eligibility checks.
+For new evidence that warrants verification, use
+`prepare-verification --id SCR-ID --verification STATE --reviewed`. Complete the claim, evidence and
+`review.rationale` in this one document, then submit with `record-verification --file PATH` (or `-`
+for stdin). The prepared review holds a stable VP identity and timestamp; retain them for retries.
+Preparation writes no state and grants no authority. Processing requires authority to apply the
+verification and any selected observation closures. See command help for fields and recovery.
+
+Without `--reviewed`, preparation retains the legacy shape for `route-verification` and later
+apply/reject adjudication. Existing records and explicit separate-review workflows remain supported.
+For a new observation that does not warrant verification, record the review conclusion on that
+observation; no rejected proposal is required.
+
 Another conforming task alone need not add evidence that changes adjudication. A proposal names one
 `target_accepted_id`, proposes `supported` or `contradicted`, selects
 `later-session` or `deterministic-test`, records the opportunity match and
@@ -336,11 +344,32 @@ Route a contradiction only when the evidence
 addresses that record's claim and opportunity. Use a candidate when the
 decision itself changes.
 
-Verification is a reviewed transition. When an observation supplies the evidence, include its
-`RC-*` or legacy `PC-*` ID in `source_observation_ids` on the typed proposal. The helper validates
-linked source identities and original digests at routing and application, and validates retained
-links during full-state checks. Preserve those observations after review. Existing proposals
-without source links remain valid. A source link alone establishes no claim or permission.
+When an observation supplies evidence, include its `RC-*` or legacy `PC-*` ID in
+`source_observation_ids`. The helper validates linked identities and original digests at submission
+and application, and retains those dependencies during full-state checks. Existing proposals without
+source links remain valid. A source link alone establishes no claim, permission or closure.
+
+For optional closure, set `review.close_observation_ids` to selected source records whose entire
+review is complete. This path closes new `record_type: observation` records; legacy candidates and
+papercuts keep their existing closure operations. Omit selections by leaving the list empty. The
+helper records a `no-change` intake decision linked to the verification and the supplied rationale,
+without altering original evidence. A closure resolves intake review, not an accepted contradiction
+or an outstanding source change. Preserve observations needed for further decisions or actions.
+
+The completed submission retains the existing `verification-proposal` format and `VP-*` identity.
+Its immutable `review` mapping records intent; archival adds the matching existing `triage` mapping.
+Under the shared writer lock, the helper rechecks the current target, evidence and every selected
+closure before application. It durably publishes reviewed intent, applies and archives verification,
+then completes selected closures. It removes the verification inbox copy last, so interrupted work
+remains in `review-queue`. Atomic file writes do not make the whole sequence a single filesystem
+transaction.
+
+Retry the unchanged input after interruption or a lost response. After intent was published,
+`record-verification --id VP-ID` resumes the stored review; a completed retry is a no-op. Keep the
+original prepared identity rather than preparing another submission. Changed input or conflicting
+closure decisions are refused. A matching observation archive/inbox pair from an interrupted
+selected closure can resume; other ambiguous sources still fail. Legacy decision commands do not
+override a reviewed submission's stored intent. No state migration is required.
 
 Contradicted proposals must also state `what_is_false`; supported proposals
 must not. Further support when support is pending or the target is supported
@@ -350,10 +379,9 @@ A different task or claim label alone is insufficient. Omit redundant support;
 preserve useful supplements and contradictions. Route one proposal per file.
 A query hit creates no obligation; routing authority creates only a new inbox file.
 
-Triage selects proposals from `review-queue`, prepares `apply` or `reject` using `prepare-decision`
-with a reviewed rationale, and records the result with
-`process-verification`. Apply only to an `accepted` or `implemented` target and
-only for these transitions:
+For separate legacy proposals, select from `review-queue`, prepare `apply` or `reject` using
+`prepare-decision` with a reviewed rationale, and submit with `process-verification`. Both
+processing paths apply only to an `accepted` or `implemented` target and only for these transitions:
 
 ```text
 unverified -> supported
@@ -372,12 +400,12 @@ not merely its presence. Processing is recoverable
 if interrupted between accepted-state replacement and proposal archival: retry
 with the same apply decision. An already-applied proposal cannot be rejected,
 and a conflicting archive is refused before accepted state changes.
-Verification proposal archives do not increment candidate artifact-audit
-cadence.
+Verification archives do not increment artifact-audit cadence. Explicit observation closures count
+as ordinary observation reviews.
 
 Use `update-accepted --id ID --file PATH` for later disposition, public-source
-destination, evidence curation, or commit updates; use the typed proposal path
-for new verification evidence. Generic updates reject changes to verification
+destination, evidence curation, or commit updates; use a reviewed submission or the legacy proposal
+path for new verification evidence. Generic updates reject changes to verification
 state or basis. Start with `prepare-accepted-update --id ID`; the helper
 preserves `accepted_id`, `accepted_at`, and prior
 `implementation_commits`, appending new commits without duplicates.
