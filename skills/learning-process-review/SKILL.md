@@ -62,8 +62,8 @@ observation using existing ledgers and review routes.
 After the applicable mutation gate, handle every unresolved executable
 consequence through the typed state protocol. Record the completed audit with
 `audit_kind: skill-repository` only after the full report-only audit finishes.
-That successful record resets machine-owned cadence. If the audit fails or is
-interrupted, record nothing so it remains due.
+Its completion time becomes the cutoff for the approximate candidate-count reminder. Record only
+completed audits; after a lost write response, inspect existing audits before recording another.
 
 Read `${HOME}/.agents/skills/skill-retro/references/state-protocol.md` before
 mutating state, finish with:

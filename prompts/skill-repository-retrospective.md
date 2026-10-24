@@ -84,16 +84,15 @@ Classify every recommendation as one of:
   while ordinary downstream behavior remains unverified;
 - `candidate-defer`: a named decision cannot yet be justified because specific
   evidence is missing;
-- `draft`: a coherent new-skill kernel is not ready for activation;
-- `ledger`: an accepted implementation blocker, maintenance threshold, or
-  cross-report hypothesis needs an executable drain; or
+- `ledger`: an agreed future action, implementation blocker, maintenance threshold, or
+  cross-report hypothesis needs a follow-up; keep any provisional skill text in its body; or
 - `no-action`: no public or live operational change is warranted.
 
 Before using `candidate-defer`, state exactly what decision cannot be made now
 and what evidence is missing. Behavioral uncertainty after a justified,
 reversible implementation is `implement-now-verify-later`, not a deferral.
 
-Every proposed candidate deferral, draft, or ledger must name an owner, a concrete review
+Every proposed candidate deferral or ledger must name an owner, a concrete review
 condition and how to check it, a next action, and a close condition. Reviewers find work through
 `review-queue` and decide whether its conditions are met. "Next use" needs an existing record or
 query that makes that use observable. Do not build a new matcher just to defer a recommendation

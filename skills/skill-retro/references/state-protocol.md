@@ -213,12 +213,12 @@ document. For a deferred verdict, first state the `unresolved_decision` that cur
 justify. Post-implementation behavioral uncertainty is not a deferral: implement the justified
 outcome, keep it behaviorally `unverified`, and retain its destination-matched
 `verification_opportunity`. If processing is interrupted after archive creation, retry `process`
-with the same candidate and decision. The helper verifies the existing archive, completes cadence
-exactly once, and removes the inbox copy; a conflicting archive is refused.
+with the same candidate and decision. The helper verifies the existing archive and removes the
+inbox copy; a conflicting archive is refused. Retrying does not add another counted candidate.
 
 Every new or reconsidered candidate deferral names its `unresolved_decision` and includes these
-follow-up fields. New open drafts and ledgers use the same fields without claiming that an already
-accepted but blocked action is an undecided question:
+follow-up fields. New open ledgers use the same fields without claiming that an already accepted
+but blocked action is an undecided question:
 
 ```yaml
 owner: "skill-retro-triage"
@@ -447,17 +447,18 @@ They do not replace the typed verification evidence required here.
 
 ## Drafts, Ledgers, And Cleanup
 
-Keep a draft only when there is a coherent new-skill kernel with an intended
-trigger, evidence, missing evidence, activation criteria, review trigger, and
-close condition. Keep a ledger entry for a cross-report hypothesis or
-repository-maintenance threshold. A deferred candidate is evidence awaiting a
-specific decision; it is not automatically a draft or ledger entry.
+New draft creation is retired. Keep an undecided proposal as a deferred candidate with its missing
+evidence and unresolved decision. Use a ledger for an agreed future action, implementation blocker,
+or maintenance hypothesis. Its Markdown body can hold provisional skill text, conventions, and
+readiness criteria without another record type or required fields. Create it with `template ledger`
+and `record-ledger`, using the owner, review condition, next action, and close condition from
+[Triage And Archive](#triage-and-archive).
 
-Create drafts and ledger entries from the helper templates so validation can
-enforce their owner/status and follow-up fields. Every open or revised draft and every open ledger
-uses the shared fields from [Triage And Archive](#triage-and-archive): an owner, a concrete review
-condition and check, a next action, and a close condition. Close, activate, deprecate, or delete
-records instead of accumulating generic notes.
+Existing `SD-*` drafts remain readable and validated without migration. Their IDs, evidence,
+metadata, and audit references remain intact. `open` and `revised` drafts still appear in
+`review-queue`; `activated` and `deprecated` drafts remain historical records. Review and resolve
+existing drafts within the invoking task's authority. The helper no longer offers `template draft`
+or `record-draft`.
 
 Close an open maintenance ledger through `close-ledger`. The helper preserves
 the record, marks it closed, updates `last_reviewed`, and adds a UTC closure
@@ -473,48 +474,45 @@ rely on retention.
 
 `audits/learning-process` stores completed, sanitized system diagnoses. Generate
 `template audit`, create every unresolved consequence first as an existing
-candidate deferral, draft, or ledger action with the required follow-up fields,
+candidate deferral or ledger action with the required follow-up fields,
 list those IDs in `unresolved_action_ids`, and use `record-audit --file PATH`
 only after the user has authorized the external-state mutation. The helper
-requires each listed action to exist and be open when the audit is recorded.
+requires each listed action to exist and be open when the audit is recorded. Existing open legacy
+drafts may still be referenced; historical audit references remain validated after actions close.
 Completed audits stay cold; only their unresolved action records belong in
 `review-queue`.
 
 Use `audit_kind: learning-process` for feedback-loop diagnoses and
 `audit_kind: skill-repository` for completed report-only artifact audits. The
-helper maintains `audits/learning-process/artifact-cadence.yml` as a monotonic
-machine-owned count of processed candidate archives. It retains the candidate
-identities counted after identity tracking begins so interrupted processing can
-resume without double-counting. On first use, it migrates from the retained
-archive and any prior audit baseline; later deletion of cold archive history
-does not rewind cadence. No per-task or model telemetry is needed:
+helper derives an approximate reminder from retained candidate archives and the latest completed
+`skill-repository` audit:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
 ```
 
-The default audit becomes due after ten newly archived candidate reports; use
-`--archive-threshold N` to calibrate a review without changing correctness.
-Only successfully recording a completed `skill-repository` audit resets the
-baseline. Atomic publication of that audit is the commit point. If its following
-cadence-cache update is interrupted, readers reconcile the baseline from completed
-audits with monotonic totals. Legacy retained-file counts are used only for
-initial migration from the latest audit; they cannot override a persisted cache.
-After a lost response, inspect `audits` and `show --id LA-ID`, then use
-`record-audit --id LA-ID` to recover that committed artifact audit's cache update.
-Recovery preserves its identity and original cutoff, even after other writers
-advance cadence, and repeated recovery makes no changes when the cache is current.
-It requires an existing artifact audit with a monotonic total; it never creates
-a missing audit. `--file` always records a fresh completed audit, and cannot be
-combined with recovery's `--id`. Failure before publication leaves the audit due.
-Due state
-authorizes only the report described by
-`prompts/skill-repository-retrospective.md`; it never authorizes source edits or
-automatic corpus rewrites.
+The default reminder becomes due at ten retained candidates whose first triage `reviewed_at` is
+later than that audit's `completed_at`. For reconsidered candidates, the earliest `triage_history`
+entry supplies the original review time. With no retained repository audit, count all retained
+candidate archives. Learning-process audits and verification proposals do not reset or advance
+this count. Use `--archive-threshold N` for a different reminder threshold.
 
-`artifact-audit-status` prints five tab-separated fields in this order: status
-(`due` or `not-due`), archives since the baseline, configured threshold, latest
-artifact-audit ID (or `none`), and latest audit path (or `-`).
+This is an advisory estimate. Pruning archives can reduce it; backdated reviews or activity at the
+audit timestamp can delay the reminder. It does not measure source-change volume. Status queries
+write nothing. The old `artifact-cadence.yml` file and counter metadata in historical audits are
+preserved but no longer used for scheduling. No migration or counter repair is required.
+
+`record-audit --file PATH` atomically publishes a fresh completed audit. Its publication supplies
+the next reminder cutoff; there is no separate cache update. After an interrupted or lost response,
+inspect `audits` and `show --id LA-ID` before deciding whether a fresh record is needed. An already
+published audit needs no recovery write; the former `record-audit --id` option is retired. A failed
+publication supplies no new cutoff. The shared writer lock, atomic publication, evidence checks,
+and open-action validation remain in force.
+
+Due state authorizes only the report described by `prompts/skill-repository-retrospective.md`; it
+never authorizes source edits or automatic corpus rewrites. `artifact-audit-status` retains its
+five tab-separated fields: status (`due` or `not-due`), approximate candidate count since the
+cutoff, configured threshold, latest repository-audit ID (or `none`), and latest audit path (or `-`).
 
 ## Validation Boundary
 

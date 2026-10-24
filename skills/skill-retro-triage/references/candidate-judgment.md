@@ -82,11 +82,10 @@ decides whether the condition is met.
 
 For fired drafts or ledgers, also read
 [Drafts, Ledgers, And Cleanup](../../skill-retro/references/state-protocol.md#drafts-ledgers-and-cleanup).
-A draft is a coherent new-skill kernel with activation criteria; a deferral
-awaits evidence for a specific decision. Both need the same follow-up fields as open ledgers.
-Within authorized scope, execute fired non-skill actions and
-activate, revise, or deprecate fired drafts instead of refreshing them
-indefinitely. For public implementation, follow the parent route to
+A deferral awaits evidence for a specific decision; an agreed future action belongs in a ledger.
+Keep provisional skill text and readiness criteria in that ledger's body. New draft creation is
+retired. Within authorized scope, execute due actions and resolve existing legacy drafts instead
+of refreshing them indefinitely. For public implementation, follow the parent route to
 `report-to-patch.md`.
 
 For a change to the learning loop itself, use

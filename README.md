@@ -259,8 +259,9 @@ Material loop changes with uncertain benefit can use
 in existing ledgers. Process review judges their benefit and operating cost;
 the papercut-in-triage pilot is reviewed there alongside undrained clusters.
 
-The external helper marks this artifact audit due after ten candidate reports
-have been processed since the last successfully recorded artifact audit:
+The external helper marks this artifact audit due at approximately ten retained candidates first
+reviewed after the last completed repository audit. Reconsiderations do not count again; archive
+cleanup or backdated review times can reduce the estimate:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
@@ -273,7 +274,7 @@ root:
 > report findings before making changes.
 
 After the user approves the external-state update, `learning-process-review`
-records a successfully completed audit and resets the cadence.
+records a successfully completed audit, supplying the next reminder cutoff.
 
 ## State And Maintenance
 

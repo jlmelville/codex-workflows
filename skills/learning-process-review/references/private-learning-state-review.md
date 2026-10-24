@@ -88,7 +88,7 @@ invoking task's authority; cadence never authorizes source edits.
 
 For a candidate deferral, name the decision current evidence cannot justify.
 Later behavioral uncertainty belongs in an unverified accepted outcome. Every
-deferral, draft, or ledger needs an owner, a concrete review condition and check, a next action,
+new deferral or ledger needs an owner, a concrete review condition and check, a next action,
 and a close condition. Reviewers use `review-queue` to find work and assess its conditions.
 
 Review due [loop experiments](loop-experiments.md) alongside other ledger
@@ -169,8 +169,9 @@ when it no longer improves judgment.
 
 After the mutation gate, record the sanitized diagnosis as `template audit`
 with `audit_kind: learning-process`. First create each unresolved consequence as
-a deferral, draft, or ledger and list its ID in `unresolved_action_ids`. Keep the
-diagnosis as reference material; unresolved actions with follow-up fields enter `review-queue`.
+a deferral or ledger and list its ID in `unresolved_action_ids`. Existing open legacy drafts may
+still be referenced. Keep the diagnosis as reference material; unresolved actions with follow-up
+fields enter `review-queue`.
 
 Finish with:
 
