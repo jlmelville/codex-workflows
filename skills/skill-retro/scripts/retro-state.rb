@@ -334,8 +334,30 @@ module RetroState
     triage = data["triage"]
     if archived
       validate_verification_triage(triage, data["verification_proposal_id"], label)
-      if data.key?("review") && triage != data["review"]
-        raise Error, "#{label}: archived decision differs from the reviewed submission"
+      if data.key?("review")
+        if triage["verdict"] == "reject"
+          unless triage.keys.sort == data["review"].keys.sort && triage["close_observation_ids"] == []
+            raise Error, "#{label}: rejected reviewed submission cannot close observations"
+          end
+        elsif without_keys(triage, "acknowledged_closures") != data["review"]
+          raise Error, "#{label}: archived decision differs from the reviewed submission"
+        end
+        if triage.key?("acknowledged_closures")
+          acknowledgments = triage["acknowledged_closures"]
+          unless acknowledgments.is_a?(Hash) && acknowledgments.any? &&
+              (acknowledgments.keys - data["review"]["close_observation_ids"]).empty?
+            raise Error, "#{label}: acknowledgments must select planned observation closures"
+          end
+          acknowledgments.each_value do |ack|
+            raise Error, "#{label}: acknowledgment must be a mapping" unless ack.is_a?(Hash)
+            require_fields(ack, %w[rationale reviewed_at record_digest], label)
+            unless ack.keys.sort == %w[rationale record_digest reviewed_at] &&
+                ack["reviewed_at"].match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/) &&
+                ack["record_digest"].match?(/\A[a-f0-9]{64}\z/)
+              raise Error, "#{label}: invalid closure acknowledgment"
+            end
+          end
+        end
       end
     elsif triage
       raise Error, "#{label}: inbox verification proposal must not contain triage data"
@@ -1581,7 +1603,15 @@ module RetroState
       end
     end
 
-    def record_verification(input_path = nil, proposal_id: nil)
+    def record_verification(input_path = nil, proposal_id: nil, reject: false, acknowledge_closures: [], rationale: nil)
+      resolving = reject || acknowledge_closures.any?
+      if resolving
+        raise Error, "resolution requires --id without --file" if input_path || !proposal_id
+        raise Error, "choose rejection or closure acknowledgment" if reject && acknowledge_closures.any?
+        RetroState.require_fields({"rationale" => rationale}, ["rationale"], "verification resolution")
+      elsif rationale
+        raise Error, "rationale requires an explicit verification resolution"
+      end
       input = RetroState.read_document(input_path) if input_path
       if input
         RetroState.validate_verification_proposal(*input, label: input_path, routed: false)
@@ -1592,13 +1622,20 @@ module RetroState
       with_state_lock do
         inbox = verification_path("inbox", proposal_id)
         archive = verification_path("archive", proposal_id)
-        source = File.file?(inbox) ? inbox : archive
+        source = File.file?(archive) ? archive : inbox
         if File.file?(source)
           validate_state_path!(source)
-          validate_state_path!(archive) if File.file?(archive)
           proposal, body = RetroState.read_document(source)
           RetroState.validate_verification_proposal(proposal, body, label: source, routed: true, archived: source == archive)
           raise Error, "reviewed verification identity does not match #{proposal_id}" unless proposal["verification_proposal_id"] == proposal_id
+          if source == archive && File.file?(inbox)
+            validate_state_path!(inbox)
+            pending, pending_body = RetroState.read_document(inbox)
+            RetroState.validate_verification_proposal(pending, pending_body, label: inbox, routed: true)
+            unless pending == RetroState.without_keys(proposal, "triage") && pending_body == body
+              raise Error, "verification archive differs from stored intake: #{proposal_id}"
+            end
+          end
           if input && RetroState.render_document(*input) != RetroState.render_document(
             RetroState.without_keys(proposal, "verification_proposal_id", "created_at", "intake_digest", "triage"), body
           )
@@ -1609,8 +1646,32 @@ module RetroState
           proposal, body = input
         end
         raise Error, "record-verification requires a reviewed submission" unless proposal.key?("review")
-        closures = validate_verification_sources!(proposal)
         target = read_verification_target(proposal)
+        applied = target.fetch(1).fetch("applied_verification_proposal_ids", []).include?(proposal_id)
+        decision = RetroState.stringify_keys(proposal.fetch("triage", proposal.fetch("review")))
+        if File.file?(archive) && (decision["verdict"] == "apply") != applied
+          raise Error, "archived reviewed verification conflicts with accepted metadata: #{proposal_id}"
+        end
+        if reject
+          raise Error, "applied verification cannot be rejected" if applied
+          if decision["verdict"] == "reject"
+            raise Error, "rejection differs from stored resolution" unless decision["rationale"] == rationale
+          else
+            decision.merge!("verdict" => "reject", "rationale" => rationale,
+              "reviewed_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"), "close_observation_ids" => [])
+          end
+        end
+        if acknowledge_closures.any?
+          raise Error, "closure acknowledgment requires applied verification" unless applied
+          unless acknowledge_closures.uniq == acknowledge_closures &&
+              (acknowledge_closures - proposal.fetch("review").fetch("close_observation_ids")).empty?
+            raise Error, "acknowledgment must select distinct planned observation closures"
+          end
+          verify_applied_proposal!(target.fetch(1), proposal)
+        end
+        reviewed = proposal.merge("triage" => decision)
+        closures = validate_verification_sources!(reviewed, acknowledge_closures: acknowledge_closures, rationale: rationale)
+        RetroState.validate_verification_proposal(reviewed, body, label: source, routed: true, archived: true) if resolving
         unless File.file?(source)
           validate_verification_target_state!(target.fetch(1), proposal)
           validate_pending_support!(proposal)
@@ -1621,12 +1682,11 @@ module RetroState
           exclusive_write(inbox, RetroState.render_document(proposal, body))
           operation_checkpoint(:verification_submission_written)
         end
-        if File.file?(archive)
-          unless target.fetch(1).fetch("applied_verification_proposal_ids", []).include?(proposal_id)
-            raise Error, "archived reviewed verification is missing from accepted metadata: #{proposal_id}"
-          end
+        if File.file?(archive) && proposal["triage"] != decision
+          replace_write(archive, RetroState.render_document(reviewed, body))
+          operation_checkpoint(:verification_resolution_written)
         end
-        destination = complete_verification(proposal, body, proposal.fetch("review"), target)
+        destination = complete_verification(proposal, body, decision, target)
         closures.each_value do |candidate, candidate_body|
           archive_candidate(candidate, candidate_body)
           operation_checkpoint(:verification_observation_closed)
@@ -2250,7 +2310,8 @@ module RetroState
       verification_rows.each do |path, data, archived|
         begin
           validate_verification_sources!(data)
-          if archived && data.key?("review") && !File.file?(verification_path("inbox", data.fetch("verification_proposal_id"))) &&
+          if archived && data.key?("review") && data.dig("triage", "verdict") == "apply" &&
+              !File.file?(verification_path("inbox", data.fetch("verification_proposal_id"))) &&
               data.fetch("review").fetch("close_observation_ids").any? { |id| File.file?(candidate_path("inbox", id)) }
             raise Error, "completed reviewed verification has an unfinished observation closure"
           end
@@ -2462,9 +2523,9 @@ module RetroState
       destination
     end
 
-    def reviewed_observation_closures(proposal)
+    def reviewed_observation_closures(proposal, acknowledge_closures: [], rationale: nil)
       review = proposal["review"]
-      return {} unless review
+      return {} unless review && proposal.dig("triage", "verdict") != "reject"
 
       review.fetch("close_observation_ids").to_h do |id|
         inbox = candidate_path("inbox", id)
@@ -2480,6 +2541,24 @@ module RetroState
         triage = {"candidate_id" => id, "verdict" => "no-change", "reviewed_at" => review.fetch("reviewed_at"),
                   "rationale" => "Review completed with #{review.fetch("verification_proposal_id")}: #{review.fetch("rationale")}",
                   "related_candidate_ids" => []}
+        acknowledgment = proposal.dig("triage", "acknowledged_closures", id)
+        if acknowledgment || acknowledge_closures.include?(id)
+          unless source == archive && !File.file?(inbox) && candidate.dig("triage", "verdict") != "defer" && candidate["triage"] != triage
+            raise Error, "acknowledgment requires an observation already completed by another review: #{id}"
+          end
+          digest = Digest::SHA256.hexdigest(RetroState.render_document(candidate, body))
+          if acknowledgment
+            raise Error, "acknowledged observation changed: #{id}" unless acknowledgment["record_digest"] == digest
+            if acknowledge_closures.include?(id) && acknowledgment["rationale"] != rationale
+              raise Error, "acknowledgment differs from stored resolution: #{id}"
+            end
+          else
+            proposal.fetch("triage")["acknowledged_closures"] ||= {}
+            proposal["triage"]["acknowledged_closures"][id] = {"rationale" => rationale,
+              "reviewed_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"), "record_digest" => digest}
+          end
+          next [id, nil]
+        end
         if candidate.key?("triage") && candidate["triage"] != triage
           raise Error, "observation already has a different review: #{id}"
         end
@@ -2579,8 +2658,8 @@ module RetroState
       end
     end
 
-    def validate_verification_sources!(proposal)
-      closures = reviewed_observation_closures(proposal)
+    def validate_verification_sources!(proposal, acknowledge_closures: [], rationale: nil)
+      closures = reviewed_observation_closures(proposal, acknowledge_closures: acknowledge_closures, rationale: rationale)
       proposal.fetch("source_observation_ids", []).each do |id|
         # Selected closures validate exact matching archive/inbox recovery copies above.
         next if closures.key?(id)
@@ -2596,7 +2675,7 @@ module RetroState
         end
         raise Error, "source observation identity does not match #{id}" unless identity == id
       end
-      closures
+      closures.compact
     end
 
     def read_verification_target(proposal)
@@ -3075,6 +3154,10 @@ module RetroState
       File.write(source, render_document(*original_source))
       run.call(2, "record-verification", error: "choose --file")
       run.call(2, "record-verification", "--id", id, "--file", input, error: "choose --file")
+      [["--reject"], ["--rationale", "Reason only"],
+        ["--reject", "--acknowledge-closure", source_id, "--rationale", "Both"]].each do |options|
+        run.call(2, "record-verification", "--id", id, *options, error: "resolution requires")
+      end
       legacy_id = File.basename(self_test_legacy_verification(store, write.call(proposal, body)), ".md")
       before = store.snapshot
       self_test_error("support already pending: #{legacy_id}") { store.record_verification(write.call(proposal, body)) }
@@ -3101,7 +3184,7 @@ module RetroState
       File.unlink(false_path)
       target_bytes = File.binread(target)
       File.binwrite(target, original_target)
-      self_test_error("missing from accepted metadata") { store.record_verification(nil, proposal_id: id) }
+      self_test_error("conflicts with accepted metadata") { store.record_verification(nil, proposal_id: id) }
       File.binwrite(target, target_bytes)
       before = store.snapshot
       run.call(0, "record-verification", "--id", id)
@@ -4944,6 +5027,135 @@ module RetroState
           end
         end
       end
+      # A later contradiction can make persisted, unapplied support impossible to finish.
+      store, accepted = fixture.call("reviewed-reject-stale")
+      id, input, sources = reviewed.call(store, accepted)
+      child = start.call(:verification_submission_written) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      original = read_document(File.join(store.root, "verifications/inbox", "#{id}.md"))
+      _other_id, other_input, = reviewed.call(store, accepted, "contradicted")
+      store.record_verification(other_input)
+      self_test_error("state contradicted") { store.record_verification(nil, proposal_id: id) }
+      store.process(sources.first, decide.call(sources.first, "no-change"))
+      source_bytes = store.show(sources).fetch("records").to_h do |record|
+        path = File.join(store.root, record.fetch("path"))
+        [path, File.binread(path)]
+      end
+      target_bytes = File.binread(accepted)
+      reason = "A later contradiction made the unapplied support ineligible."
+      child = start.call(:verification_archive_written) do |fault|
+        Store.new(store.root, fault_injector: fault).record_verification(nil, proposal_id: id, reject: true, rationale: reason)
+      end
+      event.call(child, "started")
+      event.call(child, "paused")
+      kill.call(child)
+      store.record_verification(nil, proposal_id: id)
+      rejected, rejected_body = read_document(File.join(store.root, "verifications/archive", "#{id}.md"))
+      unless [without_keys(rejected, "triage"), rejected_body] == original && rejected.dig("triage", "verdict") == "reject" &&
+          rejected.dig("triage", "rationale") == reason && File.binread(accepted) == target_bytes &&
+          source_bytes.all? { |path, bytes| File.binread(path) == bytes } && store.review_queue.none? { |row| row[1] == id }
+        raise "recovery rejection lost original intent, changed evidence or left queued work"
+      end
+      run = self_test_cli(store.root)
+      before = store.snapshot
+      run.call(0, "record-verification", "--id", id, "--reject", "--rationale", reason)
+      store.record_verification(input)
+      run.call(1, "record-verification", "--id", id, "--reject", "--rationale", "Different reason", error: "differs from stored")
+      raise "rejection retries changed the stored outcome" unless store.snapshot == before
+      store.validate
+
+      # Another reviewer may close a selected observation after verification was applied.
+      %i[verification_accepted_written verification_archive_written].each do |point|
+        store, accepted = fixture.call("reviewed-ack-#{point}")
+        id, input, sources = reviewed.call(store, accepted)
+        child = start.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
+        event.call(child, "started")
+        event.call(child, "paused")
+        kill.call(child)
+        original = read_document(File.join(store.root, "verifications/inbox", "#{id}.md"))
+        target_bytes = File.binread(accepted)
+        deferred, body = parse_document(store.prepare_decision(sources.first, "defer", rationale: "Review remains open."))
+        deferred.merge!(self_test_deferral_fields)
+        deferred["reviewed_at"] = "2026-01-01T00:00:00Z"
+        store.process(sources.first, write.call("defer.md", deferred, body))
+        reason = "Another review completed this selected observation; retain its decision."
+        before = store.snapshot
+        self_test_error("already completed by another review") do
+          store.record_verification(nil, proposal_id: id, acknowledge_closures: [sources.first], rationale: reason)
+        end
+        raise "acknowledgment closed a deferred observation" unless store.snapshot == before
+        store.reconsider(sources.first, decide.call(sources.first, "no-change"))
+        closed_path = File.join(store.root, "retrospectives/archive", "#{sources.first}.md")
+        closed_bytes = File.binread(closed_path)
+        before = store.snapshot
+        self_test_error("different review") { store.record_verification(nil, proposal_id: id) }
+        self_test_error("cannot be rejected") { store.record_verification(nil, proposal_id: id, reject: true, rationale: reason) }
+        self_test_error("distinct planned") do
+          store.record_verification(nil, proposal_id: id, acknowledge_closures: [sources.last], rationale: reason)
+        end
+        self_test_error("already completed by another review") do
+          store.record_verification(nil, proposal_id: id, acknowledge_closures: sources.first(2), rationale: reason)
+        end
+        self_test_error("forbidden Codex auth file") do
+          store.record_verification(nil, proposal_id: id, acknowledge_closures: [sources.first], rationale: "/tmp/auth.json")
+        end
+        raise "refused resolutions wrote state" unless store.snapshot == before
+        checkpoint = (point == :verification_archive_written) ? :verification_resolution_written : :verification_archive_written
+        child = start.call(checkpoint) do |fault|
+          Store.new(store.root, fault_injector: fault).record_verification(nil, proposal_id: id,
+            acknowledge_closures: [sources.first], rationale: reason)
+        end
+        event.call(child, "started")
+        event.call(child, "paused")
+        kill.call(child)
+        archive = store.record_verification(nil, proposal_id: id)
+        resolved, resolved_body = read_document(archive)
+        unless [without_keys(resolved, "triage"), resolved_body] == original &&
+            without_keys(resolved.fetch("triage"), "acknowledged_closures") == original.first.fetch("review") &&
+            resolved.dig("triage", "acknowledged_closures", sources.first, "rationale") == reason &&
+            File.binread(accepted) == target_bytes && File.binread(closed_path) == closed_bytes &&
+            File.file?(File.join(store.root, "retrospectives/archive", "#{sources[1]}.md")) &&
+            File.file?(File.join(store.root, "retrospectives/inbox", "#{sources.last}.md")) &&
+            store.review_queue.none? { |row| row[1] == id }
+          raise "acknowledgment changed original evidence or lost remaining closures"
+        end
+        run = self_test_cli(store.root)
+        before = store.snapshot
+        run.call(0, "record-verification", "--id", id, "--acknowledge-closure", sources.first, "--rationale", reason)
+        store.record_verification(input)
+        run.call(1, "record-verification", "--id", id, "--acknowledge-closure", sources.first,
+          "--rationale", "Changed judgment", error: "differs from stored")
+        raise "acknowledgment retries wrote state" unless store.snapshot == before
+        changed, body = read_document(closed_path)
+        changed["triage"]["rationale"] = "Changed after acknowledgment."
+        File.write(closed_path, render_document(changed, body))
+        self_test_error("acknowledged observation changed") { store.record_verification(nil, proposal_id: id) }
+        self_test_error("acknowledged observation changed") { store.validate }
+        File.binwrite(closed_path, closed_bytes)
+        store.validate
+      end
+
+      # Rejection must observe an application that finishes while it waits for the lock.
+      store, accepted = fixture.call("reviewed-reject-race")
+      id, input, = reviewed.call(store, accepted)
+      first = start.call(:verification_submission_written) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
+      event.call(first, "started")
+      event.call(first, "paused")
+      second = start.call(nil) do |fault|
+        self_test_error("cannot be rejected") do
+          Store.new(store.root, fault_injector: fault).record_verification(nil, proposal_id: id, reject: true, rationale: "Concurrent rejection.")
+        end
+      end
+      event.call(second, "started")
+      blocked.call(second)
+      first.fetch(2).puts("continue")
+      finish.call(first)
+      finish.call(second)
+      raise "concurrent rejection lost applied verification" unless read_document(accepted).first.fetch("applied_verification_proposal_ids") == [id]
+      store.validate
+
       # Concurrent retries of one reviewed input apply its stable identity only once.
       store, accepted = fixture.call("reviewed-duplicate-writers")
       id, input, = reviewed.call(store, accepted)
@@ -6437,6 +6649,9 @@ def usage(command = nil)
   when "record-verification"
     <<~TEXT
       Usage: retro-state.rb record-verification --file PATH | --id VP-ID [--root DIR]
+             retro-state.rb record-verification --id VP-ID --reject --rationale TEXT
+             retro-state.rb record-verification --id VP-ID --acknowledge-closure RC-ID
+                            [--acknowledge-closure RC-ID ...] --rationale TEXT
 
       Apply a completed prepare-verification submission; --file - reads stdin.
       Requires processing authority, not capture authority. The review mapping binds one
@@ -6452,6 +6667,15 @@ def usage(command = nil)
       Keep the prepared ID; generating another submission is not a retry. Conflicting input
       or observation reviews fail. The queue retains interrupted submissions until closure
       completes. A completed retry is a no-op. No separate apply/reject file is required.
+
+      Resolve interrupted work explicitly, with processing authority and a rationale.
+      --reject archives unapplied intent without applying verification or closing sources.
+      It cannot reject applied verification. --acknowledge-closure is only for applied
+      verification and selected observations already completed by another review; open or
+      deferred observations fail. It binds that exact record and preserves the other decision,
+      then finishes remaining planned closures. Original intake, review and applied evidence
+      remain intact. Resolutions require --id, cannot use --file, and are mutually exclusive.
+      A normal retry resumes the stored resolution; changing its rationale is refused.
     TEXT
 
   when "prepare-decision"
@@ -6753,7 +6977,7 @@ def reject_inapplicable_options!(command, provided)
     "pending" => %w[--root],
     "process" => %w[--root --id --decision],
     "route-verification" => %w[--root --file],
-    "record-verification" => %w[--root --file --id],
+    "record-verification" => %w[--root --file --id --reject --acknowledge-closure --rationale],
     "pending-verifications" => %w[--root],
     "process-verification" => %w[--root --id --decision],
     "reconsider" => %w[--root --id --decision],
@@ -6808,6 +7032,8 @@ allowed_paths = []
 allowed_actions = []
 decision_path = nil
 archive = false
+reject_verification = false
+acknowledge_closures = []
 outcome = nil
 rationale = nil
 verdict = nil
@@ -6842,6 +7068,8 @@ parser = OptionParser.new do |opts|
   opts.on("--rationale TEXT") { |value| rationale = value }
   opts.on("--verdict VERDICT") { |value| verdict = value }
   opts.on("--reviewed") { reviewed = true }
+  opts.on("--reject") { reject_verification = true }
+  opts.on("--acknowledge-closure RC-ID") { |value| acknowledge_closures << value }
   opts.on("--verification STATE") do |value|
     raise OptionParser::InvalidArgument, "supply --verification at most once" if proposed_verification
 
@@ -6893,6 +7121,8 @@ begin
       "--verdict" => !verdict.nil?,
       "--verification" => !proposed_verification.nil?,
       "--reviewed" => reviewed,
+      "--reject" => reject_verification,
+      "--acknowledge-closure" => acknowledge_closures.any?,
       "--related-papercut-id" => !related_papercut_id.nil?,
       "--related-candidate-id" => !related_candidate_id.nil?,
       "--destination" => !destination_filter.nil?,
@@ -6946,6 +7176,11 @@ begin
   end
   if command == "record-verification" && ((!input_path.nil? == !record_id.nil?) || record_ids.length > 1)
     raise OptionParser::InvalidArgument, "choose --file PATH or one --id VP-ID"
+  end
+  if command == "record-verification" && (reject_verification || acknowledge_closures.any? || rationale)
+    unless record_id && !input_path && !rationale.nil? && reject_verification != acknowledge_closures.any?
+      raise OptionParser::InvalidArgument, "resolution requires --id and --rationale with either --reject or --acknowledge-closure"
+    end
   end
   if command == "record-audit" && !input_path
     raise OptionParser::MissingArgument, "--file PATH"
@@ -7042,7 +7277,8 @@ begin
 
       puts store.process(record_id, decision_path)
     when "record-verification"
-      puts store.record_verification(input_path, proposal_id: record_id)
+      puts store.record_verification(input_path, proposal_id: record_id, reject: reject_verification,
+        acknowledge_closures: acknowledge_closures, rationale: rationale)
     when "pending-verifications"
       store.pending_verifications.each { |row| puts row.join("\t") }
     when "process-verification"

@@ -39,6 +39,13 @@ resume with `record-verification --id VP-ID`; the queue retains unfinished work,
 Completed retries change nothing; conflicting input or closure judgments fail. Verification archives
 do not advance cadence; observation closures count as ordinary reviews.
 
+When an intervening review prevents completion, make an explicit recovery judgment with processing
+authority. Use `record-verification --id VP-ID --reject --rationale TEXT` only before application.
+After application, use `--acknowledge-closure RC-ID --rationale TEXT` for each selected observation
+already completed by another review. Preserve that review; acknowledgment resolves this submission's
+closure obligation, not other work or a contradiction. Open or deferred observations do not qualify.
+Ordinary retries use the stored resolution. See command help for retry and conflict rules.
+
 Resolve contradictions by correcting source and marking the old outcome `superseded`, removing
 guidance and marking it `reverted`, or recording a justified retention under the protocol. Retain
 guidance when the observed failure does not warrant changing it and no further action remains;

@@ -355,7 +355,7 @@ without altering original evidence. A closure resolves intake review, not an acc
 or an outstanding source change. Preserve observations needed for further decisions or actions.
 
 The `verification-proposal` format and `VP-*` identities remain. Immutable `review` records intent;
-archival adds matching `triage`. Under the shared writer lock, the helper validates current target,
+archival adds `triage`. Under the shared writer lock, the helper validates current target,
 evidence and selected closures, publishes intent, applies and archives verification, then closes
 selected observations. Removing verification inbox last keeps interrupted work in `review-queue`.
 Writes are individually atomic; the whole sequence is recoverable rather than one transaction.
@@ -366,6 +366,22 @@ original prepared identity rather than preparing another submission. Changed inp
 closure decisions are refused. A matching observation archive/inbox pair from an interrupted
 selected closure can resume; other ambiguous sources still fail. Legacy decision commands do not
 override a reviewed submission's stored intent. No state migration is required.
+
+If another review prevents completion, resolve it explicitly through `record-verification --id`:
+
+- Before application, `--reject --rationale TEXT` archives a rejecting decision while preserving
+  the original intent, intake digest and evidence. It applies nothing and closes no observations.
+- After application, `--acknowledge-closure RC-ID --rationale TEXT` acknowledges a selected
+  observation already completed by another review. Repeat the closure flag for multiple records.
+  Open or deferred observations cannot be acknowledged. The applied verification and the other
+  review remain unchanged; remaining planned closures still complete normally.
+
+Both require processing authority and cannot accompany `--file` or each other. Rejection cannot
+undo applied verification. Acknowledgments append rationale, timestamp and the closed record's
+digest to `triage.acknowledged_closures`, binding that exact review without altering original intent
+or apply fields. Later record changes are refused. Under the writer lock, the helper persists the
+resolution before finishing; ordinary retries resume it. Repeated explicit resolution is a no-op
+with the same rationale and fails with a different one. Neither resolution is automatic.
 
 Contradicted proposals must also state `what_is_false`; supported proposals
 must not. Further support when support is pending or the target is supported
