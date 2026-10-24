@@ -60,8 +60,9 @@ silent merely to reduce output volume.
 
 - Use safe parsers for untrusted YAML and disable aliases unless the format
   explicitly needs them.
-- Validate parsed types and required fields before use; do not assume a valid
-  document shape merely because parsing succeeded.
+- Validate parsed types and required fields at each supported input boundary.
+  Private helpers may trust unchanged validated state; recheck after relevant
+  mutation or fresh external input.
 - Decode text with an explicit encoding when portability matters.
 - Use `Dir.mktmpdir` or `Tempfile` for temporary state and clean it up.
 - Prefer atomic create-or-replace operations for durable state. Handle expected
