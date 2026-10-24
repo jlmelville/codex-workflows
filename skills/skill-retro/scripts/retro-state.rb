@@ -1969,7 +1969,8 @@ module RetroState
         rows << ["verification-proposal", proposal.fetch("verification_proposal_id"), trigger, path]
       end
 
-      published_candidate_ids = accepted_records.flat_map do |_path, data|
+      accepted = accepted_records
+      published_candidate_ids = accepted.flat_map do |_path, data|
         data.fetch("originating_candidate_ids")
       end
       candidates = archived_candidates
@@ -1989,11 +1990,17 @@ module RetroState
         end
       end
 
-      accepted_records.each do |path, data|
+      open_ledgers = Dir.glob(File.join(root, "ledgers", "*.md")).sort.filter_map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
+        [path, data] if data["status"] == "open"
+      end
+
+      accepted.each do |path, data|
         next unless data["verification"] == "contradicted"
         next if RetroState.contradiction_resolved?(data)
         residual_id = data.dig("contradiction", "residual_ledger_id")
-        next if residual_id && action_reference_open?(residual_id)
+        next if residual_id && open_ledgers.any? { |ledger_pathname, _ledger| ledger_pathname == ledger_path(residual_id) }
 
         trigger = "Review the contradiction: retain with rationale, correct or remove guidance, or assign a residual ledger."
         rows << ["contradiction", data.fetch("accepted_id"), trigger, path]
@@ -2007,15 +2014,11 @@ module RetroState
         rows << ["draft", data.fetch("draft_id"), data.fetch("review_trigger"), path]
       end
 
-      Dir.glob(File.join(root, "ledgers", "*.md")).sort.each do |path|
-        data, body = RetroState.read_document(path)
-        RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
-        next unless data["status"] == "open"
-
+      open_ledgers.each do |path, data|
         rows << ["ledger", data.fetch("ledger_id"), data.fetch("review_trigger"), path]
       end
 
-      cadence = artifact_audit_status
+      cadence = artifact_audit_status(candidate_rows: candidates)
       if cadence.fetch(:due)
         trigger = "#{cadence.fetch(:archives_since)} retained observations first reviewed since the last completed artifact audit"
         rows << ["artifact-audit", "repository", trigger, cadence.fetch(:last_audit_path, "-")]
@@ -2098,7 +2101,7 @@ module RetroState
       end
     end
 
-    def artifact_audit_status(archive_threshold: ARTIFACT_AUDIT_ARCHIVE_THRESHOLD)
+    def artifact_audit_status(archive_threshold: ARTIFACT_AUDIT_ARCHIVE_THRESHOLD, candidate_rows: nil)
       ensure_initialized
       unless archive_threshold.is_a?(Integer) && archive_threshold.positive?
         raise Error, "artifact audit archive threshold must be a positive integer"
@@ -2109,7 +2112,7 @@ module RetroState
         .max_by { |_path, data| data.fetch("completed_at") }
       cutoff = latest&.fetch("completed_at")
       # This reminder uses retained first-review dates, not durable processing totals.
-      archives_since = archived_candidates.count do |_path, data|
+      archives_since = (candidate_rows || archived_candidates).count do |_path, data|
         first_triage = data.fetch("triage_history", []).first || data.fetch("triage")
         !cutoff || first_triage.fetch("reviewed_at") > cutoff
       end
