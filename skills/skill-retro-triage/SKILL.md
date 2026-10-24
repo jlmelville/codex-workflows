@@ -35,10 +35,19 @@ deferrals, verification proposals, publication gaps, contradictions, follow-ups 
 It creates no obligation to drain unrelated work. There is no separate papercut co-review pass.
 If state is unavailable, report that limit and review supplied evidence without inventing a root.
 
-Read selected records with `show --id ID` and the guidance needed to judge them. Load only the route
-needed for the decision:
+Read selected records with `show --id ID`. For straightforward outcomes, use `no-change` when no
+action is warranted, `local-fix` for a remedy in the originating repository, or `external-owner`
+when another owner must act. Record the verdict and rationale through
+[Triage And Archive](../skill-retro/references/state-protocol.md#triage-and-archive).
+With processing authority, a prepared decision with a supplied rationale is ready to submit without
+additional fields. An agreed future action still needs authorized tracking; classification alone
+neither completes the action nor grants edit or messaging authority.
 
-- Observations, existing candidates, deferrals and shared changes:
+Load further judgment only when relevant. Observed failure or harm still requires the bounded
+accepted-record lookup in verification judgment before concluding no change. Other evidence about
+accepted outcomes also follows that route:
+
+- Proposed shared changes, unsupported proposals, deferrals and corrections:
   [candidate-judgment.md](references/candidate-judgment.md).
 - Evidence about an accepted outcome, proposals or contradictions:
   [verification-judgment.md](references/verification-judgment.md).

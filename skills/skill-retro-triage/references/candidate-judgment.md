@@ -1,14 +1,13 @@
 # Observation And Shared Change Judgment
 
-Use for observations, existing candidates, reconsideration and follow-ups under the parent skill's
-authority. Read the original evidence before deciding whether any remedy is justified.
+Use for proposed shared changes, unsupported proposals, deferrals and corrections under the parent
+skill's authority. Straightforward closures use its short review path. Read the original evidence
+before deciding whether any remedy is justified.
 
 ## Choose The Outcome
 
-Use `no-change` when no action is warranted, `reject` for an unsupported proposal, `local-fix` for
-a remedy confined to its originating repository, or `external-owner` when another owner must act.
-These judgments do not authorize edits or messages. Record an agreed future action in an authorized
-ledger when tracking is needed; do not archive it as though the work were complete.
+Use `reject` for an unsupported proposal. Judgments do not authorize edits or messages. Record an
+agreed future action in an authorized ledger when tracking is needed; archiving is not completion.
 
 For a shared change, choose `accept`, `split` or `merge` only after establishing the concrete gap,
 existing coverage, narrow evidence scope, expected benefit versus cost, and smallest natural home.

@@ -1461,12 +1461,7 @@ module RetroState
     end
 
     def pending
-      ensure_initialized
-      Dir.glob(File.join(root, "retrospectives", "inbox", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
-        RetroState.validate_candidate(data, body, label: path, routed: true)
-        [data.fetch("candidate_id"), data.fetch("title"), path]
-      end
+      pending_candidates.map { |path, data| [data.fetch("candidate_id"), data.fetch("title"), path] }
     end
 
     def route_verification(input_path, document: nil)
@@ -1927,10 +1922,10 @@ module RetroState
       ensure_initialized
       rows = []
 
-      pending.each do |candidate_id, title, path|
-        data, = RetroState.read_document(path)
+      pending_candidates.each do |path, data|
         kind = data.fetch("record_type")
-        rows << [kind, candidate_id, "Review #{kind}: #{title.gsub(/\s+/, " ").strip}", path]
+        title = data.fetch("title").gsub(/\s+/, " ").strip
+        rows << [kind, data.fetch("candidate_id"), "Review #{kind}: #{title}", path]
       end
       papercuts.each do |papercut_id, _kind, _impact, observation, path|
         rows << ["papercut", papercut_id, "Review papercut: #{observation}", path]
@@ -2574,6 +2569,15 @@ module RetroState
       raise Error, "existing papercut archive differs: #{destination}"
     end
 
+    def pending_candidates
+      ensure_initialized
+      Dir.glob(File.join(root, "retrospectives", "inbox", "*.md")).sort.map do |path|
+        data, body = RetroState.read_document(path)
+        RetroState.validate_candidate(data, body, label: path, routed: true)
+        [path, data]
+      end
+    end
+
     def archived_candidates
       Dir.glob(File.join(root, "retrospectives", "archive", "*.md")).sort.map do |path|
         data, body = RetroState.read_document(path)
@@ -2881,6 +2885,44 @@ module RetroState
     destination = store.send(:papercut_path, "inbox", id)
     store.send(:exclusive_write, destination, RetroState.render_document(record, body))
     destination
+  end
+
+  def queue_archive_race_self_test
+    Dir.mktmpdir("retro-queue-archive-self-test.") do |tmp|
+      store = Store.new(File.join(tmp, "state"))
+      input = File.join(tmp, "input.md")
+      decision = File.join(tmp, "decision.md")
+      %w[observation candidate].each do |kind|
+        File.write(input, public_send("#{kind}_template"))
+        path = store.route(input)
+        data, = read_document(path)
+        id = data.fetch("candidate_id")
+        title = data.fetch("title")
+        raise "pending output changed" unless store.pending == [[id, title, path]]
+        File.write(decision, store.prepare_decision(id, "no-change", rationale: "Concurrent review fixture."))
+        reader = method(:read_document)
+        archived = false
+        # Interleave another writer after the inbox read, before the queue consumes its metadata.
+        define_singleton_method(:read_document) do |source|
+          document = reader.call(source)
+          if source == path && !archived
+            archived = true
+            store.process(id, decision)
+          end
+          document
+        end
+        begin
+          rows = store.review_queue
+        ensure
+          define_singleton_method(:read_document, reader)
+        end
+        unless archived && rows == [[kind, id, "Review #{kind}: #{title}", path]]
+          raise "review queue lost its validated intake row during archival"
+        end
+        raise "next queue read retained archived intake" unless store.review_queue.empty?
+        store.validate
+      end
+    end
   end
 
   def observation_self_test
@@ -4890,6 +4932,7 @@ module RetroState
   end
 
   def self_test
+    queue_archive_race_self_test
     observation_self_test
     approximate_cadence_self_test
     legacy_draft_self_test

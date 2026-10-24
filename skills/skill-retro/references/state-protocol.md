@@ -184,9 +184,11 @@ For a correction, put `supersedes_accepted_id` and `now_false` in the review dec
 Legacy intake links and prior review references stay intact.
 
 Use `prepare-decision --id ID --verdict VERDICT` with an already-reviewed `--rationale TEXT`, or
-fill the blank rationale afterward. Deferrals remain incomplete until their substantive fields
-are filled, even with a supplied rationale. Decision templates omit optional notes; add them only
-when useful. Review the completed decision, then use `process` to attach it and move the record
+fill the blank rationale afterward. For `no-change`, `local-fix` or `external-owner`, a supplied
+rationale completes the decision: submit it through `process --decision -` or a file, without
+additional form editing or shared-change analysis. For other verdicts, complete the applicable
+fields and review the decision before submission. Deferrals still require their substantive fields;
+add optional notes only when useful. `process` attaches the decision and moves the record
 from inbox to archive. The intake digest and original intake fields remain in the archived
 document. For a deferred verdict, first state the `unresolved_decision` that current evidence cannot
 justify. Post-implementation behavioral uncertainty is not a deferral: implement the justified
