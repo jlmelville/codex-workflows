@@ -2820,6 +2820,14 @@ module RetroState
     end
   end
 
+  def self_test_error(message)
+    yield
+  rescue Error => e
+    raise unless e.message.include?(message)
+  else
+    raise "expected RetroState::Error containing #{message.inspect}"
+  end
+
   def self_test_cli(root)
     require "open3"
     lambda do |status, *arguments, stdin: "", error: nil|
@@ -3196,12 +3204,14 @@ module RetroState
         data["originating_candidate_ids"] = [candidate_id]
         data["destination"] = destination
         data["expected_behavior"] = "Exact [#{destination}] outcome."
+        data["source_report_summary"] = "Summary [#{destination}]."
         data["verification_opportunity"] = "Check #{destination} in a later task."
         data["implementation_commits"] = [Digest::SHA256.hexdigest(destination)[0, 40]]
         data["disposition"] = disposition
         data["verification"] = verification
         data["verification_basis"] = (verification == "unverified") ? "none" : "later-session"
         data["unverified_claims"] = unverified_claims unless unverified_claims.nil?
+        body = body.sub("# Accepted candidate", "# Accepted fixture [#{destination}]")
         body += "\nBody-only fixture [#{destination}].\n"
         File.basename(store.record_accepted(write.call(data, body)), ".md")
       end
@@ -3251,6 +3261,9 @@ module RetroState
       {
         origin.upcase => unverified_id,
         commit.upcase => supported_id,
+        "EXACT [SHARED DOMAIN FIRST] OUTCOME." => unverified_id,
+        "SUMMARY [SHARED DOMAIN FIRST]." => unverified_id,
+        "ACCEPTED FIXTURE [SHARED DOMAIN FIRST]" => unverified_id,
         retired_id => retired_id,
         "BODY-ONLY fixture [Shared domain retired]" => retired_id
       }.each do |text, id|
@@ -3274,6 +3287,46 @@ module RetroState
       run.call(1, "accepted-records", "--destination", " ", error: "filters must not be blank")
       run.call(1, "accepted-records", *lookup_texts, "--destination", "", error: "filters must not be blank")
       run.call(1, "accepted-records", *lookup_destinations, "--text", " ", error: "filters must not be blank")
+      run.call(1, "accepted-records", "--active-supported", error: "requires --destination TEXT or --text TEXT")
+      run.call(2, "snapshot", "--active-supported", error: "--active-supported is not valid")
+      unless run.call(0, "accepted-records", "--help").include?("--active-supported")
+        raise "accepted-record lookup help omitted its supplemental filter"
+      end
+      {"Shared domain first" => [unverified_id, "implemented", "unverified"],
+       "Contested claim" => [contradicted_id, "implemented", "contradicted"]}.each do |destination, expected|
+        unless lookup.call("--destination", destination, "--active-supported").empty?
+          raise "supplemental lookup included unverified or contradicted evidence"
+        end
+        unless run.call(0, "accepted-records", "--destination", destination).split("\t").first(3) == expected
+          raise "broad lookup hid an outcome or changed its verification state"
+        end
+      end
+      lookup_path = File.join(root, "retrospectives/accepted/#{supported_id}.md")
+      lookup_bytes = File.binread(lookup_path)
+      lookup_data, lookup_body = parse_document(lookup_bytes)
+      begin
+        {"accepted" => [supported_id], "implemented" => [supported_id],
+         "no-change" => [], "superseded" => [], "reverted" => []}.each do |disposition, expected_ids|
+          File.write(lookup_path, render_document(lookup_data.merge("disposition" => disposition), lookup_body))
+          before_query = store.snapshot
+          if lookup.call("--active-supported", "--destination", "OTHER DOMAIN", "--text", "BODY-ONLY") != expected_ids
+            raise "supplemental lookup selected the wrong outcomes for #{disposition}"
+          end
+          unless run.call(0, "accepted-records", "--text", supported_id).split("\t").first(3) ==
+              [supported_id, disposition, "supported"]
+            raise "broad lookup hid an outcome for #{disposition}"
+          end
+          raise "accepted-record lookup changed state" unless store.snapshot == before_query
+        end
+        File.binwrite(lookup_path, lookup_bytes + "\nauth.json\n")
+        run.call(1, "accepted-records", "--text", supported_id, error: "forbidden Codex auth file")
+      ensure
+        File.binwrite(lookup_path, lookup_bytes)
+      end
+      unless lookup.call("--active-supported", "--destination", "unrelated").empty? &&
+          lookup.call("--active-supported", "--destination", "Other domain", "--text", "unrelated").empty?
+        raise "supplemental lookup ignored a destination or text filter"
+      end
       query = ["verification-context", "--destination", "SHARED", "--destination", "other", "--destination", "shared"]
       first = JSON.parse(run.call(0, *query, "--limit", "1"))
       ids = first.fetch("records").map { |record| record.fetch("id") }
@@ -3430,26 +3483,30 @@ module RetroState
           end
         end
       end
-      read_counts = Hash.new(0)
-      original_reader = method(:read_document)
-      define_singleton_method(:read_document) do |path|
-        read_counts[path] += 1
-        original_reader.call(path)
+      lookup_context = lambda do
+        [store.verification_context(record_ids: [supported_id]),
+          store.verification_context(destinations: ["Other domain second"], compact: true)]
+      end
+      fresh_detail, fresh_discovery = JSON.parse(JSON.generate(lookup_context.call))
+      context = fresh_detail.fetch("records").first
+      fresh_accepted = context.fetch("accepted")
+      fresh_proposal = context.fetch("verification_proposals").find { |record| record.fetch("id") == applied_id }
+      fresh_accepted.fetch("frontmatter")["expected_behavior"] = "Updated fixture expectation."
+      fresh_proposal.fetch("frontmatter").fetch("triage")["notes"] = "Updated fixture review notes."
+      fresh_discovery.fetch("records").first["expected_behavior"] = "Updated fixture expectation."
+      originals = [fresh_accepted, fresh_proposal].to_h do |record|
+        path = File.join(root, record.fetch("path"))
+        [path, File.binread(path)]
       end
       begin
-        2.times do |index|
-          store.verification_context(record_ids: [queue_id, supported_id, applied_id, rejected_id])
-          unless !read_counts.empty? && read_counts.values.all? { |count| count == index + 1 }
-            raise "verification context reread documents within a call or retained documents between calls"
-          end
+        [fresh_accepted, fresh_proposal].each do |record|
+          File.write(File.join(root, record.fetch("path")), render_document(record.fetch("frontmatter"), record.fetch("body")))
         end
-        read_counts.clear
-        store.verification_context(destinations: ["Other domain second"], compact: true)
-        unless !read_counts.empty? && read_counts.values.all? { |count| count == 1 }
-          raise "compact discovery reread accepted or applied proposal documents"
+        unless lookup_context.call == [fresh_detail, fresh_discovery]
+          raise "verification context retained stale accepted metadata or proposal evidence between calls"
         end
       ensure
-        define_singleton_method(:read_document, original_reader)
+        originals.each { |path, bytes| File.binwrite(path, bytes) }
       end
       %w[review-queue verification-context].each do |command|
         raise "missing context help" unless run.call(0, command, "--help").include?("Usage: retro-state.rb #{command}")
@@ -3893,11 +3950,8 @@ module RetroState
           body.empty? && DEFERRAL_FIELDS.none? { |field| decision.key?(field) }
         raise "incorrect terminal decision draft"
       end
-      begin
+      self_test_error("rationale must be a non-empty string") do
         validate_decision(decision, body, label: "unreviewed draft", expected_id: id)
-        raise "blank rationale was accepted"
-      rescue Error => e
-        raise unless e.message.include?("rationale must be a non-empty string")
       end
       deferred, = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "defer"))
       unless self_test_deferral_fields.keys.all? { |field| deferred.fetch(field).empty? } &&
@@ -4305,11 +4359,8 @@ module RetroState
       run.call(0, "validate")
       raise "archive recovery lost its decision" unless read_document(archive).first.dig("triage", "verdict") == "reject"
       original = File.binread(archive)
-      begin
+      self_test_error("refusing to overwrite") do
         store.send(:exclusive_write, archive, "replacement")
-        raise "atomic creation overwrote an existing archive"
-      rescue Error => e
-        raise unless e.message.include?("refusing to overwrite")
       end
       raise "refused create changed the archive" unless File.binread(archive) == original
 
@@ -4576,11 +4627,8 @@ module RetroState
       assert_count.call(0, second)
       store.validate
       raise "retired cadence file was changed" unless File.binread(cache) == original_cache
-      begin
+      self_test_error("threshold must be a positive integer") do
         store.artifact_audit_status(archive_threshold: 0)
-        raise "nonpositive reminder threshold was accepted"
-      rescue Error => e
-        raise unless e.message.include?("threshold must be a positive integer")
       end
     end
   end
@@ -4616,11 +4664,8 @@ module RetroState
         if queued
           audit_path ||= store.record_audit(audit_input)
         else
-          begin
+          self_test_error("unresolved action is missing or not open") do
             store.record_audit(audit_input)
-            raise "closed legacy draft accepted as an open audit action"
-          rescue Error => e
-            raise unless e.message.include?("unresolved action is missing or not open")
           end
         end
       end
@@ -4635,11 +4680,8 @@ module RetroState
       end
       raise "retired draft commands changed state" unless store.snapshot == before
       File.unlink(path)
-      begin
+      self_test_error("unresolved action does not exist") do
         store.validate
-        raise "missing historical draft reference was accepted"
-      rescue Error => e
-        raise unless e.message.include?("unresolved action does not exist")
       end
     end
   end
@@ -4681,16 +4723,13 @@ module RetroState
       missing_lineage, missing_lineage_body = parse_document(candidate_template)
       missing_lineage.delete("evidence_lineage")
       missing_lineage.delete("evidence_lineage_note")
-      begin
+      self_test_error("evidence_lineage must be a non-empty string") do
         validate_candidate(
           missing_lineage,
           missing_lineage_body,
           label: "new candidate without evidence lineage",
           routed: false
         )
-        raise "new candidate without evidence lineage was accepted"
-      rescue Error => e
-        raise unless e.message.include?("evidence_lineage must be a non-empty string")
       end
       PAPERCUT_CLASSIFICATIONS.each do |field, values|
         line = papercut_template.lines.find { |candidate| candidate.start_with?("#{field}:") }
@@ -4710,11 +4749,8 @@ module RetroState
       validate_decision(base_decision, decision_body, label: "simple deferral")
       DEFERRAL_FIELDS.each do |field|
         incomplete = base_decision.reject { |key, _| key == field }
-        begin
+        self_test_error("#{field} must be a non-empty string") do
           validate_decision(incomplete, decision_body, label: "incomplete deferral")
-          raise "deferral without #{field} was accepted"
-        rescue Error => e
-          raise unless e.message.include?("#{field} must be a non-empty string")
         end
       end
 
@@ -4736,11 +4772,8 @@ module RetroState
       invalid, body = parse_document(ledger_template)
       invalid.delete("review_trigger")
       File.write(ledger, render_document(invalid, body))
-      begin
+      self_test_error("review_trigger must be a non-empty string") do
         store.record_ledger(ledger)
-        raise "open ledger without a review condition was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger must be a non-empty string")
       end
 
       path = store.route(input)
@@ -4858,15 +4891,12 @@ module RetroState
         render_document(conflicting_archive_data, conflicting_archive_body)
       )
       conflicting_archive_bytes = File.binread(conflicting_archive)
-      begin
+      self_test_error("existing papercut archive differs") do
         papercut_recovery_store.close_papercut(
           conflicting_id,
           outcome: "no-action",
           rationale: "Original closure rationale."
         )
-        raise "conflicting papercut archive was accepted"
-      rescue Error => e
-        raise unless e.message.include?("existing papercut archive differs")
       end
       unless File.binread(conflicting_archive) == conflicting_archive_bytes && File.file?(conflicting_source)
         raise "conflicting papercut archive was overwritten or its inbox record was removed"
@@ -4879,16 +4909,13 @@ module RetroState
         label: papercut
       )
       missing_reference_id = File.basename(missing_reference_path, ".md")
-      begin
+      self_test_error("related papercut does not exist") do
         store.close_papercut(
           missing_reference_id,
           outcome: "duplicate",
           rationale: "Invalid missing-reference test.",
           related_papercut_id: "PC-20260715T120000Z-000000"
         )
-        raise "missing related papercut was accepted"
-      rescue Error => e
-        raise unless e.message.include?("related papercut does not exist")
       end
       store.close_papercut(
         missing_reference_id,
@@ -4899,11 +4926,8 @@ module RetroState
       malformed_papercut = File.join(tmp, "malformed-papercut.md")
       File.write(malformed_papercut, papercut_template.sub("impact: retry", "impact: surprise"))
       malformed_data, malformed_body = read_document(malformed_papercut)
-      begin
+      self_test_error("impact must be one of") do
         store.record_papercut(malformed_data, malformed_body, label: malformed_papercut)
-        raise "malformed papercut was accepted"
-      rescue Error => e
-        raise unless e.message.include?("impact must be one of")
       end
 
       # Historical labels stay readable without reclassifying or rewriting intake.
@@ -4924,18 +4948,12 @@ module RetroState
       raise "historical papercut was rewritten" unless File.read(historical_path) == original_intake
       PAPERCUT_CLASSIFICATIONS.each_key do |field|
         tampered = historical.merge(field => "other-label")
-        begin
+        self_test_error("papercut intake fields changed after recording") do
           validate_papercut(tampered, historical_body, label: "altered classification", routed: true)
-          raise "classification change escaped the intake digest"
-        rescue Error => e
-          raise unless e.message.include?("papercut intake fields changed after recording")
         end
         malformed = historical.merge(field => [])
-        begin
+        self_test_error("#{field} must be a non-empty string") do
           validate_papercut(malformed, historical_body, label: "malformed classification", routed: true)
-          raise "non-text classification was accepted"
-        rescue Error => e
-          raise unless e.message.include?("#{field} must be a non-empty string")
         end
       end
       historical_archive = historical_store.close_papercut(
@@ -4978,11 +4996,8 @@ module RetroState
         repaired["intake_digest"] = Digest::SHA256.hexdigest(
           render_document(without_keys(repaired, "intake_digest", "closure"), repaired_body)
         )
-        begin
+        self_test_error("replaced_intake_digest does not match repair history") do
           validate_papercut(repaired, repaired_body, label: "tampered repair history", routed: true, archived: true)
-          raise "tampered repair history was accepted"
-        rescue Error => e
-          raise unless e.message.include?("replaced_intake_digest does not match repair history")
         end
       end
 
@@ -5023,65 +5038,57 @@ module RetroState
       end
       raise "unpublished accepted candidate missing from review queue" unless publication_row
 
-      %i[candidate_archive_written].each do |fault_point|
-        recovery_root = File.join(tmp, "candidate-recovery-#{fault_point}")
-        recovery_store = Store.new(recovery_root)
-        recovery_store.init
-        recovery_input = File.join(tmp, "candidate-recovery-#{fault_point}.md")
-        recovery_decision = File.join(tmp, "candidate-recovery-#{fault_point}-decision.md")
-        File.write(
-          recovery_input,
-          candidate_template.gsub("Short candidate title", "Recoverable candidate archival")
-        )
-        recovery_source = recovery_store.route(recovery_input)
-        recovery_id = File.basename(recovery_source, ".md")
-        recovery_decision_text = without_deferral_fields.call(
-          decision_template
-          .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", recovery_id)
-          .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
-          .sub("verdict: defer", "verdict: reject")
-        )
-        File.write(recovery_decision, recovery_decision_text)
-        interrupted_store = Store.new(
-          recovery_root,
-          fault_injector: lambda do |point|
-            raise Error, "simulated #{fault_point}" if point == fault_point
-          end
-        )
-        begin
-          interrupted_store.process(recovery_id, recovery_decision)
-          raise "candidate interruption was not injected at #{fault_point}"
-        rescue Error => e
-          raise unless e.message == "simulated #{fault_point}"
+      recovery_root = File.join(tmp, "candidate-recovery")
+      recovery_store = Store.new(recovery_root)
+      recovery_store.init
+      recovery_input = File.join(tmp, "candidate-recovery.md")
+      recovery_decision = File.join(tmp, "candidate-recovery-decision.md")
+      File.write(
+        recovery_input,
+        candidate_template.gsub("Short candidate title", "Recoverable candidate archival")
+      )
+      recovery_source = recovery_store.route(recovery_input)
+      recovery_id = File.basename(recovery_source, ".md")
+      recovery_decision_text = without_deferral_fields.call(
+        decision_template
+        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", recovery_id)
+        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
+        .sub("verdict: defer", "verdict: reject")
+      )
+      File.write(recovery_decision, recovery_decision_text)
+      interrupted_store = Store.new(
+        recovery_root,
+        fault_injector: lambda do |point|
+          raise Error, "simulated candidate archival interruption" if point == :candidate_archive_written
         end
-
-        recovery_archive = File.join(
-          recovery_root,
-          "retrospectives",
-          "archive",
-          "#{recovery_id}.md"
-        )
-        unless File.file?(recovery_source) && File.file?(recovery_archive)
-          raise "candidate interruption did not retain both recovery inputs at #{fault_point}"
-        end
-        archived_before_retry = File.binread(recovery_archive)
-        unless recovery_store.artifact_audit_status.fetch(:archives_since) == 1
-          raise "published archive was not counted before retry"
-        end
-
-        recovery_store.process(recovery_id, recovery_decision)
-        raise "recovered candidate remained in inbox at #{fault_point}" if File.exist?(recovery_source)
-        unless File.binread(recovery_archive) == archived_before_retry
-          raise "candidate retry changed the existing archive at #{fault_point}"
-        end
-        unless recovery_store.artifact_audit_status.fetch(:archives_since) == 1
-          raise "archive retry changed the approximate count"
-        end
-        unless Dir.glob(File.join(recovery_root, "retrospectives", "archive", "*.md")).length == 1
-          raise "candidate retry did not retain exactly one archive at #{fault_point}"
-        end
-        recovery_store.validate
+      )
+      begin
+        interrupted_store.process(recovery_id, recovery_decision)
+        raise "candidate interruption was not injected"
+      rescue Error => e
+        raise unless e.message == "simulated candidate archival interruption"
       end
+
+      recovery_archive = File.join(
+        recovery_root,
+        "retrospectives",
+        "archive",
+        "#{recovery_id}.md"
+      )
+      unless File.file?(recovery_source) && File.file?(recovery_archive)
+        raise "candidate interruption did not retain both recovery inputs"
+      end
+      archived_before_retry = File.binread(recovery_archive)
+
+      recovery_store.process(recovery_id, recovery_decision)
+      raise "recovered candidate remained in inbox" if File.exist?(recovery_source)
+      unless File.binread(recovery_archive) == archived_before_retry
+        raise "candidate retry changed the existing archive"
+      end
+      unless Dir.glob(File.join(recovery_root, "retrospectives", "archive", "*.md")).length == 1
+        raise "candidate retry did not retain exactly one archive"
+      end
+      recovery_store.validate
 
       conflict_root = File.join(tmp, "candidate-recovery-conflict")
       conflict_store = Store.new(conflict_root)
@@ -5123,11 +5130,8 @@ module RetroState
       conflict_archive_data.fetch("triage")["rationale"] = "Conflicting decision rationale."
       File.write(conflict_archive, render_document(conflict_archive_data, conflict_archive_body))
       conflict_archive_bytes = File.binread(conflict_archive)
-      begin
+      self_test_error("existing candidate archive differs") do
         conflict_store.process(conflict_id, conflict_decision)
-        raise "conflicting candidate archive was accepted"
-      rescue Error => e
-        raise unless e.message.include?("existing candidate archive differs")
       end
       unless File.binread(conflict_archive) == conflict_archive_bytes && File.file?(conflict_source)
         raise "conflicting candidate archive was overwritten or its inbox record was removed"
@@ -5147,49 +5151,6 @@ module RetroState
       accepted_id = File.basename(accepted_path, ".md")
       accepted_data, = read_document(accepted_path)
       original_accepted_at = accepted_data.fetch("accepted_at")
-      destination_rows = store.accepted_records_query(destinations: ["PUBLIC SOURCE"])
-      unless destination_rows.map(&:first) == [accepted_id] &&
-          destination_rows.first.fetch(2) == "unverified"
-        raise "unverified accepted record was not discoverable by destination"
-      end
-      unless store.accepted_records_query(destinations: ["public source"], active_supported: true).empty?
-        raise "supplemental lookup included an unverified outcome"
-      end
-      text_rows = store.accepted_records_query(texts: ["SANITIZED SUMMARY"])
-      unless text_rows.map(&:first) == [accepted_id]
-        raise "accepted record was not discoverable by metadata text"
-      end
-      lookup_snapshot = store.snapshot
-      ["PLAN-ITEM ADMISSION", "counterfactual", "CURATED EVIDENCE"].each do |query|
-        unless store.accepted_records_query(texts: [query]) == destination_rows
-          raise "accepted record heading or body was not discoverable: #{query}"
-        end
-      end
-      unless store.accepted_records_query(destinations: ["unrelated destination"], texts: ["counterfactual"]).empty?
-        raise "body lookup ignored the destination filter"
-      end
-      unless store.accepted_records_query(texts: ["unrelated heading phrase"]).empty?
-        raise "body lookup returned an unrelated accepted record"
-      end
-      raise "accepted-record lookup changed state" unless store.snapshot == lookup_snapshot
-
-      accepted_bytes = File.binread(accepted_path)
-      File.write(accepted_path, accepted_bytes + "\nauth.json\n")
-      begin
-        store.accepted_records_query(texts: ["counterfactual"])
-        raise "body lookup bypassed accepted-record privacy validation"
-      rescue Error => e
-        raise unless e.message.include?("forbidden Codex auth file")
-      ensure
-        File.binwrite(accepted_path, accepted_bytes)
-      end
-      begin
-        store.accepted_records_query
-        raise "unfiltered accepted-record lookup was allowed"
-      rescue Error => e
-        raise unless e.message.include?("requires --destination TEXT or --text TEXT")
-      end
-
       supported_proposal_text = verification_proposal_template
         .sub("SCR-YYYYMMDD-abcdef", accepted_id)
         .sub("verification_basis: later-session", "verification_basis: deterministic-test")
@@ -5232,19 +5193,6 @@ module RetroState
           File.unlink(routed_path)
           raise "#{command}: CLI routing changed existing state" unless cli_snapshot.call == before_cli
 
-          failing_store = Store.new(cli_root)
-          failing_store.define_singleton_method(:exclusive_write) { |_destination, _content| raise Errno::ENOSPC }
-          fallback_data, fallback_body = parse_document(text)
-          begin
-            method = (command == "route") ? :route : :route_verification
-            failing_store.public_send(method, path, document: [fallback_data, fallback_body])
-            raise "#{command}: write failure was not injected"
-          rescue Errno::ENOSPC
-            unless [fallback_data, fallback_body] == [expected_data, expected_body] && cli_snapshot.call == before_cli
-              raise "#{command}: late write failure changed fallback input or existing state"
-            end
-          end
-
           [nil, blocked_root].each do |fallback_root|
             out, err, result = run_cli.call(command, path, text, fallback_root)
             unless result.exitstatus == 2 && err.include?("Paste-ready") &&
@@ -5262,6 +5210,19 @@ module RetroState
             raise "#{command}: invalid CLI input was not rejected without mutation"
           end
           File.write(cli_input, text)
+        end
+        before_failure = cli_snapshot.call
+        failing_store = Store.new(cli_root)
+        failing_store.define_singleton_method(:exclusive_write) { |_destination, _content| raise Errno::ENOSPC }
+        fallback_data, fallback_body = parse_document(text)
+        begin
+          method = (command == "route") ? :route : :route_verification
+          failing_store.public_send(method, cli_input, document: [fallback_data, fallback_body])
+          raise "#{command}: write failure was not injected"
+        rescue Errno::ENOSPC
+          unless [fallback_data, fallback_body] == [expected_data, expected_body] && cli_snapshot.call == before_failure
+            raise "#{command}: late write failure changed fallback input or existing state"
+          end
         end
       end
       Store.new(cli_root).validate
@@ -5287,11 +5248,8 @@ module RetroState
       [supported_proposal_text,
         supported_proposal_text.sub("claim: executable-correctness", "claim: intended-outcome")].each do |repeat|
         File.write(verification_proposal, repeat)
-        begin
+        self_test_error("support already pending: #{supported_proposal_id}") do
           store.route_verification(verification_proposal)
-          raise "unexplained repeat support was routed"
-        rescue Error => e
-          raise unless e.message.include?("support already pending: #{supported_proposal_id}")
         end
       end
       unless store.pending_verifications.map(&:first) == [supported_proposal_id] &&
@@ -5337,16 +5295,13 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("supplemental_reason must be a non-empty string")
       end
-      begin
+      self_test_error("supplemental_reason is only for supported proposals") do
         invalid_supplement = supplemental_data.merge(
           "proposed_verification" => "contradicted", "what_is_false" => "A boundary fails."
         )
         validate_verification_proposal(
           invalid_supplement, supplemental_body, label: "contradiction with supplement", routed: false
         )
-        raise "contradiction accepted a supplemental support rationale"
-      rescue Error => e
-        raise unless e.message.include?("supplemental_reason is only for supported proposals")
       end
       cadence_before_verification = store.artifact_audit_status
       supported_decision_text = verification_decision_template
@@ -5362,7 +5317,7 @@ module RetroState
       unless store.artifact_audit_status == cadence_before_verification
         raise "verification proposal changed candidate artifact-audit cadence"
       end
-      supported_accepted, supported_accepted_body = read_document(accepted_path)
+      supported_accepted, = read_document(accepted_path)
       raise "verification proposal was not applied" unless supported_accepted["verification"] == "supported"
       unless supported_accepted["verification_basis"] == "deterministic-test"
         raise "verification proposal basis was not applied"
@@ -5370,69 +5325,13 @@ module RetroState
       unless supported_accepted.fetch("applied_verification_proposal_ids") == [supported_proposal_id]
         raise "accepted record did not retain applied verification proposal identity"
       end
-      supported_rows = store.accepted_records_query(texts: ["sanitized summary"])
-      unless supported_rows.map(&:first) == [accepted_id] &&
-          supported_rows.first.fetch(2) == "supported"
-        raise "supported accepted record was not discoverable by metadata text"
-      end
-      supported_destination_rows = store.accepted_records_query(destinations: ["public source"])
-      unless supported_destination_rows.map(&:first) == [accepted_id] &&
-          supported_destination_rows.first.fetch(2) == "supported"
-        raise "supported accepted record was not discoverable by destination"
-      end
-      unless store.accepted_records_query(destinations: ["unrelated destination"]).empty?
-        raise "unrelated destination supplied a false accepted-record match"
-      end
       if store.verification_opportunities(destination: "public source").map(&:first).include?(accepted_id)
         raise "supported accepted record remained in the unverified opportunity query"
       end
 
-      lookup_cli = self_test_cli(root)
-      lookup_cli.call(1, "accepted-records", "--active-supported", error: "requires --destination TEXT or --text TEXT")
-      lookup_cli.call(2, "snapshot", "--active-supported", error: "--active-supported is not valid")
-      unless lookup_cli.call(0, "accepted-records", "--help").include?("--active-supported")
-        raise "accepted-record lookup help omitted its supplemental filter"
-      end
-      lookup_snapshot = store.snapshot
-      lookup_bytes = File.binread(accepted_path)
-      begin
-        {
-          "accepted" => [accepted_id], "implemented" => [accepted_id],
-          "no-change" => [], "superseded" => [], "reverted" => []
-        }.each do |disposition, expected_ids|
-          File.write(
-            accepted_path,
-            render_document(supported_accepted.merge("disposition" => disposition), supported_accepted_body)
-          )
-          before_query = store.snapshot
-          filtered = lookup_cli.call(
-            0, "accepted-records", "--active-supported",
-            "--destination", "PUBLIC SOURCE", "--text", "COUNTERFACTUAL"
-          )
-          unless filtered.lines.map { |line| line.split("\t").first } == expected_ids
-            raise "supplemental CLI lookup selected the wrong outcomes for #{disposition}"
-          end
-          broad = lookup_cli.call(0, "accepted-records", "--text", "COUNTERFACTUAL")
-          unless broad.split("\t").first(3) == [accepted_id, disposition, "supported"]
-            raise "default CLI lookup hid an outcome for #{disposition}"
-          end
-          raise "accepted-record lookup changed state" unless store.snapshot == before_query
-        end
-      ensure
-        File.binwrite(accepted_path, lookup_bytes)
-      end
-      unless lookup_cli.call(0, "accepted-records", "--active-supported", "--destination", "unrelated").empty? &&
-          lookup_cli.call(0, "accepted-records", "--active-supported", "--destination", "public source", "--text", "unrelated").empty?
-        raise "supplemental CLI lookup ignored a destination or text filter"
-      end
-      raise "supplemental lookup changed state" unless store.snapshot == lookup_snapshot
-
       File.write(verification_proposal, supported_proposal_text)
-      begin
+      self_test_error("already supported; add supplemental_reason") do
         store.route_verification(verification_proposal)
-        raise "supported target accepted unexplained repeat support"
-      rescue Error => e
-        raise unless e.message.include?("already supported; add supplemental_reason")
       end
       supplemental_decision = supported_decision_text.sub(supported_proposal_id, supplemental_id)
       File.write(verification_decision, supplemental_decision)
@@ -5514,17 +5413,11 @@ module RetroState
 
       changed_lineage = updated_accepted_text.sub(id, "RC-20260715T120000Z-000000")
       File.write(accepted, changed_lineage)
-      begin
+      self_test_error("originating_candidate_ids must not change") do
         store.update_accepted(accepted_id, accepted)
-        raise "changed accepted lineage was accepted"
-      rescue Error => e
-        raise unless e.message.include?("originating_candidate_ids must not change")
       end
-      begin
+      self_test_error("accepted record not found") do
         store.update_accepted("SCR-20260715-000000", accepted)
-        raise "missing accepted record was updated"
-      rescue Error => e
-        raise unless e.message.include?("accepted record not found")
       end
       store.validate
 
@@ -5570,17 +5463,10 @@ module RetroState
           prior_evidence_preserved
         raise "supported contradiction did not preserve accepted identity and evidence"
       end
-      unless store.accepted_records_query(destinations: ["public source"], active_supported: true).empty? &&
-          store.accepted_records_query(destinations: ["public source"]).first.fetch(2) == "contradicted"
-        raise "accepted-record lookup lost the supplemental or broad contradiction boundary"
-      end
       contradiction_bytes = File.binread(accepted_path)
       File.write(verification_proposal, supplemental_text)
-      begin
+      self_test_error("state contradicted cannot receive proposed supported") do
         store.route_verification(verification_proposal)
-        raise "supplemental support revived a contradicted target"
-      rescue Error => e
-        raise unless e.message.include?("state contradicted cannot receive proposed supported")
       end
       unless File.binread(accepted_path) == contradiction_bytes
         raise "refused supplemental support changed contradictory evidence"
@@ -5589,7 +5475,7 @@ module RetroState
       unless store.review_queue.map(&:first).include?("contradiction")
         raise "contradicted accepted record missing from review queue"
       end
-      begin
+      self_test_error("contradiction decisive_evidence must be preserved") do
         altered_contradiction = contradicted_data.fetch("contradiction").merge(
           "decisive_evidence" => ["Replacement evidence that erases the original witness."]
         )
@@ -5601,9 +5487,6 @@ module RetroState
           )
         )
         store.update_accepted(accepted_id, accepted)
-        raise "contradiction evidence was allowed to disappear"
-      rescue Error => e
-        raise unless e.message.include?("contradiction decisive_evidence must be preserved")
       end
       ledger_contradicted_data = contradicted_data.merge(
         "contradiction" => contradicted_data.fetch("contradiction").merge(
@@ -5616,11 +5499,8 @@ module RetroState
       if store.review_queue.map(&:first).include?("contradiction")
         raise "contradiction remained in the review queue after assignment to a residual ledger"
       end
-      begin
+      self_test_error("unresolved contradicted record") do
         store.close_ledger(ledger_id, rationale: "Invalid early closure.")
-        raise "residual contradiction ledger was closed early"
-      rescue Error => e
-        raise unless e.message.include?("unresolved contradicted record")
       end
 
       File.write(ledger, ledger_template)
@@ -5654,11 +5534,8 @@ module RetroState
           rejected_accepted_body
         )
       )
-      begin
+      self_test_error("unresolved contradiction requires an open residual ledger") do
         store.update_accepted(accepted_id, accepted)
-        raise "reopened contradiction accepted a closed residual ledger"
-      rescue Error => e
-        raise unless e.message.include?("unresolved contradiction requires an open residual ledger")
       end
       raise "invalid residual reopening changed state" unless store.snapshot == closed_residual_snapshot
       superseded_text = render_document(
@@ -5737,11 +5614,8 @@ module RetroState
 
       missing_supersession = correction_text.sub(accepted_id, "SCR-20260715-000000")
       File.write(input, missing_supersession)
-      begin
+      self_test_error("candidate supersedes missing accepted record") do
         store.route(input)
-        raise "candidate superseding a missing accepted outcome was routed"
-      rescue Error => e
-        raise unless e.message.include?("candidate supersedes missing accepted record")
       end
 
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
@@ -5818,9 +5692,6 @@ module RetroState
         raise "merge cycle created a publication obligation"
       end
 
-      unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
-        raise "artifact audit did not become due after candidate archives"
-      end
       audit_text = learning_audit_template
         .sub("audit_kind: learning-process", "audit_kind: skill-repository")
         .sub(
@@ -5831,9 +5702,6 @@ module RetroState
       audit_path = store.record_audit(audit)
       raise "system audit missing" unless File.file?(audit_path)
       raise "system audit missing from history" unless store.audits.map(&:first).include?(File.basename(audit_path, ".md"))
-      if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
-        raise "completed artifact audit did not reset cadence"
-      end
 
       refreshed_data = deferred_data.merge(
         "reviewed_at" => "2026-07-15T12:06:00Z",
@@ -5860,11 +5728,8 @@ module RetroState
 
       stale_decision = refreshed_decision.sub("2026-07-15T12:06:00Z", "2026-07-15T12:05:30Z")
       File.write(decision, stale_decision)
-      begin
+      self_test_error("replacement decision must be newer") do
         store.reconsider(deferred_id, decision)
-        raise "stale replacement decision was accepted"
-      rescue Error => e
-        raise unless e.message.include?("replacement decision must be newer")
       end
 
       accepted_decision = without_deferral_fields.call(
@@ -5900,11 +5765,8 @@ module RetroState
       if store.review_queue.any? { |type, id, _trigger, _path| type == "deferred" && id == deferred_id }
         raise "resolved deferral remained in the review queue"
       end
-      begin
+      self_test_error("candidate is not currently deferred") do
         store.reconsider(deferred_id, decision)
-        raise "non-deferred candidate was reconsidered"
-      rescue Error => e
-        raise unless e.message.include?("candidate is not currently deferred")
       end
 
       closed_ledger = store.close_ledger(ledger_id, rationale: "The maintenance action was completed.")
@@ -5920,51 +5782,18 @@ module RetroState
       if store.review_queue.map(&:first).count("ledger").positive?
         raise "closed ledger remained in review queue"
       end
-      begin
+      self_test_error("ledger is already closed") do
         store.close_ledger(ledger_id, rationale: "Invalid repeated closure.")
-        raise "already closed ledger was accepted"
-      rescue Error => e
-        raise unless e.message.include?("ledger is already closed")
       end
-      begin
+      self_test_error("ledger not found") do
         store.close_ledger("LE-20260715-000000", rationale: "Invalid missing-ledger test.")
-        raise "missing ledger was accepted"
-      rescue Error => e
-        raise unless e.message.include?("ledger not found")
       end
       store.validate
 
-      post_audit_path = store.route(input)
-      post_audit_id = File.basename(post_audit_path, ".md")
-      post_audit_decision = without_deferral_fields.call(
-        decision_template
-        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", post_audit_id)
-        .sub("YYYY-MM-DDTHH:MM:SSZ", (Time.now.utc + 60).strftime("%Y-%m-%dT%H:%M:%SZ"))
-        .sub("verdict: defer", "verdict: reject")
-      )
-      File.write(decision, post_audit_decision)
-      store.process(post_audit_id, decision)
-      unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
-        raise "artifact audit cadence did not advance after productive triage"
-      end
-      archived_post_audit_path = File.join(
-        store.root,
-        "retrospectives",
-        "archive",
-        "#{post_audit_id}.md"
-      )
-      File.unlink(archived_post_audit_path)
-      if store.artifact_audit_status(archive_threshold: 1).fetch(:due)
-        raise "deleted archive still contributed to the approximate count"
-      end
-
       forbidden = File.join(tmp, "forbidden.md")
       File.write(forbidden, candidate_template.sub("Optional concise context.", "Raw /home/person/private path."))
-      begin
+      self_test_error("unredacted user-home path") do
         store.route(forbidden)
-        raise "forbidden path was accepted"
-      rescue Error => e
-        raise unless e.message.include?("unredacted user-home path")
       end
 
       forbidden_papercut = File.join(tmp, "forbidden-papercut.md")
@@ -5973,11 +5802,8 @@ module RetroState
         papercut_template.sub("Optional bounded evidence or context.", "Raw /home/person/private path.")
       )
       forbidden_data, forbidden_body = read_document(forbidden_papercut)
-      begin
+      self_test_error("unredacted user-home path") do
         store.record_papercut(forbidden_data, forbidden_body, label: forbidden_papercut)
-        raise "forbidden papercut was accepted"
-      rescue Error => e
-        raise unless e.message.include?("unredacted user-home path")
       end
 
       legacy_root = File.join(tmp, "legacy-state")
@@ -5987,39 +5813,27 @@ module RetroState
       legacy_store.validate
       raise "legacy state reported verification proposals" unless legacy_store.pending_verifications.empty?
       FileUtils.mkdir_p(File.join(legacy_root, "verifications", "inbox"))
-      begin
+      self_test_error("verification state directory is missing") do
         legacy_store.validate
-        raise "partially initialized verification state was accepted"
-      rescue Error => e
-        raise unless e.message.include?("verification state directory is missing")
       end
 
       git_root = File.join(tmp, "repo")
       FileUtils.mkdir_p(File.join(git_root, ".git"))
       File.write(File.join(git_root, ".git", "HEAD"), "ref: refs/heads/main\n")
-      begin
+      self_test_error("must not be inside a Git worktree") do
         Store.new(File.join(git_root, "state")).init
-        raise "Git-contained state root was accepted"
-      rescue Error => e
-        raise unless e.message.include?("must not be inside a Git worktree")
       end
 
       linked_target = File.join(git_root, "linked-state")
       linked_root = File.join(tmp, "state-link")
       FileUtils.mkdir_p(linked_target)
       File.symlink(linked_target, linked_root)
-      begin
+      self_test_error("must not be inside a Git worktree") do
         Store.new(linked_root).init
-        raise "symlinked Git-contained state root was accepted"
-      rescue Error => e
-        raise unless e.message.include?("must not be inside a Git worktree")
       end
 
-      begin
+      self_test_error("state root is too broad") do
         Store.new(File::SEPARATOR)
-        raise "filesystem root was accepted as a state root"
-      rescue Error => e
-        raise unless e.message.include?("state root is too broad")
       end
     end
     true
