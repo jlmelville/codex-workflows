@@ -1717,14 +1717,16 @@ module RetroState
       if data.key?("supersedes_accepted_ids") && supplied_supersedes_ids != supersedes_ids
         raise Error, "accepted record supersedes_accepted_ids do not match originating candidates"
       end
-      data["supersedes_accepted_ids"] = supersedes_ids unless supersedes_ids.empty?
-      RetroState.validate_accepted(
-        data,
-        body,
-        label: input_path,
-        assigned: false,
-        strict_contradiction: true
-      )
+      unless supersedes_ids.empty?
+        data["supersedes_accepted_ids"] = supersedes_ids
+        RetroState.validate_accepted(
+          data,
+          body,
+          label: input_path,
+          assigned: false,
+          strict_contradiction: true
+        )
+      end
       validate_accepted_external_references!(data)
 
       now = Time.now.utc
