@@ -202,26 +202,40 @@ module VerificationContextArtifactTests
     File.write(manifest, JSON.generate(saved))
     arguments = [BASE::CHECKER, "--file", source, "--reviews", manifest]
     root_args = ["--artifact-root", "fixture=#{directory}"]
-    original = Dir.children(directory).sort.to_h { |name| [name, File.binread(File.join(directory, name))] }
+    inputs = -> { Dir.children(directory).sort.to_h { |name| [name, File.binread(File.join(directory, name))] } }
+    original = inputs.call
     stdout, stderr, status = Open3.capture3(*arguments, *root_args, "--require-reviewed")
     raise "artifact CLI current gate failed" unless status.success? && stderr.empty? && JSON.parse(stdout) == manager(document, saved, roots).annotate
     stdout, stderr, status = Open3.capture3(*arguments, *root_args, "--prepare-reviews")
     raise "artifact CLI preparation renewed current reviews" unless status.success? && stderr.empty? && JSON.parse(stdout) == saved
-    raise "artifact CLI wrote input or other files" unless original == Dir.children(directory).sort.to_h { |name| [name, File.binread(File.join(directory, name))] }
+    raise "artifact CLI wrote input or other files" unless original == inputs.call
 
     smoke = File.join(directory, "smoke")
     File.binwrite(smoke, "new contents")
+    mutated = inputs.call
     stdout, stderr, status = Open3.capture3(*arguments, *root_args, "--require-reviewed")
     expected = "check-verification-context.rb: stale overlap: #/records/0/evidence/capture/text <-> #/records/0/evidence/checks; external artifacts: smoke at #{smoke}: fingerprint_changed\n"
     raise "artifact CLI lost exact pair/file diagnostic" unless status.exitstatus == 1 && stderr == expected
-    assert_summary(JSON.parse(stdout), current: 2, stale: 1)
+    changed_report = JSON.parse(stdout)
+    assert_summary(changed_report, current: 2, stale: 1)
     stdout, stderr, status = Open3.capture3(*arguments, *root_args, "--prepare-reviews")
     prepared = JSON.parse(stdout)
-    raise "artifact CLI did not blank changed judgment" unless status.success? && stderr.empty? && prepared["reviews"][0]["verdict"].nil? && prepared["reviews"].drop(1) == saved["reviews"].drop(1)
+    unless status.success? && stderr.empty? && prepared["reviews"][0].values_at("verdict", "rationale", "reviewed_at") == [nil, "", nil] && prepared["reviews"].drop(1) == saved["reviews"].drop(1)
+      raise "artifact CLI did not blank changed judgment or preserve current reviews"
+    end
+    expected_binding = BASE.copy(saved["reviews"][0]["binding"])
+    expected_binding["artifacts"]["smoke"] = changed_report.fetch("external_artifacts").fetch("smoke").fetch("fingerprint")
+    raise "artifact CLI preparation did not refresh only the changed fingerprint" unless prepared["reviews"][0]["binding"] == expected_binding
+    raise "stale gate or preparation wrote input or other files" unless inputs.call == mutated
     File.write(manifest, JSON.generate(prepared))
+    prepared_inputs = inputs.call
     stdout, stderr, status = Open3.capture3(*arguments, *root_args, "--require-reviewed")
-    raise "prepared artifact review bypassed gate" unless status.exitstatus == 1 && stderr.include?("unreviewed overlap (blank judgment)")
-    assert_summary(JSON.parse(stdout), current: 2, unreviewed: 1)
+    expected = "check-verification-context.rb: unreviewed overlap (blank judgment): #/records/0/evidence/capture/text <-> #/records/0/evidence/checks\n"
+    raise "prepared artifact review lost its exact gate diagnostic" unless status.exitstatus == 1 && stderr == expected
+    pending = JSON.parse(stdout)
+    assert_summary(pending, current: 2, unreviewed: 1)
+    raise "prepared fingerprint remained out of date" unless review(pending).fetch("reasons") == ["blank_judgment"] && pending.fetch("external_artifacts").values.all? { |item| item.fetch("changes").empty? }
+    raise "unreviewed gate wrote input or other files" unless inputs.call == prepared_inputs
     File.unlink(smoke)
     stdout, stderr, status = Open3.capture3(*arguments, *root_args, "--prepare-reviews")
     raise "unavailable artifact preparation did not fail cleanly" unless status.exitstatus == 2 && stdout.empty? && stderr.include?("cannot prepare external artifact smoke: missing")
