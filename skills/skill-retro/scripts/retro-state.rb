@@ -2679,13 +2679,8 @@ module RetroState
     end
 
     def read_verification_target(proposal)
-      target_id = proposal.fetch("target_accepted_id")
-      target_path = accepted_path(target_id)
-      raise Error, "verification target accepted record not found: #{target_id}" unless File.file?(target_path)
-
-      accepted, body = RetroState.read_document(target_path)
-      RetroState.validate_accepted(accepted, body, label: target_path, assigned: true)
-      [target_path, accepted, body]
+      record = validate_accepted_record(show([proposal.fetch("target_accepted_id")]).fetch("records").first)
+      [File.join(root, record.fetch("path")), record.fetch("frontmatter"), record.fetch("body")]
     end
 
     def validate_verification_target_state!(accepted, proposal)
@@ -3159,6 +3154,31 @@ module RetroState
         run.call(2, "record-verification", "--id", id, *options, error: "resolution requires")
       end
       legacy_id = File.basename(self_test_legacy_verification(store, write.call(proposal, body)), ".md")
+      apply, = parse_document(store.prepare_decision(legacy_id, "apply", rationale: "Reviewed legacy evidence."))
+      %w[identity symlink].each do |defect|
+        if defect == "identity"
+          data, target_body = read_document(target)
+          data["accepted_id"] = "SCR-20000101-000000"
+          File.write(target, render_document(data, target_body))
+          message = "record identity does not match"
+        else
+          File.rename(target, outside)
+          File.symlink(outside, target)
+          message = "outside the state root"
+        end
+        before = store.snapshot
+        supplemental = proposal.merge("supplemental_reason" => "A distinct reviewed boundary.")
+        run.call(1, "record-verification", "--file", "-", stdin: render_document(supplemental, body), error: message)
+        run.call(1, "process-verification", "--id", legacy_id, "--decision", write.call(apply), error: message)
+        raise "invalid verification target refusal wrote state" unless store.snapshot == before
+        if defect == "symlink"
+          raise "verification changed an external target" unless File.binread(outside) == original_target
+          File.unlink(target)
+          File.rename(outside, target)
+        else
+          File.binwrite(target, original_target)
+        end
+      end
       before = store.snapshot
       self_test_error("support already pending: #{legacy_id}") { store.record_verification(write.call(proposal, body)) }
       raise "pending support refusal wrote state" unless store.snapshot == before
