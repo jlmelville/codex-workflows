@@ -1182,6 +1182,7 @@ module RetroState
 
     def init
       refuse_git_worktree!
+      validate_state_layout!
       FileUtils.mkdir_p(root, mode: 0o700)
       File.chmod(0o700, root)
       (STATE_DIRS + VERIFICATION_DIRS).each do |relative|
@@ -1207,8 +1208,7 @@ module RetroState
         raise Error, "record ID is ambiguous: #{id}" unless paths.one?
 
         path = paths.first
-        validate_state_path!(path)
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         {"id" => id, "path" => path.delete_prefix(root + File::SEPARATOR),
          "frontmatter" => data, "body" => body}
       end
@@ -1526,7 +1526,7 @@ module RetroState
       ensure_initialized
       area = archive ? "archive" : "inbox"
       Dir.glob(File.join(root, "papercuts", area, "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_papercut(data, body, label: path, routed: true, archived: archive)
         observation = data.fetch("observation").gsub(/\s+/, " ").strip
         [data.fetch("papercut_id"), data.fetch("kind"), data.fetch("impact"), observation, path]
@@ -1538,7 +1538,7 @@ module RetroState
       source = papercut_path("inbox", papercut_id)
       raise Error, "papercut not found in inbox: #{papercut_id}" unless File.file?(source)
 
-      data, body = RetroState.read_document(source)
+      data, body = read_state_document(source)
       RetroState.validate_papercut(data, body, label: source, routed: true)
       closure = {
         "outcome" => outcome,
@@ -1568,7 +1568,7 @@ module RetroState
         source = candidate_path("inbox", candidate_id)
         raise Error, "candidate not found in inbox: #{candidate_id}" unless File.file?(source)
 
-        candidate, body = RetroState.read_document(source)
+        candidate, body = read_state_document(source)
         RetroState.validate_candidate(candidate, body, label: source, routed: true)
         decision, decision_body = RetroState.read_document(decision_path)
         RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
@@ -1588,8 +1588,7 @@ module RetroState
         source = verification_path("inbox", proposal_id)
         raise Error, "verification proposal not found in inbox: #{proposal_id}" unless File.file?(source)
 
-        validate_state_path!(source)
-        proposal, body = RetroState.read_document(source)
+        proposal, body = read_state_document(source)
         RetroState.validate_verification_proposal(proposal, body, label: source, routed: true)
         raise Error, "verification identity does not match #{proposal_id}" unless proposal["verification_proposal_id"] == proposal_id
         if proposal.key?("review")
@@ -1624,15 +1623,15 @@ module RetroState
       with_state_lock do
         inbox = verification_path("inbox", proposal_id)
         archive = verification_path("archive", proposal_id)
+        validate_state_path!(inbox)
+        validate_state_path!(archive)
         source = File.file?(archive) ? archive : inbox
         if File.file?(source)
-          validate_state_path!(source)
-          proposal, body = RetroState.read_document(source)
+          proposal, body = read_state_document(source)
           RetroState.validate_verification_proposal(proposal, body, label: source, routed: true, archived: source == archive)
           raise Error, "reviewed verification identity does not match #{proposal_id}" unless proposal["verification_proposal_id"] == proposal_id
           if source == archive && File.file?(inbox)
-            validate_state_path!(inbox)
-            pending, pending_body = RetroState.read_document(inbox)
+            pending, pending_body = read_state_document(inbox)
             RetroState.validate_verification_proposal(pending, pending_body, label: inbox, routed: true)
             unless pending == RetroState.without_keys(proposal, "triage") && pending_body == body
               raise Error, "verification archive differs from stored intake: #{proposal_id}"
@@ -1704,7 +1703,7 @@ module RetroState
         path = candidate_path("archive", candidate_id)
         raise Error, "candidate not found in archive: #{candidate_id}" unless File.file?(path)
 
-        candidate, body = RetroState.read_document(path)
+        candidate, body = read_state_document(path)
         RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
         current_triage = candidate.fetch("triage")
         unless current_triage.fetch("verdict") == "defer"
@@ -1745,7 +1744,7 @@ module RetroState
 
       supersedes_ids = data.fetch("originating_candidate_ids").map do |candidate_id|
         archive_path = candidate_path("archive", candidate_id)
-        candidate, candidate_body = RetroState.read_document(archive_path)
+        candidate, candidate_body = read_state_document(archive_path)
         RetroState.validate_candidate(
           candidate,
           candidate_body,
@@ -1787,7 +1786,7 @@ module RetroState
         path = accepted_path(accepted_id)
         raise Error, "accepted record not found: #{accepted_id}" unless File.file?(path)
 
-        current, current_body = RetroState.read_document(path)
+        current, current_body = read_state_document(path)
         RetroState.validate_accepted(current, current_body, label: path, assigned: true)
         replacement, body = RetroState.read_document(input_path)
         RetroState.validate_accepted(
@@ -1993,7 +1992,7 @@ module RetroState
             "ledger remains responsible for unresolved contradicted record: #{blocking_accepted_id}"
         end
 
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
         raise Error, "ledger is already closed: #{ledger_id}" unless data["status"] == "open"
 
@@ -2053,7 +2052,7 @@ module RetroState
       end
 
       open_ledgers = Dir.glob(File.join(root, "ledgers", "*.md")).sort.filter_map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_ledger_entry(data, body, label: path, assigned: true)
         [path, data] if data["status"] == "open"
       end
@@ -2069,7 +2068,7 @@ module RetroState
       end
 
       Dir.glob(File.join(root, "drafts", "*.md")).sort.each do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_draft(data, body, label: path, assigned: true)
         next unless %w[open revised].include?(data["status"])
 
@@ -2203,7 +2202,7 @@ module RetroState
         "archive" => true
       }.each do |area, archived|
         Dir.glob(File.join(root, "retrospectives", area, "*.md")).sort.each do |path|
-          data, body = RetroState.read_document(path)
+          data, body = read_state_document(path)
           RetroState.validate_candidate(data, body, label: path, routed: true, archived: archived)
           id = data.fetch("candidate_id")
           errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
@@ -2224,7 +2223,7 @@ module RetroState
           "archive" => true
         }.each do |area, archived|
           Dir.glob(File.join(root, "verifications", area, "*.md")).sort.each do |path|
-            data, body = RetroState.read_document(path)
+            data, body = read_state_document(path)
             RetroState.validate_verification_proposal(
               data,
               body,
@@ -2253,7 +2252,7 @@ module RetroState
         "archive" => true
       }.each do |area, archived|
         Dir.glob(File.join(root, "papercuts", area, "*.md")).sort.each do |path|
-          data, body = RetroState.read_document(path)
+          data, body = read_state_document(path)
           RetroState.validate_papercut(data, body, label: path, routed: true, archived: archived)
           id = data.fetch("papercut_id")
           errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
@@ -2281,7 +2280,7 @@ module RetroState
       accepted_ids = {}
       accepted_rows = []
       Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort.each do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_accepted(data, body, label: path, assigned: true)
         id = data.fetch("accepted_id")
         errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
@@ -2364,7 +2363,7 @@ module RetroState
           errors << "#{path}: contradiction residual ledger does not exist: #{residual_id}"
           next
         end
-        ledger, ledger_body = RetroState.read_document(residual_path)
+        ledger, ledger_body = read_state_document(residual_path)
         RetroState.validate_ledger_entry(ledger, ledger_body, label: residual_path, assigned: true)
         if !RetroState.contradiction_resolved?(data) && ledger["status"] != "open"
           errors << "#{path}: unresolved contradiction requires an open residual ledger: #{residual_id}"
@@ -2375,7 +2374,7 @@ module RetroState
 
       audit_rows = []
       Dir.glob(File.join(root, "audits", "learning-process", "*.md")).sort.each do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_learning_audit(data, body, label: path, assigned: true)
         id = data.fetch("audit_id")
         errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
@@ -2501,7 +2500,7 @@ module RetroState
       unless File.file?(residual_path)
         raise Error, "contradiction residual ledger does not exist: #{residual_id}"
       end
-      ledger, ledger_body = RetroState.read_document(residual_path)
+      ledger, ledger_body = read_state_document(residual_path)
       RetroState.validate_ledger_entry(ledger, ledger_body, label: residual_path, assigned: true)
       return if RetroState.contradiction_resolved?(accepted)
       return if ledger["status"] == "open"
@@ -2509,8 +2508,18 @@ module RetroState
       raise Error, "unresolved contradiction requires an open residual ledger: #{residual_id}"
     end
 
+    def read_state_document(path)
+      validate_state_path!(path)
+      RetroState.read_document(path)
+    end
+
+    def validate_state_layout!
+      paths = (STATE_DIRS + VERIFICATION_DIRS).map { |relative| File.join(root, relative) }
+      (paths + [File.join(root, "state-version"), state_lock_path]).each { |path| validate_state_path!(path) }
+    end
+
     def validate_state_path!(path)
-      unless File.realpath(path).start_with?(root + File::SEPARATOR)
+      unless canonical_root(path).start_with?(root + File::SEPARATOR)
         raise Error, "record resolves outside the state root: #{File.basename(path, ".md")}"
       end
     end
@@ -2533,9 +2542,8 @@ module RetroState
         inbox = candidate_path("inbox", id)
         archive = candidate_path("archive", id)
         source = File.file?(inbox) ? inbox : archive
-        validate_state_path!(source)
-        validate_state_path!(archive) if File.file?(archive)
-        candidate, body = RetroState.read_document(source)
+        validate_state_path!(archive)
+        candidate, body = read_state_document(source)
         RetroState.validate_candidate(candidate, body, label: source, routed: true, archived: source == archive)
         unless candidate["record_type"] == "observation" && candidate["candidate_id"] == id
           raise Error, "closure requires an original observation: #{id}"
@@ -2581,6 +2589,7 @@ module RetroState
       proposal["triage"] = triage
       output = RetroState.render_document(proposal, body)
       destination = verification_path("archive", proposal_id)
+      validate_state_path!(destination)
       write_or_verify_archive(destination, output, record_type: "verification") if File.file?(destination)
       if decision.fetch("verdict") == "apply"
         apply_verification_proposal!(proposal, decision, target)
@@ -2641,10 +2650,6 @@ module RetroState
 
     def verify_applied_proposal!(accepted, proposal)
       expected_state = proposal.fetch("proposed_verification")
-      missing_evidence = proposal.fetch("decisive_evidence") - accepted.fetch("decisive_evidence")
-      unless missing_evidence.empty?
-        raise Error, "applied verification proposal evidence is missing from accepted state"
-      end
       if expected_state == "supported"
         return if %w[supported contradicted].include?(accepted["verification"])
 
@@ -2710,7 +2715,7 @@ module RetroState
       return [] unless verification_dirs_present?
 
       Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_verification_proposal(data, body, label: path, routed: true)
         [path, data]
       end
@@ -2731,6 +2736,7 @@ module RetroState
     end
 
     def write_or_verify_archive(destination, output, record_type:)
+      validate_state_path!(destination)
       if File.file?(destination)
         unless File.binread(destination) == output
           raise Error, "existing #{record_type} archive differs: #{destination}"
@@ -2743,7 +2749,7 @@ module RetroState
     end
 
     def verify_matching_papercut_archive(destination, intake, body, requested_closure)
-      archived, archived_body = RetroState.read_document(destination)
+      archived, archived_body = read_state_document(destination)
       RetroState.validate_papercut(
         archived,
         archived_body,
@@ -2763,7 +2769,7 @@ module RetroState
     def pending_candidates
       ensure_initialized
       Dir.glob(File.join(root, "retrospectives", "inbox", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_candidate(data, body, label: path, routed: true)
         [path, data]
       end
@@ -2771,7 +2777,7 @@ module RetroState
 
     def archived_candidates
       Dir.glob(File.join(root, "retrospectives", "archive", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_candidate(data, body, label: path, routed: true, archived: true)
         [path, data]
       end
@@ -2779,7 +2785,7 @@ module RetroState
 
     def accepted_records(include_body: false)
       Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_accepted(data, body, label: path, assigned: true)
         include_body ? [path, data, body] : [path, data]
       end
@@ -2787,7 +2793,7 @@ module RetroState
 
     def learning_audits
       Dir.glob(File.join(root, "audits", "learning-process", "*.md")).sort.map do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_learning_audit(data, body, label: path, assigned: true)
         [path, data]
       end
@@ -2795,6 +2801,7 @@ module RetroState
 
     # Retain the original pathname so installed helper versions share one writer lock.
     def with_state_lock
+      validate_state_path!(state_lock_path)
       File.open(state_lock_path, File::RDWR | File::CREAT, 0o600) do |lock|
         lock.flock(File::LOCK_EX)
         yield
@@ -2811,7 +2818,7 @@ module RetroState
         path = candidate_path("archive", action_id)
         return false unless File.file?(path)
 
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         RetroState.validate_candidate(data, body, label: path, routed: true, archived: true)
         data.fetch("triage").fetch("verdict") == "defer"
       when /\ASD-/
@@ -2839,7 +2846,7 @@ module RetroState
     def auxiliary_status_open?(path, type)
       return false unless File.file?(path)
 
-      data, body = RetroState.read_document(path)
+      data, body = read_state_document(path)
       case type
       when :draft
         RetroState.validate_draft(data, body, label: path, assigned: true)
@@ -2883,7 +2890,7 @@ module RetroState
     def validate_auxiliary_dir(errors, directory, id_field)
       ids = {}
       Dir.glob(File.join(root, directory, "*.md")).sort.each do |path|
-        data, body = RetroState.read_document(path)
+        data, body = read_state_document(path)
         yield(data, body, path)
         id = data.fetch(id_field)
         errors << "#{path}: filename must be #{id}.md" unless File.basename(path) == "#{id}.md"
@@ -2901,6 +2908,7 @@ module RetroState
       raise Error, "state root is not initialized: #{root}" unless Dir.exist?(root)
 
       refuse_git_worktree!
+      validate_state_layout!
       validate_version
       STATE_DIRS.each do |relative|
         path = File.join(root, relative)
@@ -2919,6 +2927,7 @@ module RetroState
     end
 
     def ensure_verification_dirs
+      validate_state_layout!
       VERIFICATION_DIRS.each do |relative|
         path = File.join(root, relative)
         FileUtils.mkdir_p(path, mode: 0o700)
@@ -2929,6 +2938,7 @@ module RetroState
     def validate_version
       path = File.join(root, "state-version")
       raise Error, "state-version is missing: #{path}" unless File.file?(path)
+      validate_state_path!(path)
       return if File.read(path).strip == SCHEMA_VERSION.to_s
 
       raise Error, "unsupported state version in #{path}"
@@ -3047,6 +3057,7 @@ module RetroState
     end
 
     def with_prepared_file(path, content)
+      validate_state_path!(path)
       temporary = "#{path}.tmp-#{Process.pid}-#{SecureRandom.hex(3)}"
       created = false
       File.open(temporary, File::WRONLY | File::CREAT | File::EXCL, 0o600) do |file|
@@ -3231,6 +3242,17 @@ module RetroState
       File.binwrite(target, original_target)
       self_test_error("conflicts with accepted metadata") { store.record_verification(nil, proposal_id: id) }
       File.binwrite(target, target_bytes)
+      curated, target_body = parse_document(store.prepare_accepted_update(target_id))
+      curated["decisive_evidence"] = ["Curated summary; original evidence remains in the applied proposal."]
+      store.update_accepted(target_id, write.call(curated, target_body))
+      archive_bytes = File.binread(archive)
+      altered, archive_body = read_document(archive)
+      altered["decisive_evidence"] = ["Altered original evidence."]
+      File.write(archive, render_document(altered, archive_body))
+      before = store.snapshot
+      run.call(1, "record-verification", "--id", id, error: "intake fields changed")
+      raise "tampered verification retry wrote state" unless store.snapshot == before
+      File.binwrite(archive, archive_bytes)
       before = store.snapshot
       run.call(0, "record-verification", "--id", id)
       run.call(0, "record-verification", "--file", "-", stdin: submitted)
@@ -3468,6 +3490,43 @@ module RetroState
         raise "#{arguments.inspect}: unexpected stderr: #{err}" unless err.empty?
       end
       out
+    end
+  end
+
+  def state_confinement_self_test
+    Dir.mktmpdir("retro-confinement-self-test.") do |tmp|
+      store = Store.new(File.join(tmp, "state"))
+      input = File.join(tmp, "input.md")
+      File.write(input, observation_template)
+      record = store.route(input)
+      store.send(:with_state_lock) {}
+      outside = File.join(tmp, "state-other.md")
+      [File.join(store.root, "state-version"), store.send(:state_lock_path), record].each do |path|
+        bytes = File.binread(path)
+        File.rename(path, outside)
+        File.symlink(outside, path)
+        before = store.snapshot
+        self_test_error("outside the state root") { store.validate }
+        if path == record
+          self_test_error("outside the state root") { store.pending }
+        else
+          self_test_error("outside the state root") { store.init }
+        end
+        self_test_error("outside the state root") { store.send(:replace_write, path, "replacement") }
+        unless store.snapshot == before && File.binread(outside) == bytes
+          raise "state-file confinement refusal changed state or external evidence"
+        end
+        File.unlink(path)
+        File.rename(outside, path)
+      end
+      root_alias = File.join(tmp, "alias")
+      File.symlink(store.root, root_alias)
+      raise "root alias lost canonical identity" unless Store.new(root_alias).root == store.root
+      kept = File.join(store.root, "kept.md")
+      File.rename(record, kept)
+      File.symlink(kept, record)
+      Store.new(root_alias).validate
+      store.show([File.basename(record, ".md")])
     end
   end
 
@@ -5042,6 +5101,60 @@ module RetroState
         store.validate
       end
 
+      # Both writers must refuse escaped archive destinations before applying any evidence.
+      %w[reviewed legacy].each do |mode|
+        store, accepted = fixture.call("confined-#{mode}")
+        if mode == "reviewed"
+          id, input, = reviewed.call(store, accepted)
+        else
+          id = propose.call(store, accepted, "supported")
+          input = decide.call(id, "apply")
+        end
+        invoke = lambda do |writer|
+          (mode == "reviewed") ? writer.record_verification(input) : writer.process_verification(id, input)
+        end
+        directory = File.join(store.root, "verifications/archive")
+        outside = File.join(tmp, "#{mode}-outside")
+        File.rename(directory, outside)
+        File.chmod(0o755, outside)
+        File.symlink(outside, directory)
+        before = store.snapshot
+        self_test_error("outside the state root") { invoke.call(store) }
+        self_test_error("outside the state root") { store.validate }
+        self_test_error("outside the state root") { store.init }
+        unless store.snapshot == before && Dir.empty?(outside) && (File.stat(outside).mode & 0o777) == 0o755
+          raise "escaped archive directory refusal wrote state or changed external permissions"
+        end
+        File.unlink(directory)
+        File.rename(outside, directory)
+        archive = File.join(directory, "#{id}.md")
+        File.symlink(outside, archive)
+        before = store.snapshot
+        self_test_error("dangling symlink") { invoke.call(store) }
+        self_test_error("dangling symlink") { store.validate }
+        raise "dangling archive refusal wrote state" unless store.snapshot == before && !File.exist?(outside)
+        File.unlink(archive)
+        child = start.call(:verification_archive_written) do |fault|
+          invoke.call(Store.new(store.root, fault_injector: fault))
+        end
+        event.call(child, "started")
+        event.call(child, "paused")
+        kill.call(child)
+        bytes = File.binread(archive)
+        File.rename(archive, outside)
+        File.symlink(outside, archive)
+        before = store.snapshot
+        self_test_error("outside the state root") { invoke.call(store) }
+        self_test_error("outside the state root") { store.validate }
+        unless store.snapshot == before && File.binread(outside) == bytes
+          raise "external matching archive refusal changed state or evidence"
+        end
+        File.unlink(archive)
+        File.rename(outside, archive)
+        invoke.call(store)
+        store.validate
+      end
+
       # Reviewed submission survives a killed writer at every durable publication boundary.
       %i[state_file_prepared verification_submission_written verification_accepted_written
         verification_archive_written candidate_archive_written verification_observation_closed].each do |point|
@@ -5555,6 +5668,7 @@ module RetroState
     approximate_cadence_self_test
     legacy_draft_self_test
     transition_recovery_self_test
+    state_confinement_self_test
     inspection_self_test
     metadata_comparison_self_test
     verification_context_self_test

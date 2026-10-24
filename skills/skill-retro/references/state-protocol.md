@@ -34,6 +34,10 @@ The configured state root owns:
 Do not configure the state root inside a Git worktree. The bundled helper
 refuses to initialize or write there.
 
+The configured root may be a symlink alias. State-owned directories and files must resolve beneath
+that canonical root; escaped or dangling links are refused. `snapshot` still inventories links
+without following them so a refused layout can be inspected.
+
 ## Layout
 
 `retro-state.rb init` creates:
@@ -416,8 +420,9 @@ as ordinary observation reviews.
 
 Use `update-accepted --id ID --file PATH` for later disposition, public-source
 destination, evidence curation, or commit updates; use a reviewed submission for new verification
-evidence. Generic updates reject changes to verification
-state or basis. Start with `prepare-accepted-update --id ID`; the helper
+evidence. Retries check the original proposal, provenance and verification state; curated accepted
+summaries need not retain the proposal's exact evidence strings. Generic updates reject changes to
+verification state or basis. Start with `prepare-accepted-update --id ID`; the helper
 preserves `accepted_id`, `accepted_at`, and prior
 `implementation_commits`, appending new commits without duplicates.
 It requires the originating candidate, supersession lineage, and applied
