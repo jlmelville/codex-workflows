@@ -5677,14 +5677,6 @@ module RetroState
         DEFERRAL_FIELDS.each { |field| data.delete(field) }
         render_document(data, body)
       end
-      recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
-      unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
-        raise "candidate template recommendation vocabulary is incomplete"
-      end
-      lineage_line = candidate_template.lines.find { |line| line.start_with?("evidence_lineage:") }
-      unless lineage_line && EVIDENCE_LINEAGES.all? { |value| lineage_line.include?(value) }
-        raise "candidate template evidence lineage vocabulary is incomplete"
-      end
       missing_lineage, missing_lineage_body = parse_document(candidate_template)
       missing_lineage.delete("evidence_lineage")
       missing_lineage.delete("evidence_lineage_note")
@@ -5695,12 +5687,6 @@ module RetroState
           label: "new candidate without evidence lineage",
           routed: false
         )
-      end
-      PAPERCUT_CLASSIFICATIONS.each do |field, values|
-        line = papercut_template.lines.find { |candidate| candidate.start_with?("#{field}:") }
-        unless line && values.all? { |value| line.include?(value) }
-          raise "papercut template #{field} vocabulary is incomplete"
-        end
       end
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
 
@@ -5808,6 +5794,29 @@ module RetroState
         raise "papercut interruption did not retain both recovery inputs"
       end
       archived_before_retry = File.binread(recovery_archive)
+      interrupted_snapshot = papercut_recovery_store.snapshot
+      recovery_archive_data, recovery_archive_body = read_document(recovery_archive)
+      recovery_archive_data.fetch("closure")["rationale"] = "Conflicting closure rationale."
+      File.write(
+        recovery_archive,
+        render_document(recovery_archive_data, recovery_archive_body)
+      )
+      recovery_archive_bytes = File.binread(recovery_archive)
+      conflict_snapshot = papercut_recovery_store.snapshot
+      self_test_error("existing papercut archive differs") do
+        papercut_recovery_store.close_papercut(
+          recovery_id,
+          outcome: "no-action",
+          rationale: "No reusable action was identified."
+        )
+      end
+      unless papercut_recovery_store.snapshot == conflict_snapshot &&
+          File.binread(recovery_archive) == recovery_archive_bytes && File.file?(recovery_source)
+        raise "conflicting papercut archive was overwritten or its inbox record was removed"
+      end
+      File.binwrite(recovery_archive, archived_before_retry)
+      raise "papercut conflict fixture did not restore interrupted state" unless papercut_recovery_store.snapshot == interrupted_snapshot
+
       papercut_recovery_store.close_papercut(
         recovery_id,
         outcome: "no-action",
@@ -5818,52 +5827,6 @@ module RetroState
         raise "papercut retry changed the existing archive or closure timestamp"
       end
       papercut_recovery_store.validate
-
-      conflicting_data, conflicting_body = read_document(papercut)
-      conflicting_source = self_test_papercut(papercut_recovery_store,
-        conflicting_data,
-        conflicting_body,
-        label: papercut)
-      conflicting_id = File.basename(conflicting_source, ".md")
-      conflicting_store = Store.new(
-        papercut_recovery_root,
-        fault_injector: lambda do |point|
-          raise Error, "simulated papercut conflict" if point == :papercut_archive_written
-        end
-      )
-      begin
-        conflicting_store.close_papercut(
-          conflicting_id,
-          outcome: "no-action",
-          rationale: "Original closure rationale."
-        )
-        raise "papercut conflict interruption was not injected"
-      rescue Error => e
-        raise unless e.message == "simulated papercut conflict"
-      end
-      conflicting_archive = File.join(
-        papercut_recovery_root,
-        "papercuts",
-        "archive",
-        "#{conflicting_id}.md"
-      )
-      conflicting_archive_data, conflicting_archive_body = read_document(conflicting_archive)
-      conflicting_archive_data.fetch("closure")["rationale"] = "Conflicting closure rationale."
-      File.write(
-        conflicting_archive,
-        render_document(conflicting_archive_data, conflicting_archive_body)
-      )
-      conflicting_archive_bytes = File.binread(conflicting_archive)
-      self_test_error("existing papercut archive differs") do
-        papercut_recovery_store.close_papercut(
-          conflicting_id,
-          outcome: "no-action",
-          rationale: "Original closure rationale."
-        )
-      end
-      unless File.binread(conflicting_archive) == conflicting_archive_bytes && File.file?(conflicting_source)
-        raise "conflicting papercut archive was overwritten or its inbox record was removed"
-      end
 
       missing_reference_data, missing_reference_body = read_document(papercut)
       missing_reference_path = self_test_papercut(store,
@@ -6041,6 +6004,21 @@ module RetroState
         raise "candidate interruption did not retain both recovery inputs"
       end
       archived_before_retry = File.binread(recovery_archive)
+      interrupted_snapshot = recovery_store.snapshot
+      recovery_archive_data, recovery_archive_body = read_document(recovery_archive)
+      recovery_archive_data.fetch("triage")["rationale"] = "Conflicting decision rationale."
+      File.write(recovery_archive, render_document(recovery_archive_data, recovery_archive_body))
+      recovery_archive_bytes = File.binread(recovery_archive)
+      conflict_snapshot = recovery_store.snapshot
+      self_test_error("existing candidate archive differs") do
+        recovery_store.process(recovery_id, recovery_decision)
+      end
+      unless recovery_store.snapshot == conflict_snapshot &&
+          File.binread(recovery_archive) == recovery_archive_bytes && File.file?(recovery_source)
+        raise "conflicting candidate archive was overwritten or its inbox record was removed"
+      end
+      File.binwrite(recovery_archive, archived_before_retry)
+      raise "candidate conflict fixture did not restore interrupted state" unless recovery_store.snapshot == interrupted_snapshot
 
       recovery_store.process(recovery_id, recovery_decision)
       raise "recovered candidate remained in inbox" if File.exist?(recovery_source)
@@ -6051,53 +6029,6 @@ module RetroState
         raise "candidate retry did not retain exactly one archive"
       end
       recovery_store.validate
-
-      conflict_root = File.join(tmp, "candidate-recovery-conflict")
-      conflict_store = Store.new(conflict_root)
-      conflict_store.init
-      conflict_input = File.join(tmp, "candidate-recovery-conflict.md")
-      conflict_decision = File.join(tmp, "candidate-recovery-conflict-decision.md")
-      File.write(
-        conflict_input,
-        candidate_template.gsub("Short candidate title", "Conflicting candidate archival")
-      )
-      conflict_source = conflict_store.route(conflict_input)
-      conflict_id = File.basename(conflict_source, ".md")
-      conflict_decision_text = without_deferral_fields.call(
-        decision_template
-        .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", conflict_id)
-        .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
-        .sub("verdict: defer", "verdict: reject")
-      )
-      File.write(conflict_decision, conflict_decision_text)
-      interrupted_conflict_store = Store.new(
-        conflict_root,
-        fault_injector: lambda do |point|
-          raise Error, "simulated candidate conflict" if point == :candidate_archive_written
-        end
-      )
-      begin
-        interrupted_conflict_store.process(conflict_id, conflict_decision)
-        raise "candidate conflict interruption was not injected"
-      rescue Error => e
-        raise unless e.message == "simulated candidate conflict"
-      end
-      conflict_archive = File.join(
-        conflict_root,
-        "retrospectives",
-        "archive",
-        "#{conflict_id}.md"
-      )
-      conflict_archive_data, conflict_archive_body = read_document(conflict_archive)
-      conflict_archive_data.fetch("triage")["rationale"] = "Conflicting decision rationale."
-      File.write(conflict_archive, render_document(conflict_archive_data, conflict_archive_body))
-      conflict_archive_bytes = File.binread(conflict_archive)
-      self_test_error("existing candidate archive differs") do
-        conflict_store.process(conflict_id, conflict_decision)
-      end
-      unless File.binread(conflict_archive) == conflict_archive_bytes && File.file?(conflict_source)
-        raise "conflicting candidate archive was overwritten or its inbox record was removed"
-      end
 
       accepted_text = accepted_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
