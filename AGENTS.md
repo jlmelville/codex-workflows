@@ -28,3 +28,10 @@ For accepted changes in this repo:
 - Commit the intended repo changes and push to `origin/main` unless the user
   says otherwise.
 - Do not stage or commit unrelated local changes.
+
+## Delivery coordination
+
+Before proposing a separate delivery coordinator, read the
+[accepted decision](docs/delivery-coordinator-decision.md). Keep coordination
+in existing prompts, continuation records, and temporary heartbeats unless
+evidence from real runs identifies an unmet responsibility.
