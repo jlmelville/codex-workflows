@@ -154,30 +154,6 @@ module RetroState
     end
   end
 
-  def resolve_context_references(context, value = context, active = [])
-    case value
-    when Hash
-      if value.keys == ["$ref"]
-        pointer = value.fetch("$ref")
-        unless pointer.is_a?(String) && pointer.start_with?("#/") && !active.include?(pointer)
-          raise Error, "invalid or cyclic context reference: #{pointer}"
-        end
-
-        target = pointer.delete_prefix("#/").split("/").reduce(context) do |node, token|
-          key = token.gsub("~1", "/").gsub("~0", "~")
-          node.fetch(node.is_a?(Array) ? Integer(key, 10) : key)
-        end
-        resolve_context_references(context, target, active + [pointer])
-      else
-        value.transform_values { |child| resolve_context_references(context, child, active) }
-      end
-    when Array
-      value.map { |child| resolve_context_references(context, child, active) }
-    else
-      value
-    end
-  end
-
   def require_fields(data, fields, label)
     fields.each do |field|
       value = data[field]
@@ -845,53 +821,6 @@ module RetroState
         raise Error, "#{label}: unverified_claims must contain distinct, nonblank strings"
       end
     end
-    if data.key?("verification_context")
-      view = data.fetch("verification_context")
-      unless view.is_a?(Hash) && view.keys.sort == %w[claim_limits prose] &&
-          view["claim_limits"].is_a?(Hash) && !view["claim_limits"].empty? &&
-          !view["claim_limits"].key?("unverified_claims") && view["prose"].is_a?(Array)
-        raise Error, "#{label}: verification_context requires claim_limits and prose; unverified_claims is owned separately"
-      end
-      view.fetch("claim_limits").each do |key, value|
-        texts = value.is_a?(Array) ? value : [value]
-        unless !key.strip.empty? && !texts.empty? && texts.all? { |text| text.is_a?(String) && !text.strip.empty? }
-          raise Error, "#{label}: verification_context claim_limits must contain nonblank text or text lists"
-        end
-      end
-      sources = view.fetch("prose").map do |entry|
-        unless entry.is_a?(Hash) && (entry.keys - %w[source text limits evidence]).empty? &&
-            entry["source"].is_a?(String) && !entry["source"].strip.empty? && entry["text"].is_a?(String)
-          raise Error, "#{label}: verification_context prose requires exact source and retained text strings"
-        end
-        if entry.key?("limits")
-          names = entry.fetch("limits")
-          unless names.is_a?(Array) && !names.empty? && names.uniq == names &&
-              names.all? { |name| (view.fetch("claim_limits").keys + ["unverified_claims"]).include?(name) }
-            raise Error, "#{label}: verification_context prose limits must name distinct declared boundaries"
-          end
-        end
-        if entry.key?("evidence")
-          texts = entry.fetch("evidence")
-          unless texts.is_a?(Array) && !texts.empty? && texts.uniq == texts &&
-              texts.all? { |text| text.is_a?(String) && !text.strip.empty? }
-            raise Error, "#{label}: verification_context evidence must contain distinct, nonblank source strings"
-          end
-        end
-        entry.fetch("source")
-      end
-      raise Error, "#{label}: verification_context prose sources must be distinct" unless sources.uniq == sources
-
-      entries = view.fetch("prose").to_h { |entry| [entry.fetch("source"), entry] }
-      visited = []
-      visit = lambda do |source, active|
-        raise Error, "#{label}: cyclic verification_context evidence references" if active.include?(source)
-        next if visited.include?(source)
-
-        entries.fetch(source, {}).fetch("evidence", []).each { |target| visit.call(target, active + [source]) }
-        visited << source
-      end
-      sources.each { |source| visit.call(source, []) }
-    end
     if data.key?("applied_verification_proposal_ids")
       require_string_array(data, "applied_verification_proposal_ids", label)
       proposal_ids = data["applied_verification_proposal_ids"]
@@ -1532,7 +1461,7 @@ module RetroState
       end
       # Context retrieval also accepts proposal IDs; preparation must bind an accepted ID directly.
       accepted_path(id)
-      context = RetroState.resolve_context_references(verification_context(record_ids: [id])).fetch("records").first
+      context = verification_context(record_ids: [id]).fetch("records").first
       accepted = context.fetch("accepted").fetch("frontmatter")
       pending_ids = context.fetch("pending_verification_proposal_ids")
       pending = context.fetch("verification_proposals")
@@ -2262,7 +2191,7 @@ module RetroState
         pending = Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort
           .map { |path| proposal.call(File.basename(path, ".md")) }
           .group_by { |record| record.fetch("frontmatter").fetch("target_accepted_id") }
-        details = records.each_with_index.map do |record, index|
+        details = records.map do |record|
           id = record.fetch("id")
           data = record.fetch("frontmatter")
           unless File.join(root, record.fetch("path")) == accepted_path(id) && data["accepted_id"] == id
@@ -2277,14 +2206,16 @@ module RetroState
               raise Error, "verification target does not reference applied proposal: #{proposal.fetch("id")}"
             end
           end
-          verification_detail(
-            record,
-            selected: selected_proposals,
-            applied: applied_ids.map { |proposal_id| proposal.call(proposal_id) },
-            pending: pending.fetch(id, []),
-            claims: verification_claim_summary(data, compact: true, &proposal),
-            pointer: "#/records/#{index}"
-          )
+          applied = applied_ids.map { |proposal_id| proposal.call(proposal_id) }
+          pending_proposals = pending.fetch(id, [])
+          {
+            "accepted" => record,
+            "verification_proposals" => (selected_proposals + applied + pending_proposals)
+              .uniq { |item| item.fetch("id") },
+            "selected_verification_proposal_ids" => selected_proposals.map { |item| item.fetch("id") },
+            "applied_verification_proposal_ids" => applied_ids,
+            "pending_verification_proposal_ids" => pending_proposals.map { |item| item.fetch("id") }
+          }.merge(verification_claim_summary(data, &proposal))
         end
         return {"root" => root, "mode" => "detail", "records" => details}
       end
@@ -2313,7 +2244,7 @@ module RetroState
         validate_accepted_external_references!(data, accepted_id: id, &proposal)
         claims = verification_claim_summary(data, compact: compact, &proposal)
         if compact
-          next data.slice("verification", "verification_basis")
+          next data.slice("destination", "expected_behavior", "verification", "verification_basis")
             .merge("id" => id).merge(claims)
         end
         summary = data.slice(
@@ -2785,147 +2716,6 @@ module RetroState
     end
 
     private
-
-    def verification_detail(accepted, selected:, applied:, pending:, claims:, pointer:)
-      texts = {"observations" => {}, "evidence" => {}}
-      references = {"observations" => {}, "evidence" => {}}
-      intern = lambda do |pool, text|
-        references.fetch(pool)[text] ||= begin
-          reference = "#{pool}-#{texts.fetch(pool).length + 1}"
-          texts.fetch(pool)[reference] = text
-          reference
-        end
-      end
-      project_fields = lambda do |fields, observation_field, observation_texts = nil|
-        fields.dup.tap do |copy|
-          observation = copy.delete(observation_field)
-          if observation_texts
-            copy["#{observation_field}_refs"] = observation_texts.map { |text| intern.call("observations", text) }
-          else
-            copy["#{observation_field}_ref"] = intern.call("observations", observation)
-          end
-          copy["decisive_evidence_refs"] = copy.delete("decisive_evidence").map { |text| intern.call("evidence", text) }
-        end
-      end
-      applied_observations = applied.map { |record| record.fetch("frontmatter").fetch("observation") }.uniq
-      project = lambda do |record|
-        fields = record.fetch("frontmatter")
-        observation_field = (fields["record_type"] == "accepted") ? "observed_behavior" : "observation"
-        observation_texts = if observation_field == "observed_behavior"
-          observation = fields.fetch(observation_field)
-          (observation == applied_observations.join("\n\n")) ? applied_observations : [observation]
-        end
-        projected = project_fields.call(fields, observation_field, observation_texts)
-        if observation_field == "observed_behavior" && fields["contradiction"]
-          projected["contradiction"] = project_fields.call(fields.fetch("contradiction"), "summary")
-        end
-        record.merge("frontmatter" => projected)
-      end
-      proposals = (selected + applied + pending).uniq { |record| record.fetch("id") }
-      detail = {
-        "accepted" => project.call(accepted),
-        "verification_proposals" => proposals.map { |record| project.call(record) },
-        "selected_verification_proposal_ids" => selected.map { |record| record.fetch("id") },
-        "applied_verification_proposal_ids" => applied.map { |record| record.fetch("id") },
-        "pending_verification_proposal_ids" => pending.map { |record| record.fetch("id") }
-      }.merge(texts).merge(claims)
-      reference = ->(path) { {"$ref" => "#{pointer}#{path}"} }
-      accepted_fields = detail.fetch("accepted").fetch("frontmatter")
-      accepted_fields["accepted_id"] = reference.call("/accepted/id")
-      %w[unverified_claims applied_verification_proposal_ids].each do |field|
-        accepted_fields[field] = reference.call("/#{field}") if accepted_fields.key?(field)
-      end
-      proposal_references = {}
-      detail.fetch("verification_proposals").each_with_index do |record, index|
-        path = "/verification_proposals/#{index}"
-        proposal_references[record.fetch("id")] = reference.call(path)
-        fields = record.fetch("frontmatter")
-        fields["target_accepted_id"] = reference.call("/accepted/id")
-        fields["verification_proposal_id"] = reference.call("#{path}/id")
-        if fields.key?("triage")
-          fields["triage"] = fields.fetch("triage").merge("verification_proposal_id" => reference.call("#{path}/id"))
-        end
-      end
-      %w[supported_claims contradicted_claims].each do |field|
-        detail[field] = claims.fetch(field)&.map do |claim|
-          proposal_references.fetch(claim.fetch("verification_proposal_id"))
-        end
-      end
-      view = accepted_fields.delete("verification_context") || {"claim_limits" => {}, "prose" => []}
-      replacements = view.fetch("prose").to_h { |entry| [entry.fetch("source"), entry] }
-      used = []
-      curate = lambda do |value|
-        if value.is_a?(String) && replacements.key?(value)
-          used << value
-          entry = replacements.fetch(value)
-          text = entry.fetch("text")
-          if entry.key?("limits") || entry.key?("evidence")
-            links = entry.fetch("limits", []).map do |name|
-              reference.call("/claim_limits/#{name.gsub("~", "~0").gsub("/", "~1")}")
-            end
-            {}.tap do |copy|
-              copy["claim_limits_refs"] = links if entry.key?("limits")
-              if entry.key?("evidence")
-                copy["evidence_refs"] = entry.fetch("evidence").map do |source|
-                  id = references.fetch("evidence")[source]
-                  unless id
-                    raise Error, "stale verification_context evidence source; review curation with prepare-accepted-update"
-                  end
-                  reference.call("/evidence/#{id}")
-                end
-              end
-              copy["text"] = text unless text.empty?
-            end
-          else
-            limits = reference.call("/claim_limits")
-            text.empty? ? limits : {"text" => text, "claim_limits" => limits}
-          end
-        elsif value.is_a?(Hash) && value.keys != ["$ref"]
-          value.to_h do |key, child|
-            [key, %w[id path verification proposed_verification verification_basis claim].include?(key) ? child : curate.call(child)]
-          end
-        elsif value.is_a?(Array)
-          value.map { |child| curate.call(child) }
-        else
-          value
-        end
-      end
-      %w[accepted verification_proposals observations evidence].each { |field| detail[field] = curate.call(detail.fetch(field)) }
-      unless (replacements.keys - used).empty?
-        raise Error, "stale verification_context prose source; review curation with prepare-accepted-update"
-      end
-      detail["claim_limits"] = view.fetch("claim_limits").merge("unverified_claims" => detail.fetch("unverified_claims"))
-      detail["unverified_claims"] = reference.call("/claim_limits/unverified_claims")
-      owners = {}
-      own = lambda do |value, path|
-        case value
-        when String then owners[value] ||= path
-        when Hash
-          unless value.keys == ["$ref"]
-            value.each do |key, child|
-              own.call(child, "#{path}/#{key.to_s.gsub("~", "~0").gsub("/", "~1")}")
-            end
-          end
-        when Array then value.each_with_index { |child, index| own.call(child, "#{path}/#{index}") }
-        end
-      end
-      %w[claim_limits observations evidence].each { |pool| own.call(detail.fetch(pool), "#{pointer}/#{pool}") }
-      share = lambda do |value, path|
-        if value.is_a?(String) && owners.key?(value) && owners.fetch(value) != path
-          {"$ref" => owners.fetch(value)}
-        elsif value.is_a?(Hash) && value.keys != ["$ref"]
-          value.to_h do |key, child|
-            token = key.to_s.gsub("~", "~0").gsub("/", "~1")
-            [key, share.call(child, "#{path}/#{token}")]
-          end
-        elsif value.is_a?(Array)
-          value.each_with_index.map { |child, index| share.call(child, "#{path}/#{index}") }
-        else
-          value
-        end
-      end
-      share.call(detail, pointer)
-    end
 
     def verification_claim_summary(accepted, compact: false)
       applied = accepted.fetch("applied_verification_proposal_ids", []).map do |id|
@@ -3871,56 +3661,6 @@ module RetroState
     end
   end
 
-  def self_test_context_canonical_fields(context, pointer = "#/records/0")
-    paths = {}
-    walk = lambda do |value, path|
-      paths[path] = value
-      case value
-      when Hash
-        value.each { |key, child| walk.call(child, "#{path}/#{key}") } unless value.keys == ["$ref"]
-      when Array
-        value.each_with_index { |child, index| walk.call(child, "#{path}/#{index}") }
-      end
-    end
-    walk.call(context, "#")
-    canonical = paths.keys.select do |path|
-      path.match?(%r{\A#/(claim_limits|observations|evidence)/}) && paths.fetch(path).is_a?(String)
-    end
-    canonical.each do |owner|
-      next unless paths.fetch(owner).is_a?(String)
-
-      copies = paths.select { |_path, value| value == paths.fetch(owner) }.keys
-      raise "duplicated context payload: #{copies.join(", ")}" unless copies == [owner]
-    end
-    paths.each do |path, value|
-      next unless value.is_a?(Hash) && %w[verification_proposal_id claim verification_basis].all? { |key| value.key?(key) }
-      next if path.match?(%r{\A#/verification_proposals/\d+/frontmatter\z})
-
-      raise "copied proposal claim fields at #{path}"
-    end
-    %w[supported_claims contradicted_claims].each do |field|
-      context.fetch(field)&.each do |claim|
-        raise "expanded claim is not a proposal reference" unless claim.keys == ["$ref"] &&
-          claim.fetch("$ref").match?(%r{\A#{Regexp.escape(pointer)}/verification_proposals/\d+\z})
-      end
-    end
-    fields = context.fetch("accepted").fetch("frontmatter")
-    unless context.fetch("unverified_claims") == {"$ref" => "#{pointer}/claim_limits/unverified_claims"}
-      raise "unverified claims lost their canonical claim_limits owner"
-    end
-    %w[unverified_claims applied_verification_proposal_ids].each do |field|
-      next unless fields.key?(field)
-      raise "copied accepted #{field}" unless fields[field] == {"$ref" => "#{pointer}/#{field}"}
-    end
-    ids = [context.fetch("accepted").fetch("id"), *context.fetch("verification_proposals").map { |record| record.fetch("id") }]
-    ids.each do |id|
-      copies = paths.select do |path, value|
-        value == id && !path.match?(%r{\A#/(selected|applied|pending)_verification_proposal_ids/\d+\z})
-      end.keys
-      raise "duplicated context identity: #{copies.join(", ")}" unless copies.length == 1 && copies.first.end_with?("/id")
-    end
-  end
-
   def verification_context_self_test
     Dir.mktmpdir("retro-verification-context-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
@@ -4089,7 +3829,7 @@ module RetroState
         raise "text filtering failed OR matching, deduplication, case folding, or filtering before pagination"
       end
       compact = JSON.parse(run.call(0, *query, "--compact"))
-      compact_fields = %w[id verification verification_basis supported_claims contradicted_claims unverified_claims]
+      compact_fields = %w[id destination expected_behavior verification verification_basis supported_claims contradicted_claims unverified_claims]
       compact_claim_fields = %w[verification_proposal_id claim verification_basis]
       expected_compact = all.fetch("records").map do |record|
         record.slice(*compact_fields).tap do |summary|
@@ -4148,10 +3888,8 @@ module RetroState
           records.first.fetch("pending_verification_proposal_ids").sort == pending_ids.sort
         raise "verification details lost selected order, claim, original evidence, or pending proposals"
       end
-      resolved = resolve_context_references(detail).fetch("records").first
-      unless resolved.fetch("supported_claims").map { |proposal| proposal.fetch("frontmatter").slice(*compact_claim_fields) } ==
-          supported_claims.map { |claim| claim.slice(*compact_claim_fields) } &&
-          resolved.fetch("unverified_claims") == remaining_claims
+      unless records.first.fetch("supported_claims") == supported_claims &&
+          records.first.fetch("unverified_claims") == remaining_claims
         raise "verification detail and discovery disagree about claim scope"
       end
       historical = JSON.parse(run.call(0, "verification-context", "--id", retired_id, "--id", legacy_id))
@@ -4173,74 +3911,32 @@ module RetroState
           mixed.first.fetch("verification_proposals").find { |record| record.fetch("id") == rejected_id }.dig("frontmatter", "triage", "verdict") == "reject"
         raise "mixed verification IDs lost order, deduplication, or selected archived evidence"
       end
-      restore_fields = lambda do |context, fields, observation_field|
-        fields.dup.tap do |copy|
-          references = copy.delete("#{observation_field}_refs")
-          copy[observation_field] = if references
-            references.map { |reference| context.fetch("observations").fetch(reference) }.join("\n\n")
-          else
-            context.fetch("observations").fetch(copy.delete("#{observation_field}_ref"))
-          end
-          copy["decisive_evidence"] = copy.delete("decisive_evidence_refs")
-            .map { |reference| context.fetch("evidence").fetch(reference) }
-        end
-      end
       [detail, {"records" => mixed}, historical,
         JSON.parse(run.call(0, "verification-context", "--id", contradicted_id))].each do |output|
-        expanded = resolve_context_references(output).fetch("records")
-        output.fetch("records").each_with_index do |context, index|
-          self_test_context_canonical_fields(context, "#/records/#{index}")
-          resolved = expanded.fetch(index)
+        output.fetch("records").each do |context|
           proposals = context.fetch("verification_proposals")
           ids = proposals.map { |record| record.fetch("id") }
           roles = %w[selected applied pending].map { |role| context.fetch("#{role}_verification_proposal_ids") }
           unless ids == roles.flatten.uniq && ids.uniq == ids
-            raise "expanded verification context repeated a proposal or lost its role"
+            raise "joined verification context repeated a proposal or lost its role"
           end
           %w[supported_claims contradicted_claims].each do |field|
-            resolved.fetch(field)&.each do |proposal|
-              unless context.fetch("applied_verification_proposal_ids").include?(proposal.fetch("id")) &&
-                  proposal.dig("frontmatter", "proposed_verification") == field.delete_suffix("_claims")
-                raise "expanded claim reference selected pending, rejected, or differently scoped evidence"
+            context.fetch(field)&.each do |claim|
+              id = claim.fetch("verification_proposal_id")
+              proposal = proposals.find { |record| record.fetch("id") == id }
+              unless context.fetch("applied_verification_proposal_ids").include?(id) &&
+                  proposal.dig("frontmatter", "proposed_verification") == field.delete_suffix("_claims") &&
+                  claim == proposal.fetch("frontmatter").slice(*compact_claim_fields, "observation")
+                raise "claim summary selected pending, rejected, or differently scoped evidence"
               end
             end
           end
-          [resolved.fetch("accepted"), *resolved.fetch("verification_proposals")].each do |record|
-            fields = record.fetch("frontmatter")
-            field = (fields["record_type"] == "accepted") ? "observed_behavior" : "observation"
-            restored = restore_fields.call(resolved, fields, field)
-            if field == "observed_behavior" && fields["contradiction"]
-              restored["contradiction"] = restore_fields.call(resolved, fields.fetch("contradiction"), "summary")
-            end
-            original = store.show([record.fetch("id")]).fetch("records").first
-            unless record.merge("frontmatter" => restored) == original
-              raise "expanded context lost source evidence, opportunity match, triage rationale, body limits, or provenance"
+          [context.fetch("accepted"), *proposals].each do |record|
+            unless record == store.show([record.fetch("id")]).fetch("records").first
+              raise "joined context changed source evidence, opportunity match, triage rationale, body limits, or provenance"
             end
           end
         end
-      end
-      {
-        "unverified scope" => remaining_claims.first,
-        "evidence" => records.first.fetch("evidence").values.first,
-        "observation" => records.first.fetch("observations").values.first,
-        "claim summary" => supported_claims.first.slice(*compact_claim_fields)
-      }.each do |label, duplicate|
-        mutated = JSON.parse(JSON.generate(records.first))
-        mutated["unexpected"] = {"nested" => [duplicate]}
-        begin
-          self_test_context_canonical_fields(mutated)
-        rescue RuntimeError => e
-          raise unless e.message.match?(/duplicated context payload|copied proposal claim fields/)
-          next
-        end
-        raise "whole-output duplication check missed a nested #{label} copy"
-      end
-      normalized = records.first
-      unless normalized.fetch("evidence").values.count("Shared context evidence.") == 1 &&
-          normalized.fetch("evidence").value?("Shared context evidence!") &&
-          normalized.fetch("accepted").fetch("frontmatter").fetch("observed_behavior_refs").length == 2 &&
-          normalized.fetch("observations").length == 3
-        raise "expanded deduplication merged distinct evidence or repeated the accepted observation rollup"
       end
       read_counts = Hash.new(0)
       original_reader = method(:read_document)
@@ -4345,276 +4041,60 @@ module RetroState
     end
   end
 
-  def verification_evidence_curation_self_test
-    Dir.mktmpdir("retro-evidence-curation-self-test.") do |tmp|
+  def verification_legacy_metadata_self_test
+    Dir.mktmpdir("retro-legacy-context-self-test.") do |tmp|
       root = File.join(File.realpath(tmp), "state")
       store = Store.new(root)
       store.init
       run = self_test_cli(root)
       input = File.join(tmp, "input.md")
-      write = lambda do |data, body|
-        File.write(input, render_document(data, body))
+      write = ->(text) {
+        File.write(input, text)
         input
-      end
-      File.write(input, candidate_template)
-      candidate_id = File.basename(store.route(input), ".md")
-      File.write(input, store.prepare_decision(candidate_id, "accept", rationale: "Disposable curation fixture."))
-      store.process(candidate_id, input)
-
-      implementation_evidence = "The profiling implementation passed its static checks."
-      overlapping_summaries = [
-        "The smoke recovered every native sample using retained debug information.",
-        "Recovery preserved the measured inputs and did not acquire another profile."
-      ]
-      additional_context = "Acquisitions used one thread and a fixed seed; system-library samples were not inspected."
-      remaining_claims = ["Ordinary later-use effectiveness.", "Comparative improvement."]
-      data, = parse_document(accepted_template)
-      data["originating_candidate_ids"] = [candidate_id]
-      data["disposition"] = "implemented"
-      data["implementation_commits"] = ["a" * 40]
-      data["decisive_evidence"] = [implementation_evidence, *overlapping_summaries]
-      data["unverified_claims"] = remaining_claims
-      body = "# Profiling fixture\n\n#{([implementation_evidence] + overlapping_summaries + remaining_claims + [additional_context]).join("\n\n")}\n"
-      accepted_id = File.basename(store.record_accepted(write.call(data, body)), ".md")
-      other_data, other_body = parse_document(accepted_template)
-      other_data["originating_candidate_ids"] = [candidate_id]
-      other_id = File.basename(store.record_accepted(write.call(other_data, other_body)), ".md")
-
-      data, body = parse_document(verification_proposal_template)
-      data["target_accepted_id"] = accepted_id
-      data["claim"] = "executable-correctness"
-      data["verification_basis"] = "deterministic-test"
-      data["source_scope"] = "Prompted Linux R-to-C profiling fixture"
-      data["observation"] = "The prompted smoke recovered all 7 native samples and the follow-up recovered all 31 native samples; captures and binary were preserved byte-for-byte; the report smoke preceded the larger acquisition; caller recovery was untested."
-      data["opportunity_match"] = "Capture and recovery matched the recorded witness; ordinary benefit was not tested."
-      data["source_note"] = "Only the tested recovery is supported; caller inference is untested."
-      proposal_evidence = [
-        "The smoke captured 19 samples; all 7 native samples resolved using matching debug information.",
-        "The follow-up captured 43 samples; all 31 native samples resolved to function and source lines.",
-        "Capture and binary hashes stayed identical before and after source recovery.",
-        "No profiling reacquisition was used; later use and comparative benefit remain unverified."
-      ]
-      data["decisive_evidence"] = proposal_evidence
-      body += "\nCaller stacks, inclusive costs, and allocation behavior were not tested.\n"
-      proposal_id = File.basename(store.route_verification(write.call(data, body)), ".md")
-      File.write(input, store.prepare_decision(proposal_id, "apply",
-        rationale: "Recovered sources and stable hashes justify support; comparative benefit remains unverified."))
-      store.process_verification(proposal_id, input)
-
-      original = store.show([accepted_id]).fetch("records").first
-      original_proposal = store.show([proposal_id]).fetch("records").first
-      context = JSON.parse(run.call(0, "verification-context", "--id", accepted_id)).fetch("records").first
-      unless (overlapping_summaries - context.fetch("evidence").values).empty?
-        raise "verification context silently inferred semantic evidence equivalence"
-      end
-      snapshot = File.join(tmp, "before.json")
-      File.write(snapshot, JSON.generate(store.snapshot))
-      File.write(input, run.call(0, "prepare-accepted-update", "--id", accepted_id))
-      replacement, = read_document(input)
-      replacement["decisive_evidence"] -= overlapping_summaries
-      curated_body = "# Additional acquisition context\n\n#{additional_context}\n"
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
-
-      curated = store.show([accepted_id]).fetch("records").first
-      unless curated == original.merge("frontmatter" => original.fetch("frontmatter").merge(
-          "decisive_evidence" => [implementation_evidence, *proposal_evidence]
-        ), "body" => curated_body) && store.show([proposal_id]).fetch("records").first == original_proposal
-        raise "evidence curation changed identity, claim limits, opportunity, proposal provenance, or triage"
-      end
-      comparison = JSON.parse(run.call(0, "compare", "--file", snapshot, "--allow-action", "update-accepted:#{accepted_id}"))
-      raise "evidence curation changed unrelated state" unless comparison.fetch("matches")
-
-      before = store.snapshot
-      detail = JSON.parse(run.call(0, "verification-context", "--id", accepted_id)).fetch("records").first
-      proposal = detail.fetch("verification_proposals").fetch(0)
-      accepted_refs = detail.fetch("accepted").fetch("frontmatter").fetch("decisive_evidence_refs")
-      proposal_refs = proposal.fetch("frontmatter").fetch("decisive_evidence_refs")
-      unless detail.fetch("accepted").fetch("body") == curated_body &&
-          JSON.generate(detail).scan(Regexp.new(Regexp.escape(additional_context))).length == 1 &&
-          (overlapping_summaries + remaining_claims + [implementation_evidence]).none? { |text| curated_body.include?(text) }
-        raise "expanded accepted prose repeated structured evidence or claim limits, or lost body-only context"
-      end
-      unless detail.fetch("evidence").values == [implementation_evidence, *proposal_evidence] &&
-          accepted_refs.drop(1) == proposal_refs &&
-          detail.fetch("applied_verification_proposal_ids") == [proposal_id] &&
-          detail.dig("claim_limits", "unverified_claims") == remaining_claims &&
-          detail.fetch("supported_claims") == context.fetch("supported_claims") &&
-          detail.fetch("observations") == context.fetch("observations") &&
-          proposal == context.fetch("verification_proposals").first.merge("frontmatter" =>
-            context.fetch("verification_proposals").first.fetch("frontmatter").merge("decisive_evidence_refs" => proposal_refs))
-        raise "curated expanded evidence repeated summaries or lost shared references, provenance, or claim limits"
-      end
-      raise "curated context retrieval wrote state" unless store.snapshot == before
-
-      proposal_fields = original_proposal.fetch("frontmatter")
-      compact_before = store.verification_context(destinations: [replacement.fetch("destination")], compact: true)
-      limits = {
-        "supported/scope~" => "The exercised capture and source-recovery mechanics.",
-        "exercise_context" => "Deliberately prompted same-chat exercise.",
-        "untested" => [
-          "Caller stacks and recovery, inclusive costs, and allocation behavior were not tested.",
-          "System-library samples were not inspected."
-        ]
       }
-      prose = [
-        [proposal_fields.fetch("source_note"), ""],
-        [proposal_fields.fetch("source_scope"), "Linux R-to-C profiling fixture"],
-        [proposal_fields.fetch("observation"), "The report smoke preceded the larger acquisition."],
-        [proposal_fields.fetch("opportunity_match"), "Capture and recovery matched the recorded witness."],
-        [proposal_fields.dig("triage", "rationale"), "Recovered sources and stable hashes justify support."],
-        [proposal_evidence.last, "No profiling reacquisition was used."],
-        [original_proposal.fetch("body"), original_proposal.fetch("body").delete_suffix(
-          "\nCaller stacks, inclusive costs, and allocation behavior were not tested.\n"
-        )],
-        [curated_body, "# Additional acquisition context\n\nAcquisitions used one thread and a fixed seed.\n"]
-      ].map { |source, text| {"source" => source, "text" => text} }
-      prose.find { |entry| entry["source"] == proposal_fields.fetch("source_scope") }["limits"] = ["exercise_context"]
-      observation_entry = prose.find { |entry| entry["source"] == proposal_fields.fetch("observation") }
-      observation_entry["evidence"] = proposal_evidence.first(3)
-      observation_entry["limits"] = ["supported/scope~", "untested", "unverified_claims"]
-      prose.find { |entry| entry["source"] == proposal_evidence.last }["limits"] = ["supported/scope~", "unverified_claims"]
-      view = {"claim_limits" => limits, "prose" => prose}
-      replacement["verification_context"] = view
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
-      curated_source = store.show([accepted_id]).fetch("records").first
-      unless curated_source == curated.merge("frontmatter" => curated.fetch("frontmatter").merge("verification_context" => view))
-        raise "claim-limit curation changed source facts, verification, basis, or identity"
-      end
+      origin = File.basename(store.route(write.call(candidate_template)), ".md")
+      store.process(origin, write.call(store.prepare_decision(origin, "accept", rationale: "Legacy metadata fixture.")))
+      data, body = parse_document(accepted_template)
+      data["originating_candidate_ids"] = [origin]
+      data["unverified_claims"] = ["Ordinary later-use effectiveness."]
+      # Historical display metadata must remain intact without controlling retrieval.
+      legacy = {
+        "claim_limits" => {"scope" => "Historical acquisition context."},
+        "prose" => [{"source" => "Stale original wording.", "text" => "Replacement display.",
+                     "evidence" => ["No longer present evidence."], "limits" => ["scope"]}]
+      }
+      data["verification_context"] = legacy
+      data["decisive_evidence"] = ["Original measurement: 7 samples.", "Original measurement: 31 samples."]
+      body += "\nBody-only limit: caller stacks were untested.\n"
+      id = File.basename(store.record_accepted(write.call(render_document(data, body))), ".md")
+      proposal, proposal_body = parse_document(verification_proposal_template)
+      proposal["target_accepted_id"] = id
+      proposal["claim"] = "executable-correctness"
+      proposal["verification_basis"] = "deterministic-test"
+      proposal["observation"] = "Recovered 7 native samples; ordinary later use remains untested."
+      proposal["decisive_evidence"] = ["Original measurement: 7 samples."]
+      proposal_id = File.basename(store.route_verification(write.call(render_document(proposal, proposal_body))), ".md")
+      store.process_verification(proposal_id,
+        write.call(store.prepare_decision(proposal_id, "apply", rationale: "Tested mechanics only.")))
       before = store.snapshot
-      output = JSON.parse(run.call(0, "verification-context", "--id", accepted_id))
-      detail = output.fetch("records").first
-      expanded = resolve_context_references(output).fetch("records").first
-      fields = expanded.fetch("verification_proposals").first.fetch("frontmatter")
-      retained_evidence = detail.fetch("evidence").values.find do |entry|
-        entry.is_a?(Hash) && entry["text"] == "No profiling reacquisition was used."
+      originals = store.show([id, proposal_id]).fetch("records")
+      context = JSON.parse(run.call(0, "verification-context", "--id", id)).fetch("records").first
+      unless context.fetch("accepted") == originals.first &&
+          context.fetch("verification_proposals") == [originals.last] &&
+          context.fetch("unverified_claims") == data.fetch("unverified_claims") &&
+          context.fetch("supported_claims").first.fetch("observation") == proposal.fetch("observation")
+        raise "legacy metadata changed original evidence or explicit claim scopes"
       end
-      expected_limits_refs = [
-        {"$ref" => "#/records/0/claim_limits/supported~1scope~0"},
-        {"$ref" => "#/records/0/claim_limits/unverified_claims"}
-      ]
-      unless detail.fetch("claim_limits") == limits.merge("unverified_claims" => remaining_claims) &&
-          detail.fetch("verification_proposals").first.dig("frontmatter", "source_scope") == {
-            "text" => "Linux R-to-C profiling fixture",
-            "claim_limits_refs" => [{"$ref" => "#/records/0/claim_limits/exercise_context"}]
-          } &&
-          fields.dig("source_scope", "claim_limits_refs") == [limits.fetch("exercise_context")] &&
-          fields.dig("opportunity_match", "text") == "Capture and recovery matched the recorded witness." &&
-          fields.dig("triage", "rationale", "text") == "Recovered sources and stable hashes justify support." &&
-          !detail.fetch("accepted").fetch("frontmatter").key?("verification_context") &&
-          detail.fetch("verification_proposals").first.dig("frontmatter", "source_note") == {"$ref" => "#/records/0/claim_limits"} &&
-          expanded.fetch("unverified_claims") == remaining_claims &&
-          expanded.fetch("accepted").dig("body", "text").include?("one thread and a fixed seed") &&
-          detail.fetch("evidence").value?(implementation_evidence) &&
-          retained_evidence.fetch("claim_limits_refs") == expected_limits_refs &&
-          proposal_evidence.first(3).all? { |text| detail.fetch("evidence").value?(text) }
-        raise "canonical limits lost unique evidence, acquisition context, opportunity match, rationale, or scope"
+      replacement, replacement_body = parse_document(store.prepare_accepted_update(id))
+      unless replacement.fetch("verification_context") == legacy && replacement_body == originals.first.fetch("body")
+        raise "accepted preparation discarded historical metadata or body-only evidence"
       end
-      observation = detail.fetch("observations").values.first
-      unless observation.keys.sort == %w[claim_limits_refs evidence_refs text] &&
-          observation.fetch("claim_limits_refs") == [
-            expected_limits_refs.first,
-            {"$ref" => "#/records/0/claim_limits/untested"},
-            expected_limits_refs.last
-          ] &&
-          observation.fetch("evidence_refs") == proposal_refs.first(3).map { |id| {"$ref" => "#/records/0/evidence/#{id}"} } &&
-          fields.dig("observation_ref") == "observations-1" &&
-          expanded.fetch("observations").values.first.fetch("evidence_refs") == proposal_evidence.first(3) &&
-          [7, 31].all? { |count| JSON.generate(output).scan(/\b#{count} native samples\b/).length == 1 }
-        raise "expanded observation repeated sample totals or lost scoped acquisition and preservation evidence"
+      draft, = parse_document(run.call(0, "prepare-verification", "--id", id, "--verification", "supported"))
+      unless draft.fetch("target_accepted_id") == id && draft.fetch("supplemental_reason") == ""
+        raise "stale display metadata blocked proposal preparation or removed supplementation"
       end
-      unless observation.fetch("text") == "The report smoke preceded the larger acquisition." &&
-          proposal_evidence.first(2).all? do |text|
-            JSON.generate(output).scan(Regexp.new(Regexp.escape(text))).length == 1
-          end
-        raise "source recovery was repeated or unique smoke-order evidence was lost"
-      end
-      preservation_evidence = proposal_evidence.fetch(2)
-      unless !JSON.generate(output).include?("preserved byte-for-byte") &&
-          JSON.generate(output).scan(Regexp.new(Regexp.escape(preservation_evidence))).length == 1 &&
-          detail.fetch("evidence").fetch(proposal_refs.fetch(2)) == preservation_evidence
-        raise "expanded preservation evidence was duplicated or lost unique observations"
-      end
-      mixed = JSON.parse(run.call(0, "verification-context", "--id", other_id, "--id", accepted_id))
-      mixed_refs = proposal_refs.first(3).map { |id| {"$ref" => "#/records/1/evidence/#{id}"} }
-      mixed_observation = mixed.fetch("records").last.fetch("observations").values.first
-      resolved_observation = resolve_context_references(mixed).fetch("records").last.fetch("observations").values.first
-      unless mixed_observation.fetch("evidence_refs") == mixed_refs &&
-          resolved_observation.fetch("evidence_refs") == proposal_evidence.first(3)
-        raise "scoped evidence references escaped their record in a multi-record result"
-      end
-      outside = []
-      collect = lambda do |value|
-        case value
-        when String then outside << value
-        when Hash then value.each_value { |child| collect.call(child) } unless value.keys == ["$ref"]
-        when Array then value.each { |child| collect.call(child) }
-        end
-      end
-      collect.call(detail.except("claim_limits"))
-      if outside.any? { |text| text.match?(/prompted|untested|unverified|not tested|not inspected/i) }
-        raise "expanded prose repeated a claim limit outside its canonical field"
-      end
-      unless JSON.generate(output).scan(/prompted/i).length == 1 &&
-          store.verification_context(destinations: [replacement.fetch("destination")], compact: true) == compact_before
-        raise "prompted context was repeated or display curation changed discovery claims"
-      end
-      self_test_context_canonical_fields(detail)
-      unless store.snapshot == before && store.show([proposal_id]).fetch("records").first == original_proposal
-        raise "claim-limit projection wrote state or changed proposal provenance"
-      end
-      evidence_only = JSON.parse(JSON.generate(replacement))
-      entry = evidence_only.fetch("verification_context").fetch("prose").find { |item| item.key?("evidence") }
-      entry.delete("limits")
-      entry["text"] = ""
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(evidence_only, curated_body))
-      only_refs = JSON.parse(run.call(0, "verification-context", "--id", accepted_id)).fetch("records").first
-        .fetch("observations").values.first
-      raise "evidence-only curation added unrelated limits or retained prose" unless only_refs == observation.slice("evidence_refs")
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
-      stale = JSON.parse(JSON.generate(replacement))
-      stale.fetch("verification_context").fetch("prose").first["source"] += " Changed."
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(stale, curated_body))
-      before = store.snapshot
-      run.call(1, "verification-context", "--id", accepted_id, error: "stale verification_context prose source")
-      raise "stale claim-limit projection wrote state" unless store.snapshot == before
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
-      stale_evidence = JSON.parse(JSON.generate(replacement))
-      stale_evidence.fetch("verification_context").fetch("prose").find { |entry| entry.key?("evidence") }.fetch("evidence")[0] += " Changed."
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(stale_evidence, curated_body))
-      before = store.snapshot
-      run.call(1, "verification-context", "--id", accepted_id, error: "stale verification_context evidence source")
-      raise "stale evidence reference retrieval wrote state" unless store.snapshot == before
-      run.call(0, "update-accepted", "--id", accepted_id, "--file", write.call(replacement, curated_body))
-      ["not-an-array", [], [" "], [nil], [proposal_evidence.first, proposal_evidence.first]].each do |targets|
-        before = store.snapshot
-        invalid = JSON.parse(JSON.generate(replacement))
-        invalid.fetch("verification_context").fetch("prose").first["evidence"] = targets
-        run.call(1, "update-accepted", "--id", accepted_id, "--file", write.call(invalid, curated_body),
-          error: "verification_context evidence")
-        raise "invalid evidence reference wrote state" unless store.snapshot == before
-      end
-      [[{"source" => "one", "text" => "", "evidence" => ["one"]}],
-        [{"source" => "one", "text" => "", "evidence" => ["two"]},
-          {"source" => "two", "text" => "", "evidence" => ["one"]}]].each do |cycle|
-        before = store.snapshot
-        invalid = replacement.merge("verification_context" => view.merge("prose" => cycle))
-        run.call(1, "update-accepted", "--id", accepted_id, "--file", write.call(invalid, curated_body),
-          error: "cyclic verification_context evidence")
-        raise "cyclic evidence reference wrote state" unless store.snapshot == before
-      end
-      [nil, {"claim_limits" => {"scope" => ""}, "prose" => []},
-        {"claim_limits" => {"unverified_claims" => remaining_claims}, "prose" => []},
-        view.merge("prose" => [prose.first, prose.first]),
-        view.merge("prose" => [prose.first.merge("limits" => [])]),
-        view.merge("prose" => [prose.first.merge("limits" => ["unknown"])]),
-        view.merge("prose" => [{"source" => "x", "text" => nil}])].each do |invalid|
-        before = store.snapshot
-        invalid_record = JSON.parse(JSON.generate(replacement.merge("verification_context" => invalid)))
-        run.call(1, "update-accepted", "--id", accepted_id,
-          "--file", write.call(invalid_record, curated_body), error: "verification_context")
-        raise "invalid claim-limit curation wrote state" unless store.snapshot == before
-      end
-      store.validate
+      run.call(0, "validate")
+      raise "legacy metadata retrieval or preparation changed state" unless store.snapshot == before
     end
   end
 
@@ -5593,7 +5073,7 @@ module RetroState
     inspection_self_test
     metadata_comparison_self_test
     verification_context_self_test
-    verification_evidence_curation_self_test
+    verification_legacy_metadata_self_test
     verification_preparation_self_test
     accepted_preparation_self_test
     preparation_self_test
@@ -7394,68 +6874,30 @@ def usage(command = nil)
       unverified_claims copies the accepted record's optional list of remaining scopes;
       null means unassessed, [] means assessed with no declared unverified scopes.
       Prose is not parsed to infer claims, and proposal application does not clear that list.
-      --compact includes only id, verification, verification_basis, and these three claim
-      lists per record, with the same pagination and filtering. It omits expected_behavior,
-      verification_opportunity, and claim observations. Use noncompact discovery or --id
-      for that prose and the evidence scope.
+      --compact includes id, destination, expected_behavior, verification, verification_basis,
+      and these three claim lists per record, with the same pagination and filtering.
+      It omits verification_opportunity and claim observations. Use noncompact discovery
+      or --id for the exact opportunity and evidence scope.
       The overall verification field does not certify every claim. Expand selected IDs
       before judging evidence.
 
       IDs may be accepted records (SCR-*) or inbox/archived verification proposals (VP-*).
       Proposal IDs resolve to their target; mixed IDs deduplicate targets in selected order.
-      Print JSON {root, mode, records}. Each result contains an accepted projection and
-      verification_proposals with one {id, path, frontmatter, body} projection per proposal.
-      selected_verification_proposal_ids, applied_verification_proposal_ids, and
-      pending_verification_proposal_ids preserve roles and ordering without repeating
-      documents. Explicitly selected rejected proposals remain included.
-      Expanded supported_claims and contradicted_claims contain {"$ref": POINTER} entries
-      pointing to canonical proposal documents; read their frontmatter for claim type,
-      basis, observation, opportunity match, and triage. Legacy unknown scopes remain null.
-      claim_limits owns the canonical unverified_claims list; the result-level
-      unverified_claims field references it. applied_verification_proposal_ids owns its
-      list at result level. Accepted-frontmatter aliases reference these fields when
-      present in the source; absence versus an explicit empty list remains distinguishable.
-      Identity aliases in frontmatter and triage reference the canonical document id.
-      Each $ref is a JSON Pointer rooted at the complete output document, such as
-      #/records/0/accepted/id or #/records/0/verification_proposals/0. Resolve it before interpreting
-      projected fields as source metadata. Role lists retain IDs as relationship links.
-      Aggregate verification and basis describe the accepted outcome; each proposal keeps
-      its own decision. Equal categorical values alone do not establish aliases.
-      claim_limits, observations, and evidence own canonical text. Exact copies
-      elsewhere, including across those pools and source notes, use $ref; distinct wording
-      stays distinct unless explicitly curated below. Projected
-      observed_behavior_refs, observation_ref, summary_ref, and decisive_evidence_refs
-      point into those dictionaries. Accepted observed_behavior_refs reconstruct the
-      uncurated text by joining the referenced observations with two newlines; an exact
-      applied-observation rollup reuses its component references.
-      Consolidate redundant paraphrases through prepare-accepted-update and
-      update-accepted, reusing precise applied-proposal evidence while retaining unique
-      facts and claim limits. Curate accepted bodies to retain additional context, removing
-      prose already covered by structured observations, evidence, and claim scopes.
-      Preserve body-only facts and limits. For repeated claim-limit prose, curate the
-      accepted record's optional verification_context map through the same update commands:
-      claim_limits maps named boundaries to nonblank text or nonempty text lists;
-      unverified_claims is reserved and supplied by the accepted record's existing scopes.
-      prose is a list of {source: EXACT_ORIGINAL_TEXT, text: RETAINED_UNIQUE_PROSE} entries.
-      Optional limits: [NAME, ...] selects distinct declared boundaries and renders
-      claim_limits_refs pointing to those fields, preserving each contribution's scope.
-      Optional evidence: [EXACT_ORIGINAL_EVIDENCE, ...] renders evidence_refs pointing only
-      to those entries in this record's evidence dictionary. Keep shared measurements in
-      the evidence and retain unique observations in text. Missing targets and cycles are
-      refused; proposal archives remain unchanged.
-      Without either selector, curation links the whole claim_limits object. Empty retained
-      text leaves only references. Retain unique evidence,
-      provenance, opportunity requirements, matches, and decision reasons in the prose.
-      Every declared source must match retrieved text or expanded retrieval refuses stale
-      curation. This is explicit reviewed display curation, with no inferred equivalence.
-      The accepted projection excludes rendering configuration. Proposal archives
-      and original accepted prose remain unchanged and available through show.
-      These references are local to the result, not persistent record IDs.
-      Opportunity matches, triage rationales, source notes, and claim limits remain intact.
-      Uncurated prose is preserved rather than inferred to be equivalent. Source digests
-      describe the original documents, available verbatim through show --id ID.
+      Print JSON {root, mode, records}. Each result contains accepted and verification_proposals
+      with the original {id, path, frontmatter, body} records, as returned by show.
+      Each proposal appears once; selected_verification_proposal_ids,
+      applied_verification_proposal_ids, and pending_verification_proposal_ids preserve
+      roles and ordering. Explicitly selected rejected proposals remain included.
+      supported_claims and contradicted_claims contain the same summaries as noncompact
+      discovery, including each observation. unverified_claims retains the accepted list
+      or null when unassessed. Read proposal evidence, opportunity matches, and triage
+      reasons before interpreting these summaries as support for a broader claim.
+      Source text and metadata remain unchanged, including repeated evidence and body-only
+      limits. No JSON pointers, shared text pools, or prose replacement maps are generated.
+      Historical verification_context metadata is preserved as opaque source data; it no
+      longer controls rendering or validation and cannot block retrieval or preparation.
       Historical dispositions remain inspectable; legacy support without proposal
-      provenance has no applied IDs.
+      provenance has no applied IDs. Reads do not migrate or rewrite any stored evidence.
       Expanded proposals must match their record IDs and locations. Accepted and proposal
       documents are read once per invocation and reused; later calls read anew.
       Choose destinations or IDs; text filters, compact output, and pagination apply only

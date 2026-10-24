@@ -291,10 +291,6 @@ if ((${#r_files[@]} > 0)); then
   fi
 fi
 
-if ! run_check "${repo_dir}/scripts/check-verification-context.rb" --self-test; then
-  status=1
-fi
-
 smoke_scripts=(
   "${repo_dir}/scripts/smoke-test-skill-scripts.sh"
   "${repo_dir}/scripts/smoke-test-installer.sh"

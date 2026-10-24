@@ -361,13 +361,19 @@ It includes active outcomes in every verification state. Literal filters may omi
 adjust or omit terms when broader coverage is needed. See `--help` for matching and pagination;
 follow `next_offset` when more relevant records remain. Expand accepted or proposal
 IDs, including proposal IDs directly from `review-queue`, with `verification-context --id ID`.
-It retrieves the target accepted record and selected, applied, and pending proposals together.
+It retrieves the original accepted record and each selected, applied, or pending proposal once,
+with ID lists recording their roles. Claim summaries retain observations and explicit remaining
+scopes. Compact discovery includes the destination and expected behavior for selecting records.
 Read their exact opportunities, claims, and evidence before constructing support. Legacy support
 without proposal provenance remains limited to the retained evidence.
 Both discovery formats expose applied support and contradiction scopes plus declared unverified
 claims; do not read the overall status as support for every expected benefit. Missing claim metadata
 is unknown, not evidence that every claim has been verified. See command help for the output contract.
 The command retrieves context without judging relevance, opportunity match, or supplementation.
+Source text and metadata are returned unchanged; repeated prose does not require curation or an
+overlap review. Historical `verification_context` metadata remains opaque source data and no longer
+controls rendering or validation. Existing overlap manifests remain historical local files and no
+longer govern review decisions. No evidence migration is required.
 
 When the task produces decisive evidence for the target's exact opportunity, use
 `prepare-verification --id SCR-ID --verification STATE` for the chosen target and proposed state.
