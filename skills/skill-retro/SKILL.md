@@ -41,63 +41,46 @@ may narrow it.
 
 ## Automatic Checkpoints
 
-When standing instructions enable `auto`, evaluate a substantive coherent unit
-after validation and small fixes, before the final response or handoff. Also
-evaluate when substantial user redirection exposes missing guidance or reusable
-craft.
+When standing instructions enable `auto`, evaluate once after a substantive coherent work unit,
+normally after validation and small fixes. Also evaluate when material user correction or a
+distinct lesson appears. Fold minor follow-ups into that evaluation and reuse current context.
 
-For a worthwhile future learning action retained at this checkpoint, identify
-how an agent will encounter and own it. Cite sufficient active guidance, route
-an admitted missing delta within authority, or explicitly drop an unjustified
-recommendation. A stored proposal is review input, not an active instruction;
-preserve the admission threshold and do not leave the action dependent on a
-chat-only reminder.
+Start with the work's concrete observations: a reusable missing decision, a material failure, or
+evidence that might establish something new about existing guidance. If none is plausible, stop
+quietly. Using a skill alone does not require querying its verification opportunities.
 
-For ordinary opportunistic confirmation, query destinations of guidance that materially shaped task
-or workflow decisions, even when unchanged. For learning-state authority decisions, include
-`skills/skill-retro/assets/global-agents-learning.md`. Use the installed helper's read-only
-discovery. Repeat `--destination` for several destinations; use optional `--text` filters to narrow
-expected behavior or opportunities before paging. See `--help` for matching and pagination:
+For a possible verification observation, use the installed helper for bounded discovery:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-context --destination TEXT --compact
 ```
 
-Within a continuous task, reuse still-current discovery results and selected accepted/proposal
-context across follow-up fixes and reviews. Reevaluate the judgment when task evidence materially
-changes. Refresh only affected context when relevant guidance, learning state, or lookup scope
-changes, or when needed context is unavailable or stale.
+Query the guidance involved in the observation;
+include `skills/skill-retro/assets/global-agents-learning.md` for learning-state authority evidence.
+Use optional text filters and pagination only as needed; literal filters limit coverage.
+Expand selected accepted or proposal IDs with `verification-context --id ID` before judging the
+exact opportunity, supported claims, remaining uncertainty and applied or pending evidence.
 
-Discovery includes active unverified and supported outcomes. Select a small set whose expected
-behavior bears on actual task decisions or evidence; if none is plausibly relevant, stop. Literal
-filters may omit relevant outcomes; adjust or omit terms when broader coverage is needed. Follow
-`next_offset` when more relevant records remain. Expand selected identities with
-`verification-context --id ID` through the same helper to read the accepted record and its applied
-and pending proposals together. Establish the exact opportunity, supported claim, and remaining
-uncertainty before judging evidence; summary rows and `supported` do not establish every expected
-benefit. Route further support only when it materially adds to existing evidence for that
-opportunity, using the same accepted identity and a concrete `supplemental_reason`. Another
-conforming task or a different claim label alone is insufficient.
+For observed failure or harm, first use `accepted-records --destination TEXT` or `--text TEXT`
+to find the applicable identity across all dispositions, then expand it with `verification-context`.
+Route contradiction only for evidence matching that record's claim and opportunity; use a candidate
+when the decision itself changes. A query hit creates no task or quota.
 
-When observed failure or harm bears on active guidance, use a bounded
-`accepted-records --destination TEXT` or `--text TEXT` query through the same helper to find the
-applicable identity across all dispositions, then expand it with `verification-context --id ID`.
-Route contradiction only when the evidence addresses that claim and recorded opportunity; use a
-candidate when the decision itself changes. A query hit creates no work, quota, or record.
+Reuse still-current discovery and selected evidence within a continuous task. Refresh only when
+the relevant guidance, state, observation or scope changes. Further support must materially add
+to existing evidence for the same identity and opportunity, with a concrete `supplemental_reason`;
+another conforming task or a different claim label alone is insufficient.
 
-Err toward a quiet no-change evaluation when the boundary is uncertain. Fold
-minor fixes into the current unit and reevaluate only for a materially changed
-or distinct lesson. Disclose routed records in the final response; omit zero
-counts unless instructions require them.
+For an agreed future action, identify its owner and how it will be encountered. Route only admitted
+records within authority; an inconclusive thought needs no record. Keep no-change evaluations quiet
+and disclose routed records, blocked writes or paste-ready fallbacks.
 
 ## Detect And Admit A Result
 
-Examine how the work unfolded as well as what it delivered. Read
-[value-stream judgment](references/value-stream.md) at the checkpoint to look
-for concrete departures from what the user and applicable guidance value,
-including concerns outside the named signals below. A successful deliverable
-does not settle whether the journey was useful; noticing a concern does not
-itself establish a missing rule.
+Examine the method as well as the result. Use
+[value-stream judgment](references/value-stream.md) when a concrete concern needs deeper inquiry;
+reuse guidance already available. A successful deliverable does not establish that the method was
+useful, and noticing a concern does not itself establish a missing rule.
 
 Distinguish these outcomes before loading record-construction mechanics:
 

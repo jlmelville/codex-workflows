@@ -1,139 +1,65 @@
 # Skill Repository Retrospective Prompt
 
-Audit this `codex-workflows` repository as a public skill system, not as an
-ordinary codebase and not as a review of personal retrospective state.
+Audit this `codex-workflows` repository as a public skill system. Produce a report in chat;
+source edits, commits, installation and PRs require authority from the invoking request.
 
-Use this periodically after several skill-driven updates. Do not edit files,
-create commits, sync installed skills, or open PRs unless explicitly asked.
-Produce a report in chat.
+Use this full-corpus route when requested or when cross-cutting findings justify it within the
+current scope. A cadence reminder alone does not expand a review. For a focused question, use
+[the public-review route](../skills/learning-process-review/SKILL.md#public-artifact-audit-route).
 
-This is the full-corpus audit route. For an explicitly focused question, use
-[the focused public-review route](../skills/learning-process-review/SKILL.md#public-artifact-audit-route)
-instead of the full inspection and report requirements below.
+## Scope
 
-Inspect:
+Inspect skill triggers and core guidance, display metadata and default prompts, routed references,
+bundled scripts, repository instructions, root validation and installer ownership, CI and dependency
+updates, prompts and relevant source history. Check managed runtime parity when available. State
+coverage limits rather than implying an unavailable surface was inspected.
 
-- `skills/*/SKILL.md` trigger descriptions and core workflow guidance;
-- `skills/*/agents/openai.yaml` display metadata and default prompts;
-- `skills/*/references/` for duplicated or drifting detailed guidance;
-- bundled scripts under `skills/*/scripts/`;
-- root scripts and the installer ownership contract in `install.sh`;
-- repository instructions in `AGENTS.md`;
-- `.github/workflows/` and `.github/dependabot.yml`, including pinned tool
-  acquisition and update ownership;
-- prompts and recent source commits;
-- managed runtime parity, when the installed runtime is available.
+Keep `CODEX_WORKFLOWS_STATE_DIR` out of this audit. Personal reports, verdicts, accepted evidence,
+drafts, ledgers and audits belong to the separate learning-state review. Public structure and
+validation do not establish downstream behavioral effectiveness.
 
-Do not require or inspect `CODEX_WORKFLOWS_STATE_DIR` for this artifact audit.
-Inbox reports, verdict history, accepted evidence, drafts, ledgers, learning
-audits, and cadence are disposable external state owned by the separate
-learning-process retrospective.
+## Judgment
 
-Focus on:
+Look for changes that would improve a real agent decision or remove avoidable work:
 
-- duplicated guidance across skills;
-- trigger overlap or unclear skill boundaries;
-- top-level sequences that lack a non-obvious constraint, ordering hazard, or
-  observed failure that earns their always-read context cost;
-- conflicting action authority across trigger descriptions, default prompts,
-  skill bodies, references, and repository instructions;
-- vague brevity or style directives that do not say which evidence, caveats,
-  decisions, or next actions must survive shortening;
-- skill bloat, including one-off bullets without concrete failure signals;
-- local conventions leaking into general-purpose skills;
-- guidance that should move from `SKILL.md` into references;
-- deterministic behavior that should become a script or validator;
-- bundled scripts that are stale, too narrow, duplicated, or under-validated;
-- CI or installer drift that can change validation without a repository diff;
-- missing cross-links between related skills;
-- no-action findings where existing guidance is already enough.
+- duplicated or conflicting guidance, unclear triggers and inconsistent authority;
+- default-path sequences or incident-specific rules without a distinct decision or failure boundary;
+- local conventions presented as general guidance;
+- stale, redundant or under-validated helpers, and CI or installer drift;
+- missing routes to useful guidance, and cases where existing coverage already suffices.
 
-Run a semantic-compression pass in addition to those checks:
+Use [semantic authoring](../skills/codex-skill-repo/references/semantic-authoring.md) for admission,
+placement and payload judgment. When duplication is suspected, compare the affected clauses by the
+action, authority, required observation and success claim they produce. Inventory or group clauses
+only as needed to judge the proposed consolidation; do not add a separate corpus-wide pass.
+Preserve distinct conditions and constraints. Moving prose to a reference alone is not compression.
 
-1. Inventory operative rules and clauses across `SKILL.md` and routed
-   references in temporary working material. Cluster them by the action,
-   authority boundary, required observation, or success condition they
-   produce; report only the useful clusters and findings.
-2. Flag several cases leading to the same action, headings that have become
-   incident lists, references that reduced default loading without reducing
-   decision duplication, exact mechanics repeated across cases, and casebooks
-   that repeat one witness shape under different narratives.
-3. Classify each flagged unit as default judgment, routed mechanics, optional
-   case, or external verification only. Treat a reference as a loading
-   mechanism rather than a semantic category.
-4. Recommend a rewrite only when the crosswalk can remove duplicated operative
-   clauses or incident-shaped branches without merging distinguishable actions,
-   constraints, witnesses, or completion claims. Do not use a numerical
-   semantic score or threshold.
+A grounded incident need not earn a new rule. Another occurrence of the same decision and witness
+may add verification evidence instead. Optional cases should preserve a distinct plausible mistake
+or observation boundary, not accumulate report narratives. Line counts and checked payload budgets
+are review signals; neither proves bloat or justifies advancing a baseline to clear a finding.
 
-Keep two admission questions separate:
+Distinguish a decision that lacks evidence from a justified change whose later benefit is unknown.
+The former may warrant deferral; the latter can be implemented and remain behaviorally unverified.
+Do not require a new matcher, experiment or record merely to retain an uncertain recommendation.
 
-- Evidence admission asks whether the lesson has a concrete failure signal or
-  other decisive grounding.
-- Semantic curation asks whether it adds a decision to the public corpus.
+## Report
 
-The first occurrence can be well grounded without earning a new clause, and a
-recurrence can strengthen verification without adding public guidance. Keep
-the existing concrete-failure-signal checks.
+Lead with the findings most likely to change a worthwhile decision. For each recommended edit,
+give file and line evidence, the affected behavior, the smallest useful change, its payoff and
+risk, and any authority or evidence still needed. Include justified retention or no-action findings
+where they answer the review question. Choose a compact structure suited to the findings; empty
+categories and a fixed report template are unnecessary.
 
-Classify every recommendation as one of:
+Separate observations from inferred consequences and structural health from behavioral claims.
+With public evidence alone, report behavioral effectiveness as unassessed rather than inferring it
+from corpus organization, validation or commit history.
 
-- `implement-now`: the decision and implementation are justified, with no
-  distinct later behavioral claim to test;
-- `implement-now-verify-later`: the decision and implementation are justified,
-  while ordinary downstream behavior remains unverified;
-- `candidate-defer`: a named decision cannot yet be justified because specific
-  evidence is missing;
-- `ledger`: an agreed future action, implementation blocker, maintenance threshold, or
-  cross-report hypothesis needs a follow-up; keep any provisional skill text in its body; or
-- `no-action`: no public or live operational change is warranted.
+End with a prioritized proposed batch and distinguish agreed follow-ups needing tracking from
+optional ideas and open questions. An agreed future action needs an owner, a concrete review
+condition and check, a next action and a close condition. Reuse an existing record when suitable.
+Leave unaccepted recommendations and inconclusive questions in the report.
 
-Before using `candidate-defer`, state exactly what decision cannot be made now
-and what evidence is missing. Behavioral uncertainty after a justified,
-reversible implementation is `implement-now-verify-later`, not a deferral.
-
-Every proposed candidate deferral or ledger must name an owner, a concrete review
-condition and how to check it, a next action, and a close condition. Reviewers find work through
-`review-queue` and decide whether its conditions are met. "Next use" needs an existing record or
-query that makes that use observable. Do not build a new matcher just to defer a recommendation
-that is already safe to implement and verify later.
-
-For casebooks, confirm that each capsule is sanitized, optional, skill-local,
-organized by reasoning problem or witness shape, and admitted for a distinct
-plausible wrong implementation or observation boundary rather than provenance.
-Flag uncurated collections of report narratives.
-
-Reference word and line totals are not proof of semantic bloat. Treat checked
-payload budgets as circuit breakers against unbounded growth, then use semantic
-review to decide what to consolidate, demote, or remove; never advance a budget
-merely to clear a finding.
-
-Report using this shape:
-
-```md
-## Skill Repository Retrospective
-
-### High-Value Consolidations
-### Bloat Or Drift Risks
-### Semantic Compression Findings
-### Trigger Boundary Issues
-### Script Opportunities
-### Reference/Structure Improvements
-### No-Action Findings
-### Recommended Edits
-```
-
-For each recommended edit, include file and line evidence, current location,
-proposed destination, reason, risk if omitted, and its classification from the
-preceding list. Prefer pruning, consolidating, or clarifying existing skills
-over creating new skills.
-
-End with a complete sanitized diagnosis suitable for a cold external audit
-record and a list of unresolved executable consequences. Do not write external
-state from this report-only audit; `$learning-process-review` owns action
-creation and audit recording after its applicable mutation gate.
-
-Report `Structural status: healthy` or `findings present` from this public
-evidence. Do not claim behavioral effectiveness from corpus organization,
-validation, or source history. Use: `Behavioral effectiveness: unknown —
-Insufficient downstream evidence to assess behavioral effectiveness.`
+Do not write external state from this report-only audit. `$learning-process-review` owns authorized
+follow-up and completed-audit recording after a full audit actually finishes. A focused review
+does not reset the full-audit reminder.

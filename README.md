@@ -223,18 +223,13 @@ for every task. See [value-stream judgment](skills/skill-retro/references/value-
 | During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
 | At a meaningful task boundary | `$skill-retro` | Evaluate session evidence and automatically route only high-confidence candidates or exact verification proposals. |
 | When intake accumulates | `$skill-retro-triage` | Review a bounded relevant papercut cluster, judge candidates and verification proposals, then implement authorized changes and drains. |
-| At the process-review cadence below | `$learning-process-review` | Audit external learning state; when the artifact audit is due, also run and supervise the repository prompt below. |
-| When the artifact audit is due (direct/manual entry) | `prompts/skill-repository-retrospective.md` | Run the same report-only public-skill audit directly, without the broader learning-process review. |
+| For a focused question or useful review reminder | `$learning-process-review` | Review the requested learning-state or public-skill scope and complete authorized follow-up. |
+| For a requested or justified full public audit | `prompts/skill-repository-retrospective.md` | Inspect the public corpus without private learning state. |
 
-The final two rows describe different review scopes, not two artifact-audit
-prompts. `$learning-process-review` always reviews the external learning
-mechanism. When `artifact-audit-status` is due, that skill also runs the one
-repository prompt named in the final row and supervises its follow-up. Invoking
-the prompt directly is the manual entry point for that same artifact audit; it
-skips the broader learning-process review.
-
-The repository prompt examines the public skill corpus itself. Its audit is
-report-only unless the invoking task separately authorizes source changes.
+`$learning-process-review` supports focused public-skill questions, private learning-state reviews,
+and full audits. A due artifact reminder prompts a judgment about useful scope; it does not add
+a full audit automatically. The repository prompt is the direct entry point for the same full
+public audit. Its findings exclude private state, and source changes need invoking authority.
 
 For a focused question about how the learning machinery affects ordinary work,
 or to explore another machine's local evidence, use:
@@ -249,10 +244,10 @@ it adds no cadence and does not complete the broader review or public artifact
 audit. The broader skill retains responsibility for authorized drains and
 review follow-up.
 
-Run the first process review after 10 papercuts or 14 calendar days after
-enabling capture. Thereafter use the next trigger recorded by the previous
-review; absent one, the default is five new papercuts or 14 calendar days after
-the last review.
+Use 10 papercuts or 14 days after enabling capture as the first process-review reminder.
+Thereafter use the previously agreed trigger; absent one, the default is five new papercuts or
+14 days after the last review. Judge useful scope when reminded; this does not schedule a task
+or require a full audit.
 
 Material loop changes with uncertain benefit can use
 [bounded experiments](skills/learning-process-review/references/loop-experiments.md)

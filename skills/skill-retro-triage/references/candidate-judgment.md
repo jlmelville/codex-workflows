@@ -25,11 +25,9 @@ existing identity for same-decision repair or relocation. For a new accepted
 outcome, follow the already-landed branch in
 [report-to-patch.md](../../skill-retro/references/report-to-patch.md#public-change).
 
-Before choosing a destination, state the changed decision, authority,
-observation, or success condition. Prefer an existing principle. Keep shared
-judgment in the default path, exact mechanics in routed references or scripts,
-and distinct sanitized cases optional. Privacy, authority, evidence, and
-completion contracts may remain on the default path even when unconditional.
+Use [semantic authoring](../../codex-skill-repo/references/semantic-authoring.md#admission) for
+placement and payload decisions. Reuse an existing principle when it already produces the needed
+action; preserve distinct authority, evidence and completion constraints.
 
 When revisiting learned guidance, compare retaining necessary judgment, merging with an existing
 principle, narrowing or conditionally routing it, replacing deterministic work with a check, and
@@ -62,11 +60,6 @@ implementation provenance; preserve its behavioral verification. Recurrence of
 the same decision and witness belongs in verification; if it arrived as a candidate,
 reject or mark it `no-change` and direct the producer to the typed verification
 route. Do not translate ambiguous intake into accepted-state evidence.
-
-Public additions must pass payload review. Do not raise a baseline merely to
-avoid judgment or require an offset from an unrelated skill. A separately
-accepted capacity decision may own a justified addition's skill and aggregate
-limits. Judge reductions independently for preserved decision value.
 
 For `defer`, name the unjustified decision and missing evidence. Behavioral
 uncertainty after a justified reversible implementation belongs in an

@@ -17,7 +17,8 @@ Read this only after `SKILL.md` identifies a possible candidate or verification 
 ## Candidate Evidence
 
 - Classify `evidence_lineage` against affected guidance and explain how it may have shaped what was
-  attempted, noticed, or reported. Use `unknown`; descendant reports do not prove recurrence or transfer.
+  attempted, noticed, or reported. Use `unknown` when that relationship cannot be established;
+  descendant reports do not prove independent recurrence or transfer.
 - For material human feedback, preserve a bounded sanitized pairing of judged behavior, the judgment and
   stated rationale or constraints, and any alternative or outcome. Leave unstated rationale absent and separate producer inference from evidence.
 - Name the missing delta and its smallest natural home: `SKILL.md`, reference, script, prompt, local
@@ -28,26 +29,15 @@ Read this only after `SKILL.md` identifies a possible candidate or verification 
   establish behavioral effectiveness; no new landing fields or record per commit are required.
 - Include a bounded exact failure signal when decisive. For commands, record whether they were exercised,
   whether quoting or sandbox caveats remain, and which commands are untested.
-- Prefer a validator or bundled script for deterministic command behavior, layout, metadata, generated
-  output, or fragile recurring searches. Explain the control choice in `smallest_change`: what a helper
-  can enforce, what judgment remains, and why prose is needed when chosen. A proposal may need both.
-- Keep the claim in the narrowest supported context; broaden only with a credible transfer mechanism.
-  Choose its home separately: ask which other languages, frameworks, artifact types, or repositories
-  share the failure mechanism. Put the shared kernel in the most general active home that covers
-  those contexts, with stack mechanics as examples or extensions. Do not strand it only in an
-  uninstalled draft when an active home covers it.
+- Explain the smallest control that would address the gap: an existing principle, prose, a routed
+  mechanic or an executable check. State what can be enforced and what judgment remains.
+- Keep the claim within its evidence boundary. Choose its natural home separately, using
+  [semantic authoring](../../codex-skill-repo/references/semantic-authoring.md#admission) for
+  placement and payload judgment. A shared mechanism can have a general home without broader proof.
 
 When a corrected decision makes an accepted outcome false, name `supersedes_accepted_id` and state
 `now_false`. For the same outcome and witness, use verification. For implementation drift, name the missed
 public surface under the existing accepted identity and leave behavioral verification unchanged.
-
-## Destination Choice
-
-- Add a skill only for a reusable, non-obvious, recurring pattern with no natural existing home.
-- Update an existing skill for a focused refinement; add a script when deterministic behavior matters;
-  add a prompt when the asset is an instruction to ask another agent.
-- Add nothing for ordinary judgment, a local convention, or a decision covered before the assessed
-  change. Cite the section, item, script, prompt, or convention that covers it.
 
 ## Verification Evidence
 

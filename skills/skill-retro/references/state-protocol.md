@@ -215,7 +215,7 @@ justify. Post-implementation behavioral uncertainty is not a deferral: implement
 outcome, keep it behaviorally `unverified`, and retain its destination-matched
 `verification_opportunity`. If processing is interrupted after archive creation, retry `process`
 with the same candidate and decision. The helper verifies the existing archive and removes the
-inbox copy; a conflicting archive is refused. Retrying does not add another counted candidate.
+inbox copy; a conflicting archive is refused. Retrying preserves the single candidate archive.
 
 Every new or reconsidered candidate deferral names its `unresolved_decision` and includes these
 follow-up fields. New open ledgers use the same fields without claiming that an already accepted
@@ -306,9 +306,10 @@ declared. Keep these scopes narrower than broad claim categories when evidence c
 boundary. Curate the list with `prepare-accepted-update` and `update-accepted` when a reviewed outcome
 changes what remains; proposal application preserves it because resolving a scope requires judgment.
 
-Use `verification-context --destination TEXT --compact` for bounded discovery across destinations
-materially involved in a completed task. Repeat destinations to combine them without duplicate
-identities; optional `--text` filters narrow expected behavior or opportunities before pagination.
+For a concrete observation that may verify existing guidance, use
+`verification-context --destination TEXT --compact` for bounded discovery of relevant destinations.
+Repeat destinations to combine them without duplicate identities; optional `--text` filters narrow
+expected behavior or opportunities before pagination.
 It includes active outcomes in every verification state. Literal filters may omit relevant outcomes;
 adjust or omit terms when broader coverage is needed. See `--help` for matching and pagination;
 follow `next_offset` when more relevant records remain. Expand accepted or proposal
@@ -344,7 +345,7 @@ comparative-improvement
 ```
 
 The narrower `verification-opportunities` and `accepted-records --active-supported` views remain
-available; ordinary checkpoints use `verification-context` to avoid reconstructing their join.
+available; use `verification-context` when joined evidence is needed.
 
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query to locate the
@@ -466,22 +467,22 @@ the record, marks it closed, updates `last_reviewed`, and adds a UTC closure
 timestamp and rationale. It rejects missing and already closed ledger IDs.
 Legacy closed records without structured closure metadata remain valid.
 
-This state is deliberately disposable. Delete closed papercuts, rejected
-history, stale audit material, discharged ledger entries, and superseded drafts
-whenever they no longer help future judgment. The public repository must not
-rely on retention.
+The public repository does not depend on retaining operational history. Within authorized cleanup,
+prune obsolete records only when no retained record references them. Closed ledgers and legacy
+drafts may still be referenced by audits. Candidate origins, supersession links and applied
+proposals also remain integrity dependencies. Preserve referenced records. Validate after pruning;
+do not rewrite evidence or remove links merely to make deletion pass.
 
 ## Completed Audits And Artifact Cadence
 
-`audits/learning-process` stores completed, sanitized system diagnoses. Generate
-`template audit`, create every unresolved consequence first as an existing
-candidate deferral or ledger action with the required follow-up fields,
-list those IDs in `unresolved_action_ids`, and use `record-audit --file PATH`
-only after the user has authorized the external-state mutation. The helper
-requires each listed action to exist and be open when the audit is recorded. Existing open legacy
-drafts may still be referenced; historical audit references remain validated after actions close.
-Completed audits stay cold; only their unresolved action records belong in
-`review-queue`.
+`audits/learning-process` stores completed, sanitized diagnoses. Generate `template audit` and
+link agreed executable follow-ups needing tracking in `unresolved_action_ids`. Reuse existing open
+deferrals or ledgers; create new ones only within authority. Optional ideas and inconclusive
+questions stay in the report, and an audit may have no action IDs. Unresolved contradictions retain
+their existing queue obligation until resolved or transferred to an open residual ledger.
+Use `record-audit --file PATH` only after state recording is authorized. Each listed action must
+exist and be open. Open legacy drafts may still be referenced, and historical audit references
+remain validated after actions close. Completed audits stay cold; open actions enter the queue.
 
 Use `audit_kind: learning-process` for feedback-loop diagnoses and
 `audit_kind: skill-repository` for completed report-only artifact audits. The
@@ -510,10 +511,11 @@ published audit needs no recovery write; the former `record-audit --id` option i
 publication supplies no new cutoff. The shared writer lock, atomic publication, evidence checks,
 and open-action validation remain in force.
 
-Due state authorizes only the report described by `prompts/skill-repository-retrospective.md`; it
-never authorizes source edits or automatic corpus rewrites. `artifact-audit-status` retains its
-five tab-separated fields: status (`due` or `not-due`), approximate candidate count since the
-cutoff, configured threshold, latest repository-audit ID (or `none`), and latest audit path (or `-`).
+Due state is advisory: it neither expands the current task nor authorizes source edits. Use
+`prompts/skill-repository-retrospective.md` for a requested or justified full audit within scope;
+a focused review does not reset its reminder. `artifact-audit-status` retains five tab-separated
+fields: status (`due` or `not-due`), approximate candidate count since the cutoff, configured
+threshold, latest repository-audit ID (or `none`), and latest audit path (or `-`).
 
 ## Validation Boundary
 
