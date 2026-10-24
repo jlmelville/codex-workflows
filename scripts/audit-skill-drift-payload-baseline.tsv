@@ -17,7 +17,8 @@ skill	python-uv-project-workflow	160	800	9675	71136
 skill	r-architecture-audit	160	800	12000	64000
 skill	r-ci-hardening	160	800	12702	62523
 # Accepted scope: document rendering, reproduction boundaries, canonical figure-size guidance, and static-preview verification.
-skill	r-docs-pkgdown	160	950	10425	47784
+# Reviewed addition: browser checks for page width, legibility, contrast, and contained overflow.
+skill	r-docs-pkgdown	160	955	10425	48173
 # Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
 # Reviewed addition: successful process completion before accepting package-check diagnostic counts.
 skill	r-package-workflow	160	964	10533	53750
@@ -38,7 +39,8 @@ skill	shell-script-quality	160	800	8172	72172
 skill	skill-retro	160	940	9843	49112
 skill	skill-retro-triage	178	800	9139	71334
 # Accepted scope: author-voice calibration, sentence-admission, and diagram comparison/rendering guidance; routing and character ceilings unchanged.
-skill	technical-writing	103	255	6000	18000
+# Reviewed addition: reader knowledge, opening relevance diagnostic, and local explanatory context.
+skill	technical-writing	115	267	6197	18000
 skill	uv-sandbox-workflow	160	800	7896	71896
 # Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt and tested inspection wrapper, and learning-loop guidance.
 # Reviewed additions: authoring and investigation refinements, completion evidence, learning provenance and authority, diagram guidance, and README steering names.
@@ -46,4 +48,5 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Reviewed addition: the existing checkpoint's source-destination discovery clarification.
 # Reviewed addition: scoped patch-identity boundary and ignored-file guidance.
 # Reviewed addition: research-depth adds 146 lines and 9662 normalized characters; prior findings remain.
-repository	instructional-markdown	-	10359	-	525415
+# Reviewed addition: reader-context and page-readability guidance; prior growth remains visible.
+repository	instructional-markdown	-	10359	-	526661

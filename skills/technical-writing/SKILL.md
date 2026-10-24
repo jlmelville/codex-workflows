@@ -18,6 +18,10 @@ Before drafting, identify:
 - the source-supported facts; and
 - the function of the passage in that task.
 
+Make the reader's knowledge explicit: identify the terms, notation, and concepts they can be assumed
+to know and those the passage must establish. Check jargon and analogies against that baseline; a
+comparison helps only when the reader knows what it compares with.
+
 When revising established prose, preserve the intended author voice alongside clarity. Calibrate
 against representative samples, preferring author-selected ones; use older prose when recent rewrites
 are an unreliable baseline. Retain useful explanatory cadence and transitions at the surface's level of
@@ -59,7 +63,10 @@ explain the supported reason someone would need it.
 
 ## Shape The Passage
 
-- Lead with the outcome or task, then supply the minimum context needed to act.
+- Lead with the outcome or task, then supply the minimum context needed to act. Make the intended
+  audience and payoff clear early. For articles, use the title and first three sentences as a
+  diagnostic for relevance, not a fixed limit. Count subtitles, images, and other preamble when
+  judging how quickly the reader reaches that payoff.
 - Follow the reader's workflow rather than the author's implementation or
   discovery chronology.
 - Choose the form as well as the wording. When prose obscures order, shape,
@@ -90,6 +97,11 @@ next step relies on it; restore or reorder the earliest missing dependency. If a
 reader says the explanation did not land, use that feedback to localize the
 break and rebuild from there rather than merely shortening or paraphrasing the
 same path.
+
+Supply enough local context to follow the explanation without opening supporting links or
+reconstructing earlier discussions. Summarize the necessary contribution of a link or prior
+installment; retain links for evidence and further detail. For deliberately cumulative material,
+state prerequisites and recap what the next step needs.
 
 For each sentence, ask whether it adds non-inferable value, is supported by the
 available evidence, belongs on this surface, and advances the reader's task.
