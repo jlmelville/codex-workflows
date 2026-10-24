@@ -76,16 +76,15 @@ candidate IDs and lineage.
 Read the protocol's
 [Triage And Archive](../../skill-retro/references/state-protocol.md#triage-and-archive)
 before constructing a verdict for archival or a new or replacement deferral.
-It owns `process`, resumable archival, `reconsider`, and the liveness contract:
-predicate, observer, queue route, probe, next action, and close condition.
-`review-queue` routes work but does not observe events; `destination-use` is
-invalid until a supported matcher exists.
+It owns `process`, resumable archival, `reconsider`, and the follow-up fields: owner, review
+condition and check, next action, and close condition. `review-queue` lists work; the reviewer
+decides whether the condition is met.
 
 For fired drafts or ledgers, also read
 [Drafts, Ledgers, And Cleanup](../../skill-retro/references/state-protocol.md#drafts-ledgers-and-cleanup).
 A draft is a coherent new-skill kernel with activation criteria; a deferral
-awaits evidence for a specific decision. Both need the same liveness contract
-as open ledgers. Within authorized scope, execute fired non-skill actions and
+awaits evidence for a specific decision. Both need the same follow-up fields as open ledgers.
+Within authorized scope, execute fired non-skill actions and
 activate, revise, or deprecate fired drafts instead of refreshing them
 indefinitely. For public implementation, follow the parent route to
 `report-to-patch.md`.

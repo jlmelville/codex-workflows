@@ -155,49 +155,17 @@ the observation is reusable, materially missing from current coverage, and has
 a justified destination. Repository-local fixes and external-owner actions do
 not need to pass through the candidate inbox.
 
-### Classification-Only Repair
+### Historical Classifications
 
-When live validation rejects an existing papercut only because one or more of
-`kind`, `impact`, `resolution`, or `owner_hint` is outside the current bounded
-vocabulary, use the typed repair path instead of editing or deleting the record.
-This mutation requires explicit user authority; papercut capture, review, or
-triage activation alone does not authorize it.
+New papercuts use the bounded vocabulary in `template papercut`. Existing records may retain
+unfamiliar textual values for `kind`, `impact`, `resolution`, and `owner_hint`; reading or closing
+them does not reclassify their intake. Empty or non-text values still fail validation.
 
-Use the current source helper before installation when the incompatibility was
-discovered during source reconciliation. Prepare a decision bound to the
-current intake, map each unsupported value to one supported value, and add a
-concise sanitized rationale:
-
-From this source repository root:
-
-```sh
-retro_helper=./skills/skill-retro/scripts/retro-state.rb
-"${retro_helper}" prepare-papercut-repair \
-  --id PC-YYYYMMDDTHHMMSSZ-abcdef > /tmp/papercut-repair.md
-"${retro_helper}" repair-papercut \
-  --id PC-YYYYMMDDTHHMMSSZ-abcdef --file /tmp/papercut-repair.md
-"${retro_helper}" validate
-```
-
-`prepare-papercut-repair` records the digest of the exact current intake in the
-decision so a later change fails closed. The repair helper authenticates a
-matching prior digest or a unique prior valid classification tuple when it can.
-If neither works, it requires the explicitly reviewed decision to set
-`accept_current_evidence: true`; this authorizes rebasing only the digest of the
-unchanged current evidence, not editing that evidence. Keep the flag `false`
-when the helper can authenticate the prior digest.
-
-The helper refuses arbitrary changes to classifications that are already
-valid, preserves all evidence text, identity, timestamps, body, and closure,
-records the exact changes, recorded and replaced digests, recovery basis, and
-any authenticated prior tuple in `schema_repairs`, validates the resulting
-history, and atomically replaces the same file. A second repair of an
-already-valid record fails without writing.
-
-This is a compatibility operation, not papercut review or reclassification. If
-identity, filename, evidence shape, closure, or another structural field is
-invalid, stop and design a separately authorized compatibility path rather than
-weakening validation or using this command.
+The intake digest continues to cover every original field and the evidence body. Any mismatch
+fails validation; the helper does not guess prior classifications or rebase digests. Historical
+`schema_repairs` receipts remain intact and their digest history is still validated. There is no
+repair-writing command. A structural or integrity failure needs separate investigation, not a
+classification change.
 
 ## Candidate Intake
 
@@ -248,43 +216,26 @@ outcome, keep it behaviorally `unverified`, and retain its destination-matched
 with the same candidate and decision. The helper verifies the existing archive, completes cadence
 exactly once, and removes the inbox copy; a conflicting archive is refused.
 
-Every new or reconsidered candidate deferral uses this shared liveness
-contract in addition to `unresolved_decision`. New open drafts and ledgers use
-the liveness fields without claiming that an already accepted but blocked
-action is an undecided question:
+Every new or reconsidered candidate deferral names its `unresolved_decision` and includes these
+follow-up fields. New open drafts and ledgers use the same fields without claiming that an already
+accepted but blocked action is an undecided question:
 
 ```yaml
-review_trigger_contract_version: 1
-review_trigger_type: explicit-input
-review_trigger_observer: skill-retro-triage
-review_trigger_route: review-queue
-review_trigger_probe: "Exact check the observer performs."
-review_trigger_input: "Specific input that must be supplied."
-review_trigger: "Durable predicate that fires the action."
-next_action: "Executable action after the predicate is observed."
-close_condition: "Condition that resolves or replaces the actor."
+owner: "skill-retro-triage"
+review_trigger: "Concrete review condition and how the owner checks it."
+next_action: "Executable action when the review condition is met."
+close_condition: "Condition that resolves or replaces the action."
 ```
 
-`review_trigger_observer` is either `learning-process-review` or
-`skill-retro-triage`; it names the routine judgment process responsible for the
-probe. `review_trigger_route` is currently always `review-queue`. The queue is
-the routing surface, not the observer or event source.
+The owner is the person or process responsible for reviewing the action. Put any relevant date,
+threshold, named artifact, or missing input directly in `review_trigger`, together with the check
+needed to recognize it. `review-queue` lists unresolved work; the reviewer decides whether its
+condition is met. The helper does not schedule work or evaluate triggers. Avoid a generic "next
+use" condition unless an existing record or query makes that use observable.
 
-Choose one bounded trigger type and add its required field:
-
-- `date`: `review_trigger_at` is a valid ISO date;
-- `state-threshold`: `review_trigger_counter` names a helper-owned durable
-  count or query and `review_trigger_threshold` is a positive integer;
-- `external-artifact`: `review_trigger_locator` names the stable artifact that
-  the probe inspects; or
-- `explicit-input`: `review_trigger_input` names what a future review must be
-  given.
-
-`destination-use` is reserved but rejected until a supported destination
-matcher exists. Do not use another type to disguise an ordinary next-use
-trigger. The helper continues to validate assigned legacy records that predate
-this contract, but every new helper-created actor and every replacement
-deferral must use it.
+Existing records remain readable without migration, including records without an explicit owner.
+Legacy `review_trigger_*` metadata is preserved as historical context and is no longer interpreted
+as a typed contract. New deferrals and open follow-ups must supply the fields above.
 
 Use `review-queue` as the complete intake and action inventory: pending candidates, open papercuts,
 verification proposals, archived deferrals, contradicted accepted outcomes, drafts, ledger actions,
@@ -503,12 +454,10 @@ repository-maintenance threshold. A deferred candidate is evidence awaiting a
 specific decision; it is not automatically a draft or ledger entry.
 
 Create drafts and ledger entries from the helper templates so validation can
-enforce their owner/status and executable-drain fields. Every open or revised
-draft and every open ledger uses the shared liveness contract from
-[Triage And Archive](#triage-and-archive). A durable note without an observable
-predicate, named observer, queue route, executable probe, next action, and
-close condition is not a valid unresolved actor. Close, activate, deprecate,
-or delete records instead of accumulating generic notes.
+enforce their owner/status and follow-up fields. Every open or revised draft and every open ledger
+uses the shared fields from [Triage And Archive](#triage-and-archive): an owner, a concrete review
+condition and check, a next action, and a close condition. Close, activate, deprecate, or delete
+records instead of accumulating generic notes.
 
 Close an open maintenance ledger through `close-ledger`. The helper preserves
 the record, marks it closed, updates `last_reviewed`, and adds a UTC closure
@@ -524,7 +473,7 @@ rely on retention.
 
 `audits/learning-process` stores completed, sanitized system diagnoses. Generate
 `template audit`, create every unresolved consequence first as an existing
-candidate deferral, draft, or ledger action with a valid liveness contract,
+candidate deferral, draft, or ledger action with the required follow-up fields,
 list those IDs in `unresolved_action_ids`, and use `record-audit --file PATH`
 only after the user has authorized the external-state mutation. The helper
 requires each listed action to exist and be open when the audit is recorded.

@@ -62,25 +62,8 @@ module RetroState
   ].freeze
   DRAFT_STATUSES = %w[open revised activated deprecated].freeze
   LEDGER_STATUSES = %w[open closed].freeze
-  REVIEW_TRIGGER_CONTRACT_VERSION = 1
-  REVIEW_TRIGGER_TYPES = %w[
-    date state-threshold external-artifact explicit-input destination-use
-  ].freeze
-  REVIEW_TRIGGER_OBSERVERS = %w[
-    learning-process-review skill-retro-triage
-  ].freeze
-  REVIEW_TRIGGER_ROUTE = "review-queue"
-  REVIEW_TRIGGER_COMMON_FIELDS = %w[
-    review_trigger_type review_trigger_observer review_trigger_route
-    review_trigger_probe review_trigger next_action close_condition
-  ].freeze
-  REVIEW_TRIGGER_TYPE_FIELDS = {
-    "date" => %w[review_trigger_at],
-    "state-threshold" => %w[review_trigger_counter review_trigger_threshold],
-    "external-artifact" => %w[review_trigger_locator],
-    "explicit-input" => %w[review_trigger_input],
-    "destination-use" => %w[review_trigger_destination]
-  }.freeze
+  FOLLOW_UP_FIELDS = %w[owner review_trigger next_action close_condition].freeze
+  DEFERRAL_FIELDS = ["unresolved_decision", *FOLLOW_UP_FIELDS].freeze
   STATE_DIRS = %w[
     retrospectives/inbox
     retrospectives/archive
@@ -377,21 +360,6 @@ module RetroState
   end
 
   def validate_papercut(data, body, label:, routed:, archived: false)
-    validate_papercut_integrity(data, body, label: label, routed: routed, archived: archived)
-    PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
-      validate_enum(data, field, allowed, label)
-    end
-  end
-
-  def validate_papercut_integrity(
-    data,
-    body,
-    label:,
-    routed:,
-    archived: false,
-    recover_classification_digest: false,
-    allow_unverified_digest: false
-  )
     text = render_document(data, body)
     validate_common(data, text, label)
     unless data["record_type"] == "papercut"
@@ -423,22 +391,10 @@ module RetroState
       end
       intake = without_keys(data, "intake_digest", "closure")
       expected_digest = Digest::SHA256.hexdigest(render_document(intake, body))
-      authenticated_classifications = nil
       unless data["intake_digest"] == expected_digest
-        unless recover_classification_digest
-          raise Error, "#{label}: papercut intake fields changed after recording"
-        end
-        authenticated_classifications = recover_papercut_classifications(data, body, label)
-        if !authenticated_classifications && !allow_unverified_digest
-          raise Error, "#{label}: intake digest mismatch is not recoverable as classification-only change"
-        end
+        raise Error, "#{label}: papercut intake fields changed after recording"
       end
-      if authenticated_classifications || data["intake_digest"] == expected_digest
-        history_data = authenticated_classifications ? data.merge(authenticated_classifications) : data
-        validate_papercut_schema_repairs(history_data, body, label)
-      elsif data.key?("schema_repairs")
-        raise Error, "#{label}: existing schema repair history cannot be authenticated"
-      end
+      validate_papercut_schema_repairs(data, body, label)
     elsif data.key?("papercut_id") || data.key?("created_at") || data.key?("intake_digest")
       raise Error, "#{label}: unrecorded papercut must not assign identity fields"
     elsif data.key?("schema_repairs")
@@ -451,66 +407,11 @@ module RetroState
     elsif closure
       raise Error, "#{label}: open papercut must not contain closure data"
     end
-    authenticated_classifications
-  end
-
-  def recover_papercut_classifications(data, body, label)
-    expected_digest = data.fetch("intake_digest")
-    intake = without_keys(data, "intake_digest", "closure")
-    fields = PAPERCUT_CLASSIFICATIONS.keys
-    matches = PAPERCUT_CLASSIFICATIONS.values.reduce([[]]) do |combinations, values|
-      combinations.product(values).map { |prefix, value| prefix + [value] }
-    end.filter_map do |values|
-      candidate = intake.merge(fields.zip(values).to_h)
-      fields.zip(values).to_h if Digest::SHA256.hexdigest(render_document(candidate, body)) == expected_digest
+    unless routed
+      PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
+        validate_enum(data, field, allowed, label)
+      end
     end
-    if matches.length > 1
-      raise Error, "#{label}: intake digest matches multiple historical classification tuples"
-    end
-
-    matches.first
-  end
-
-  def validate_papercut_repair(data, body, label:, expected_id: nil)
-    text = render_document(data, body)
-    validate_common(data, text, label)
-    unless data["record_type"] == "papercut-repair"
-      raise Error, "#{label}: record_type must be papercut-repair"
-    end
-
-    fields = %w[
-      schema_version record_type papercut_id kind impact resolution owner_hint
-      observed_intake_digest accept_current_evidence rationale redaction_review
-    ]
-    unexpected = data.keys - fields
-    unless unexpected.empty?
-      raise Error, "#{label}: unexpected papercut repair field: #{unexpected.first}"
-    end
-    require_fields(
-      data,
-      %w[
-        papercut_id kind impact resolution owner_hint observed_intake_digest
-        rationale redaction_review
-      ],
-      label
-    )
-    papercut_id = data["papercut_id"]
-    unless papercut_id.match?(/\APC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/)
-      raise Error, "#{label}: invalid papercut_id"
-    end
-    if expected_id && papercut_id != expected_id
-      raise Error, "#{label}: papercut_id does not match #{expected_id}"
-    end
-    PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
-      validate_enum(data, field, allowed, label)
-    end
-    unless data["observed_intake_digest"].match?(/\A[a-f0-9]{64}\z/)
-      raise Error, "#{label}: observed_intake_digest must be a SHA-256 digest"
-    end
-    unless [true, false].include?(data["accept_current_evidence"])
-      raise Error, "#{label}: accept_current_evidence must be true or false"
-    end
-    raise Error, "#{label}: papercut repair body must be empty" unless body.strip.empty?
   end
 
   def validate_papercut_schema_repairs(data, body, label)
@@ -674,77 +575,10 @@ module RetroState
     raise Error, "#{label}: #{field} must be one of #{allowed.join(", ")}"
   end
 
-  def review_trigger_contract_fields
-    [
-      "review_trigger_contract_version",
-      "unresolved_decision",
-      *REVIEW_TRIGGER_COMMON_FIELDS,
-      *REVIEW_TRIGGER_TYPE_FIELDS.values.flatten
-    ].uniq
-  end
-
-  def validate_review_trigger_contract(data, label, legacy_allowed:)
-    unless data.key?("review_trigger_contract_version")
-      if legacy_allowed
-        require_fields(data, %w[review_trigger next_action close_condition], label)
-        return
-      end
-
-      raise Error,
-        "#{label}: review_trigger_contract_version must be #{REVIEW_TRIGGER_CONTRACT_VERSION}"
-    end
-
-    unless data["review_trigger_contract_version"] == REVIEW_TRIGGER_CONTRACT_VERSION
-      raise Error,
-        "#{label}: review_trigger_contract_version must be #{REVIEW_TRIGGER_CONTRACT_VERSION}"
-    end
-
-    require_fields(data, REVIEW_TRIGGER_COMMON_FIELDS, label)
-    validate_enum(data, "review_trigger_type", REVIEW_TRIGGER_TYPES, label)
-    validate_enum(data, "review_trigger_observer", REVIEW_TRIGGER_OBSERVERS, label)
-    unless data["review_trigger_route"] == REVIEW_TRIGGER_ROUTE
-      raise Error, "#{label}: review_trigger_route must be #{REVIEW_TRIGGER_ROUTE}"
-    end
-
-    trigger_type = data.fetch("review_trigger_type")
-    if trigger_type == "destination-use"
-      raise Error, "#{label}: destination-use triggers require a supported destination matcher"
-    end
-
-    expected_type_fields = REVIEW_TRIGGER_TYPE_FIELDS.fetch(trigger_type)
-    string_type_fields = expected_type_fields - %w[review_trigger_threshold]
-    require_fields(data, string_type_fields, label)
-
-    unexpected_type_fields = (
-      REVIEW_TRIGGER_TYPE_FIELDS.values.flatten - expected_type_fields
-    ).select { |field| data.key?(field) }
-    unless unexpected_type_fields.empty?
-      raise Error,
-        "#{label}: #{unexpected_type_fields.first} is not valid for #{trigger_type} triggers"
-    end
-
-    case trigger_type
-    when "date"
-      validate_review_trigger_date(data.fetch("review_trigger_at"), label)
-    when "state-threshold"
-      threshold = data["review_trigger_threshold"]
-      unless threshold.is_a?(Integer) && threshold.positive?
-        raise Error, "#{label}: review_trigger_threshold must be a positive integer"
-      end
-    end
-  end
-
-  def validate_review_trigger_date(value, label)
-    unless value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
-      raise Error, "#{label}: review_trigger_at must be an ISO date"
-    end
-
-    parsed = Date.iso8601(value)
-    return if parsed.iso8601 == value
-
-    raise Error, "#{label}: review_trigger_at must be an ISO date"
-  rescue ArgumentError
-    raise Error, "#{label}: review_trigger_at must be an ISO date"
+  def validate_follow_up(data, label, legacy_allowed:)
+    fields = FOLLOW_UP_FIELDS
+    fields -= %w[owner] if legacy_allowed && !data.key?("owner")
+    require_fields(data, fields, label)
   end
 
   def validate_triage(triage, candidate_id, label)
@@ -766,8 +600,8 @@ module RetroState
     return unless triage["verdict"] == "defer"
 
     require_fields(triage, %w[unresolved_decision], "#{label} deferred triage") if
-      triage.key?("review_trigger_contract_version")
-    validate_review_trigger_contract(triage, "#{label} deferred triage", legacy_allowed: true)
+      triage.key?("owner") || triage.key?("review_trigger_contract_version")
+    validate_follow_up(triage, "#{label} deferred triage", legacy_allowed: true)
   end
 
   def validate_decision(data, body, label:, expected_id: nil)
@@ -788,9 +622,11 @@ module RetroState
     require_string_array(data, "related_candidate_ids", label, allow_empty: true)
     if data["verdict"] == "defer"
       require_fields(data, %w[unresolved_decision], label)
-      validate_review_trigger_contract(data, label, legacy_allowed: false)
+      validate_follow_up(data, label, legacy_allowed: false)
     else
-      trigger_fields = review_trigger_contract_fields.select { |field| data.key?(field) }
+      trigger_fields = data.keys.select do |field|
+        DEFERRAL_FIELDS.include?(field) || field.start_with?("review_trigger_")
+      end
       unless trigger_fields.empty?
         raise Error, "#{label}: #{trigger_fields.first} is only valid for defer"
       end
@@ -971,9 +807,9 @@ module RetroState
       raise Error, "#{label}: status must be one of #{DRAFT_STATUSES.join(", ")}"
     end
     if %w[open revised].include?(data["status"])
-      validate_review_trigger_contract(data, label, legacy_allowed: assigned)
+      validate_follow_up(data, label, legacy_allowed: assigned)
     elsif data.key?("review_trigger_contract_version")
-      validate_review_trigger_contract(data, label, legacy_allowed: false)
+      validate_follow_up(data, label, legacy_allowed: assigned)
     end
 
     validate_assigned_id(data, label, assigned, "draft_id", /\ASD-\d{8}-[a-f0-9]{6}\z/)
@@ -992,9 +828,9 @@ module RetroState
       raise Error, "#{label}: status must be one of #{LEDGER_STATUSES.join(", ")}"
     end
     if data["status"] == "open"
-      validate_review_trigger_contract(data, label, legacy_allowed: assigned)
+      validate_follow_up(data, label, legacy_allowed: assigned)
     elsif data.key?("review_trigger_contract_version")
-      validate_review_trigger_contract(data, label, legacy_allowed: false)
+      validate_follow_up(data, label, legacy_allowed: assigned)
     end
 
     closure = data["closure"]
@@ -1189,24 +1025,6 @@ module RetroState
     MARKDOWN
   end
 
-  def papercut_repair_template
-    <<~MARKDOWN
-      ---
-      schema_version: 1
-      record_type: papercut-repair
-      papercut_id: PC-YYYYMMDDTHHMMSSZ-abcdef
-      observed_intake_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-      accept_current_evidence: false
-      kind: other # #{PAPERCUT_KINDS.join(", ")}
-      impact: blocked # #{PAPERCUT_IMPACTS.join(", ")}
-      resolution: resolved # #{PAPERCUT_RESOLUTIONS.join(", ")}
-      owner_hint: unknown # #{PAPERCUT_OWNERS.join(", ")}
-      rationale: "Why each unsupported classification maps to the selected valid value."
-      redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
-      ---
-    MARKDOWN
-  end
-
   def decision_template
     <<~MARKDOWN
       ---
@@ -1217,17 +1035,12 @@ module RetroState
       rationale: "Why this verdict is the smallest justified outcome."
       reviewed_at: "YYYY-MM-DDTHH:MM:SSZ"
       related_candidate_ids: []
-      review_trigger_contract_version: 1
+      owner: "skill-retro-triage"
       unresolved_decision: "" # Decision that current evidence cannot justify.
-      review_trigger_type: explicit-input # #{REVIEW_TRIGGER_TYPES.join(", ")}
-      review_trigger_observer: skill-retro-triage # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
-      review_trigger_route: review-queue
-      review_trigger_probe: "" # Exact check the observer performs.
-      review_trigger_input: "" # Specific input that must be supplied.
-      review_trigger: "" # Durable predicate that fires the action.
-      next_action: "" # Executable action after the predicate is observed.
+      review_trigger: "" # Concrete review condition and how the owner checks it.
+      next_action: "" # Executable action when the review condition is met.
       close_condition: "" # Condition that resolves the action.
-      # Complete the blanks for defer; remove all deferral contract fields for other verdicts.
+      # Complete the blanks for defer; remove all deferral fields for other verdicts.
       # Optional implementation-batch notes may follow the closing frontmatter; omit when unused.
       ---
     MARKDOWN
@@ -1283,13 +1096,8 @@ module RetroState
         - "Behavioral evidence or boundary question still missing."
       activation_criteria:
         - "Concrete condition required before installing a complete skill."
-      review_trigger_contract_version: 1
-      review_trigger_type: explicit-input # #{REVIEW_TRIGGER_TYPES.join(", ")}
-      review_trigger_observer: learning-process-review # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
-      review_trigger_route: review-queue
-      review_trigger_probe: "Confirm the named evidence is present in the current review input."
-      review_trigger_input: "Specific missing evidence that must be supplied."
-      review_trigger: "The named evidence is supplied to a learning-process review."
+      owner: "learning-process-review"
+      review_trigger: "The named evidence is supplied in the review input; check it against missing_evidence."
       next_action: "Executable next review action."
       close_condition: "Condition for activation or deprecation."
       status: open
@@ -1311,14 +1119,7 @@ module RetroState
       owner: "skill-retro-triage"
       status: open
       last_reviewed: "never"
-      review_trigger_contract_version: 1
-      review_trigger_type: state-threshold # #{REVIEW_TRIGGER_TYPES.join(", ")}
-      review_trigger_observer: learning-process-review # #{REVIEW_TRIGGER_OBSERVERS.join(", ")}
-      review_trigger_route: review-queue
-      review_trigger_probe: "Run the named helper query and read its durable counter."
-      review_trigger_counter: "Named helper-owned counter or state query."
-      review_trigger_threshold: 3
-      review_trigger: "The named durable counter reaches the threshold."
+      review_trigger: "Name the concrete review condition and the check the owner performs."
       evidence:
         - "Sanitized observation supporting continued monitoring."
       next_action: "Executable action when the review trigger fires."
@@ -1348,8 +1149,8 @@ module RetroState
       # Completed system audit
 
       Keep the complete sanitized diagnosis here. Create every unresolved
-      executable consequence with the structured trigger contract as a
-      deferral, draft, or ledger action before recording the audit, then list
+      executable consequence with an owner, review condition, next action,
+      and close condition as a deferral, draft, or ledger before recording the audit, then list
       its ID above.
     MARKDOWN
   end
@@ -1450,7 +1251,7 @@ module RetroState
       decision["reviewed_at"] = reviewed_at
       decision["rationale"] = rationale || ""
       if id_field == "candidate_id" && verdict != "defer"
-        RetroState.review_trigger_contract_fields.each { |field| decision.delete(field) }
+        DEFERRAL_FIELDS.each { |field| decision.delete(field) }
       end
       RetroState.render_document(decision, "")
     end
@@ -1745,144 +1546,6 @@ module RetroState
       destination = papercut_path("inbox", id)
       exclusive_write(destination, RetroState.render_document(record, body))
       destination
-    end
-
-    def repair_papercut(papercut_id, repair_path)
-      ensure_initialized
-      repair, repair_body = RetroState.read_document(repair_path)
-      RetroState.validate_papercut_repair(
-        repair,
-        repair_body,
-        label: repair_path,
-        expected_id: papercut_id
-      )
-
-      locations = %w[inbox archive].filter_map do |area|
-        path = papercut_path(area, papercut_id)
-        [area, path] if File.file?(path)
-      end
-      raise Error, "papercut not found: #{papercut_id}" if locations.empty?
-      if locations.length > 1
-        raise Error, "papercut exists in both inbox and archive: #{papercut_id}"
-      end
-
-      area, path = locations.fetch(0)
-      data, body = RetroState.read_document(path)
-      authenticated_classifications = RetroState.validate_papercut_integrity(
-        data,
-        body,
-        label: path,
-        routed: true,
-        archived: area == "archive",
-        recover_classification_digest: true,
-        allow_unverified_digest: true
-      )
-      unless data["papercut_id"] == papercut_id
-        raise Error, "#{path}: papercut_id does not match filename"
-      end
-
-      invalid_fields = PAPERCUT_CLASSIFICATIONS.filter_map do |field, allowed|
-        field unless allowed.include?(data.fetch(field))
-      end
-      if invalid_fields.empty?
-        raise Error, "#{path}: papercut classifications are already valid"
-      end
-
-      changes = {}
-      replaced_intake = RetroState.without_keys(data, "intake_digest", "closure")
-      replaced_digest = Digest::SHA256.hexdigest(RetroState.render_document(replaced_intake, body))
-      unless repair["observed_intake_digest"] == replaced_digest
-        raise Error, "#{repair_path}: observed_intake_digest does not match current papercut"
-      end
-      prior_digest = data.fetch("intake_digest")
-      digest_recovery = if prior_digest == replaced_digest
-        "matched"
-      elsif authenticated_classifications
-        "classification-only"
-      else
-        unless repair["accept_current_evidence"]
-          raise Error, "#{repair_path}: unrecoverable intake digest requires accept_current_evidence: true"
-        end
-        "current-evidence-authorized"
-      end
-      if digest_recovery != "current-evidence-authorized" && repair["accept_current_evidence"]
-        raise Error, "#{repair_path}: accept_current_evidence must be false when the prior digest is authenticated"
-      end
-
-      PAPERCUT_CLASSIFICATIONS.each do |field, allowed|
-        current = data.fetch(field)
-        replacement = repair.fetch(field)
-        if allowed.include?(current)
-          valid_replacements = [current]
-          valid_replacements << authenticated_classifications[field] if authenticated_classifications
-          unless valid_replacements.include?(replacement)
-            raise Error, "#{path}: repair must not change already-valid #{field}"
-          end
-        end
-        changes[field] = {"from" => current, "to" => replacement} unless current == replacement
-      end
-
-      changes.each { |field, change| data[field] = change.fetch("to") }
-      schema_repair = {
-        "repaired_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "rationale" => repair.fetch("rationale"),
-        "redaction_review" => repair.fetch("redaction_review"),
-        "prior_intake_digest" => prior_digest,
-        "replaced_intake_digest" => replaced_digest,
-        "digest_recovery" => digest_recovery,
-        "changes" => changes
-      }
-      if authenticated_classifications
-        schema_repair["authenticated_classifications"] = authenticated_classifications
-      end
-      data["schema_repairs"] = data.fetch("schema_repairs", []) + [schema_repair]
-      intake = RetroState.without_keys(data, "intake_digest", "closure")
-      data["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
-      RetroState.validate_papercut(
-        data,
-        body,
-        label: path,
-        routed: true,
-        archived: area == "archive"
-      )
-      replace_write(path, RetroState.render_document(data, body))
-      path
-    end
-
-    def prepare_papercut_repair(papercut_id)
-      ensure_initialized
-      locations = %w[inbox archive].filter_map do |area|
-        path = papercut_path(area, papercut_id)
-        [area, path] if File.file?(path)
-      end
-      raise Error, "papercut not found: #{papercut_id}" if locations.empty?
-      if locations.length > 1
-        raise Error, "papercut exists in both inbox and archive: #{papercut_id}"
-      end
-
-      area, path = locations.fetch(0)
-      data, body = RetroState.read_document(path)
-      RetroState.validate_papercut_integrity(
-        data,
-        body,
-        label: path,
-        routed: true,
-        archived: area == "archive",
-        recover_classification_digest: true,
-        allow_unverified_digest: true
-      )
-      if PAPERCUT_CLASSIFICATIONS.all? { |field, allowed| allowed.include?(data.fetch(field)) }
-        raise Error, "#{path}: papercut classifications are already valid"
-      end
-
-      decision, decision_body = RetroState.parse_document(RetroState.papercut_repair_template)
-      decision["papercut_id"] = papercut_id
-      current_intake = RetroState.without_keys(data, "intake_digest", "closure")
-      decision["observed_intake_digest"] = Digest::SHA256.hexdigest(
-        RetroState.render_document(current_intake, body)
-      )
-      PAPERCUT_CLASSIFICATIONS.each_key { |field| decision[field] = data.fetch(field) }
-      RetroState.render_document(decision, decision_body)
     end
 
     def papercuts(archive: false)
@@ -4374,8 +4037,6 @@ module RetroState
   def self_test_deferral_fields
     {
       "unresolved_decision" => "Whether the proposed guidance covers a second independent task.",
-      "review_trigger_probe" => "Inspect the current triage request for an independent task observation.",
-      "review_trigger_input" => "A second independent task observation supplied to triage.",
       "review_trigger" => "A second independent task observation is available in the triage request.",
       "next_action" => "Compare the new observation with the proposed guidance and choose a terminal verdict.",
       "close_condition" => "A terminal verdict replaces this deferral."
@@ -4400,7 +4061,7 @@ module RetroState
       before = store.snapshot
       decision, body = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "accept"))
       unless decision.values_at("candidate_id", "verdict", "rationale") == [id, "accept", ""] &&
-          body.empty? && review_trigger_contract_fields.none? { |field| decision.key?(field) }
+          body.empty? && DEFERRAL_FIELDS.none? { |field| decision.key?(field) }
         raise "incorrect terminal decision draft"
       end
       begin
@@ -4411,8 +4072,7 @@ module RetroState
       end
       deferred, = parse_document(run.call(0, "prepare-decision", "--id", id, "--verdict", "defer"))
       unless self_test_deferral_fields.keys.all? { |field| deferred.fetch(field).empty? } &&
-          deferred.values_at("review_trigger_contract_version", "review_trigger_type", "review_trigger_observer", "review_trigger_route") ==
-              [1, "explicit-input", "skill-retro-triage", "review-queue"]
+          deferred.fetch("owner") == "skill-retro-triage"
         raise "deferral preparation supplied judgment or lost safe structural defaults"
       end
       run.call(2, "prepare-decision", "--id", id, error: "missing argument: --verdict")
@@ -4448,7 +4108,7 @@ module RetroState
         raw, = parse_document(decision_template)
         raw.merge!("candidate_id" => template_id, "verdict" => "no-change", "rationale" => rationale,
           "reviewed_at" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"))
-        review_trigger_contract_fields.each { |field| raw.delete(field) }
+        DEFERRAL_FIELDS.each { |field| raw.delete(field) }
         path = run.call(0, "process", "--id", template_id, "--decision", "-", stdin: render_document(raw, notes)).strip
         archived, = read_document(path)
         if notes.empty? ? archived.fetch("triage").key?("notes") : archived.dig("triage", "notes") != notes
@@ -4646,7 +4306,7 @@ module RetroState
         data[id.start_with?("VP-") ? "verification_proposal_id" : "candidate_id"] = id
         data["verdict"] = verdict
         data["reviewed_at"] = "2026-10-15T12:00:00Z"
-        review_trigger_contract_fields.each { |field| data.delete(field) } unless id.start_with?("VP-")
+        DEFERRAL_FIELDS.each { |field| data.delete(field) } unless id.start_with?("VP-")
         write.call("#{id}-#{verdict}.md", data, body)
       end
       route_candidate = lambda do |store|
@@ -5086,16 +4746,13 @@ module RetroState
       ledger = File.join(tmp, "ledger.md")
       audit = File.join(tmp, "audit.md")
       papercut = File.join(tmp, "papercut.md")
-      papercut_repair = File.join(tmp, "papercut-repair.md")
       verification_proposal = File.join(tmp, "verification.md")
       verification_decision = File.join(tmp, "verification-decision.md")
-      without_review_trigger_contract = lambda do |text|
+      without_deferral_fields = lambda do |text|
         data, body = parse_document(text)
-        review_trigger_contract_fields.each { |field| data.delete(field) }
+        DEFERRAL_FIELDS.each { |field| data.delete(field) }
         render_document(data, body)
       end
-      legacy_review_trigger_fields = review_trigger_contract_fields -
-        %w[review_trigger next_action close_condition]
       recommendation_line = candidate_template.lines.find { |line| line.include?("recommendation: uncertain") }
       unless recommendation_line && RECOMMENDATIONS.all? { |value| recommendation_line.include?(value) }
         raise "candidate template recommendation vocabulary is incomplete"
@@ -5118,27 +4775,10 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("evidence_lineage must be a non-empty string")
       end
-      trigger_type_line = decision_template.lines.find { |line| line.start_with?("review_trigger_type:") }
-      unless trigger_type_line && REVIEW_TRIGGER_TYPES.all? { |value| trigger_type_line.include?(value) }
-        raise "decision template trigger type vocabulary is incomplete"
-      end
-      trigger_observer_line = decision_template.lines.find do |line|
-        line.start_with?("review_trigger_observer:")
-      end
-      unless trigger_observer_line &&
-          REVIEW_TRIGGER_OBSERVERS.all? { |value| trigger_observer_line.include?(value) }
-        raise "decision template trigger observer vocabulary is incomplete"
-      end
       PAPERCUT_CLASSIFICATIONS.each do |field, values|
         line = papercut_template.lines.find { |candidate| candidate.start_with?("#{field}:") }
         unless line && values.all? { |value| line.include?(value) }
           raise "papercut template #{field} vocabulary is incomplete"
-        end
-        repair_line = papercut_repair_template.lines.find do |candidate|
-          candidate.start_with?("#{field}:")
-        end
-        unless repair_line && values.all? { |value| repair_line.include?(value) }
-          raise "papercut repair template #{field} vocabulary is incomplete"
         end
       end
       File.write(input, candidate_template.gsub("Short candidate title", "Atomic routing"))
@@ -5150,181 +4790,42 @@ module RetroState
       base_decision.merge!(self_test_deferral_fields)
       base_decision["candidate_id"] = "RC-20260715T120000Z-000000"
       base_decision["reviewed_at"] = "2026-07-15T11:59:00Z"
-      base_contract = base_decision.slice(*review_trigger_contract_fields)
-      trigger_variant = lambda do |trigger_type|
-        variant = base_contract.dup
-        REVIEW_TRIGGER_TYPE_FIELDS.values.flatten.each { |field| variant.delete(field) }
-        variant["review_trigger_type"] = trigger_type
-        variant["review_trigger_observer"] = "learning-process-review"
-        case trigger_type
-        when "date"
-          variant["review_trigger_at"] = "2026-08-27"
-          variant["review_trigger_probe"] = "Compare the current UTC date with review_trigger_at."
-        when "state-threshold"
-          variant["review_trigger_counter"] = "candidate_archives_total from artifact-audit-status"
-          variant["review_trigger_threshold"] = 10
-          variant["review_trigger_probe"] = "Run retro-state.rb artifact-audit-status."
-        when "external-artifact"
-          variant["review_trigger_locator"] = "upstream-release-x"
-          variant["review_trigger_probe"] = "Inspect the named upstream release artifact."
-        when "explicit-input"
-          variant["review_trigger_input"] = "A bounded user decision supplied to triage."
-          variant["review_trigger_probe"] = "Confirm the named input is present in the triage request."
-        when "destination-use"
-          variant["review_trigger_destination"] = "skills/example/SKILL.md"
+      validate_decision(base_decision, decision_body, label: "simple deferral")
+      DEFERRAL_FIELDS.each do |field|
+        incomplete = base_decision.reject { |key, _| key == field }
+        begin
+          validate_decision(incomplete, decision_body, label: "incomplete deferral")
+          raise "deferral without #{field} was accepted"
+        rescue Error => e
+          raise unless e.message.include?("#{field} must be a non-empty string")
         end
-        variant
       end
 
-      %w[date state-threshold external-artifact explicit-input].each do |trigger_type|
-        validate_review_trigger_contract(
-          trigger_variant.call(trigger_type),
-          "#{trigger_type} trigger",
-          legacy_allowed: false
-        )
-      end
-
-      missing_contract = base_decision.dup
-      missing_contract.delete("review_trigger_contract_version")
-      begin
-        validate_decision(missing_contract, decision_body, label: "missing trigger contract")
-        raise "deferred decision without a trigger contract was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_contract_version must be")
-      end
-
-      missing_unresolved_decision = base_decision.dup
-      missing_unresolved_decision.delete("unresolved_decision")
-      begin
-        validate_decision(
-          missing_unresolved_decision,
-          decision_body,
-          label: "missing unresolved decision"
-        )
-        raise "deferred decision without an unresolved decision was accepted"
-      rescue Error => e
-        raise unless e.message.include?("unresolved_decision must be a non-empty string")
-      end
-
-      begin
-        validate_review_trigger_contract(
-          trigger_variant.call("destination-use"),
-          "destination-use trigger",
-          legacy_allowed: false
-        )
-        raise "destination-use trigger without a matcher was accepted"
-      rescue Error => e
-        raise unless e.message.include?("destination-use triggers require a supported destination matcher")
-      end
-
-      invalid_date = trigger_variant.call("date").merge("review_trigger_at" => "2026-02-30")
-      begin
-        validate_review_trigger_contract(invalid_date, "invalid date trigger", legacy_allowed: false)
-        raise "invalid date trigger was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_at must be an ISO date")
-      end
-
-      invalid_threshold = trigger_variant.call("state-threshold").merge(
-        "review_trigger_threshold" => 0
+      legacy_decision = base_decision.except("owner", "unresolved_decision")
+      validate_triage(legacy_decision, legacy_decision.fetch("candidate_id"), "legacy deferral")
+      legacy_decision.merge!(
+        "unresolved_decision" => base_decision.fetch("unresolved_decision"),
+        "review_trigger_contract_version" => 1,
+        "review_trigger_type" => "explicit-input",
+        "review_trigger_observer" => "skill-retro-triage",
+        "review_trigger_route" => "review-queue",
+        "review_trigger_probe" => "Inspect the current request.",
+        "review_trigger_input" => "An independent observation."
       )
-      begin
-        validate_review_trigger_contract(
-          invalid_threshold,
-          "invalid threshold trigger",
-          legacy_allowed: false
-        )
-        raise "nonpositive state threshold was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_threshold must be a positive integer")
-      end
+      legacy_before = render_document(legacy_decision, "")
+      validate_triage(legacy_decision, legacy_decision.fetch("candidate_id"), "typed legacy deferral")
+      raise "legacy trigger metadata changed" unless render_document(legacy_decision, "") == legacy_before
 
-      missing_counter = trigger_variant.call("state-threshold")
-      missing_counter.delete("review_trigger_counter")
-      begin
-        validate_review_trigger_contract(
-          missing_counter,
-          "state threshold trigger",
-          legacy_allowed: false
-        )
-        raise "state threshold trigger without a counter was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_counter must be a non-empty string")
-      end
-
-      missing_locator = trigger_variant.call("external-artifact")
-      missing_locator.delete("review_trigger_locator")
-      begin
-        validate_review_trigger_contract(
-          missing_locator,
-          "external artifact trigger",
-          legacy_allowed: false
-        )
-        raise "external artifact trigger without a locator was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_locator must be a non-empty string")
-      end
-
-      missing_input = trigger_variant.call("explicit-input")
-      missing_input.delete("review_trigger_input")
-      begin
-        validate_review_trigger_contract(missing_input, "explicit input trigger", legacy_allowed: false)
-        raise "explicit input trigger without named input was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_input must be a non-empty string")
-      end
-
-      invalid_observer = trigger_variant.call("explicit-input").merge(
-        "review_trigger_observer" => "review-queue"
-      )
-      begin
-        validate_review_trigger_contract(
-          invalid_observer,
-          "invalid trigger observer",
-          legacy_allowed: false
-        )
-        raise "routing surface was accepted as a trigger observer"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_observer must be one of")
-      end
-
-      invalid_route = trigger_variant.call("explicit-input").merge(
-        "review_trigger_route" => "skill-retro-triage"
-      )
-      begin
-        validate_review_trigger_contract(invalid_route, "invalid trigger route", legacy_allowed: false)
-        raise "observer was accepted as a trigger route"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_route must be review-queue")
-      end
-
-      missing_probe = trigger_variant.call("explicit-input")
-      missing_probe.delete("review_trigger_probe")
-      begin
-        validate_review_trigger_contract(missing_probe, "missing trigger probe", legacy_allowed: false)
-        raise "trigger without a probe was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_probe must be a non-empty string")
-      end
-
-      invalid_draft, invalid_draft_body = parse_document(draft_template)
-      invalid_draft.delete("review_trigger_contract_version")
-      File.write(draft, render_document(invalid_draft, invalid_draft_body))
-      begin
-        store.record_draft(draft)
-        raise "open draft without a trigger contract was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_contract_version must be")
-      end
-
-      invalid_ledger, invalid_ledger_body = parse_document(ledger_template)
-      invalid_ledger.delete("review_trigger_contract_version")
-      File.write(ledger, render_document(invalid_ledger, invalid_ledger_body))
-      begin
-        store.record_ledger(ledger)
-        raise "open ledger without a trigger contract was accepted"
-      rescue Error => e
-        raise unless e.message.include?("review_trigger_contract_version must be")
+      [[draft_template, draft, :record_draft], [ledger_template, ledger, :record_ledger]].each do |template, file, writer|
+        invalid, body = parse_document(template)
+        invalid.delete("review_trigger")
+        File.write(file, render_document(invalid, body))
+        begin
+          store.public_send(writer, file)
+          raise "open follow-up without a review condition was accepted"
+        rescue Error => e
+          raise unless e.message.include?("review_trigger must be a non-empty string")
+        end
       end
 
       path = store.route(input)
@@ -5490,174 +4991,85 @@ module RetroState
         raise unless e.message.include?("impact must be one of")
       end
 
-      seed_invalid_papercut = lambda do |overrides, recompute_digest: true|
-        source_data, source_body = read_document(papercut)
-        source_path = store.record_papercut(source_data, source_body, label: papercut)
-        assigned, assigned_body = read_document(source_path)
-        overrides.each { |field, value| assigned[field] = value }
-        if recompute_digest
-          intake = without_keys(assigned, "intake_digest", "closure")
-          assigned["intake_digest"] = Digest::SHA256.hexdigest(render_document(intake, assigned_body))
+      # Historical labels stay readable without reclassifying or rewriting intake.
+      historical, historical_body = read_document(closed_papercut)
+      historical.delete("closure")
+      PAPERCUT_CLASSIFICATIONS.each_key { |field| historical[field] = "historical-#{field}" }
+      intake = without_keys(historical, "intake_digest")
+      historical["intake_digest"] = Digest::SHA256.hexdigest(render_document(intake, historical_body))
+      historical_root = File.join(tmp, "historical-papercut-state")
+      historical_store = Store.new(historical_root)
+      historical_store.init
+      historical_path = File.join(historical_root, "papercuts", "inbox", "#{papercut_id}.md")
+      original_intake = render_document(historical, historical_body)
+      File.write(historical_path, original_intake)
+      historical_store.validate
+      historical_store.papercuts
+      historical_store.review_queue
+      raise "historical papercut was rewritten" unless File.read(historical_path) == original_intake
+      PAPERCUT_CLASSIFICATIONS.each_key do |field|
+        tampered = historical.merge(field => "other-label")
+        begin
+          validate_papercut(tampered, historical_body, label: "altered classification", routed: true)
+          raise "classification change escaped the intake digest"
+        rescue Error => e
+          raise unless e.message.include?("papercut intake fields changed after recording")
         end
-        File.write(source_path, render_document(assigned, assigned_body))
-        [source_path, assigned, assigned_body]
+        malformed = historical.merge(field => [])
+        begin
+          validate_papercut(malformed, historical_body, label: "malformed classification", routed: true)
+          raise "non-text classification was accepted"
+        rescue Error => e
+          raise unless e.message.include?("#{field} must be a non-empty string")
+        end
       end
-      build_repair = lambda do |papercut_id, values, accept_current_evidence: false|
-        repair, repair_body = parse_document(store.prepare_papercut_repair(papercut_id))
-        values.each { |field, value| repair[field] = value }
-        repair["accept_current_evidence"] = accept_current_evidence
-        File.write(papercut_repair, render_document(repair, repair_body))
-      end
-
-      repair_target, invalid_record, invalid_body = seed_invalid_papercut.call(
-        {
-          "kind" => "orchestration",
-          "impact" => "delay",
-          "resolution" => "resolved",
-          "owner_hint" => "skill"
-        },
-        recompute_digest: false
+      historical_archive = historical_store.close_papercut(
+        papercut_id, outcome: "no-action", rationale: "No reusable action is needed."
       )
-      repair_target_id = invalid_record.fetch("papercut_id")
-      build_repair.call(
-        repair_target_id,
-        {
-          "kind" => "other",
-          "impact" => "blocked",
-          "resolution" => invalid_record.fetch("resolution"),
-          "owner_hint" => "skill-system"
+      historical_closed, closed_body = read_document(historical_archive)
+      unless without_keys(historical_closed, "closure") == historical && closed_body == historical_body
+        raise "closing historical papercut changed its intake"
+      end
+      historical_store.validate
+
+      # Keep validating existing repair receipts, even when their enclosing digest matches.
+      %w[matched classification-only current-evidence-authorized].each do |mode|
+        repaired, repaired_body = read_document(closed_papercut)
+        prior = without_keys(repaired, "intake_digest", "closure")
+        replaced = prior.merge("kind" => "historical-kind")
+        replaced_digest = Digest::SHA256.hexdigest(render_document(replaced, repaired_body))
+        receipt = {
+          "repaired_at" => "2026-08-28T12:00:00Z",
+          "rationale" => "Historical compatibility repair.",
+          "redaction_review" => "Sanitized fixture.",
+          "prior_intake_digest" => case mode
+                                   when "matched" then replaced_digest
+                                   when "classification-only" then repaired.fetch("intake_digest")
+                                   else "0" * 64
+                                   end,
+          "replaced_intake_digest" => replaced_digest,
+          "digest_recovery" => mode,
+          "changes" => {"kind" => {"from" => "historical-kind", "to" => repaired.fetch("kind")}}
         }
-      )
-      repaired_path = store.repair_papercut(repair_target_id, papercut_repair)
-      raise "papercut repair changed the target path" unless repaired_path == repair_target
-      repaired, repaired_body = read_document(repaired_path)
-      raise "papercut repair changed identity" unless repaired["papercut_id"] == repair_target_id
-      raise "papercut repair changed evidence body" unless repaired_body == invalid_body
-      %w[source_scope observation workaround redaction_review created_at].each do |field|
-        raise "papercut repair changed #{field}" unless repaired[field] == invalid_record[field]
+        if mode == "classification-only"
+          receipt["authenticated_classifications"] = repaired.slice(*PAPERCUT_CLASSIFICATIONS.keys)
+        end
+        repaired["schema_repairs"] = [receipt]
+        repaired["intake_digest"] = Digest::SHA256.hexdigest(
+          render_document(without_keys(repaired, "intake_digest", "closure"), repaired_body)
+        )
+        validate_papercut(repaired, repaired_body, label: "historical #{mode} repair", routed: true, archived: true)
+        receipt["replaced_intake_digest"] = "f" * 64
+        repaired["intake_digest"] = Digest::SHA256.hexdigest(
+          render_document(without_keys(repaired, "intake_digest", "closure"), repaired_body)
+        )
+        begin
+          validate_papercut(repaired, repaired_body, label: "tampered repair history", routed: true, archived: true)
+          raise "tampered repair history was accepted"
+        rescue Error => e
+          raise unless e.message.include?("replaced_intake_digest does not match repair history")
+        end
       end
-      repair_history = repaired.fetch("schema_repairs")
-      raise "papercut repair history was not recorded" unless repair_history.length == 1
-      repair_entry = repair_history.fetch(0)
-      unless repair_entry["prior_intake_digest"] == invalid_record["intake_digest"]
-        raise "papercut repair did not preserve the prior digest"
-      end
-      authenticated = repair_entry.fetch("authenticated_classifications")
-      unless authenticated == {
-        "kind" => "command",
-        "impact" => "retry",
-        "resolution" => "worked-around",
-        "owner_hint" => "unknown"
-      }
-        raise "papercut repair did not preserve the authenticated classification tuple"
-      end
-      unless repair_entry.fetch("changes").keys.sort == %w[impact kind owner_hint]
-        raise "papercut repair did not record the exact invalid fields"
-      end
-      store.validate
-
-      begin
-        store.repair_papercut(repair_target_id, papercut_repair)
-        raise "already-valid papercut was repaired again"
-      rescue Error => e
-        raise unless e.message.include?("papercut classifications are already valid")
-      end
-
-      history_original = File.read(repaired_path)
-      history_tampered = repaired.dup
-      history_tampered["schema_repairs"] = repair_history.map(&:dup)
-      history_tampered["schema_repairs"][0] = repair_entry.merge("prior_intake_digest" => "0" * 64)
-      history_intake = without_keys(history_tampered, "intake_digest", "closure")
-      history_tampered["intake_digest"] = Digest::SHA256.hexdigest(
-        render_document(history_intake, repaired_body)
-      )
-      File.write(repaired_path, render_document(history_tampered, repaired_body))
-      begin
-        store.validate
-        raise "tampered papercut repair history was accepted"
-      rescue Error => e
-        raise unless e.message.include?("prior_intake_digest does not match repair history")
-      ensure
-        File.write(repaired_path, history_original)
-      end
-
-      reclassification_target, reclassification_record, = seed_invalid_papercut.call(
-        {"kind" => "orchestration"}
-      )
-      reclassification_id = reclassification_record.fetch("papercut_id")
-      build_repair.call(
-        reclassification_id,
-        {
-          "kind" => "other",
-          "impact" => "blocked",
-          "resolution" => reclassification_record.fetch("resolution"),
-          "owner_hint" => reclassification_record.fetch("owner_hint")
-        }
-      )
-      reclassification_original = File.read(reclassification_target)
-      begin
-        store.repair_papercut(reclassification_id, papercut_repair)
-        raise "papercut repair changed an already-valid classification"
-      rescue Error => e
-        raise unless e.message.include?("repair must not change already-valid impact")
-        raise "failed repair changed its target" unless File.read(reclassification_target) == reclassification_original
-      ensure
-        File.unlink(reclassification_target)
-      end
-
-      authorized_target, authorized_record, = seed_invalid_papercut.call(
-        {"kind" => "orchestration"},
-        recompute_digest: false
-      )
-      authorized_id = authorized_record.fetch("papercut_id")
-      authorized_data, authorized_body = read_document(authorized_target)
-      authorized_data["observation"] = "Sanitized current evidence accepted for compatibility repair."
-      File.write(authorized_target, render_document(authorized_data, authorized_body))
-      authorized_values = {
-        "kind" => "other",
-        "impact" => authorized_data.fetch("impact"),
-        "resolution" => authorized_data.fetch("resolution"),
-        "owner_hint" => authorized_data.fetch("owner_hint")
-      }
-      build_repair.call(authorized_id, authorized_values)
-      begin
-        store.repair_papercut(authorized_id, papercut_repair)
-        raise "unrecoverable digest was accepted without explicit current-evidence authority"
-      rescue Error => e
-        raise unless e.message.include?("unrecoverable intake digest requires accept_current_evidence: true")
-      end
-      build_repair.call(authorized_id, authorized_values, accept_current_evidence: true)
-      store.repair_papercut(authorized_id, papercut_repair)
-      authorized_repaired, = read_document(authorized_target)
-      unless authorized_repaired.dig("schema_repairs", 0, "digest_recovery") == "current-evidence-authorized"
-        raise "explicit current-evidence digest recovery was not recorded"
-      end
-      store.validate
-
-      digest_target, digest_record, = seed_invalid_papercut.call(
-        {"kind" => "orchestration"},
-        recompute_digest: false
-      )
-      digest_id = digest_record.fetch("papercut_id")
-      build_repair.call(
-        digest_id,
-        {
-          "kind" => "other",
-          "impact" => digest_record.fetch("impact"),
-          "resolution" => digest_record.fetch("resolution"),
-          "owner_hint" => digest_record.fetch("owner_hint")
-        }
-      )
-      File.write(digest_target, File.read(digest_target).sub("Unexpected, avoidable friction", "Altered friction"))
-      begin
-        store.repair_papercut(digest_id, papercut_repair)
-        raise "papercut with a bad original digest was repaired"
-      rescue Error => e
-        raise unless e.message.include?("observed_intake_digest does not match current papercut")
-      ensure
-        File.unlink(digest_target)
-      end
-      store.validate
 
       archived_original = File.read(closed_papercut)
       File.write(closed_papercut, archived_original.sub("Unexpected, avoidable friction", "Altered friction"))
@@ -5681,7 +5093,7 @@ module RetroState
         File.write(path, original)
       end
 
-      decision_text = without_review_trigger_contract.call(
+      decision_text = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
@@ -5708,7 +5120,7 @@ module RetroState
         )
         recovery_source = recovery_store.route(recovery_input)
         recovery_id = File.basename(recovery_source, ".md")
-        recovery_decision_text = without_review_trigger_contract.call(
+        recovery_decision_text = without_deferral_fields.call(
           decision_template
           .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", recovery_id)
           .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
@@ -5781,7 +5193,7 @@ module RetroState
       )
       conflict_source = conflict_store.route(conflict_input)
       conflict_id = File.basename(conflict_source, ".md")
-      conflict_decision_text = without_review_trigger_contract.call(
+      conflict_decision_text = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", conflict_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:00:00Z")
@@ -6225,7 +5637,7 @@ module RetroState
       ledger_id = File.basename(ledger_path, ".md")
       [draft_path, ledger_path].each do |legacy_path|
         legacy_data, legacy_body = read_document(legacy_path)
-        legacy_review_trigger_fields.each { |field| legacy_data.delete(field) }
+        legacy_data.delete("owner") if legacy_path == draft_path
         File.write(legacy_path, render_document(legacy_data, legacy_body))
       end
       store.validate
@@ -6369,7 +5781,7 @@ module RetroState
       File.write(input, correction_text)
       correction_path = store.route(input)
       correction_id = File.basename(correction_path, ".md")
-      correction_decision = without_review_trigger_contract.call(
+      correction_decision = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", correction_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:04:00Z")
@@ -6443,7 +5855,7 @@ module RetroState
       File.write(decision, deferred_decision)
       deferred_archive_path = store.process(deferred_id, decision)
       legacy_deferred, legacy_deferred_body = read_document(deferred_archive_path)
-      legacy_review_trigger_fields.each do |field|
+      %w[owner unresolved_decision].each do |field|
         legacy_deferred.fetch("triage").delete(field)
       end
       File.write(
@@ -6459,7 +5871,7 @@ module RetroState
       File.write(input, candidate_template.gsub("Short candidate title", "Merge into deferral"))
       merged_path = store.route(input)
       merged_id = File.basename(merged_path, ".md")
-      merged_decision = without_review_trigger_contract.call(
+      merged_decision = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", merged_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:30Z")
@@ -6477,7 +5889,7 @@ module RetroState
       File.write(input, candidate_template.gsub("Short candidate title", "Merge into deferred merge"))
       nested_merged_path = store.route(input)
       nested_merged_id = File.basename(nested_merged_path, ".md")
-      nested_merged_decision = without_review_trigger_contract.call(
+      nested_merged_decision = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", nested_merged_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:05:45Z")
@@ -6555,7 +5967,7 @@ module RetroState
         raise unless e.message.include?("replacement decision must be newer")
       end
 
-      accepted_decision = without_review_trigger_contract.call(
+      accepted_decision = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", deferred_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:07:00Z")
@@ -6624,7 +6036,7 @@ module RetroState
 
       post_audit_path = store.route(input)
       post_audit_id = File.basename(post_audit_path, ".md")
-      post_audit_decision = without_review_trigger_contract.call(
+      post_audit_decision = without_deferral_fields.call(
         decision_template
         .sub("RC-YYYYMMDDTHHMMSSZ-abcdef", post_audit_id)
         .sub("YYYY-MM-DDTHH:MM:SSZ", "2026-07-15T12:06:00Z")
@@ -6939,13 +6351,10 @@ def usage(command = nil)
                                         Prepare a new accepted-record draft from archived candidates
       prepare-accepted-update --id ID  Print an editable accepted-record replacement
       init                              Initialize the configured state root
-      template TYPE                    Print a papercut, papercut-repair, candidate, decision,
+      template TYPE                    Print a papercut, candidate, decision,
                                         verification, verification-decision, accepted, draft,
                                         ledger, or audit template
       record-papercut --file PATH      Record a papercut from PATH, or - for standard input
-      prepare-papercut-repair --id ID  Print a repair decision bound to current intake
-      repair-papercut --id ID --file PATH
-                                        Repair invalid papercut classifications with a typed decision
       papercuts [--archive]            List open papercuts, or archived papercuts explicitly
       close-papercut --id ID --outcome OUTCOME --rationale TEXT
                                         Archive a papercut with a reviewed outcome
@@ -7006,8 +6415,6 @@ def reject_inapplicable_options!(command, provided)
     "init" => %w[--root],
     "template" => [],
     "record-papercut" => %w[--root --file],
-    "prepare-papercut-repair" => %w[--root --id],
-    "repair-papercut" => %w[--root --id --file],
     "papercuts" => %w[--root --archive],
     "close-papercut" => %w[
       --root --id --outcome --rationale --related-papercut-id
@@ -7050,7 +6457,7 @@ command = ARGV.shift
 commands = %w[
   show snapshot compare
   prepare-decision prepare-verification prepare-accepted prepare-accepted-update
-  init template record-papercut prepare-papercut-repair repair-papercut papercuts
+  init template record-papercut papercuts
   close-papercut route pending process
   route-verification pending-verifications process-verification
   reconsider record-accepted update-accepted record-draft record-ledger close-ledger
@@ -7219,7 +6626,6 @@ begin
   when "template"
     template = case type
     when "papercut" then RetroState.papercut_template
-    when "papercut-repair" then RetroState.papercut_repair_template
     when "candidate" then RetroState.candidate_template
     when "decision" then RetroState.decision_template
     when "verification" then RetroState.verification_proposal_template
@@ -7315,15 +6721,6 @@ begin
         print RetroState.render_document(data, body)
         exit 2
       end
-    when "repair-papercut"
-      raise RetroState::Error, "repair-papercut requires --id ID" unless record_id
-      raise RetroState::Error, "repair-papercut requires --file PATH" unless input_path
-
-      puts store.repair_papercut(record_id, input_path)
-    when "prepare-papercut-repair"
-      raise RetroState::Error, "prepare-papercut-repair requires --id ID" unless record_id
-
-      print store.prepare_papercut_repair(record_id)
     when "papercuts"
       store.papercuts(archive: archive).each { |row| puts row.join("\t") }
     when "close-papercut"
