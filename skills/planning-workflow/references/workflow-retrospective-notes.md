@@ -17,8 +17,7 @@ Keep these notes concise and evidence-based. They should let the final agent run
 a skill retrospective using evidence from every phase, not only its current
 context window.
 
-When standing or task instructions authorize `$papercut-capture`, route
-qualifying unexpected friction through that workflow near the event. Use
-`$skill-retro` for a mature reusable conclusion. Do not copy a routed papercut
-or candidate into a tracked plan; retain only the execution consequence or
-decision that future work actually needs.
+When standing or task instructions authorize capture, preserve qualifying observations through
+`$skill-retro` while the evidence is fresh. `$papercut-capture` forwards to the same stream.
+Do not copy operational observation records into a tracked plan; retain only the execution
+consequence or decision that later work needs. Review owns remedy and reuse judgments.

@@ -1,6 +1,6 @@
 ---
 name: learning-process-review
-description: Review codex-workflows learning state and public skill-repository artifact audits. Use for papercut closure, retrospectives, candidate or verification health, drain decisions, and cleanup.
+description: Review codex-workflows learning state and public skill-repository artifact audits. Use for observation review, verification health, follow-up decisions, and cleanup.
 ---
 
 # Learning Process Review
@@ -19,8 +19,8 @@ instructions to execute mechanically.
   the existing authorization.
 - Treat source edits, installs, commits, pushes, messages, and external-owner
   actions as separate mutations requiring applicable authority.
-- Apply `$papercut-capture` only to new friction encountered during the review;
-  do not use capture authority to close or promote existing records.
+- Use `$skill-retro` only for qualifying new observations encountered during review;
+  capture authority permits no processing or closure of existing records.
 
 ## Public Artifact Audit Route
 
@@ -39,7 +39,7 @@ after the full report and applicable mutation gate.
 
 For effects on ordinary work or exploratory downstream evidence, follow
 [`prompts/learning-process-investigation.md`](../../prompts/learning-process-investigation.md).
-For papercut closure, candidate or verification health, drain decisions, or a broader retrospective,
+For observation review, verification health, follow-up decisions, or a broader retrospective,
 use [private-learning-state-review.md](references/private-learning-state-review.md).
 It owns state context and follow-up, with downstream investigation only where useful to the review.
 Keep focused inquiries within scope; they do not complete a full review or reset cadence.

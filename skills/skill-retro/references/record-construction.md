@@ -1,64 +1,31 @@
-# Retrospective Record Construction
+# Observation Record Construction
 
-Read this only after `SKILL.md` identifies a possible candidate or verification proposal. Admission, authority, privacy, and quiet no-change remain there.
+Use after an observation qualifies under `SKILL.md`. Before writing, read the state protocol's
+[Installed Helper](state-protocol.md#installed-helper) and
+[Observation Intake](state-protocol.md#observation-intake) for authority, privacy and recovery.
 
-## Shared Construction
+Generate the current shape with the installed helper:
 
-- Keep chat concise and a routed record self-contained; triage lacks the producing conversation.
-- Consolidate by missing delta and decision, or by accepted identity and claim. Write one file per
-  distinct result and split materially different deltas into independently judgeable records.
-- Recheck privacy and preserve only evidence needed to judge the decision or claim.
-- For admitted records about pauses or detours attributed to instructions, identify the source file and
-  clause, the authorized work interrupted, and the observed action and consequence. Quote only a bounded,
-  privacy-safe excerpt; otherwise give a sanitized summary. Distinguish the instruction's explicit
-  requirement from the agent's interpretation, and observed effects from suspected causation. An agent's
-  explanation alone does not establish causation.
+```sh
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template observation
+```
 
-## Candidate Evidence
+Complete the title, sanitized source scope, observation, bounded evidence and redaction review.
+Use the Markdown body for context already known: guidance in use, impact, workaround, observed
+outcome, user feedback or a clearly labeled explanation. The record must stand alone for a reviewer
+who lacks the producing conversation. Omit unavailable details instead of inventing them.
 
-- Classify `evidence_lineage` against affected guidance and explain how it may have shaped what was
-  attempted, noticed, or reported. Use `unknown` when that relationship cannot be established;
-  descendant reports do not prove independent recurrence or transfer.
-- For material human feedback, preserve a bounded sanitized pairing of judged behavior, the judgment and
-  stated rationale or constraints, and any alternative or outcome. Leave unstated rationale absent and separate producer inference from evidence.
-- Name the missing delta and its smallest natural home: `SKILL.md`, reference, script, prompt, local
-  instruction, external/plugin-owned surface, or no action. Mark ownership unknown if necessary.
-- For an admitted already-landed change, use the existing evidence fields and body to preserve the
-  pre-change gap, sanitized owner direction or upstream provenance, exact public landing commit,
-  observed validation, and whether any source patch remains. Owner acceptance and landing do not
-  establish behavioral effectiveness; no new landing fields or record per commit are required.
-- Include a bounded exact failure signal when decisive. For commands, record whether they were exercised,
-  whether quoting or sandbox caveats remain, and which commands are untested.
-- Explain the smallest control that would address the gap: an existing principle, prose, a routed
-  mechanic or an executable check. State what can be enforced and what judgment remains.
-- Keep the claim within its evidence boundary. Choose its natural home separately, using
-  [semantic authoring](../../codex-skill-repo/references/semantic-authoring.md#admission) for
-  placement and payload judgment. A shared mechanism can have a general home without broader proof.
+For an instruction-related detour, preserve the clause or sanitized source reference, authorized
+work, observed action and consequence. Distinguish the instruction from the agent's interpretation.
+For an already-landed improvement, retain the prior gap, owner direction, exact public commit and
+actual validation when available. Landing does not establish later benefit.
 
-When a corrected decision makes an accepted outcome false, name `supersedes_accepted_id` and state
-`now_false`. For the same outcome and witness, use verification. For implementation drift, name the missed
-public surface under the existing accepted identity and leave behavioral verification unchanged.
+Submit completed input with `record-observation --file PATH`, or `--file -` for standard input.
+Use a temporary input file outside Git and remove it when practical. When the state root is unset
+or an authorized write is blocked, preserve and disclose the validated paste-ready fallback.
+Neither a helper nor a fallback expands capture authority.
 
-## Verification Evidence
-
-Use the typed fields and claim vocabulary in the state protocol's
-[Accepted Records And Verification](state-protocol.md#accepted-records-and-verification) section, match one
-eligible `SCR-*` opportunity, and use `what_is_false` only for contradiction. Record the task, decisive
-behavior or failure, affected guidance, and why it matters. `$skill-retro-triage` alone applies or rejects a
-proposal.
-
-For occasional independent authoring checks and limits on evaluation infrastructure, follow
-[bounded forward-testing](../../codex-skill-repo/references/semantic-authoring.md#bounded-forward-testing); keep the typed verification requirements above.
-
-## Helper, Routing, And Chat
-
-Before writing, read the state protocol's [Installed Helper](state-protocol.md#installed-helper) section and
-the operation-specific [Candidate Intake](state-protocol.md#candidate-intake) or
-[Accepted Records And Verification](state-protocol.md#accepted-records-and-verification) section for
-templates, identity, temporary input, fallback, and sandbox recovery. Use the installed helper from project
-repositories; do not depend on this source checkout. Triage ready records with repository-local
-`$skill-retro-triage`; external state never belongs in Git.
-
-For a candidate, report name, observation, decisive evidence, lesson, home, testability, confidence, and
-recommendation. For verification, report target, exact opportunity match, proposed state and basis, claim,
-evidence, and confidence.
+No producer-side remedy or confidence taxonomy is required. Preserve one original observation;
+`$skill-retro-triage` adds review decisions and applies the separate evidence rules for shared
+changes and verification. In chat, state the observation, why it matters and the evidence needed
+for the current conversation; do not reproduce an empty form.

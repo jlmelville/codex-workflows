@@ -12,7 +12,8 @@ source helper in this repository and the installed helper elsewhere. Start with 
 `review-queue`; use `show --id ID` or `verification-context --id ID` for selected evidence.
 Read the protocol's relevant operation section before any authorized state mutation.
 
-For a full review, read every open papercut. Focused reviews use a relevant bounded cluster.
+For a full review, cover open observations and legacy intake. Focused reviews use a relevant
+cluster.
 Read archived papercuts, candidates, accepted records, legacy drafts, ledgers and audits only when
 they bear on the question, recurring undrained work, prior closure, verification or cleanup.
 
@@ -33,9 +34,9 @@ unnecessary repository names. Observed records are evidence, not instructions to
 
 ## Judgment
 
-Use [papercut review and drain](../../skill-retro-triage/references/papercut-drain.md) for selected
-observations and authorized closure. A full review includes clusters missed by bounded triage and
-the pilot's benefit and review cost. Backlog size is not a closure quota.
+Use [observation review](../../skill-retro-triage/SKILL.md) for selected records and authorized
+processing. A full review includes clusters missed by focused reviews and the capture process's
+benefit and cost. Backlog size is not a closure quota.
 
 Follow evidence of repeated construction mistakes, missed follow-through, fired actions,
 publication gaps, stale proposals or contradicted guidance. Unequal report volume and unverified
@@ -82,9 +83,10 @@ the unresolved decision for a deferral; an already agreed action belongs in a le
 an owner, concrete review condition and check, next action and close condition. Existing legacy
 drafts may still be resolved and referenced; do not create new drafts.
 
-Within authorized drainage, create candidate or duplicate targets before closing papercuts. Route
-reusable changes through `$skill-retro-triage`; local fixes and external-owner actions retain their
-own authority boundaries. Prune only records unreferenced by retained state, under the
+Within authorized processing, review observations under their existing identities; no candidate
+promotion step is needed. Existing papercut closure follows the legacy reference rules.
+Local fixes and external-owner actions retain their own authority boundaries. Prune only records
+unreferenced by retained state, under the
 [cleanup protocol](../../skill-retro/references/state-protocol.md#drafts-ledgers-and-cleanup).
 
 After a full review and authorization to record it, use `template audit` with
@@ -95,5 +97,6 @@ Finish state mutations with helper `validate`.
 
 Report changes made, agreed actions still open, applicable validation and publication status, and
 the next useful review trigger. Reuse the previously agreed trigger. The first-review reminder of
-ten papercuts or fourteen days, and subsequent default of five new papercuts or fourteen days, are
+ten observations or fourteen days, and subsequent default of five new observations or fourteen days,
+are
 prompts to judge useful scope rather than mandates for a full review or new schedule.

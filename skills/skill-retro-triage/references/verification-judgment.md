@@ -1,11 +1,22 @@
 # Verification Judgment
 
-Use for verification proposals and contradicted accepted outcomes. Apply the
+Use when a reviewed observation may support or contradict an existing accepted outcome, or for
+existing verification proposals and contradictions. Discover relevant outcomes with bounded
+`verification-context --destination TEXT --compact`; expand selected IDs before judging the claim.
+For observed harm, use `accepted-records` across all dispositions so inactive identities are
+visible. Apply the
 parent skill's authority and shared evidence rules. Pass an accepted ID or a proposal ID from
 `review-queue` to `verification-context --id ID` to read the target, its exact opportunity, and
 selected, applied, and pending proposals together, then read the protocol's
 [Accepted Records And Verification](../../skill-retro/references/state-protocol.md#accepted-records-and-verification)
 for evidence bases, typed decisions, eligible transitions, and identity rules.
+
+For an observation-backed proposal, use `prepare-verification` and complete its exact claim,
+opportunity match, basis and evidence under review authority. Include the original observation IDs
+in `source_observation_ids`. Preserve known guidance context and judge independence; do not infer it
+from repeated reports. The original observation needs no mature candidate copy. Record its review
+as `no-change` when no source change is needed, with the proposal ID in the rationale or notes.
+Creating the proposal and processing existing records require their applicable authority.
 
 Choose `apply` or `reject` for each proposal. Apply only to an `accepted` or
 `implemented` target when evidence exercises its exact opportunity, its basis

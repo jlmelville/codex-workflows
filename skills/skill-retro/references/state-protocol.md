@@ -24,8 +24,8 @@ Git owns:
 
 The configured state root owns:
 
-- open and reviewed papercut observations;
-- candidate inbox and processed archive;
+- observation inbox and reviewed archive, including legacy candidates;
+- existing papercut inbox and archive;
 - verification-proposal inbox and processed archive;
 - curated accepted records and applied verification evidence;
 - deferred candidates and uninstalled drafts;
@@ -57,9 +57,9 @@ $CODEX_WORKFLOWS_STATE_DIR/
     learning-process/
 ```
 
-Records are Markdown files with YAML frontmatter. Use one papercut, candidate,
-or verification proposal per file so records can be reviewed, promoted,
-judged, or deleted independently. Opaque `PC-*`, `RC-*`, and `VP-*` IDs contain
+Records are Markdown files with YAML frontmatter. Capture each distinct observation once.
+Review decisions stay with the original evidence; accepted outcomes and typed verification
+proposals record separate judgments. Opaque `PC-*`, `RC-*`, and `VP-*` IDs contain
 no repository or session name. Accepted `SCR-*` records use an array of
 `originating_candidate_ids` so merges and splits remain representable.
 
@@ -104,7 +104,7 @@ operations accept `--file -` for standard input. Remove temporary input when
 practical, and use the installed helper rather than locating this source checkout.
 
 When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work; `route`,
-`route-verification`, and `record-papercut` print validated paste-ready input
+`record-observation`, and `route-verification` print validated paste-ready input
 without writing. Do not silently invent a default state location.
 
 When a configured root is blocked only by the sandbox, retry an authorized write
@@ -112,98 +112,76 @@ through the narrowly scoped approval path or explain the durable writable-root
 configuration. This does not broaden authority; preserve the paste-ready record
 when approval is unavailable or denied.
 
-## Papercut Intake And Closure
+## Observation Intake
 
-A papercut preserves unexpected, avoidable workflow friction before anyone
-knows whether it is reusable or who owns the remedy. Required fields are
-`source_scope`, `kind`, `observation`, `impact`, `resolution`, `owner_hint`, and
-`redaction_review`. `workaround` is optional. The helper validates bounded
-vocabularies documented by `template papercut`; `owner_hint` defaults to
-`unknown` in that template.
+Use `template observation` and `record-observation --file PATH` for all new capture. Required
+content is a title, sanitized source scope, the observation, bounded `decisive_evidence` and a
+redaction review. Keep guidance in use, impact, workaround, outcome and hypotheses in the body
+when known. Capture does not require a remedy, taxonomy, owner, skill destination or proof of reuse.
 
-Papercut capture requires explicit authority. Authority may come from standing
-user or repository instructions that enable `$papercut-capture`, a task or
-session request, or a per-item request. Implicit skill activation alone does
-not authorize a write. Standing or session authority permits qualifying records
-to be written without interrupting the user each time. Capture authority
-permits only new inbox records. It does not authorize closure, candidate
-creation or promotion, project edits, commits, pushes, or messages. The
-qualification, privacy, fallback, and disclosure workflow lives in
-[`$papercut-capture`](../../papercut-capture/SKILL.md).
+Observations use `record_type: observation` in the existing `retrospectives/inbox` and archive.
+Their `RC-*` IDs and `candidate_id` field retain the established identity and reference format;
+these storage names do not classify an observation as a proposed skill. No migration is required.
+The digest covers original fields and the evidence body. Review appends its decision and preserves
+that evidence; never copy a new observation into a candidate merely to make it reviewable.
 
-`papercuts` lists only the open inbox by default. Use `papercuts --archive` only
-when reviewed history is relevant. Close each reviewed observation with one of:
-
-```text
-no-action
-local-fix
-candidate
-external-owner
-duplicate
-```
-
-Closure appends `outcome`, `rationale`, and `closed_at` without changing the
-digested intake fields, then moves the record to the archive. `duplicate`
-requires `--related-papercut-id PC-*`; `candidate` requires
-`--related-candidate-id RC-*`, and the formal candidate must exist first. Other
-outcomes reject related IDs. Closing requires explicit state-mutation authority
-from the review user. If closure is interrupted after archive creation, retry
-the same `close-papercut` operation. A matching archive is retained with its
-original `closed_at`; a different intake or closure decision is refused.
-
-Do not promote mechanically. Reviewers synthesize a new candidate only when
-the observation is reusable, materially missing from current coverage, and has
-a justified destination. Repository-local fixes and external-owner actions do
-not need to pass through the candidate inbox.
-
-### Historical Classifications
-
-New papercuts use the bounded vocabulary in `template papercut`. Existing records may retain
-unfamiliar textual values for `kind`, `impact`, `resolution`, and `owner_hint`; reading or closing
-them does not reclassify their intake. Empty or non-text values still fail validation.
-
-The intake digest continues to cover every original field and the evidence body. Any mismatch
-fails validation; the helper does not guess prior classifications or rebase digests. Historical
-`schema_repairs` receipts remain intact and their digest history is still validated. There is no
-repair-writing command. A structural or integrity failure needs separate investigation, not a
-classification change.
+User or standing capture authority permits only sanitized new inbox records. It does not authorize
+classification of existing records, closure, verification application, source edits, commits, pushes
+or messages. Treat synchronized state as exposed. The capture and privacy workflow lives in
+[`$skill-retro`](../SKILL.md); `$papercut-capture` is a compatibility entry to that same workflow.
 
 ## Candidate Intake
 
-Generate `template candidate`; the self-contained record preserves the decision
-surface without a transcript. New routes require `evidence_lineage` and a note
-naming the affected guidance and conditioning boundary. Classify lineage as
-`independent` when guidance was inactive; `descendant` when it may have shaped
-the work or report; `mixed` for both sources; `unknown` when retained evidence
-cannot decide; or `not-applicable` when the claim needs no behavioral use.
-Legacy omissions are `unknown`. Grounded descendant evidence can establish a
-source gap, conformance, or intended outcome, but repetition alone cannot prove
-independent recurrence, transfer, or comparative improvement.
+Existing `record_type: candidate` records retain their original required fields, lineage, IDs,
+digests and review history. `route` remains a compatibility command for complete legacy candidate
+input or observations. New producers use `template observation` and `record-observation`.
+The old candidate and papercut templates and `record-papercut` command are retired.
 
-Treat synchronized state as exposed: omit transcripts, tool dumps, credentials,
-private source, runtime paths, unredacted home paths, and unnecessary repository
-names. User or standing `auto` authority permits only sanitized new inbox
-records—not application or other edits, commits, pushes, or messages.
+Review owns reuse, destination, confidence and evidence-lineage judgments. Missing historical
+lineage is `unknown`. Grounded descendant evidence may establish a gap, conformance or intended
+outcome; repetition alone does not prove independent recurrence, transfer or comparative
+improvement.
 
-When later evidence changes a previously accepted decision, a new candidate may
-add `supersedes_accepted_id` and `now_false`. Use those fields only when the
-corrected decision is itself a new candidate. Evidence that merely supports or
-contradicts the same decision and witness belongs in a verification proposal
-for the existing accepted identity; it does not create a second candidate or
-accepted identity.
+## Papercut Intake And Closure
+
+Existing `PC-*` observations remain readable through `papercuts`, `show` and `review-queue`.
+Preserve their original classifications and evidence. No new papercut stream is created.
+Legacy closure uses `no-action`, `local-fix`, `candidate`, `external-owner` or `duplicate`.
+Closure appends the rationale and timestamp and archives the record without changing intake.
+
+A duplicate needs an existing `PC-*` target. A legacy `candidate` closure needs an existing `RC-*`
+target first; this compatibility link does not accept or implement a change. Other outcomes reject
+related IDs. Reviewers judge the remedy; local-fix and external-owner labels grant no edit or
+message
+authority. Closing requires applicable state-processing authority, separate from capture.
+
+After an interrupted closure, retry the same operation. A matching archive retains its original
+closure timestamp; a different intake or decision is refused. Historical classification text and
+`schema_repairs` receipts remain readable and validated without rewriting digests. Empty or
+malformed
+fields and evidence mismatches still fail. There is no repair-writing command.
 
 ## Triage And Archive
 
-Triage inspects `review-queue`, re-reads the named destination, and judges every
-candidate independently. Verdicts are `accept`, `defer`, `reject`, `split`,
-`merge`, or `no-change`. By default, present verdicts and the proposed public
-implementation batch before editing source.
+Triage reads selected observations from `review-queue`, judges the evidence and checks relevant
+coverage. Use `local-fix`, `external-owner` or `no-change` for those outcomes; `reject` for an
+unsupported proposal; `accept`, `split` or `merge` for justified shared changes; and `defer` for a
+named decision awaiting evidence. Record the rationale and reviewed scope in the decision or notes.
+Classification grants no source, messaging or existing-state authority. Present the proposed batch
+before changes unless that scope is already authorized.
 
 Query `accepted-records` before a possible repeat or destination-repair verdict. It searches all
 dispositions and states by case-insensitive literal substring: `--destination` matches destinations;
 `--text` includes selected metadata, originating candidate IDs, public commits, and the Markdown
 body. Repeat either filter to combine terms; see `--help` for matching rules. This identity lookup
 also covers inactive outcomes.
+
+For an accepted or split observation, fill `evidence_lineage` and `evidence_lineage_note` in the
+review decision. Preparation leaves them blank. Use `independent` when relevant guidance was
+inactive, `descendant` when it may have conditioned the work or report, `mixed` for both, `unknown`
+when the context cannot decide, and `not-applicable` for claims needing no behavioral use.
+For a correction, put `supersedes_accepted_id` and `now_false` in the review decision.
+Legacy intake links and prior review references stay intact.
 
 Use `prepare-decision --id ID --verdict VERDICT` with an already-reviewed `--rationale TEXT`, or
 fill the blank rationale afterward. Deferrals remain incomplete until their substantive fields
@@ -238,7 +216,7 @@ Existing records remain readable without migration, including records without an
 Legacy `review_trigger_*` metadata is preserved as historical context and is no longer interpreted
 as a typed contract. New deferrals and open follow-ups must supply the fields above.
 
-Use `review-queue` as the complete intake and action inventory: pending candidates, open papercuts,
+Use `review-queue` as the complete inventory: observations, legacy candidates and papercuts,
 verification proposals, archived deferrals, contradicted accepted outcomes, drafts, ledger actions,
 accepted publication gaps, and a due artifact audit. Detailed intake commands remain available for
 focused views. Queue presence does not authorize processing or require draining unrelated intake.
@@ -279,6 +257,8 @@ Basis:        none | later-session | deterministic-test
 ```
 
 After the public commit exists, use `prepare-accepted --id RC-ID --commit SHA` for a new outcome.
+Use the original reviewed observation IDs in `originating_candidate_ids`; the historical field name
+also covers observations. No separate candidate is needed.
 It prepares explicit linkage and relevant candidate and merge-ancestor context while leaving outcome
 judgments incomplete; see `--help` for multiple origins, split outcomes, commits, and defaults.
 Complete the blank fields, curate evidence, verify the final destination and public commit, and
@@ -353,6 +333,12 @@ applicable identity across all dispositions, then expand it with `verification-c
 Route a contradiction only when the evidence
 addresses that record's claim and opportunity. Use a candidate when the
 decision itself changes.
+
+Verification is a reviewed transition. When an observation supplies the evidence, include its
+`RC-*` or legacy `PC-*` ID in `source_observation_ids` on the typed proposal. The helper validates
+linked source identities and original digests at routing and application, and validates retained
+links during full-state checks. Preserve those observations after review. Existing proposals
+without source links remain valid. A source link alone establishes no claim or permission.
 
 Contradicted proposals must also state `what_is_false`; supported proposals
 must not. Further support when support is pending or the target is supported
@@ -440,8 +426,8 @@ owner, trigger, next action, and close condition transfers the live action to th
 not resolve it. A residual ledger cannot close until its accepted record is superseded, reverted, or
 explicitly retained. Preserve `verification: contradicted` after resolution.
 
-When archived correction candidates name earlier outcomes, `record-accepted`
-derives and preserves `supersedes_accepted_ids`.
+When a reviewed correction names an earlier outcome, `record-accepted` derives and preserves
+`supersedes_accepted_ids` from its review or legacy intake.
 
 Occasional authoring checks follow the
 [bounded forward-testing guidance](../../codex-skill-repo/references/semantic-authoring.md#bounded-forward-testing).
@@ -469,8 +455,9 @@ Legacy closed records without structured closure metadata remain valid.
 
 The public repository does not depend on retaining operational history. Within authorized cleanup,
 prune obsolete records only when no retained record references them. Closed ledgers and legacy
-drafts may still be referenced by audits. Candidate origins, supersession links and applied
-proposals also remain integrity dependencies. Preserve referenced records. Validate after pruning;
+drafts may still be referenced by audits. Observation origins, verification source links,
+supersession links and applied proposals also remain integrity dependencies. Preserve referenced
+records. Validate after pruning;
 do not rewrite evidence or remove links merely to make deletion pass.
 
 ## Completed Audits And Artifact Cadence
@@ -493,7 +480,8 @@ helper derives an approximate reminder from retained candidate archives and the 
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
 ```
 
-The default reminder becomes due at ten retained candidates whose first triage `reviewed_at` is
+The default reminder becomes due at ten retained observations or legacy candidates whose first
+triage `reviewed_at` is
 later than that audit's `completed_at`. For reconsidered candidates, the earliest `triage_history`
 entry supplies the original review time. With no retained repository audit, count all retained
 candidate archives. Learning-process audits and verification proposals do not reset or advance

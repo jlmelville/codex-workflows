@@ -1,86 +1,83 @@
-# Candidate Judgment
+# Observation And Shared Change Judgment
 
-Use for candidate intake, reconsideration, and fired drafts or ledgers. Apply
-the parent skill's authority and shared evidence rules.
+Use for observations, existing candidates, reconsideration and follow-ups under the parent skill's
+authority. Read the original evidence before deciding whether any remedy is justified.
 
-Choose `accept`, `defer`, `reject`, `split`, `merge`, or `no-change` for each
-candidate. Evaluate concrete distinct evidence, durability and recurrence
-likelihood, the exact guidance gap, expected benefit versus instruction and
-maintenance cost, and the natural active destination. Keep the claim as narrow
-as the evidence supports; broaden only with a credible transfer mechanism.
-Choose its home separately: identify sibling contexts that share the mechanism
-and place the kernel in the most general active home that covers them. Keep
-stack mechanics as examples or extensions and repository-local wrappers local.
-Do not strand a shared kernel only in an uninstalled draft when an active home
-covers it.
+## Choose The Outcome
 
-Use `reject` or `no-change` when a candidate changes no decision an agent would
-otherwise miss or costs more than the harm it prevents. Do not manufacture
-verdict diversity or a rejection quota.
+Use `no-change` when no action is warranted, `reject` for an unsupported proposal, `local-fix` for
+a remedy confined to its originating repository, or `external-owner` when another owner must act.
+These judgments do not authorize edits or messages. Record an agreed future action in an authorized
+ledger when tracking is needed; do not archive it as though the work were complete.
 
-For an otherwise admissible already-landed change, assess the pre-change gap and
-verify that the exact public commit and current destination implement the same
-decision. Query `accepted-records` to avoid a duplicate identity; reuse the
-existing identity for same-decision repair or relocation. For a new accepted
-outcome, follow the already-landed branch in
-[report-to-patch.md](../../skill-retro/references/report-to-patch.md#public-change).
+For a shared change, choose `accept`, `split` or `merge` only after establishing the concrete gap,
+existing coverage, narrow evidence scope, expected benefit versus cost, and smallest natural home.
+A new observation needs no intermediate candidate copy. Preserve all original IDs when several
+observations support one decision or one observation supports distinct changes.
+
+Use `defer` only for a named decision that missing evidence prevents. Behavioral uncertainty after
+a justified implementation belongs in an unverified accepted outcome. Inconclusive ideas need no
+follow-up record unless an agreed decision and useful encounter route warrant one.
+
+For evidence about an existing accepted outcome, use
+[verification judgment](verification-judgment.md). Observed failure or harm calls for a bounded
+`accepted-records --destination TEXT` or `--text TEXT` lookup across all dispositions before
+concluding that no change is needed. A query hit creates no work or quota. Keep source changes and
+verification claims separate; another occurrence of the same decision does not require a new
+identity.
+
+## Judge A Shared Change
+
+Evaluate the concrete evidence, likelihood of reuse, exact guidance gap and instruction or
+maintenance
+cost. Ordinary engineering judgment and local conventions need no shared rule. Check whether current
+guidance already produces the needed decision. Material human correction is evidence to assess;
+separate the human's stated rationale from inferred causes and unobserved benefits.
 
 Use [semantic authoring](../../codex-skill-repo/references/semantic-authoring.md#admission) for
-placement and payload decisions. Reuse an existing principle when it already produces the needed
-action; preserve distinct authority, evidence and completion constraints.
+placement and payload. Choose the home separately from the claim: a general mechanism can have a
+general home while its evidence remains narrow. Keep local wrappers local and preserve distinct
+authority, evidence and completion constraints.
 
-When revisiting learned guidance, compare retaining necessary judgment, merging with an existing
-principle, narrowing or conditionally routing it, replacing deterministic work with a check, and
-removal. Preserve the required behavior. Age or absent verification alone does not justify retirement,
-especially for rarely exercised privacy, authority, or compatibility constraints.
+When revisiting guidance, compare retention, consolidation, narrower activation, routed mechanics,
+an executable check and removal. Age or absent verification alone does not justify retiring rarely
+exercised privacy, authority or compatibility safeguards.
 
-For a misfire, identify the instruction, affected task, and observed consequence; distinguish an
-explicit requirement from the agent's interpretation. Check whether active guidance already gives the
-correct route. Compare trigger or rule correction with changing the workflow to eliminate the
-troublesome condition before adding exceptions. Judge the underlying policy's necessity separately
-from defects in its check.
+For a misfire, identify the instruction, task, actual action and consequence. Distinguish the rule
+from the agent's interpretation. Compare correcting activation or the rule with eliminating the
+troublesome condition before adding exceptions. Judge a policy separately from defects in its check.
 
-For a proposed replacement check, name the workflow invocation that reaches it and the judgment that
-remains. Exercise valid input, the known bad condition, and a harmless near-match. Start at the
-narrowest useful scope; keep newly proposed enforcement advisory while false positives remain
-uncertain. A helper that the relevant workflow never runs has not replaced an instruction.
+A replacement check needs an actual caller and a stated remaining judgment. Exercise valid input,
+the known bad condition and a harmless near-match. Before a new warning or threshold applies to a
+population, inspect representative real inputs, firing count and harmless hits. Keep enforcement
+advisory while false positives remain uncertain; synthetic cases alone do not calibrate a broad
+rule.
 
-Before landing a warning, vocabulary, or threshold, exercise it against the real
-population it will judge, or a justified representative sample. Record the firing
-count and denominator, inspect harmless hits, and weigh the burden against the
-harm prevented. Prefer advisory legacy listings or write-time checks when a new
-gate would mostly reject existing artifacts; synthetic cases alone do not
-calibrate a population-wide rule.
+For an already-landed change, judge the pre-change gap and verify the exact public commit and
+current
+destination. Query existing accepted records before adding an identity. Same-decision drift or
+relocation uses `no-change` plus authorized repair of the existing outcome, preserving its commits
+and verification. Follow the already-landed route in
+[report-to-patch.md](../../skill-retro/references/report-to-patch.md#public-change).
 
-Before a possible repeat or destination-repair verdict, run a bounded
-`accepted-records` query. For source drift or representation changes that preserve the decision, use
-`no-change`, retain the source repair, and update the original identity's destinations and commits
-after publication. Append relocation commits without replacing the original
-implementation provenance; preserve its behavioral verification. Recurrence of
-the same decision and witness belongs in verification; if it arrived as a candidate,
-reject or mark it `no-change` and direct the producer to the typed verification
-route. Do not translate ambiguous intake into accepted-state evidence.
+If the decision itself changes, add `supersedes_accepted_id` and `now_false` to the observation's
+review decision. Preserve original intake metadata on legacy candidates. Correction does not erase
+the old identity or its contradiction evidence. Repeated evidence for a still-valid decision belongs
+in verification rather than a replacement accepted identity.
 
-For `defer`, name the unjustified decision and missing evidence. Behavioral
-uncertainty after a justified reversible implementation belongs in an
-unverified accepted outcome. For `split` or `merge`, preserve all related opaque
-candidate IDs and lineage.
+## Record And Follow Through
 
-Read the protocol's
-[Triage And Archive](../../skill-retro/references/state-protocol.md#triage-and-archive)
-before constructing a verdict for archival or a new or replacement deferral.
-It owns `process`, resumable archival, `reconsider`, and the follow-up fields: owner, review
-condition and check, next action, and close condition. `review-queue` lists work; the reviewer
-decides whether the condition is met.
+Read [Triage And Archive](../../skill-retro/references/state-protocol.md#triage-and-archive) before
+`prepare-decision`, `process` or `reconsider`. Record the rationale and sufficient reviewed scope in
+the decision or its notes; for accepted observations, complete its lineage fields. The original
+observation and evidence remain immutable. Review authorization is separate from capture authority.
 
-For fired drafts or ledgers, also read
-[Drafts, Ledgers, And Cleanup](../../skill-retro/references/state-protocol.md#drafts-ledgers-and-cleanup).
-A deferral awaits evidence for a specific decision; an agreed future action belongs in a ledger.
-Keep provisional skill text and readiness criteria in that ledger's body. New draft creation is
-retired. Within authorized scope, execute due actions and resolve existing legacy drafts instead
-of refreshing them indefinitely. For public implementation, follow the parent route to
-`report-to-patch.md`.
+A deferral needs its unresolved decision, owner, concrete review condition and check, next action,
+and close condition. The reviewer evaluates that condition; the queue does not schedule work.
+An already agreed action belongs in a ledger. Resolve due legacy drafts under the
+[follow-up protocol](../../skill-retro/references/state-protocol.md#drafts-ledgers-and-cleanup);
+new draft creation remains retired.
 
-For a change to the learning loop itself, use
-[loop experiments](../../learning-process-review/references/loop-experiments.md)
-to judge benefit and operating cost through an existing ledger when warranted.
+For authorized shared implementation, use `report-to-patch.md`. For a material learning-loop change,
+use [loop experiments](../../learning-process-review/references/loop-experiments.md) only when a
+bounded observation of benefit and operating cost is warranted.

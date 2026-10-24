@@ -25,7 +25,7 @@ The system has three parts:
   The installer also maintains the canonical global learning block in the
   active Codex instruction file. It tracks its owned content and leaves
   unrelated installed skills and instructions alone.
-- **Learning state:** `CODEX_WORKFLOWS_STATE_DIR` holds papercuts, candidate
+- **Learning state:** `CODEX_WORKFLOWS_STATE_DIR` holds observations, legacy candidate
   reports, triage outcomes, and other working state outside the source
   repository and Codex home.
 
@@ -33,7 +33,7 @@ The user runtime and learning state are replaceable. Git remains the source of
 truth for reusable behavior and repository-local discovery links.
 
 ```text
-project work -> papercuts and retros -> triage -> skill changes -> Git
+project work -> observations -> review -> authorized improvements -> Git
                                                                |
                                                 pull and install on each laptop
 ```
@@ -145,8 +145,8 @@ them out of the user-wide skill directory and validates their links.
    global instruction block from
    [`skills/skill-retro/assets/global-agents-learning.md`](skills/skill-retro/assets/global-agents-learning.md)
    in `${CODEX_HOME:-$HOME/.codex}/AGENTS.override.md` when that file exists,
-   otherwise in `AGENTS.md`. It authorizes papercut capture and high-confidence
-   candidate or verification-proposal routing. Existing unrelated instructions
+   otherwise in `AGENTS.md`. It authorizes sanitized observation capture;
+   review and existing-state changes need their own authority. Existing unrelated instructions
    are preserved. `./install.sh --check` fails when the managed block is absent,
    stale, malformed, or left in the inactive global file. See
    [Repository Maintenance](docs/repository-maintenance.md#user-global-instruction-setup)
@@ -208,21 +208,19 @@ your checkout parent directory with access to the configured roots.
 `$skill-retro-triage` and `$learning-process-review` are repository-local: run
 Codex from this checkout when invoking them. The producer skills remain
 user-scoped so they can collect evidence from other repositories.
-Automatically routed Skill Candidate Reports and Verification Evidence
-Proposals go directly to `$skill-retro-triage`; `$learning-process-review` is a
-periodic audit and is not a prerequisite for triage.
+Captured observations go directly to `$skill-retro-triage` for review.
+`$learning-process-review` is a broader review route and is not a prerequisite.
 
 The managed learning instructions ask agents to examine the journey while work
 unfolds, using the user's objective and applicable guidance to notice concerns
-beyond named failure signals. Papercut capture and retrospectives preserve
-qualifying observations from that judgment; neither requires inventing a record
+beyond named failure signals. Observation capture preserves
+qualifying evidence from that judgment without inventing a record
 for every task. See [value-stream judgment](skills/skill-retro/references/value-stream.md).
 
 | Moment | Entry point | Scope |
 | --- | --- | --- |
-| During substantive project work | `$papercut-capture` | Preserve small, sanitized friction observations. |
-| At a meaningful task boundary | `$skill-retro` | Evaluate session evidence and automatically route only high-confidence candidates or exact verification proposals. |
-| When intake accumulates | `$skill-retro-triage` | Review a bounded relevant papercut cluster, judge candidates and verification proposals, then implement authorized changes and drains. |
+| During substantive work or at a meaningful boundary | `$skill-retro` | Capture concrete observations once; no remedy or skill classification required. |
+| When observations need review | `$skill-retro-triage` | Judge the evidence, choose remedies or verification, and complete authorized actions. |
 | For a focused question or useful review reminder | `$learning-process-review` | Review the requested learning-state or public-skill scope and complete authorized follow-up. |
 | For a requested or justified full public audit | `prompts/skill-repository-retrospective.md` | Inspect the public corpus without private learning state. |
 
@@ -244,19 +242,19 @@ it adds no cadence and does not complete the broader review or public artifact
 audit. The broader skill retains responsibility for authorized drains and
 review follow-up.
 
-Use 10 papercuts or 14 days after enabling capture as the first process-review reminder.
-Thereafter use the previously agreed trigger; absent one, the default is five new papercuts or
+Use 10 observations or 14 days after enabling capture as the first process-review reminder.
+Thereafter use the previously agreed trigger; absent one, the default is five new observations or
 14 days after the last review. Judge useful scope when reminded; this does not schedule a task
 or require a full audit.
 
 Material loop changes with uncertain benefit can use
 [bounded experiments](skills/learning-process-review/references/loop-experiments.md)
-in existing ledgers. Process review judges their benefit and operating cost;
-the papercut-in-triage pilot is reviewed there alongside undrained clusters.
+in existing ledgers. Process review judges their benefit and operating cost alongside undrained
+observations. `$papercut-capture` remains a compatibility entry point to the unified capture skill.
 
-The external helper marks this artifact audit due at approximately ten retained candidates first
-reviewed after the last completed repository audit. Reconsiderations do not count again; archive
-cleanup or backdated review times can reduce the estimate:
+The external helper marks this artifact audit due at approximately ten retained observations or
+legacy candidates first reviewed after the last completed repository audit. Reconsiderations do not
+count again; archive cleanup or backdated review times can reduce the estimate:
 
 ```sh
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" artifact-audit-status
@@ -276,14 +274,13 @@ records a successfully completed audit, supplying the next reminder cutoff.
 The installed helper is available from any project repository:
 
 ```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" papercuts
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" pending-verifications
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" template observation
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" review-queue
 "${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
 ```
 
 If `CODEX_WORKFLOWS_STATE_DIR` is unavailable, `$skill-retro` routing prints a
-paste-ready candidate or verification proposal instead of writing it.
+paste-ready observation instead of writing it.
 
 The complete record lifecycle is documented in the
 [External Retrospective State Protocol](skills/skill-retro/references/state-protocol.md).

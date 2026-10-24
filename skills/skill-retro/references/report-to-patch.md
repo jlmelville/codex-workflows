@@ -1,4 +1,4 @@
-# Skill Candidate Implementation
+# Reviewed Improvement Implementation
 
 Use after triage has judged external evidence and implementation is authorized. Carry existing
 batch acceptance forward; ask only for decisions or mutations outside that scope.
@@ -7,7 +7,8 @@ batch acceptance forward; ask only for decisions or mutations outside that scope
 
 Read the protocol's [Installed Helper](state-protocol.md#installed-helper) and
 [Triage And Archive](state-protocol.md#triage-and-archive), then archive each complete verdict
-before editing source. Preserve originating IDs and use `reconsider` for a fired deferral. Judge
+before editing source. Preserve original observation or candidate IDs and use `reconsider` for a
+fired deferral. Judge
 verification proposals separately through the
 [verification protocol](state-protocol.md#accepted-records-and-verification).
 
@@ -59,7 +60,8 @@ nor occurrence of an intended outcome proves comparative improvement without a c
 
 For a correction, preserve the old identity and contradiction evidence. Create a new accepted
 identity only for a newly accepted decision; `record-accepted` derives its supersession links from
-the archived candidate. Close a residual contradiction ledger only after the old outcome is
+the archived review or legacy candidate intake. Close a residual contradiction ledger only after the
+old outcome is
 superseded, reverted or explicitly retained under the protocol. Same-decision source repair uses
 the existing identity and leaves verification unchanged unless qualifying evidence establishes more.
 

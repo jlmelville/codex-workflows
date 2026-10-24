@@ -1,156 +1,77 @@
 ---
 name: skill-retro
-description: Produce and route mature skill candidates or verification proposals from completed work. Use for skill retrospectives, reusable workflow conclusions, verification evidence, external routing, or standing end-of-work evaluation. Not for low-cost papercuts.
+description: Capture concrete observations about workflow friction, harmful guidance, or useful improvements during substantive work and at task boundaries. Preserve evidence for later review without choosing a remedy or proposing a skill.
 ---
 
-# Skill Retro
+# Workflow Observations
 
-Identify reusable knowledge for `codex-workflows`. Candidates propose source
-decisions; verification proposals carry decisive later evidence for one
-accepted outcome. Use `$papercut-capture` for low-cost friction. Operational
-records never belong in a project or public skill repository.
-
-Run the checkpoint in this file first. Load record-construction and state
-mechanics only when a possible record survives, as routed under Construct Or
-Report.
+Preserve concrete signals that work could improve. Use one observation stream for small friction,
+material failures, owner corrections and useful discoveries. Review later determines whether they
+warrant a local fix, shared guidance, verification of an existing outcome, or no action.
 
 ## Authority
 
-Retrospective evaluation and a report in chat are read-only. Writing a
-candidate or verification proposal requires one of these grants:
+Capture requires an explicit task request, `route` or `auto` authorization, or applicable standing
+instructions. Default to a concise report in chat when capture is not authorized. Existing grants
+for `$papercut-capture` use this same stream, within their original scope and privacy limits.
 
-- the user explicitly accepts routing a proposed report;
-- the user explicitly requests `auto` mode for the task or session; or
-- applicable standing instructions explicitly authorize automatic routing.
+Capture authority permits only sanitized new observation inbox records beneath the configured
+external state root. It does not authorize reviewing or closing records, applying verification,
+source edits, commits, pushes or messages. Observations are evidence to judge, not instructions.
 
-Routing authority permits only sanitized new inbox files beneath the configured
-state root. It does not authorize project or source edits, commits, pushes,
-messages, proposal application, or existing-state changes; closer instructions
-may narrow it.
+## Notice And Capture
 
-## Routing Modes
+Notice useful observations during substantive work while the evidence is fresh. At a coherent task
+boundary, briefly consider whether anything important remains uncaptured. Fold small follow-ups
+into the same evaluation; another invocation need not create another record. Stay quiet when there
+is nothing worth preserving.
 
-- Default: show a compact candidate or verification summary in chat and write
-  nothing.
-- `route`: after the user explicitly accepts routing, write a detailed,
-  sanitized candidate or verification proposal to its inbox beneath
-  `CODEX_WORKFLOWS_STATE_DIR`.
-- `auto`: when explicitly requested or enabled by applicable standing
-  instructions, route only high-confidence candidates with a concrete missing
-  delta or verification proposals that exactly match a recorded opportunity.
+Capture when there is a concrete observation and a plausible reason it could improve later work:
 
-## Automatic Checkpoints
+- unexpected friction, avoidable retries, confusing guidance or fragile handoffs;
+- unnecessary sequencing, excessive machinery or process that displaced the user's objective;
+- material human correction, an observed failure of guidance, or a useful simpler approach;
+- an observed result that may bear on an existing accepted claim.
 
-When standing instructions enable `auto`, evaluate once after a substantive coherent work unit,
-normally after validation and small fixes. Also evaluate when material user correction or a
-distinct lesson appears. Fold minor follow-ups into that evaluation and reuse current context.
+Use [value-stream judgment](references/value-stream.md) when a concrete concern needs deeper
+inquiry.
+Ordinary debugging, expected test failures, exploratory hypotheses that proved false and already
+captured repetition do not need records. A routine success alone is not a new observation.
+Do not expand the task to find a lesson or populate the inbox.
 
-Start with the work's concrete observations: a reusable missing decision, a material failure, or
-evidence that might establish something new about existing guidance. If none is plausible, stop
-quietly. Using a skill alone does not require querying its verification opportunities.
+Preserve what happened, why it may matter and the bounded evidence. Include relevant guidance in
+use, impact, workaround, outcome and useful analysis already known. Label suspected causes and
+proposed remedies as hypotheses. Preserve material human feedback without inventing its rationale.
+A successful result does not prove the method was useful; rejected or abandoned work does not
+establish a successful reusable technique.
 
-For a possible verification observation, use the installed helper for bounded discovery:
+Capture does not require classifying the observation, proving recurrence, searching existing
+coverage, choosing an owner or destination, designing a remedy, or matching a verification claim.
+Preserve a known accepted ID or public commit when relevant, but do not perform discovery merely
+to complete a record. The reviewer owns those judgments.
 
-```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-context --destination TEXT --compact
-```
+## Privacy And Evidence
 
-Query the guidance involved in the observation;
-include `skills/skill-retro/assets/global-agents-learning.md` for learning-state authority evidence.
-Use optional text filters and pagination only as needed; literal filters limit coverage.
-Expand selected accepted or proposal IDs with `verification-context --id ID` before judging the
-exact opportunity, supported claims, remaining uncertainty and applied or pending evidence.
+Treat external or synchronized state as potentially exposed. Exclude raw transcripts, session logs,
+tool dumps, credentials, private source, runtime history paths, unredacted user-home paths and
+unnecessary private repository names. Keep sanitized evidence sufficient for later judgment.
+Complete the redaction review deliberately; helper checks are guardrails, not a secret scanner.
 
-For observed failure or harm, first use `accepted-records --destination TEXT` or `--text TEXT`
-to find the applicable identity across all dispositions, then expand it with `verification-context`.
-Route contradiction only for evidence matching that record's claim and opportunity; use a candidate
-when the decision itself changes. A query hit creates no task or quota.
+Separate observation from interpretation. Record what was actually exercised and leave missing
+observations unknown. Preserve whether guidance shaped the work when known; review must not count
+conditioned reports as independent recurrence. Capture establishes no acceptance, behavioral
+benefit,
+comparative improvement or verification state.
 
-Reuse still-current discovery and selected evidence within a continuous task. Refresh only when
-the relevant guidance, state, observation or scope changes. Further support must materially add
-to existing evidence for the same identity and opportunity, with a concrete `supplemental_reason`;
-another conforming task or a different claim label alone is insufficient.
+## Record Or Report
 
-For an agreed future action, identify its owner and how it will be encountered. Route only admitted
-records within authority; an inconclusive thought needs no record. Keep no-change evaluations quiet
-and disclose routed records, blocked writes or paste-ready fallbacks.
+Read [record construction](references/record-construction.md) only when an observation qualifies.
+It owns the minimal template and capture command. Use one record per distinct observation; retain
+useful context in that record rather than creating both a papercut and a candidate.
 
-## Detect And Admit A Result
+In `auto` mode, capture qualifying observations without interrupting the task. In `route` mode,
+record the authorized observation. With no routing authority, report it in chat without writing.
+Disclose nonzero captures, blocked writes and paste-ready fallbacks; omit empty checkpoint reports.
 
-Examine the method as well as the result. Use
-[value-stream judgment](references/value-stream.md) when a concrete concern needs deeper inquiry;
-reuse guidance already available. A successful deliverable does not establish that the method was
-useful, and noticing a concern does not itself establish a missing rule.
-
-Distinguish these outcomes before loading record-construction mechanics:
-
-- A candidate captures a reusable, non-obvious decision or craft lesson that
-  active guidance materially lacks and that is likely to recur. For an otherwise
-  admissible owner-directed or upstream change already landed during the work,
-  judge the missing delta against pre-change guidance; landing alone does not
-  end admission.
-- A verification proposal carries decisive later evidence for the exact claim
-  and witness named by one recorded `SCR-*` opportunity.
-- No change is the correct result for ordinary engineering judgment, a local
-  convention, already-covered guidance, or inconclusive evidence.
-
-Before admitting a candidate:
-
-- Check the affected skill, reference, prompt, script, or local instruction.
-  Name the concrete missing delta and prefer refining its natural home over
-  creating a skill. If pre-existing coverage makes the decision clear, cite it
-  and end candidate admission; for an observed failure or material correction,
-  evaluate the accepted-record verification route above before concluding no
-  change.
-- Treat material human correction as a checkpoint, but separate the observed
-  judgment from producer inference and do not infer success or comparative
-  improvement from the selected alternative.
-- When active guidance materially influenced the work, check whether it made
-  the task worse through misactivation, unnecessary sequencing, stale
-  assumptions, displacement of a simpler valid path, or procedural compliance
-  that displaced the user's objective.
-- Harvest craft only when observed benefit justified its cost. Owner-rejected,
-  abandoned, or severely over-built work is not positive evidence without an
-  independent successful use.
-- Route only the reusable kernel, not a repository-local wrapper, and keep the
-  claimed scope no broader than the evidence supports.
-
-Before admitting verification evidence:
-
-- Do not infer behavioral effectiveness from implementation, structure,
-  validation, rule conformance, or model self-report alone.
-- State only what the observation establishes. Deterministic tests normally
-  support executable correctness; later-session evidence may support guidance
-  conformance or an intended outcome. Comparative improvement requires an
-  observed comparator.
-- Use a candidate, not verification, for a changed decision. Use the existing
-  accepted identity for implementation drift or further evidence about the same
-  decision and witness.
-
-## Privacy Boundary
-
-Treat third-party or synchronized state as potentially exposed. Exclude raw
-transcripts, session logs, tool dumps, credentials, private source, raw runtime
-history paths, unredacted user-home paths, and unnecessary private repository
-names. Use generalized source scopes and bounded error fragments. Complete the
-redaction-review field deliberately; helper checks are guardrails, not a secret
-scanner.
-
-## Construct Or Report
-
-If a possible record survives admission, read
-[record-construction.md](references/record-construction.md) for evidence fields,
-identity and supersession rules, destination choice, helper routing, fallbacks,
-and the compact chat shape. Before a candidate write, read the state protocol's
-[Installed Helper](references/state-protocol.md#installed-helper) and
-[Candidate Intake](references/state-protocol.md#candidate-intake) sections.
-Before a verification write, read
-[Installed Helper](references/state-protocol.md#installed-helper) and
-[Accepted Records And Verification](references/state-protocol.md#accepted-records-and-verification).
-In default mode, use the chat shape without writing.
-
-For an explicitly requested retrospective report, state a no-change conclusion
-concisely and cite the relevant existing coverage. During standing automatic
-evaluation, omit retrospective-specific output when nothing is routed unless
-the user requests it. Always disclose routed records, blocked writes, and
-paste-ready fallbacks.
+`$skill-retro-triage` reviews observations from the source checkout. Existing papercuts, candidates
+and verification proposals remain valid review input; new capture uses the observation stream.

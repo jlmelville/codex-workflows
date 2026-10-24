@@ -378,7 +378,7 @@ assert_mode "${agents_home}/skills/alpha/notes.txt" 640
 assert_mode "${agents_home}/skills/skill-retro/scripts/retro-state.rb" 755
 [[ -f "${codex_home}/AGENTS.md" ]] || fail "first run did not install global learning instructions"
 assert_file_contains "${codex_home}/AGENTS.md" "<!-- codex-workflows:ambient-learning:start -->"
-assert_file_contains "${codex_home}/AGENTS.md" "## Workflow retrospectives"
+assert_file_contains "${codex_home}/AGENTS.md" "## Workflow observations"
 assert_file_contains "${codex_home}/AGENTS.md" "<!-- codex-workflows:ambient-learning:end -->"
 assert_mode "${codex_home}" 700
 assert_mode "${codex_home}/AGENTS.md" 600
@@ -445,7 +445,7 @@ HOME="${legacy_learning_user_home}" CODEX_HOME="${legacy_learning_codex_home}" \
 assert_file_contains "${legacy_learning_codex_home}/AGENTS.md" \
   "<!-- codex-workflows:ambient-learning:start -->"
 assert_file_contains "${legacy_learning_codex_home}/AGENTS.md" "Legacy unmanaged instructions."
-[[ "$(grep -Fc '## Workflow retrospectives' "${legacy_learning_codex_home}/AGENTS.md")" == "1" ]] || \
+[[ "$(grep -Fc '## Workflow observations' "${legacy_learning_codex_home}/AGENTS.md")" == "1" ]] || \
   fail "legacy adoption duplicated canonical learning instructions"
 assert_mode "${legacy_learning_codex_home}/AGENTS.md" 640
 HOME="${legacy_learning_user_home}" CODEX_HOME="${legacy_learning_codex_home}" \
@@ -462,10 +462,13 @@ assert_file_contains "${tmp_root}/premanaged-dry.out" \
   "Would adopt legacy canonical learning instructions"
 HOME="${premanaged_user_home}" CODEX_HOME="${premanaged_codex_home}" \
   "${legacy_learning_fixture}/install.sh" >/dev/null
-[[ "$(grep -Fc '## Workflow retrospectives' "${premanaged_codex_home}/AGENTS.md")" == "1" ]] || \
+[[ "$(grep -Fc '## Workflow observations' "${premanaged_codex_home}/AGENTS.md")" == "1" ]] || \
   fail "pre-managed adoption duplicated canonical learning instructions"
+if grep -Fq '## Workflow papercuts' "${premanaged_codex_home}/AGENTS.md"; then
+  fail "pre-managed adoption retained the separate capture stream"
+fi
 assert_file_contains "${premanaged_codex_home}/AGENTS.md" \
-  "Verification Evidence Proposals"
+  "sanitized new observation inbox records"
 HOME="${premanaged_user_home}" CODEX_HOME="${premanaged_codex_home}" \
   "${legacy_learning_fixture}/install.sh" --check >/dev/null
 

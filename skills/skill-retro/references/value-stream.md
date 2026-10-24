@@ -3,7 +3,7 @@
 Use the user's objective and the values in applicable guidance to examine how
 work moves from request to useful result. Notice concerns at consequential
 choices while working, then revisit the journey at a retrospective checkpoint.
-Papercut capture and skill retrospectives are specialized ways to preserve
+Workflow observation capture preserves
 what this judgment discovers; their signal lists do not bound what can be
 noticed.
 
@@ -44,9 +44,9 @@ reveals; this is an open inquiry, not a checklist to complete:
 
 Applicable instructions govern the action; this reference helps discover a
 question and grants no additional authority. Improve the current work within
-scope when justified. Preserve qualifying fresh friction through
-`$papercut-capture`; use `$skill-retro` for an admitted reusable missing delta
-or evidence matching an accepted opportunity. Already-covered guidance calls
+scope when justified. Preserve qualifying observations through `$skill-retro`. Review later
+determines the remedy
+or whether evidence matches an accepted opportunity. Already-covered guidance calls
 for diagnosing discovery, interpretation, or effectiveness before adding prose.
 State observed behavior and consequence separately from suspected causes.
 An inconclusive concern or a justified no-change decision needs no record.

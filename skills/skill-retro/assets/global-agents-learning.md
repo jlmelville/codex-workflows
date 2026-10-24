@@ -7,8 +7,8 @@ including problems no checklist names. When repetition, growing glue code, or
 fragile handoffs suggest avoidable cost, compare the current method with simpler
 alternatives. Act on concrete observations within the task's scope and authority;
 surface worthwhile options beyond scope with their payoff and cost while
-continuing independent authorized work. Use `$papercut-capture` and `$skill-retro`
-for observations that meet their admission rules. Noticing or proposing an
+continuing independent authorized work. Use `$skill-retro`
+for concrete observations that meet its capture rules. Noticing or proposing an
 improvement does not require a record or a new rule, and need not add a separate
 review pass.
 
@@ -29,31 +29,19 @@ unnecessary. Review-only requests remain read-only. Do not infer substantive
 acceptance, stronger evidence claims, or authority over unrelated state.
 Repository-local privacy restrictions still apply.
 
-## Workflow papercuts
+## Workflow observations
 
-For substantive repository work, apply `$papercut-capture`.
+For substantive repository work, apply `$skill-retro` to preserve concrete observations about
+friction, harmful guidance and useful improvements. Capture qualifying evidence while it is fresh;
+at a coherent task boundary, briefly consider whether anything important remains uncaptured.
+Reuse current context and fold small follow-ups into that evaluation. Do not create a second record
+because an observation was noticed both during work and at the boundary.
 
-This is standing authorization only to create sanitized new papercut inbox
-records beneath the configured external state root. Record qualifying workflow
-friction when encountered, continue without interrupting the task, and disclose
-nonzero recordings in the final response.
+This is standing authorization only to create sanitized new observation inbox records beneath the
+configured external state root. Preserve facts and useful context without requiring a remedy,
+owner, skill destination or verification classification. Review owns those decisions and needs its
+own authority. Existing `$papercut-capture` invocations use this same stream within their original
+scope. Ordinary debugging, expected failures and inconclusive speculation need no record.
 
-## Workflow retrospectives
-
-For substantive repository work, apply `$skill-retro` in `auto` mode near the
-final task boundary.
-
-This is standing authorization only to create sanitized new Skill Candidate
-Reports and Verification Evidence Proposals beneath the configured external
-state root. Evaluate after completing a coherent work unit, normally after
-validation and small review fixes and before the final response or handoff.
-Also evaluate when substantial user guidance corrects the approach, or when
-reusable craft, a missing workflow rule, or decisive evidence for a recorded
-verification opportunity becomes clear. When uncertain whether the boundary is
-substantial enough, evaluate; route only records that satisfy the skill's
-high-confidence requirements.
-
-Fold small follow-up fixes into the current evaluation. If a retrospective has
-already run, evaluate again only when later work materially changes the lesson
-or reveals a distinct one. Disclose nonzero routed candidates and verification
-proposals in the final response.
+Continue the task without interrupting for capture. Disclose nonzero recordings, blocked writes and
+paste-ready fallbacks in the final response; keep no-change evaluations quiet.

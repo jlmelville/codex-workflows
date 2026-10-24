@@ -1192,17 +1192,13 @@ run_retro_state_smoke() {
   local script="${repo_dir}/skills/skill-retro/scripts/retro-state.rb"
   local smoke_dir="${tmp_root}/retro-state"
   local state_root="${smoke_dir}/state"
-  local candidate="${smoke_dir}/candidate.md"
+  local observation="${smoke_dir}/observation.md"
   local fallback="${smoke_dir}/fallback.md"
-  local papercut="${smoke_dir}/papercut.md"
-  local papercut_fallback="${smoke_dir}/papercut-fallback.md"
   local verification="${smoke_dir}/verification.md"
   local verification_fallback="${smoke_dir}/verification-fallback.md"
   local verification_text
   local audit="${smoke_dir}/audit.md"
-  local candidate_path
-  local papercut_path
-  local papercut_id
+  local observation_path
   local audit_path
   local guard_stdout="${smoke_dir}/guard.stdout"
   local guard_stderr="${smoke_dir}/guard.stderr"
@@ -1231,8 +1227,7 @@ run_retro_state_smoke() {
     "retro-state-inapplicable-threshold" \
     "retro-state.rb: invalid option: --archive-threshold is not valid for validate" \
     "${script}" validate --archive-threshold 10
-  "${script}" template candidate >"${candidate}"
-  "${script}" template papercut >"${papercut}"
+  "${script}" template observation >"${observation}"
   verification_text="$("${script}" template verification)"
   printf '%s\n' "${verification_text//SCR-YYYYMMDD-abcdef/SCR-20260715-abcdef}" >"${verification}"
   "${script}" template verification-decision | rg -q 'record_type: verification-decision'
@@ -1240,9 +1235,9 @@ run_retro_state_smoke() {
 
   if (
     unset CODEX_WORKFLOWS_STATE_DIR
-    "${script}" route --file "${candidate}" >"${fallback}" 2>/dev/null
+    "${script}" record-observation --file "${observation}" >"${fallback}" 2>/dev/null
   ); then
-    echo "retro-state route should report fallback when the state root is unset" >&2
+    echo "retro-state record-observation should report fallback when the state root is unset" >&2
     return 1
   else
     local fallback_status=$?
@@ -1252,8 +1247,8 @@ run_retro_state_smoke() {
     fi
   fi
   [[ -s "${fallback}" ]]
-  rg -q 'record_type: candidate' "${fallback}"
-  rg -q 'Short candidate title' "${fallback}"
+  rg -q 'record_type: observation' "${fallback}"
+  rg -q 'Short observation title' "${fallback}"
 
   if (
     unset CODEX_WORKFLOWS_STATE_DIR
@@ -1270,41 +1265,26 @@ run_retro_state_smoke() {
   fi
   rg -q 'record_type: verification-proposal' "${verification_fallback}"
 
-  if (
-    unset CODEX_WORKFLOWS_STATE_DIR
-    "${script}" record-papercut --file - <"${papercut}" >"${papercut_fallback}" 2>/dev/null
-  ); then
-    echo "retro-state record-papercut should report fallback when the state root is unset" >&2
-    return 1
-  else
-    local papercut_fallback_status=$?
-    if [[ "${papercut_fallback_status}" -ne 2 ]]; then
-      echo "retro-state papercut fallback should exit 2, got ${papercut_fallback_status}" >&2
-      return 1
-    fi
-  fi
-  rg -q 'record_type: papercut' "${papercut_fallback}"
-
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" init >/dev/null
-  candidate_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" route --file "${candidate}")"
-  [[ -s "${candidate_path}" ]]
-  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" pending | rg -q 'Atomic routing|Short candidate title'
-  papercut_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" record-papercut --file "${papercut}")"
-  [[ -s "${papercut_path}" ]]
-  papercut_id="$(basename "${papercut_path}" .md)"
-  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts | rg -q "${papercut_id}"
-  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" close-papercut \
-    --id "${papercut_id}" --outcome no-action --rationale "Pilot smoke test." >/dev/null
-  if CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts | rg -q "${papercut_id}"; then
-    echo "closed papercut should not remain in the default listing" >&2
+  observation_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" record-observation --file "${observation}")"
+  [[ -s "${observation_path}" ]]
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" pending | rg -q 'Short observation title'
+  local observation_id
+  local decision="${smoke_dir}/decision.md"
+  observation_id="$(basename "${observation_path}" .md)"
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" prepare-decision \
+    --id "${observation_id}" --verdict no-change --rationale "Reviewed smoke observation." >"${decision}"
+  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" process \
+    --id "${observation_id}" --decision "${decision}" >/dev/null
+  if CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" pending | rg -q "${observation_id}"; then
+    echo "reviewed observation should not remain in the inbox" >&2
     return 1
   fi
-  CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" papercuts --archive | rg -q "${papercut_id}"
   audit_path="$(CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" record-audit --file "${audit}")"
   [[ -s "${audit_path}" ]]
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" audits | rg -q "$(basename "${audit_path}" .md)"
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" artifact-audit-status \
-    --archive-threshold 1 | rg -q '^not-due'
+    --archive-threshold 1 | rg -q '^due'
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" verification-opportunities \
     --destination skill-retro >/dev/null
   CODEX_WORKFLOWS_STATE_DIR="${state_root}" "${script}" validate >/dev/null

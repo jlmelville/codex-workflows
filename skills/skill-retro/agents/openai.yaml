@@ -1,4 +1,4 @@
 interface:
-  display_name: "Skill Retro"
-  short_description: "Route skill candidates or verification evidence"
-  default_prompt: "Use $skill-retro to review this completed work and report or route any mature skill candidate or matching verification evidence under the active authority."
+  display_name: "Workflow Observations"
+  short_description: "Capture workflow evidence for later review"
+  default_prompt: "Use $skill-retro to preserve concrete workflow observations under the active capture authority; leave remedy and verification judgments to review."

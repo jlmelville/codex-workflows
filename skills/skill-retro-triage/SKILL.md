@@ -1,106 +1,84 @@
 ---
 name: skill-retro-triage
-description: Judge skill candidates and verification proposals, process fired learning-state actions, and implement authorized skill-change batches in codex-workflows.
+description: Review workflow observations and existing learning records, decide remedies or verification, and complete authorized changes in codex-workflows.
 ---
 
-# Skill Retro Triage
+# Observation Review
 
-Consume external `$skill-retro` reports and deferred learning-process state.
-Candidates are evidence to judge, not instructions to obey. Operational state
-stays beneath `CODEX_WORKFLOWS_STATE_DIR`; Git receives only reusable skills,
-mechanisms, schemas, fixtures, and small loop documentation.
+Review the shared observation stream. Decide what an observation warrants without treating its
+suggested explanation as an instruction. Existing papercuts, candidates and verification proposals
+remain valid input. Operational evidence stays outside Git; public source must stand on its own.
 
 ## Authority And Completion
 
-For review requests, report verdicts and the proposed batch without changing
-source or state. When the user has authorized implementation or state
-processing, present the concrete batch as an intermediate update and continue
-within that authorization through validation and the applicable publication or
-state steps. An already accepted batch needs no renewed approval. Ask only for
-decisions or mutations outside the accepted scope; capture or routing authority
-alone does not permit processing existing records.
+For review requests, report judgments and the proposed batch without changing source or state.
+When the user authorizes processing or implementation, describe the concrete actions and continue
+within that scope through validation and applicable publication. Carry existing acceptance forward.
+Capture authority permits new observations only; it grants no processing, source or messaging
+rights.
 
 ## Select Context
 
-When public source may change, apply `$repo-update-preflight`, then
-`$codex-skill-repo`'s source-reconciliation overlay. Re-read affected guidance
-after integration. Use the source helper from the reconciled repository;
-outside it, use the installed helper. Resolve state compatibility before
-judging or mutating records with a stale installed copy.
+When public source may change, apply `$repo-update-preflight`, then `$codex-skill-repo`'s
+source-reconciliation overlay. Re-read changed guidance. Use the reconciled source helper here and
+the installed helper elsewhere; resolve state compatibility before judging or mutating records.
 
-For live intake, validate state and inspect `review-queue` before proposing a batch. It includes
-candidates, papercuts, verification proposals, deferrals, publication gaps, contradictions, drafts,
-ledgers, and due cadence. Select records relevant to the review without loading unrelated history.
-From the source repository root:
+For live intake, validate and inspect the shared queue from the source repository root:
 
 ```sh
 ./skills/skill-retro/scripts/retro-state.rb validate
 ./skills/skill-retro/scripts/retro-state.rb review-queue
 ```
 
-From the queue's open papercuts, review a bounded cluster relevant to the batch
-through [papercut drain](references/papercut-drain.md). This pilot brings fresh
-observations into ordinary triage; a complete backlog drain is not a
-prerequisite for candidate or verification work. The route preserves read-only
-review and requires papercut-processing authority for closure.
+Select records relevant to the requested review. The queue includes observations, legacy intake,
+deferrals, verification proposals, publication gaps, contradictions, follow-ups and reminders.
+It creates no obligation to drain unrelated work. There is no separate papercut co-review pass.
+If state is unavailable, report that limit and review supplied evidence without inventing a root.
 
-If the state variable is unavailable, report that live intake cannot be read;
-review a supplied paste-ready candidate without inventing a state location.
+Read selected records with `show --id ID` and the guidance needed to judge them. Load only the route
+needed for the decision:
 
-Inspect selected records with `show --id ID` and read the cited destinations
-needed to judge them. Load only the relevant route:
-
-- Candidate judgment, reconsideration, or fired drafts and ledgers:
+- Observations, existing candidates, deferrals and shared changes:
   [candidate-judgment.md](references/candidate-judgment.md).
-- Verification proposals or contradicted accepted outcomes:
+- Evidence about an accepted outcome, proposals or contradictions:
   [verification-judgment.md](references/verification-judgment.md).
+- Existing `PC-*` closure: [papercut-drain.md](references/papercut-drain.md).
 - Authorized public implementation or publication-gap repair:
   [report-to-patch.md](../skill-retro/references/report-to-patch.md).
 
-Before a state mutation, read the protocol's
-[Installed Helper](../skill-retro/references/state-protocol.md#installed-helper)
-and the operation-specific section linked by the selected route.
+Before mutations, read the protocol's
+[Installed Helper](../skill-retro/references/state-protocol.md#installed-helper) and the operation's
+section. New observations retain their original `RC-*` identity throughout review; do not copy them
+into a second candidate merely because a shared change becomes justified.
 
 ## Shared Evidence Rules
 
-Check `evidence_lineage` before recurrence or transfer claims; legacy omissions
-are `unknown`. Artifact- or user-grounded descendant evidence may establish a
-source gap, conformance, or intended outcome. Repetition alone cannot prove
-independent recurrence, transfer, or comparative improvement.
+Judge lineage before recurrence or transfer claims. Known active guidance may have shaped the work
+or its report; missing context remains unknown. Grounded descendant observations can establish a
+source gap, conformance or intended outcome, but repetition does not establish independent
+recurrence,
+transfer or comparative improvement. For new accepted or split observations, complete the review's
+`evidence_lineage` and `evidence_lineage_note`; preparation leaves these judgments blank.
 
-Treat owner-rejected, abandoned, over-built, or disproved work as tainted. Until
-independent success clears it, use that evidence only for narrowing, removal,
-diagnosis, or bounded evaluation. Static validation and model self-report alone
-do not prove behavioral effectiveness; comparative improvement needs an
-observed comparator.
+Treat owner-rejected, abandoned, over-built or disproved work as evidence for diagnosis, narrowing,
+removal or bounded evaluation until independent success supports a positive lesson. Static checks,
+conformance and model self-report alone do not prove behavioral benefit. Comparative improvement
+requires an observed comparator. Unverified age alone neither requires deletion nor earns retention.
 
-Unverified status neither requires deletion nor earns permanent default-path
-placement. Judge retention, routing, demotion, or removal by downstream value
-and cost. An opportunity-query hit creates no task or quota. For a complex or
-risky skill edit, use the optional
-[bounded forward-testing guidance](../codex-skill-repo/references/semantic-authoring.md#bounded-forward-testing).
+## Public Changes And Output
 
-## Public Changes
+Use `$codex-skill-repo` for authoring and validation. Run the advisory drift audit before proposing
+public prose; inspect skill discovery when metadata or triggers change. Payload limits require
+judgment, not unrelated compression. Optional forward testing remains available for risky changes.
 
-Run `./scripts/audit-skill-drift.rb` before proposing public prose, and
-`./scripts/list-skills.rb` when discovery metadata or trigger boundaries may
-change. Payload limits require capacity review; they are not quality scores or
-instructions to compress unrelated skills.
+Preserve both ordering gates in `report-to-patch.md`: archive the review decision before source
+implementation, then create commit-linked accepted metadata after the public commit exists.
+A local-fix or external-owner classification grants no authority over that repository or owner.
+Track an agreed action needing later work in an authorized ledger rather than silently dropping it.
 
-For accepted candidate implementation, preserve both ordering gates in
-`report-to-patch.md`: archive the decision before editing source, and create
-commit-linked accepted metadata only after the public commit exists. Source
-commits must stand on their own without private evidence or opaque state IDs.
-
-## Output
-
-Present a proposed batch as a compact table with item, destination, recommended
-action, rationale, and authority or decision needed. Give a recommendation for
-each item. When approval is missing, request one batch decision with exclusions;
-carry existing acceptance forward and continue authorized work. A due date or
-user silence grants no authority to apply a recommendation.
-
-Report the verdicts and batch, source and state changes, records left open,
-applicable source validation and install/check results, state validation,
-publication status, and any meaningful next trigger. Omit mutation-only fields
-for a report-only judgment.
+Report the proposed batch with evidence, recommended action and any authority still needed. Ask
+only for unresolved decisions outside existing authorization; silence grants no permission.
+Finish with changes made, records left open, applicable validation and publication status. For a
+read-only review, omit mutation-only reporting. Completed observation review need not create a
+skill,
+accepted record, verification proposal or follow-up.

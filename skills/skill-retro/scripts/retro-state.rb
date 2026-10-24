@@ -22,7 +22,7 @@ require "yaml"
 module RetroState
   SCHEMA_VERSION = 1
   STATE_ENV = "CODEX_WORKFLOWS_STATE_DIR"
-  VERDICTS = %w[accept defer reject split merge no-change].freeze
+  VERDICTS = %w[accept defer reject split merge no-change local-fix external-owner].freeze
   DISPOSITIONS = %w[accepted implemented no-change superseded reverted].freeze
   VERIFICATIONS = %w[unverified supported contradicted].freeze
   VERIFICATION_BASES = %w[none later-session deterministic-test].freeze
@@ -167,45 +167,27 @@ module RetroState
   def validate_candidate(data, body, label:, routed:, archived: false)
     text = render_document(data, body)
     validate_common(data, text, label)
-    unless data["record_type"] == "candidate"
-      raise Error, "#{label}: record_type must be candidate"
+    unless %w[candidate observation].include?(data["record_type"])
+      raise Error, "#{label}: record_type must be observation or legacy candidate"
     end
 
-    require_fields(
-      data,
-      %w[
-        title source_scope observation reusable_lesson existing_coverage
-        missing_delta proposed_destination smallest_change test_status
-        confidence recommendation redaction_review
-      ],
-      label
-    )
+    require_fields(data, %w[title source_scope observation redaction_review], label)
     require_string_array(data, "decisive_evidence", label)
-
-    lineage_present = data.key?("evidence_lineage") || data.key?("evidence_lineage_note")
-    if !routed || lineage_present
-      require_fields(data, %w[evidence_lineage evidence_lineage_note], label)
-      unless EVIDENCE_LINEAGES.include?(data["evidence_lineage"])
-        raise Error,
-          "#{label}: evidence_lineage must be one of #{EVIDENCE_LINEAGES.join(", ")}"
+    if data["record_type"] == "candidate"
+      require_fields(data, %w[
+        reusable_lesson existing_coverage missing_delta proposed_destination smallest_change
+        test_status confidence recommendation
+      ], label)
+      lineage_present = data.key?("evidence_lineage") || data.key?("evidence_lineage_note")
+      if !routed || lineage_present
+        require_fields(data, %w[evidence_lineage evidence_lineage_note], label)
+        validate_enum(data, "evidence_lineage", EVIDENCE_LINEAGES, label)
       end
+      validate_enum(data, "confidence", CONFIDENCES, label)
+      validate_enum(data, "recommendation", RECOMMENDATIONS, label)
     end
 
-    unless CONFIDENCES.include?(data["confidence"])
-      raise Error, "#{label}: confidence must be one of #{CONFIDENCES.join(", ")}"
-    end
-    unless RECOMMENDATIONS.include?(data["recommendation"])
-      raise Error, "#{label}: recommendation must be one of #{RECOMMENDATIONS.join(", ")}"
-    end
-
-    supersedes_id = data["supersedes_accepted_id"]
-    now_false = data["now_false"]
-    if supersedes_id || now_false
-      require_fields(data, %w[supersedes_accepted_id now_false], label)
-      unless supersedes_id.match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/)
-        raise Error, "#{label}: invalid supersedes_accepted_id"
-      end
-    end
+    validate_supersession(data, label)
 
     if routed
       require_fields(data, %w[candidate_id created_at intake_digest], label)
@@ -231,6 +213,14 @@ module RetroState
     triage_history = data.fetch("triage_history", [])
     if archived
       validate_triage(triage, data["candidate_id"], label)
+      if data["record_type"] == "observation" && %w[accept split].include?(triage["verdict"])
+        require_fields(triage, %w[evidence_lineage evidence_lineage_note], label)
+        validate_enum(triage, "evidence_lineage", EVIDENCE_LINEAGES, label)
+      end
+      if data["supersedes_accepted_id"] && triage["supersedes_accepted_id"] &&
+          data["supersedes_accepted_id"] != triage["supersedes_accepted_id"]
+        raise Error, "#{label}: review cannot replace original supersession evidence"
+      end
       unless triage_history.is_a?(Array)
         raise Error, "#{label}: triage_history must be an array"
       end
@@ -248,6 +238,17 @@ module RetroState
       end
     elsif triage || data.key?("triage_history")
       raise Error, "#{label}: inbox candidate must not contain triage data"
+    end
+  end
+
+  def validate_supersession(data, label)
+    supersedes_id = data["supersedes_accepted_id"]
+    now_false = data["now_false"]
+    if supersedes_id || now_false
+      require_fields(data, %w[supersedes_accepted_id now_false], label)
+      unless supersedes_id.match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/)
+        raise Error, "#{label}: invalid supersedes_accepted_id"
+      end
     end
   end
 
@@ -275,6 +276,12 @@ module RetroState
       raise Error, "#{label}: verification_basis must be later-session or deterministic-test"
     end
     validate_enum(data, "claim", VERIFICATION_CLAIMS, label)
+    if data.key?("source_observation_ids")
+      require_string_array(data, "source_observation_ids", label)
+      unless data["source_observation_ids"].all? { |id| id.match?(/\A(?:RC|PC)-\d{8}T\d{6}Z-[a-f0-9]{6}\z/) }
+        raise Error, "#{label}: invalid source_observation_ids"
+      end
+    end
     if data["proposed_verification"] == "contradicted"
       require_fields(data, %w[what_is_false], label)
     elsif data.key?("what_is_false")
@@ -590,6 +597,7 @@ module RetroState
       raise Error, "#{label}: verdict must be one of #{VERDICTS.join(", ")}"
     end
 
+    validate_supersession(triage, "#{label} triage")
     related = triage.fetch("related_candidate_ids", [])
     unless related.is_a?(Array) && related.all? { |item| item.is_a?(String) && !item.empty? }
       raise Error, "#{label}: related_candidate_ids must be an array of strings"
@@ -617,6 +625,7 @@ module RetroState
     unless VERDICTS.include?(data["verdict"])
       raise Error, "#{label}: verdict must be one of #{VERDICTS.join(", ")}"
     end
+    validate_supersession(data, label)
     require_string_array(data, "related_candidate_ids", label, allow_empty: true)
     if data["verdict"] == "defer"
       require_fields(data, %w[unresolved_decision], label)
@@ -902,6 +911,24 @@ module RetroState
     end
   end
 
+  def observation_template
+    <<~MARKDOWN
+      ---
+      schema_version: 1
+      record_type: observation
+      title: "Short observation title"
+      source_scope: "Sanitized task category; omit private names."
+      observation: "What happened and why it may be worth improving."
+      decisive_evidence:
+        - "Bounded observed behavior, error, artifact or user feedback."
+      redaction_review: "Confirmed no transcript, secret, private source or unredacted local path."
+      ---
+
+      Optional context: guidance in use, impact, workaround, outcome, or a clearly labeled hypothesis.
+      Preserve useful facts already known; no remedy, owner or skill classification is required.
+    MARKDOWN
+  end
+
   def candidate_template
     <<~MARKDOWN
       ---
@@ -950,6 +977,8 @@ module RetroState
       decisive_evidence:
         - "Bounded, sanitized evidence supporting the proposed state."
       redaction_review: "Confirmed no raw transcript, secret, private source, or unredacted local path is included."
+      # When based on captured observations, link original RC-* or legacy PC-* IDs:
+      # source_observation_ids: []
       # A contradicted proposal must also add:
       # what_is_false: "What the accepted outcome asserted that is now false."
       # Further support when support is pending or the target is supported must add:
@@ -1192,6 +1221,10 @@ module RetroState
       decision["verdict"] = verdict
       decision["reviewed_at"] = reviewed_at
       decision["rationale"] = rationale || ""
+      if data["record_type"] == "observation" && %w[accept split].include?(verdict)
+        decision["evidence_lineage"] = ""
+        decision["evidence_lineage_note"] = ""
+      end
       if id_field == "candidate_id" && verdict != "defer"
         DEFERRAL_FIELDS.each { |field| decision.delete(field) }
       end
@@ -1251,10 +1284,12 @@ module RetroState
       records = show(record_ids).fetch("records")
       candidates = records.map { |record| validate_archived_candidate_record(record) }
       ancestry = candidates.to_h { |candidate| [candidate.fetch("candidate_id"), candidate] }
+      source_records = records.to_h { |record| [record.fetch("id"), record] }
       resolve_candidate = lambda do |id|
         next unless id.match?(/\ARC-\d{8}T\d{6}Z-[a-f0-9]{6}\z/) && File.file?(candidate_path("archive", id))
 
-        ancestry[id] = validate_archived_candidate_record(show([id]).fetch("records").first)
+        source_records[id] = show([id]).fetch("records").first
+        ancestry[id] = validate_archived_candidate_record(source_records.fetch(id))
       end
       candidates.each do |candidate|
         unless accepted_publication_expected?(candidate.fetch("triage"), ancestry, uncertain: false, &resolve_candidate)
@@ -1274,7 +1309,7 @@ module RetroState
         candidate.slice(
           "candidate_id", "title", "evidence_lineage", "evidence_lineage_note",
           "observation", "decisive_evidence", "proposed_destination", "triage"
-        )
+        ).merge("context" => source_records.fetch(candidate.fetch("candidate_id")).fetch("body"))
       end
       notes = <<~TEXT
         Complete the blank outcome fields, curate decisive evidence, and review redaction before
@@ -1474,22 +1509,6 @@ module RetroState
       end
     end
 
-    def record_papercut(data, body, label:)
-      RetroState.validate_papercut(data, body, label: label, routed: false)
-      init
-
-      now = Time.now.utc
-      id = unique_papercut_id("PC-#{now.strftime("%Y%m%dT%H%M%SZ")}")
-      record = data.dup
-      record["papercut_id"] = id
-      record["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      intake = RetroState.without_keys(record, "intake_digest")
-      record["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
-      destination = papercut_path("inbox", id)
-      exclusive_write(destination, RetroState.render_document(record, body))
-      destination
-    end
-
     def papercuts(archive: false)
       ensure_initialized
       area = archive ? "archive" : "inbox"
@@ -1544,6 +1563,8 @@ module RetroState
         triage = RetroState.without_keys(decision, "schema_version", "record_type")
         triage["notes"] = decision_body.rstrip unless decision_body.strip.empty?
         candidate["triage"] = triage
+        validate_candidate_supersession!(candidate)
+        RetroState.validate_candidate(candidate, body, label: source, routed: true, archived: true)
         output = RetroState.render_document(candidate, body)
         destination = candidate_path("archive", candidate_id)
         created = write_or_verify_archive(destination, output, record_type: "candidate")
@@ -1615,6 +1636,7 @@ module RetroState
         replacement["notes"] = decision_body.rstrip unless decision_body.strip.empty?
         candidate["triage_history"] = candidate.fetch("triage_history", []) + [current_triage]
         candidate["triage"] = replacement
+        validate_candidate_supersession!(candidate)
         RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
         replace_write(path, RetroState.render_document(candidate, body))
         path
@@ -1646,7 +1668,7 @@ module RetroState
           routed: true,
           archived: true
         )
-        candidate["supersedes_accepted_id"]
+        candidate.dig("triage", "supersedes_accepted_id") || candidate["supersedes_accepted_id"]
       end.compact.uniq.sort
       supplied_supersedes_ids = data.fetch("supersedes_accepted_ids", []).sort
       if data.key?("supersedes_accepted_ids") && supplied_supersedes_ids != supersedes_ids
@@ -1906,7 +1928,9 @@ module RetroState
       rows = []
 
       pending.each do |candidate_id, title, path|
-        rows << ["candidate", candidate_id, "Review candidate: #{title.gsub(/\s+/, " ").strip}", path]
+        data, = RetroState.read_document(path)
+        kind = data.fetch("record_type")
+        rows << [kind, candidate_id, "Review #{kind}: #{title.gsub(/\s+/, " ").strip}", path]
       end
       papercuts.each do |papercut_id, _kind, _impact, observation, path|
         rows << ["papercut", papercut_id, "Review papercut: #{observation}", path]
@@ -1964,7 +1988,7 @@ module RetroState
 
       cadence = artifact_audit_status
       if cadence.fetch(:due)
-        trigger = "#{cadence.fetch(:archives_since)} retained candidates first reviewed since the last completed artifact audit"
+        trigger = "#{cadence.fetch(:archives_since)} retained observations first reviewed since the last completed artifact audit"
         rows << ["artifact-audit", "repository", trigger, cadence.fetch(:last_audit_path, "-")]
       end
 
@@ -2182,10 +2206,9 @@ module RetroState
       end
 
       candidate_rows.each do |path, data|
-        supersedes_id = data["supersedes_accepted_id"]
-        next unless supersedes_id
-
-        errors << "#{path}: superseded accepted record does not exist: #{supersedes_id}" unless accepted_ids.key?(supersedes_id)
+        validate_candidate_supersession!(data)
+      rescue Error => e
+        errors << "#{path}: #{e.message}"
       end
       accepted_rows.each do |path, data|
         data.fetch("supersedes_accepted_ids", []).each do |superseded_id|
@@ -2193,6 +2216,11 @@ module RetroState
         end
       end
       verification_rows.each do |path, data, archived|
+        begin
+          validate_verification_sources!(data)
+        rescue Error => e
+          errors << "#{path}: #{e.message}"
+        end
         target_id = data.fetch("target_accepted_id")
         unless accepted_ids.key?(target_id)
           errors << "#{path}: target accepted record does not exist: #{target_id}"
@@ -2331,11 +2359,13 @@ module RetroState
     end
 
     def validate_candidate_supersession!(candidate)
-      supersedes_id = candidate["supersedes_accepted_id"]
-      return unless supersedes_id
-      return if File.file?(accepted_path(supersedes_id))
+      [candidate, *candidate.fetch("triage_history", []), candidate.fetch("triage", {})].each do |review|
+        supersedes_id = review["supersedes_accepted_id"]
+        next unless supersedes_id
+        next if File.file?(accepted_path(supersedes_id))
 
-      raise Error, "candidate supersedes missing accepted record: #{supersedes_id}"
+        raise Error, "candidate supersedes missing accepted record: #{supersedes_id}"
+      end
     end
 
     # Context retrieval supplies a reader to share its already validated proposal documents.
@@ -2444,6 +2474,22 @@ module RetroState
       end
     end
 
+    def validate_verification_sources!(proposal)
+      proposal.fetch("source_observation_ids", []).each do |id|
+        record = show([id]).fetch("records").first
+        data, body = record.values_at("frontmatter", "body")
+        archived = record.fetch("path").split("/").include?("archive")
+        if id.start_with?("PC-")
+          RetroState.validate_papercut(data, body, label: id, routed: true, archived: archived)
+          identity = data["papercut_id"]
+        else
+          RetroState.validate_candidate(data, body, label: id, routed: true, archived: archived)
+          identity = data["candidate_id"]
+        end
+        raise Error, "source observation identity does not match #{id}" unless identity == id
+      end
+    end
+
     def validate_verification_target!(proposal)
       target = read_verification_target(proposal)
       validate_verification_target_state!(target.fetch(1), proposal)
@@ -2451,6 +2497,7 @@ module RetroState
     end
 
     def read_verification_target(proposal)
+      validate_verification_sources!(proposal)
       target_id = proposal.fetch("target_accepted_id")
       target_path = accepted_path(target_id)
       raise Error, "verification target accepted record not found: #{target_id}" unless File.file?(target_path)
@@ -2820,6 +2867,158 @@ module RetroState
     end
   end
 
+  def self_test_papercut(store, data, body, label:)
+    RetroState.validate_papercut(data, body, label: label, routed: false)
+    store.init
+
+    now = Time.now.utc
+    id = store.send(:unique_papercut_id, "PC-#{now.strftime("%Y%m%dT%H%M%SZ")}")
+    record = data.dup
+    record["papercut_id"] = id
+    record["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    intake = RetroState.without_keys(record, "intake_digest")
+    record["intake_digest"] = Digest::SHA256.hexdigest(RetroState.render_document(intake, body))
+    destination = store.send(:papercut_path, "inbox", id)
+    store.send(:exclusive_write, destination, RetroState.render_document(record, body))
+    destination
+  end
+
+  def observation_self_test
+    Dir.mktmpdir("retro-observation-self-test.") do |tmp|
+      store = Store.new(File.join(tmp, "state"))
+      store.init
+      store.send(:with_state_lock) {}
+      run = self_test_cli(store.root)
+      input = File.join(tmp, "input.md")
+      write = lambda do |data, body = ""|
+        File.write(input, render_document(data, body))
+        input
+      end
+      capture = lambda do
+        data, _ = parse_document(observation_template)
+        data["observation"] = "A confusing instruction caused a retry; the remedy is unknown."
+        body = "Guidance was active. Impact: one retry. The suspected cause is not established.\n"
+        path = run.call(0, "record-observation", "--file", write.call(data, body)).strip
+        [File.basename(path, ".md"), path]
+      end
+      decision = lambda do |id, verdict|
+        data, body = parse_document(store.prepare_decision(id, verdict, rationale: "Reviewed fixture decision."))
+        if %w[accept split].include?(verdict)
+          data["evidence_lineage"] = "descendant"
+          data["evidence_lineage_note"] = "Active guidance shaped the observation; independence is not established."
+        end
+        [data, body]
+      end
+
+      # Existing records remain byte-for-byte intact while the unified producer writes new intake.
+      legacy, legacy_body = parse_document(papercut_template)
+      legacy_path = self_test_papercut(store, legacy, legacy_body, label: "legacy fixture")
+      legacy_bytes = File.binread(legacy_path)
+      id, path = capture.call
+      original, original_body = read_document(path)
+      unless original["record_type"] == "observation" && original["candidate_id"] == id &&
+          !original.key?("proposed_destination") && !original.key?("kind") &&
+          store.review_queue.any? { |row| row[0] == "observation" && row[1] == id } &&
+          File.binread(legacy_path) == legacy_bytes
+        raise "observation capture classified the remedy, hid intake or altered legacy evidence"
+      end
+      before = store.snapshot
+      empty, = parse_document(store.prepare_decision(id, "accept"))
+      empty["rationale"] = "Accepted fixture gap."
+      self_test_error("evidence_lineage must be a non-empty string") { store.process(id, write.call(empty)) }
+      raise "incomplete review changed state" unless store.snapshot == before
+      data, body = decision.call(id, "accept")
+      archive = store.process(id, write.call(data, body))
+      archived, archived_body = read_document(archive)
+      unless without_keys(archived, "triage") == original && archived_body == original_body &&
+          !Dir.glob(File.join(store.root, "retrospectives", "accepted", "*.md")).any?
+        raise "review changed observation evidence or implicitly created an accepted outcome"
+      end
+      prepared = store.prepare_accepted([id], ["abcdef0"])
+      unless prepared.include?(original_body.lines.first.strip) && prepared.include?("Active guidance shaped")
+        raise "accepted preparation lost observation context or reviewed lineage"
+      end
+      accepted, accepted_body = parse_document(accepted_template)
+      accepted["originating_candidate_ids"] = [id]
+      accepted_path = store.record_accepted(write.call(accepted, accepted_body))
+      accepted_id = File.basename(accepted_path, ".md")
+
+      # A later review cannot hide a dangling correction link in retained deferral history.
+      historical_id, = capture.call
+      deferred, body = decision.call(historical_id, "defer")
+      deferred.merge!(self_test_deferral_fields)
+      deferred["reviewed_at"] = "2000-01-01T00:00:00Z"
+      deferred["supersedes_accepted_id"] = accepted_id
+      deferred["now_false"] = "Possible correction pending the named evidence."
+      store.process(historical_id, write.call(deferred, body))
+      later, body = decision.call(historical_id, "no-change")
+      store.reconsider(historical_id, write.call(later, body))
+      accepted_bytes = File.binread(accepted_path)
+      File.unlink(accepted_path)
+      self_test_error("supersedes missing accepted record") { store.validate }
+      File.binwrite(accepted_path, accepted_bytes)
+      store.validate
+
+      %w[local-fix external-owner no-change].each do |verdict|
+        local_id, local_path = capture.call
+        evidence = read_document(local_path)
+        local_decision, body = decision.call(local_id, verdict)
+        stored, stored_body = read_document(store.process(local_id, write.call(local_decision, body)))
+        unless without_keys(stored, "triage") == evidence[0] && stored_body == evidence[1] &&
+            store.review_queue.none? { |row| row[1] == local_id }
+          raise "#{verdict} changed evidence or created a publication obligation"
+        end
+      end
+
+      # Correction classification belongs to review, and its referenced identity must exist.
+      correction_id, = capture.call
+      correction, body = decision.call(correction_id, "accept")
+      correction["supersedes_accepted_id"] = "SCR-20000101-000000"
+      correction["now_false"] = "The earlier decision fails the newly observed boundary."
+      before = store.snapshot
+      self_test_error("supersedes missing accepted record") { store.process(correction_id, write.call(correction, body)) }
+      raise "invalid reviewed correction changed state" unless store.snapshot == before
+      correction["supersedes_accepted_id"] = accepted_id
+      store.process(correction_id, write.call(correction, body))
+      accepted["originating_candidate_ids"] = [correction_id]
+      corrected, = read_document(store.record_accepted(write.call(accepted, accepted_body)))
+      unless corrected["supersedes_accepted_ids"] == [accepted_id]
+        raise "reviewed correction lost supersession lineage"
+      end
+
+      # Verification is separately adjudicated; a linked observation alone proves no claim.
+      source_id, source_path = capture.call
+      source_bytes = File.binread(source_path)
+      proposal, proposal_body = parse_document(verification_proposal_template)
+      proposal["target_accepted_id"] = accepted_id
+      proposal["source_observation_ids"] = [source_id, File.basename(legacy_path, ".md")]
+      proposal_path = store.route_verification(write.call(proposal, proposal_body))
+      proposal_id = File.basename(proposal_path, ".md")
+      apply, body = parse_document(store.prepare_decision(proposal_id, "apply", rationale: "Exact opportunity exercised."))
+      apply_path = File.join(tmp, "apply.md")
+      File.write(apply_path, render_document(apply, body))
+      File.write(source_path, source_bytes.sub("A confusing instruction", "Tampered evidence"))
+      before = store.snapshot
+      self_test_error("intake fields changed") { store.process_verification(proposal_id, apply_path) }
+      raise "verification with corrupted source changed state" unless store.snapshot == before
+      File.binwrite(source_path, source_bytes)
+      store.process_verification(proposal_id, apply_path)
+      reviewed, body = decision.call(source_id, "no-change")
+      reviewed_archive = store.process(source_id, write.call(reviewed, body))
+      store.validate
+      kept_bytes = File.binread(reviewed_archive)
+      File.unlink(reviewed_archive)
+      self_test_error("record not found") { store.validate }
+      File.binwrite(reviewed_archive, kept_bytes)
+      store.validate
+      unless read_document(accepted_path).first["verification"] == "supported" &&
+          File.binread(legacy_path) == legacy_bytes
+        raise "verification failed or altered unrelated legacy evidence"
+      end
+      run.call(2, "record-papercut", error: "unknown command")
+    end
+  end
+
   def self_test_error(message)
     yield
   rescue Error => e
@@ -2856,7 +3055,7 @@ module RetroState
       candidate = store.route(input)
       candidate_id = File.basename(candidate, ".md")
       papercut_data, papercut_body = parse_document(papercut_template)
-      papercut = store.record_papercut(papercut_data, papercut_body, label: "inspection fixture")
+      papercut = self_test_papercut(store, papercut_data, papercut_body, label: "inspection fixture")
       papercut_id = File.basename(papercut, ".md")
       store.close_papercut(papercut_id, outcome: "no-action", rationale: "Inspection fixture.")
       File.binwrite(File.join(root, ".kept"), "\x00a")
@@ -2976,7 +3175,7 @@ module RetroState
       papercut_ids = 2.times.map do |index|
         data, body = parse_document(papercut_template)
         data["observation"] = "Comparison closure fixture #{index}."
-        File.basename(store.record_papercut(data, body, label: "comparison fixture"), ".md")
+        File.basename(self_test_papercut(store, data, body, label: "comparison fixture"), ".md")
       end
       deferred_id = File.basename(store.route(input), ".md")
       decision, body = parse_document(store.prepare_decision(deferred_id, "defer", rationale: "An independent observation is missing."))
@@ -3183,7 +3382,7 @@ module RetroState
       candidate_path = store.route(write.call(candidate, body))
       candidate_id = File.basename(candidate_path, ".md")
       papercut, body = parse_document(papercut_template)
-      papercut_path = store.record_papercut(papercut, body, label: "context fixture")
+      papercut_path = self_test_papercut(store, papercut, body, label: "context fixture")
       papercut_id = File.basename(papercut_path, ".md")
       before = store.snapshot
       rows = run.call(0, "review-queue").lines.map { |line| line.chomp.split("\t") }
@@ -4220,12 +4419,16 @@ module RetroState
         data, body = parse_document(template)
         data[id.start_with?("VP-") ? "verification_proposal_id" : "candidate_id"] = id
         data["verdict"] = verdict
+        unless id.start_with?("VP-")
+          data["evidence_lineage"] = "not-applicable"
+          data["evidence_lineage_note"] = "Executable protocol fixture, not behavioral evidence."
+        end
         data["reviewed_at"] = "2026-10-15T12:00:00Z"
         DEFERRAL_FIELDS.each { |field| data.delete(field) } unless id.start_with?("VP-")
         write.call("#{id}-#{verdict}.md", data, body)
       end
       route_candidate = lambda do |store|
-        data, body = parse_document(candidate_template)
+        data, body = parse_document(observation_template)
         path = store.route(write.call("candidate.md", data, body))
         [File.basename(path, ".md"), path]
       end
@@ -4687,6 +4890,7 @@ module RetroState
   end
 
   def self_test
+    observation_self_test
     approximate_cadence_self_test
     legacy_draft_self_test
     transition_recovery_self_test
@@ -4783,7 +4987,7 @@ module RetroState
 
       File.write(papercut, papercut_template)
       papercut_data, papercut_body = read_document(papercut)
-      papercut_path = store.record_papercut(papercut_data, papercut_body, label: papercut)
+      papercut_path = self_test_papercut(store, papercut_data, papercut_body, label: papercut)
       papercut_id = File.basename(papercut_path, ".md")
       raise "open papercut missing" unless store.papercuts.map(&:first) == [papercut_id]
       closed_papercut = store.close_papercut(
@@ -4797,7 +5001,7 @@ module RetroState
       raise "archived papercut missing" unless store.papercuts(archive: true).map(&:first) == [papercut_id]
 
       duplicate_data, duplicate_body = read_document(papercut)
-      duplicate_path = store.record_papercut(duplicate_data, duplicate_body, label: papercut)
+      duplicate_path = self_test_papercut(store, duplicate_data, duplicate_body, label: papercut)
       duplicate_id = File.basename(duplicate_path, ".md")
       raise "papercut IDs were not unique" if duplicate_id == papercut_id
       store.close_papercut(
@@ -4812,11 +5016,10 @@ module RetroState
       papercut_recovery_store = Store.new(papercut_recovery_root)
       papercut_recovery_store.init
       recovery_data, recovery_body = read_document(papercut)
-      recovery_source = papercut_recovery_store.record_papercut(
+      recovery_source = self_test_papercut(papercut_recovery_store,
         recovery_data,
         recovery_body,
-        label: papercut
-      )
+        label: papercut)
       recovery_id = File.basename(recovery_source, ".md")
       interrupted_papercut_store = Store.new(
         papercut_recovery_root,
@@ -4856,11 +5059,10 @@ module RetroState
       papercut_recovery_store.validate
 
       conflicting_data, conflicting_body = read_document(papercut)
-      conflicting_source = papercut_recovery_store.record_papercut(
+      conflicting_source = self_test_papercut(papercut_recovery_store,
         conflicting_data,
         conflicting_body,
-        label: papercut
-      )
+        label: papercut)
       conflicting_id = File.basename(conflicting_source, ".md")
       conflicting_store = Store.new(
         papercut_recovery_root,
@@ -4903,11 +5105,10 @@ module RetroState
       end
 
       missing_reference_data, missing_reference_body = read_document(papercut)
-      missing_reference_path = store.record_papercut(
+      missing_reference_path = self_test_papercut(store,
         missing_reference_data,
         missing_reference_body,
-        label: papercut
-      )
+        label: papercut)
       missing_reference_id = File.basename(missing_reference_path, ".md")
       self_test_error("related papercut does not exist") do
         store.close_papercut(
@@ -4927,7 +5128,7 @@ module RetroState
       File.write(malformed_papercut, papercut_template.sub("impact: retry", "impact: surprise"))
       malformed_data, malformed_body = read_document(malformed_papercut)
       self_test_error("impact must be one of") do
-        store.record_papercut(malformed_data, malformed_body, label: malformed_papercut)
+        self_test_papercut(store, malformed_data, malformed_body, label: malformed_papercut)
       end
 
       # Historical labels stay readable without reclassifying or rewriting intake.
@@ -5172,7 +5373,7 @@ module RetroState
         arguments += ["--root", selected_root] if selected_root
         Open3.capture3({STATE_ENV => nil}, *arguments, stdin_data: text)
       end
-      {"route" => File.read(input), "route-verification" => supported_proposal_text}.each do |command, text|
+      {"route" => File.read(input), "record-observation" => observation_template, "route-verification" => supported_proposal_text}.each do |command, text|
         cli_input = File.join(tmp, "#{command}-cli.md")
         File.write(cli_input, text)
         expected_data, expected_body = parse_document(text)
@@ -5181,11 +5382,11 @@ module RetroState
           out, err, result = run_cli.call(command, path, text, cli_root)
           routed_path = out.strip
           unless result.success? && err.empty? && File.file?(routed_path) &&
-              File.dirname(routed_path) == File.join(cli_root, (command == "route") ? "retrospectives/inbox" : "verifications/inbox")
+              File.dirname(routed_path) == File.join(cli_root, (command == "route-verification") ? "verifications/inbox" : "retrospectives/inbox")
             raise "#{command} #{path}: CLI routing failed: #{err}"
           end
           routed_data, routed_body = read_document(routed_path)
-          identity_field = (command == "route") ? "candidate_id" : "verification_proposal_id"
+          identity_field = (command == "route-verification") ? "verification_proposal_id" : "candidate_id"
           unless without_keys(routed_data, identity_field, "created_at", "intake_digest") == expected_data &&
               routed_body.rstrip == expected_body.rstrip
             raise "#{command}: CLI routing changed submission content"
@@ -5216,7 +5417,7 @@ module RetroState
         failing_store.define_singleton_method(:exclusive_write) { |_destination, _content| raise Errno::ENOSPC }
         fallback_data, fallback_body = parse_document(text)
         begin
-          method = (command == "route") ? :route : :route_verification
+          method = (command == "route-verification") ? :route_verification : :route
           failing_store.public_send(method, cli_input, document: [fallback_data, fallback_body])
           raise "#{command}: write failure was not injected"
         rescue Errno::ENOSPC
@@ -5803,7 +6004,7 @@ module RetroState
       )
       forbidden_data, forbidden_body = read_document(forbidden_papercut)
       self_test_error("unredacted user-home path") do
-        store.record_papercut(forbidden_data, forbidden_body, label: forbidden_papercut)
+        self_test_papercut(store, forbidden_data, forbidden_body, label: forbidden_papercut)
       end
 
       legacy_root = File.join(tmp, "legacy-state")
@@ -5842,20 +6043,33 @@ end
 
 def usage(command = nil)
   details = case command
+  when "record-observation"
+    <<~TEXT
+      Usage: retro-state.rb record-observation --file PATH [--root DIR]
+
+      Capture one observation using template observation; --file - reads standard input.
+      Requires title, source_scope, observation, decisive_evidence and redaction_review.
+      Preserve useful context in the body; no remedy, owner, confidence or skill classification
+      is required. The helper creates an immutable, digested RC-* record in retrospectives/inbox.
+      Existing identity and directory names remain for compatibility, without a promotion step.
+      Review later uses prepare-decision and process; capture never accepts or verifies an outcome.
+      Unset or blocked state returns validated paste-ready input with status 2.
+    TEXT
   when "prepare-decision"
     <<~TEXT
       Usage: retro-state.rb prepare-decision --id ID --verdict VERDICT
                                             [--rationale TEXT] [--root DIR]
 
-      Print an editable Markdown/YAML decision for a candidate (RC-*) in inbox or
+      Print an editable Markdown/YAML decision for an observation or legacy candidate (RC-*) in inbox or
       deferred archive, or a verification proposal (VP-*) in inbox.
-      Candidate verdicts: #{RetroState::VERDICTS.join(", ")}.
+      Review verdicts: #{RetroState::VERDICTS.join(", ")}.
       Verification verdicts: #{RetroState::VERIFICATION_PROPOSAL_VERDICTS.join(", ")}.
       Sets the ID and current UTC reviewed_at; reconsiderations must be newer.
       Optionally supply an already-reviewed, nonblank rationale; otherwise fill the blank.
       Deferrals keep safe structural defaults but leave the unresolved decision and
       substantive trigger/action fields blank. Complete them even when supplying a
       rationale; the draft cannot be processed until they are filled.
+      Accepted or split observations require reviewed evidence_lineage and evidence_lineage_note.
       Decision templates have empty bodies; add optional notes and related IDs as needed.
       Preparation does not judge the verdict. Review and submit separately through
       process, reconsider, or process-verification; --decision - reads standard input.
@@ -6065,16 +6279,16 @@ def usage(command = nil)
                                         Prepare a new accepted-record draft from archived candidates
       prepare-accepted-update --id ID  Print an editable accepted-record replacement
       init                              Initialize the configured state root
-      template TYPE                    Print a papercut, candidate, decision,
+      template TYPE                    Print an observation, decision,
                                         verification, verification-decision, accepted,
                                         ledger, or audit template
-      record-papercut --file PATH      Record a papercut from PATH, or - for standard input
+      record-observation --file PATH  Capture an observation from PATH, or - for standard input
       papercuts [--archive]            List open papercuts, or archived papercuts explicitly
       close-papercut --id ID --outcome OUTCOME --rationale TEXT
                                         Archive a papercut with a reviewed outcome
-      route --file PATH                Route a candidate into the inbox
-      pending                           List validated inbox candidates
-      process --id ID --decision PATH  Archive a candidate with a verdict
+      route --file PATH                Compatibility route for observations and legacy candidate input
+      pending                           List observations and legacy candidates
+      process --id ID --decision PATH  Attach a reviewed decision and archive the original intake
       route-verification --file PATH   Route verification evidence into its external inbox
       pending-verifications            List validated verification proposals
       process-verification --id ID --decision PATH
@@ -6126,7 +6340,7 @@ def reject_inapplicable_options!(command, provided)
     "prepare-accepted-update" => %w[--root --id --commit --destination],
     "init" => %w[--root],
     "template" => [],
-    "record-papercut" => %w[--root --file],
+    "record-observation" => %w[--root --file],
     "papercuts" => %w[--root --archive],
     "close-papercut" => %w[
       --root --id --outcome --rationale --related-papercut-id
@@ -6168,7 +6382,7 @@ command = ARGV.shift
 commands = %w[
   show snapshot compare
   prepare-decision prepare-verification prepare-accepted prepare-accepted-update
-  init template record-papercut papercuts
+  init template record-observation papercuts
   close-papercut route pending process
   route-verification pending-verifications process-verification
   reconsider record-accepted update-accepted record-ledger close-ledger
@@ -6330,8 +6544,7 @@ begin
   case command
   when "template"
     template = case type
-    when "papercut" then RetroState.papercut_template
-    when "candidate" then RetroState.candidate_template
+    when "observation" then RetroState.observation_template
     when "decision" then RetroState.decision_template
     when "verification" then RetroState.verification_proposal_template
     when "verification-decision" then RetroState.verification_decision_template
@@ -6346,22 +6559,22 @@ begin
     puts "Retro state self-test passed."
   else
     root = root_override || ENV[RetroState::STATE_ENV]
-    if %w[route route-verification record-papercut].include?(command) && RetroState.blank?(root)
+    if %w[route route-verification record-observation].include?(command) && RetroState.blank?(root)
       command_label = command
       raise RetroState::Error, "#{command_label} requires --file PATH" unless input_path
 
       data, body = RetroState.read_document(input_path)
-      if command == "route"
+      if %w[route record-observation].include?(command)
         RetroState.validate_candidate(data, body, label: input_path, routed: false)
-      elsif command == "route-verification"
-        RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
+        if command == "record-observation" && data["record_type"] != "observation"
+          raise RetroState::Error, "record-observation requires an observation; use template observation"
+        end
       else
-        RetroState.validate_papercut(data, body, label: input_path, routed: false)
+        RetroState.validate_verification_proposal(data, body, label: input_path, routed: false)
       end
       record_name = case command
-      when "route" then "candidate"
       when "route-verification" then "verification proposal"
-      else "papercut"
+      else "observation"
       end
       warn "#{RetroState::STATE_ENV} is not set; no state was written. Paste-ready #{record_name} follows."
       print RetroState.render_document(data, body)
@@ -6388,15 +6601,18 @@ begin
       exit(result.fetch("matches") ? 0 : 1)
     when "init"
       puts store.init
-    when "route"
-      raise RetroState::Error, "route requires --file PATH" unless input_path
+    when "route", "record-observation"
+      raise RetroState::Error, "#{command} requires --file PATH" unless input_path
 
       data, body = RetroState.read_document(input_path)
       RetroState.validate_candidate(data, body, label: input_path, routed: false)
+      if command == "record-observation" && data["record_type"] != "observation"
+        raise RetroState::Error, "record-observation requires an observation; use template observation"
+      end
       begin
         puts store.route(input_path, document: [data, body])
       rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
-        warn "Could not route to external state (#{e.message}); no state was written. Paste-ready candidate follows."
+        warn "Could not route to external state (#{e.message}); no state was written. Paste-ready observation follows."
         print RetroState.render_document(data, body)
         exit 2
       end
@@ -6410,18 +6626,6 @@ begin
       rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
         warn "Could not route to external state (#{e.message}); no state was written. " \
           "Paste-ready verification proposal follows."
-        print RetroState.render_document(data, body)
-        exit 2
-      end
-    when "record-papercut"
-      raise RetroState::Error, "record-papercut requires --file PATH" unless input_path
-
-      data, body = RetroState.read_document(input_path)
-      RetroState.validate_papercut(data, body, label: input_path, routed: false)
-      begin
-        puts store.record_papercut(data, body, label: input_path)
-      rescue RetroState::Error, Errno::EACCES, Errno::EROFS, Errno::ENOSPC => e
-        warn "Could not record to external state (#{e.message}); no state was written. Paste-ready papercut follows."
         print RetroState.render_document(data, body)
         exit 2
       end

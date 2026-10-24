@@ -1,91 +1,16 @@
 ---
 name: papercut-capture
-description: Capture sanitized observations of unexpected, avoidable workflow friction during substantive repository work. Use when standing instructions enable capture or the user asks to record a papercut. Exclude ordinary debugging and expected failures; do not review or promote papercuts.
+description: Compatibility entry point for workflow observation capture. Use when older standing instructions or a user explicitly invokes papercut capture; follow skill-retro's unified capture workflow.
 ---
 
-# Papercut Capture
+# Papercut Capture Compatibility
 
-Preserve workflow friction while its evidence is fresh, before deciding whether
-it warrants a local fix, an external-owner action, or a reusable skill change.
-The shared state protocol supplies write mechanics after an observation
-qualifies.
+Follow [workflow observations](../skill-retro/SKILL.md). Capture qualifying friction once through
+`template observation` and `record-observation`; do not create a separate papercut or mature
+candidate.
+Existing papercut-capture authorization permits only new observations within its original scope.
+It grants no review, closure, implementation, verification-application or messaging authority.
 
-## Authority
-
-Write a papercut only when one of these grants capture authority:
-
-- applicable standing instructions explicitly enable `$papercut-capture`;
-- the user enables capture for the current task or session;
-- the user asks to record one specific event.
-
-Implicit skill activation alone does not authorize a write. Capture authority
-permits only new files beneath `papercuts/inbox` in the configured external
-state root. It does not authorize closing or editing observations, creating or
-promoting candidates, changing repositories, committing, pushing, or sending
-messages. Explicit task instructions and closer repository instructions may
-narrow or disable standing authority.
-
-## Qualification
-
-Notice friction while work unfolds, including successful steps whose effort or
-detours undermine the user's objective. Use the values in applicable guidance
-to recognize unlisted problems; read
-[value-stream judgment](../skill-retro/references/value-stream.md) when the
-usual symptoms do not explain the concern. The observation must still qualify
-below before capture.
-
-Record an observation when most of these are true:
-
-- available instructions and repository context did not make the behavior
-  reasonably predictable;
-- tooling, documentation, environment, or repository behavior caused an
-  avoidable retry, dead end, block, ambiguity, or substantial noise;
-- clearer guidance, commands, links, validation order, version policy, or a
-  deterministic mechanism could plausibly prevent it;
-- the observation and any workaround can be stated briefly and safely.
-
-Do not record:
-
-- the test or ordinary code defect being repaired by the current task;
-- expected compiler, linter, or test failures during normal iteration;
-- deliberate exploratory hypotheses that simply proved false;
-- syntax mistakes or typos caught normally by tooling;
-- ordinary uncertainty while learning unfamiliar code.
-
-A documented focused-test command that fails unexpectedly from a clean session
-may qualify. The new regression test for the feature currently being built does
-not.
-
-## Capture
-
-Record a qualifying observation near the event, then continue the task without
-asking the user to classify, close, or promote it. Only after an observation
-qualifies, read the state protocol's [Installed Helper](../skill-retro/references/state-protocol.md#installed-helper)
-and [Papercut Intake And Closure](../skill-retro/references/state-protocol.md#papercut-intake-and-closure)
-sections. They own current templates, submission, temporary input, source-
-checkout independence, unset-state fallback, and sandbox recovery. Neither a
-helper nor a fallback broadens capture authority.
-
-## Privacy
-
-Treat external or synchronized state as potentially exposed. Exclude raw
-transcripts, session logs, tool dumps, credentials, private source, raw runtime
-history paths, unredacted user-home paths, and unnecessary private repository
-names. Use generalized source scopes and bounded error fragments. Complete the
-redaction-review field deliberately; helper checks are guardrails, not a secret
-scanner.
-
-## Disclosure And Pilot
-
-Track the number of papercuts successfully recorded during the task. When
-standing instructions mark the initial pilot active, end with
-`Papercuts recorded: N`, including when `N` is zero. Treat that line as a
-compliance signal, not proof that no event was missed. Outside the pilot,
-disclose nonzero records and any paste-ready fallback; follow stricter
-applicable instructions when present.
-
-Do not turn a papercut into a mature conclusion during project work. Review
-open observations later from the `codex-workflows` source checkout through
-bounded `$skill-retro-triage` review or the broader `$learning-process-review`.
-Use `$skill-retro` during work; mature reusable candidates go to the
-repository-local `$skill-retro-triage` consumer.
+Preserve the unified skill's qualification, privacy, evidence and disclosure rules. Existing `PC-*`
+records remain readable and reviewable without migration. This entry point remains for older
+instructions and links; `$skill-retro` owns capture.
