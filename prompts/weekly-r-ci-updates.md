@@ -150,6 +150,38 @@ candidates. Bound retries and report unresolved blockers. After the last merge
 in each repository, verify workflows on the final default-branch commit as
 required by the batch skill and report any post-merge failure explicitly.
 
+## Continue across CI waits
+
+When pending PR or post-merge CI needs another turn, create one temporary
+heartbeat in this chat using the app's automation tool. Check every ten minutes
+for up to two hours from the first wait. Reuse this batch's temporary heartbeat
+if one already exists; leave the recurring weekly automation unchanged.
+
+Before yielding, save a private continuation record outside Git and put its
+absolute path in the heartbeat prompt. Record the resolved repository scope and
+mode, pending PRs and validated head/base SHAs, merge commits, expected workflows
+and run IDs, completed validation, next actions, retry counts and limits, deadline,
+and paths to disposable clones and checkout snapshots. Save the temporary
+automation ID and confirm it is active before claiming that work will resume.
+If scheduling is unavailable, report that follow-through is unverified rather
+than leaving an implicit promise to return.
+
+Each scheduled turn reads this prompt and the continuation record, checks the
+deadline before further work, and resumes only the recorded batch within its
+resolved scope and mode. Refresh GitHub account, PR, head/base, and CI state
+before acting; revalidate changed heads or bases. Preserve the existing retry
+limits and deadline across turns. Continue independent recorded items while
+checks run, then revisit pending items through the same final-commit validation
+boundary. Keep the continuation record current; skip discovery of new work.
+
+Keep unchanged pending checks quiet. When the batch completes, reaches its
+deadline or retry limit, or has only blockers requiring user action, delete only
+the recorded temporary heartbeat with the automation tool. Close the run record,
+compare the original checkout snapshots, and remove disposable resources when
+no longer needed. A later trigger for a closed run only retires its temporary
+heartbeat. Report completion, meaningful failures, or required user action once;
+do not leave a temporary heartbeat running after its work ends.
+
 ## Report
 
 Summarize discovery coverage, including repositories with no eligible updates
@@ -159,4 +191,6 @@ PR links, dependency changes, outcome, validation results, and merge commit or
 concrete blocker. In review mode,
 identify candidates ready to merge without claiming they were merged.
 Distinguish merged, blocked, pending, and out-of-scope items. Confirm local
-checkouts were preserved and identify follow-up work.
+checkouts were preserved and identify follow-up work. If a continuation was
+needed, report actual scheduled resumptions, retries, temporary heartbeat
+removal, and any observed user reminders, approvals, or troubleshooting.
