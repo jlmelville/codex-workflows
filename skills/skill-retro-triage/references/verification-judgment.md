@@ -18,7 +18,7 @@ exact opportunity, its basis and claim match the observation, and the transition
 adds; its presence or a different claim label is insufficient. Preserve known guidance context and
 judge independence.
 
-For new evidence that warrants verification, use `prepare-verification --reviewed`, complete the
+For new evidence that warrants verification, use `prepare-verification`, complete the
 claim, opportunity match, basis, evidence and review rationale, and submit once with
 `record-verification`. Include original observation IDs in `source_observation_ids`. Processing
 needs its own authority; capture authority permits no application or observation closure.
@@ -30,16 +30,14 @@ link alone requests no closure. Leave observations open when another claim, sour
 still needs review. Legacy candidates and papercuts keep their existing closure paths. Closing an
 observation does not resolve the accepted record's contradiction or authorize another owner's work.
 
-When evidence is stale, redundant, overclaimed, mismatched or insufficient, record that conclusion
-on the observation without creating a proposal merely to reject it. Use deferral only for a named
-unresolved decision. Existing or explicitly requested separate proposals retain `prepare-decision`
-and `process-verification` for apply/reject judgments; rejection preserves accepted state.
+When evidence does not warrant verification, record that conclusion on the observation. Defer only a
+named unresolved decision. Use `prepare-decision` and `process-verification` only for existing
+legacy proposals; rejection preserves accepted state. New legacy creation is retired.
 
-Keep the prepared VP identity and completed input. Retry unchanged input after interruption, or
-resume durable reviewed intent with `record-verification --id VP-ID`. The queue retains unfinished
-submissions, including selected closures. A completed retry makes no changes; conflicting input or
-closure judgments fail. Verification history itself does not advance candidate artifact cadence;
-explicit observation closures count as ordinary observation reviews.
+Keep the prepared VP identity and completed input. After interruption, retry unchanged input or
+resume with `record-verification --id VP-ID`; the queue retains unfinished work, including closures.
+Completed retries change nothing; conflicting input or closure judgments fail. Verification archives
+do not advance cadence; observation closures count as ordinary reviews.
 
 Resolve contradictions by correcting source and marking the old outcome `superseded`, removing
 guidance and marking it `reverted`, or recording a justified retention under the protocol. Retain
