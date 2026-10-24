@@ -1588,8 +1588,10 @@ module RetroState
         source = verification_path("inbox", proposal_id)
         raise Error, "verification proposal not found in inbox: #{proposal_id}" unless File.file?(source)
 
+        validate_state_path!(source)
         proposal, body = RetroState.read_document(source)
         RetroState.validate_verification_proposal(proposal, body, label: source, routed: true)
+        raise Error, "verification identity does not match #{proposal_id}" unless proposal["verification_proposal_id"] == proposal_id
         if proposal.key?("review")
           raise Error, "resume reviewed submission with record-verification --id #{proposal_id}"
         end
@@ -3179,6 +3181,29 @@ module RetroState
           File.binwrite(target, original_target)
         end
       end
+      legacy_path = File.join(store.root, "verifications/inbox", "#{legacy_id}.md")
+      renamed_id = "VP-20000101T000000Z-000000"
+      renamed_path = File.join(File.dirname(legacy_path), "#{renamed_id}.md")
+      File.rename(legacy_path, renamed_path)
+      before = store.snapshot
+      %w[apply reject].each do |verdict|
+        decision = apply.merge("verification_proposal_id" => renamed_id, "verdict" => verdict)
+        run.call(1, "process-verification", "--id", renamed_id, "--decision", write.call(decision), error: "verification identity does not match")
+      end
+      raise "mismatched legacy intake refusal wrote state" unless store.snapshot == before
+      File.rename(renamed_path, legacy_path)
+      legacy_bytes = File.binread(legacy_path)
+      File.rename(legacy_path, outside)
+      File.symlink(outside, legacy_path)
+      before = store.snapshot
+      %w[apply reject].each do |verdict|
+        run.call(1, "process-verification", "--id", legacy_id, "--decision", write.call(apply.merge("verdict" => verdict)), error: "outside the state root")
+      end
+      unless store.snapshot == before && File.binread(outside) == legacy_bytes
+        raise "external legacy intake refusal changed state or external evidence"
+      end
+      File.unlink(legacy_path)
+      File.rename(outside, legacy_path)
       before = store.snapshot
       self_test_error("support already pending: #{legacy_id}") { store.record_verification(write.call(proposal, body)) }
       raise "pending support refusal wrote state" unless store.snapshot == before
