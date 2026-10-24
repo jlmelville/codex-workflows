@@ -3900,6 +3900,12 @@ module RetroState
       store.close_papercut(papercut_id, outcome: "no-action", rationale: "Fixture closed.")
       raise "review queue retained closed intake" unless run.call(0, "review-queue").empty?
 
+      # Historical display metadata stays opaque, including stale evidence references.
+      legacy_context = {
+        "claim_limits" => {"scope" => "Historical acquisition context."},
+        "prose" => [{"source" => "Stale original wording.", "text" => "Replacement display.",
+                     "evidence" => ["No longer present evidence."], "limits" => ["scope"]}]
+      }
       create_accepted = lambda do |destination, disposition = "implemented", verification = "unverified", unverified_claims = nil|
         File.write(input, candidate_template)
         candidate_id = File.basename(store.route(input), ".md")
@@ -3907,6 +3913,7 @@ module RetroState
         data, body = parse_document(accepted_template)
         data["originating_candidate_ids"] = [candidate_id]
         data["destination"] = destination
+        data["verification_context"] = legacy_context
         data["expected_behavior"] = "Exact [#{destination}] outcome."
         data["source_report_summary"] = "Summary [#{destination}]."
         data["verification_opportunity"] = "Check #{destination} in a later task."
@@ -4187,6 +4194,15 @@ module RetroState
           end
         end
       end
+      replacement, replacement_body = parse_document(store.prepare_accepted_update(supported_id))
+      unless replacement.fetch("verification_context") == legacy_context &&
+          replacement_body == records.first.fetch("accepted").fetch("body")
+        raise "accepted preparation discarded historical metadata or body-only evidence"
+      end
+      draft, = parse_document(run.call(0, "prepare-verification", "--id", supported_id, "--verification", "supported"))
+      unless draft.fetch("target_accepted_id") == supported_id && draft.fetch("supplemental_reason") == ""
+        raise "stale display metadata blocked proposal preparation or removed supplementation"
+      end
       lookup_context = lambda do
         [store.verification_context(record_ids: [supported_id]),
           store.verification_context(destinations: ["Other domain second"], compact: true)]
@@ -4336,63 +4352,6 @@ module RetroState
       File.rename("#{path}.hidden", path)
       raise "failed context retrieval wrote state" unless store.snapshot == before
       store.validate
-    end
-  end
-
-  def verification_legacy_metadata_self_test
-    Dir.mktmpdir("retro-legacy-context-self-test.") do |tmp|
-      root = File.join(File.realpath(tmp), "state")
-      store = Store.new(root)
-      store.init
-      run = self_test_cli(root)
-      input = File.join(tmp, "input.md")
-      write = ->(text) {
-        File.write(input, text)
-        input
-      }
-      origin = File.basename(store.route(write.call(candidate_template)), ".md")
-      store.process(origin, write.call(store.prepare_decision(origin, "accept", rationale: "Legacy metadata fixture.")))
-      data, body = parse_document(accepted_template)
-      data["originating_candidate_ids"] = [origin]
-      data["unverified_claims"] = ["Ordinary later-use effectiveness."]
-      # Historical display metadata must remain intact without controlling retrieval.
-      legacy = {
-        "claim_limits" => {"scope" => "Historical acquisition context."},
-        "prose" => [{"source" => "Stale original wording.", "text" => "Replacement display.",
-                     "evidence" => ["No longer present evidence."], "limits" => ["scope"]}]
-      }
-      data["verification_context"] = legacy
-      data["decisive_evidence"] = ["Original measurement: 7 samples.", "Original measurement: 31 samples."]
-      body += "\nBody-only limit: caller stacks were untested.\n"
-      id = File.basename(store.record_accepted(write.call(render_document(data, body))), ".md")
-      proposal, proposal_body = parse_document(verification_proposal_template)
-      proposal["target_accepted_id"] = id
-      proposal["claim"] = "executable-correctness"
-      proposal["verification_basis"] = "deterministic-test"
-      proposal["observation"] = "Recovered 7 native samples; ordinary later use remains untested."
-      proposal["decisive_evidence"] = ["Original measurement: 7 samples."]
-      proposal_id = File.basename(self_test_legacy_verification(store, write.call(render_document(proposal, proposal_body))), ".md")
-      store.process_verification(proposal_id,
-        write.call(store.prepare_decision(proposal_id, "apply", rationale: "Tested mechanics only.")))
-      before = store.snapshot
-      originals = store.show([id, proposal_id]).fetch("records")
-      context = JSON.parse(run.call(0, "verification-context", "--id", id)).fetch("records").first
-      unless context.fetch("accepted") == originals.first &&
-          context.fetch("verification_proposals") == [originals.last] &&
-          context.fetch("unverified_claims") == data.fetch("unverified_claims") &&
-          context.fetch("supported_claims").first.fetch("observation") == proposal.fetch("observation")
-        raise "legacy metadata changed original evidence or explicit claim scopes"
-      end
-      replacement, replacement_body = parse_document(store.prepare_accepted_update(id))
-      unless replacement.fetch("verification_context") == legacy && replacement_body == originals.first.fetch("body")
-        raise "accepted preparation discarded historical metadata or body-only evidence"
-      end
-      draft, = parse_document(run.call(0, "prepare-verification", "--id", id, "--verification", "supported"))
-      unless draft.fetch("target_accepted_id") == id && draft.fetch("supplemental_reason") == ""
-        raise "stale display metadata blocked proposal preparation or removed supplementation"
-      end
-      run.call(0, "validate")
-      raise "legacy metadata retrieval or preparation changed state" unless store.snapshot == before
     end
   end
 
@@ -5014,6 +4973,11 @@ module RetroState
         id = data.fetch("review").fetch("verification_proposal_id")
         [id, write.call("#{id}.md", data, body), sources]
       end
+      event = lambda do |worker, expected|
+        ready = IO.select([worker.fetch(1)], nil, nil, 5)
+        actual = ready && worker.fetch(1).gets&.strip
+        raise "child expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+      end
       start = lambda do |pause_at, &action|
         events, output = IO.pipe
         input, release = IO.pipe
@@ -5043,12 +5007,8 @@ module RetroState
         input.close
         worker = [pid, events, release]
         workers << worker
+        event.call(worker, "started")
         worker
-      end
-      event = lambda do |worker, expected|
-        ready = IO.select([worker.fetch(1)], nil, nil, 5)
-        actual = ready && worker.fetch(1).gets&.strip
-        raise "child expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
       end
       finish = lambda do |worker|
         event.call(worker, "completed")
@@ -5059,6 +5019,11 @@ module RetroState
         Process.kill("KILL", worker.fetch(0))
         _pid, status = Process.wait2(worker.fetch(0))
         raise "child was not killed" unless status.signaled?
+      end
+      crash_at = lambda do |point, &action|
+        worker = start.call(point, &action)
+        event.call(worker, "paused")
+        kill.call(worker)
       end
       blocked = lambda do |worker|
         if IO.select([worker.fetch(1)], nil, nil, 0.1)
@@ -5086,12 +5051,10 @@ module RetroState
       first = start.call(:state_file_prepared) do |fault|
         Store.new(store.root, fault_injector: fault).reconsider(id, decisions.fetch(1))
       end
-      event.call(first, "started")
       event.call(first, "paused")
       second = start.call(nil) do |fault|
         Store.new(store.root, fault_injector: fault).reconsider(id, decisions.fetch(2))
       end
-      event.call(second, "started")
       blocked.call(second)
       first.fetch(2).puts("continue")
       finish.call(first)
@@ -5109,12 +5072,9 @@ module RetroState
       store, = fixture.call("atomic-create")
       id, inbox = route_candidate.call(store)
       decision = decide.call(id, "reject")
-      child = start.call(:state_file_prepared) do |fault|
+      crash_at.call(:state_file_prepared) do |fault|
         Store.new(store.root, fault_injector: fault).process(id, decision)
       end
-      event.call(child, "started")
-      event.call(child, "paused")
-      kill.call(child)
       archive = File.join(store.root, "retrospectives/archive", "#{id}.md")
       raise "unpublished archive became visible" if File.exist?(archive)
       raise "interrupted archival lost inbox" unless File.file?(inbox)
@@ -5138,12 +5098,10 @@ module RetroState
         first = start.call(:state_file_prepared) do |fault|
           Store.new(store.root, fault_injector: fault).process_verification(first_id, first_decision)
         end
-        event.call(first, "started")
         event.call(first, "paused")
         second = start.call(nil) do |fault|
           Store.new(store.root, fault_injector: fault).process_verification(second_id, second_decision)
         end
-        event.call(second, "started")
         blocked.call(second)
         first.fetch(2).puts("continue")
         finish.call(first)
@@ -5198,12 +5156,9 @@ module RetroState
         self_test_error("dangling symlink") { store.validate }
         raise "dangling archive refusal wrote state" unless store.snapshot == before && !File.exist?(outside)
         File.unlink(archive)
-        child = start.call(:verification_archive_written) do |fault|
+        crash_at.call(:verification_archive_written) do |fault|
           invoke.call(Store.new(store.root, fault_injector: fault))
         end
-        event.call(child, "started")
-        event.call(child, "paused")
-        kill.call(child)
         bytes = File.binread(archive)
         File.rename(archive, outside)
         File.symlink(outside, archive)
@@ -5225,10 +5180,7 @@ module RetroState
         store, accepted = fixture.call("reviewed-#{point}")
         id, input, sources = reviewed.call(store, accepted)
         originals = sources.to_h { |source_id| [source_id, read_document(File.join(store.root, "retrospectives/inbox", "#{source_id}.md"))] }
-        child = start.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-        event.call(child, "started")
-        event.call(child, "paused")
-        kill.call(child)
+        crash_at.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
         unless point == :state_file_prepared
           raise "interrupted reviewed submission vanished from queue" unless store.review_queue.any? { |row| row[1] == id }
           self_test_error("record-verification") { store.process_verification(id, decide.call(id, "reject")) }
@@ -5252,10 +5204,7 @@ module RetroState
       # A later contradiction can make persisted, unapplied support impossible to finish.
       store, accepted = fixture.call("reviewed-reject-stale")
       id, input, sources = reviewed.call(store, accepted)
-      child = start.call(:verification_submission_written) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-      event.call(child, "started")
-      event.call(child, "paused")
-      kill.call(child)
+      crash_at.call(:verification_submission_written) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
       original = read_document(File.join(store.root, "verifications/inbox", "#{id}.md"))
       _other_id, other_input, = reviewed.call(store, accepted, "contradicted")
       store.record_verification(other_input)
@@ -5267,12 +5216,9 @@ module RetroState
       end
       target_bytes = File.binread(accepted)
       reason = "A later contradiction made the unapplied support ineligible."
-      child = start.call(:verification_archive_written) do |fault|
+      crash_at.call(:verification_archive_written) do |fault|
         Store.new(store.root, fault_injector: fault).record_verification(nil, proposal_id: id, reject: true, rationale: reason)
       end
-      event.call(child, "started")
-      event.call(child, "paused")
-      kill.call(child)
       store.record_verification(nil, proposal_id: id)
       rejected, rejected_body = read_document(File.join(store.root, "verifications/archive", "#{id}.md"))
       unless [without_keys(rejected, "triage"), rejected_body] == original && rejected.dig("triage", "verdict") == "reject" &&
@@ -5292,10 +5238,7 @@ module RetroState
       %i[verification_accepted_written verification_archive_written].each do |point|
         store, accepted = fixture.call("reviewed-ack-#{point}")
         id, input, sources = reviewed.call(store, accepted)
-        child = start.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-        event.call(child, "started")
-        event.call(child, "paused")
-        kill.call(child)
+        crash_at.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
         original = read_document(File.join(store.root, "verifications/inbox", "#{id}.md"))
         target_bytes = File.binread(accepted)
         deferred, body = parse_document(store.prepare_decision(sources.first, "defer", rationale: "Review remains open."))
@@ -5325,13 +5268,10 @@ module RetroState
         end
         raise "refused resolutions wrote state" unless store.snapshot == before
         checkpoint = (point == :verification_archive_written) ? :verification_resolution_written : :verification_archive_written
-        child = start.call(checkpoint) do |fault|
+        crash_at.call(checkpoint) do |fault|
           Store.new(store.root, fault_injector: fault).record_verification(nil, proposal_id: id,
             acknowledge_closures: [sources.first], rationale: reason)
         end
-        event.call(child, "started")
-        event.call(child, "paused")
-        kill.call(child)
         archive = store.record_verification(nil, proposal_id: id)
         resolved, resolved_body = read_document(archive)
         unless [without_keys(resolved, "triage"), resolved_body] == original &&
@@ -5363,14 +5303,12 @@ module RetroState
       store, accepted = fixture.call("reviewed-reject-race")
       id, input, = reviewed.call(store, accepted)
       first = start.call(:verification_submission_written) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-      event.call(first, "started")
       event.call(first, "paused")
       second = start.call(nil) do |fault|
         self_test_error("cannot be rejected") do
           Store.new(store.root, fault_injector: fault).record_verification(nil, proposal_id: id, reject: true, rationale: "Concurrent rejection.")
         end
       end
-      event.call(second, "started")
       blocked.call(second)
       first.fetch(2).puts("continue")
       finish.call(first)
@@ -5385,10 +5323,8 @@ module RetroState
         File.symlink(store.root, root_alias)
         id, input, = reviewed.call(store, accepted)
         first = start.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-        event.call(first, "started")
         event.call(first, "paused")
         second = start.call(nil) { |fault| Store.new(root_alias, fault_injector: fault).record_verification(input) }
-        event.call(second, "started")
         blocked.call(second)
         first.fetch(2).puts("continue")
         finish.call(first)
@@ -5408,10 +5344,8 @@ module RetroState
         first = start.call(:verification_submission_written) do |fault|
           Store.new(store.root, fault_injector: fault).record_verification(input)
         end
-        event.call(first, "started")
         event.call(first, "paused")
         second = start.call(nil) { |fault| Store.new(store.root, fault_injector: fault).process_verification(second_id, second_decision) }
-        event.call(second, "started")
         blocked.call(second)
         first.fetch(2).puts("continue")
         finish.call(first)
@@ -5429,12 +5363,10 @@ module RetroState
       target_bytes = File.binread(accepted)
       decision = decide.call(sources.first, "no-change")
       first = start.call(:state_file_prepared) { |fault| Store.new(store.root, fault_injector: fault).process(sources.first, decision) }
-      event.call(first, "started")
       event.call(first, "paused")
       second = start.call(nil) do |fault|
         self_test_error("different review") { Store.new(store.root, fault_injector: fault).record_verification(input) }
       end
-      event.call(second, "started")
       blocked.call(second)
       first.fetch(2).puts("continue")
       finish.call(first)
@@ -5456,7 +5388,6 @@ module RetroState
       first = start.call(:state_file_prepared) do |fault|
         Store.new(store.root, fault_injector: fault).process_verification(id, apply)
       end
-      event.call(first, "started")
       event.call(first, "paused")
       second = start.call(nil) do |fault|
         Store.new(store.root, fault_injector: fault).update_accepted(accepted_id, stale)
@@ -5464,7 +5395,6 @@ module RetroState
       rescue Error => e
         raise unless e.message.include?("applied_verification_proposal_ids must be preserved")
       end
-      event.call(second, "started")
       blocked.call(second)
       first.fetch(2).puts("continue")
       finish.call(first)
@@ -5498,12 +5428,9 @@ module RetroState
       store, accepted = fixture.call("verification-recovery")
       id = propose.call(store, accepted, "supported")
       apply = decide.call(id, "apply")
-      child = start.call(:verification_accepted_written) do |fault|
+      crash_at.call(:verification_accepted_written) do |fault|
         Store.new(store.root, fault_injector: fault).process_verification(id, apply)
       end
-      event.call(child, "started")
-      event.call(child, "paused")
-      kill.call(child)
       before = store.snapshot
       run = self_test_cli(store.root)
       run.call(1, "process-verification", "--id", id, "--decision", decide.call(id, "reject"), error: "already applied")
@@ -5518,12 +5445,9 @@ module RetroState
       store, accepted = fixture.call("verification-archive-conflict")
       id = propose.call(store, accepted, "supported")
       reject = decide.call(id, "reject")
-      child = start.call(:verification_archive_written) do |fault|
+      crash_at.call(:verification_archive_written) do |fault|
         Store.new(store.root, fault_injector: fault).process_verification(id, reject)
       end
-      event.call(child, "started")
-      event.call(child, "paused")
-      kill.call(child)
       before = store.snapshot
       run = self_test_cli(store.root)
       run.call(1, "process-verification", "--id", id, "--decision", decide.call(id, "apply"), error: "existing verification archive differs")
@@ -5541,12 +5465,10 @@ module RetroState
       audit = start.call(:state_file_prepared) do |fault|
         Store.new(store.root, fault_injector: fault).record_audit(audit_input)
       end
-      event.call(audit, "started")
       event.call(audit, "paused")
       candidate = start.call(nil) do |fault|
         Store.new(store.root, fault_injector: fault).process(id, decision)
       end
-      event.call(candidate, "started")
       blocked.call(candidate)
       audit.fetch(2).puts("continue")
       finish.call(audit)
@@ -5573,12 +5495,9 @@ module RetroState
       end
       raise "unpublished audit changed state" unless store.snapshot == before
       raise "unpublished audit reset cadence" unless store.artifact_audit_status(archive_threshold: 1).fetch(:due)
-      child = start.call(:audit_record_written) do |fault|
+      crash_at.call(:audit_record_written) do |fault|
         Store.new(store.root, fault_injector: fault).record_audit(input)
       end
-      event.call(child, "started")
-      event.call(child, "paused")
-      kill.call(child)
       audit_path = store.audits.fetch(0).fetch(3)
       audit_id = File.basename(audit_path, ".md")
       before = store.snapshot
@@ -5740,7 +5659,6 @@ module RetroState
     inspection_self_test
     metadata_comparison_self_test
     verification_context_self_test
-    verification_legacy_metadata_self_test
     verification_preparation_self_test
     accepted_preparation_self_test
     preparation_self_test
