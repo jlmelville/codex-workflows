@@ -2343,7 +2343,11 @@ module RetroState
           proposal = proposal_row.fetch(1)
           unless proposal.dig("triage", "verdict") == "apply" && proposal["target_accepted_id"] == data["accepted_id"]
             errors << "#{path}: applied verification proposal does not match target: #{proposal_id}"
+            next
           end
+          verify_applied_proposal!(data, proposal)
+        rescue Error => e
+          errors << "#{path}: #{e.message}"
         end
       end
 
@@ -2491,6 +2495,7 @@ module RetroState
             proposal["target_accepted_id"] == accepted_id
           raise Error, "accepted record references mismatched verification proposal: #{proposal_id}"
         end
+        verify_applied_proposal!(accepted, proposal)
       end
 
       residual_id = accepted.dig("contradiction", "residual_ledger_id")
@@ -2521,6 +2526,9 @@ module RetroState
     def validate_state_path!(path)
       unless canonical_root(path).start_with?(root + File::SEPARATOR)
         raise Error, "record resolves outside the state root: #{File.basename(path, ".md")}"
+      end
+      if path == state_lock_path && File.symlink?(path)
+        raise Error, "state writer lock must not be a symlink"
       end
     end
 
@@ -2659,8 +2667,7 @@ module RetroState
         raise Error, "applied contradicted proposal no longer matches accepted state"
       end
 
-      contradiction = accepted.fetch("contradiction")
-      unless contradiction["what_is_false"] == proposal["what_is_false"]
+      unless accepted.dig("contradiction", "what_is_false") == proposal["what_is_false"]
         raise Error, "applied contradiction no longer matches accepted state"
       end
     end
@@ -3522,6 +3529,18 @@ module RetroState
       root_alias = File.join(tmp, "alias")
       File.symlink(store.root, root_alias)
       raise "root alias lost canonical identity" unless Store.new(root_alias).root == store.root
+      lock = store.send(:state_lock_path)
+      File.unlink(lock)
+      File.symlink(record, lock)
+      before = store.snapshot
+      self_test_error("writer lock must not be a symlink") { store.validate }
+      self_test_error("writer lock must not be a symlink") { store.init }
+      self_test_error("writer lock must not be a symlink") do
+        Store.new(root_alias).send(:with_state_lock) { raise "entered a replaceable record's lock" }
+      end
+      raise "lock symlink refusal changed state or linked evidence" unless store.snapshot == before
+      File.unlink(lock)
+      Store.new(root_alias).send(:with_state_lock) {}
       kept = File.join(store.root, "kept.md")
       File.rename(record, kept)
       File.symlink(kept, record)
@@ -4219,6 +4238,51 @@ module RetroState
         run.call(1, "update-accepted", "--id", supported_id, "--file", write.call(data, body), error: "unverified_claims")
       end
       raise "invalid remaining-claim metadata wrote state" unless store.snapshot == before
+
+      # Validation and every context view must agree with applied proposal evidence.
+      %w[unverified supported missing-contradiction changed-claim].each do |defect|
+        id = (defect == "unverified") ? supported_id : contradicted_id
+        path = File.join(root, "retrospectives/accepted", "#{id}.md")
+        original = File.binread(path)
+        data, body = read_document(path)
+        case defect
+        when "unverified"
+          data["verification"] = "unverified"
+          data["verification_basis"] = "none"
+          message = "applied supported proposal no longer matches accepted state"
+        when "supported"
+          data["verification"] = "supported"
+          data.delete("contradiction")
+          message = "applied contradicted proposal no longer matches accepted state"
+        else
+          if defect == "missing-contradiction"
+            data.delete("contradiction")
+          else
+            data["contradiction"]["what_is_false"] = "A different assertion."
+          end
+          message = "applied contradiction no longer matches accepted state"
+        end
+        File.write(path, render_document(data, body))
+        inconsistent = store.snapshot
+        run.call(1, "validate", error: message)
+        run.call(1, "verification-context", "--id", id, error: message)
+        [[], ["--compact"]].each do |mode|
+          run.call(1, "verification-context", "--destination", data.fetch("destination"), *mode, error: message)
+        end
+        raise "verification consistency refusal wrote state" unless store.snapshot == inconsistent
+        File.binwrite(path, original)
+      end
+      # Legacy contradiction without applied proposal provenance remains valid as stored.
+      legacy_path = File.join(root, "retrospectives/accepted", "#{legacy_id}.md")
+      legacy_bytes = File.binread(legacy_path)
+      legacy, legacy_body = read_document(legacy_path)
+      legacy["verification"] = "contradicted"
+      File.write(legacy_path, render_document(legacy, legacy_body))
+      legacy_snapshot = store.snapshot
+      run.call(0, "validate")
+      run.call(0, "verification-context", "--id", legacy_id)
+      raise "legacy consistency check wrote state" unless store.snapshot == legacy_snapshot
+      File.binwrite(legacy_path, legacy_bytes)
 
       path = File.join(root, "retrospectives", "accepted", "#{supported_id}.md")
       original = File.read(path)
@@ -5315,21 +5379,25 @@ module RetroState
       store.validate
 
       # Concurrent retries of one reviewed input apply its stable identity only once.
-      store, accepted = fixture.call("reviewed-duplicate-writers")
-      id, input, = reviewed.call(store, accepted)
-      first = start.call(:verification_submission_written) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-      event.call(first, "started")
-      event.call(first, "paused")
-      second = start.call(nil) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
-      event.call(second, "started")
-      blocked.call(second)
-      first.fetch(2).puts("continue")
-      finish.call(first)
-      finish.call(second)
-      unless read_document(accepted).first.fetch("applied_verification_proposal_ids") == [id]
-        raise "concurrent reviewed retries duplicated application"
+      %i[verification_submission_written verification_accepted_written].each do |point|
+        store, accepted = fixture.call("reviewed-duplicate-#{point}")
+        root_alias = "#{store.root}-alias"
+        File.symlink(store.root, root_alias)
+        id, input, = reviewed.call(store, accepted)
+        first = start.call(point) { |fault| Store.new(store.root, fault_injector: fault).record_verification(input) }
+        event.call(first, "started")
+        event.call(first, "paused")
+        second = start.call(nil) { |fault| Store.new(root_alias, fault_injector: fault).record_verification(input) }
+        event.call(second, "started")
+        blocked.call(second)
+        first.fetch(2).puts("continue")
+        finish.call(first)
+        finish.call(second)
+        unless read_document(accepted).first.fetch("applied_verification_proposal_ids") == [id]
+          raise "concurrent reviewed retries duplicated application"
+        end
+        store.validate
       end
-      store.validate
 
       # New and legacy writers use the same lock and preserve each other's evidence.
       %w[supported contradicted].each do |state|

@@ -37,6 +37,7 @@ refuses to initialize or write there.
 The configured root may be a symlink alias. State-owned directories and files must resolve beneath
 that canonical root; escaped or dangling links are refused. `snapshot` still inventories links
 without following them so a refused layout can be inspected.
+The writer lock must not be a symlink; it must keep one shared inode across record replacements.
 
 ## Layout
 
