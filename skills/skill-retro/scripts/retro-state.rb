@@ -1361,7 +1361,7 @@ module RetroState
         when "close-papercut"
           [papercut_path("inbox", id), papercut_path("archive", id)]
         when "reconsider"
-          [candidate_path("archive", id)]
+          [candidate_path("archive", id), state_lock_path]
         when "record-accepted"
           [accepted_path(id)]
         when "update-accepted"
@@ -1594,29 +1594,31 @@ module RetroState
 
     def reconsider(candidate_id, decision_path)
       ensure_initialized
-      path = candidate_path("archive", candidate_id)
-      raise Error, "candidate not found in archive: #{candidate_id}" unless File.file?(path)
+      with_state_lock do
+        path = candidate_path("archive", candidate_id)
+        raise Error, "candidate not found in archive: #{candidate_id}" unless File.file?(path)
 
-      candidate, body = RetroState.read_document(path)
-      RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
-      current_triage = candidate.fetch("triage")
-      unless current_triage.fetch("verdict") == "defer"
-        raise Error, "candidate is not currently deferred: #{candidate_id}"
+        candidate, body = RetroState.read_document(path)
+        RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
+        current_triage = candidate.fetch("triage")
+        unless current_triage.fetch("verdict") == "defer"
+          raise Error, "candidate is not currently deferred: #{candidate_id}"
+        end
+
+        decision, decision_body = RetroState.read_document(decision_path)
+        RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
+        unless decision.fetch("reviewed_at") > current_triage.fetch("reviewed_at")
+          raise Error, "replacement decision must be newer than the current triage"
+        end
+
+        replacement = RetroState.without_keys(decision, "schema_version", "record_type")
+        replacement["notes"] = decision_body.rstrip unless decision_body.strip.empty?
+        candidate["triage_history"] = candidate.fetch("triage_history", []) + [current_triage]
+        candidate["triage"] = replacement
+        RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
+        replace_write(path, RetroState.render_document(candidate, body))
+        path
       end
-
-      decision, decision_body = RetroState.read_document(decision_path)
-      RetroState.validate_decision(decision, decision_body, label: decision_path, expected_id: candidate_id)
-      unless decision.fetch("reviewed_at") > current_triage.fetch("reviewed_at")
-        raise Error, "replacement decision must be newer than the current triage"
-      end
-
-      replacement = RetroState.without_keys(decision, "schema_version", "record_type")
-      replacement["notes"] = decision_body.rstrip unless decision_body.strip.empty?
-      candidate["triage_history"] = candidate.fetch("triage_history", []) + [current_triage]
-      candidate["triage"] = replacement
-      RetroState.validate_candidate(candidate, body, label: path, routed: true, archived: true)
-      replace_write(path, RetroState.render_document(candidate, body))
-      path
     end
 
     def record_accepted(input_path)
@@ -1854,9 +1856,17 @@ module RetroState
     end
 
     def record_ledger(input_path)
-      record_auxiliary(input_path, "ledger-entry", "ledgers", "ledger_id", "LE") do |data, body, label, assigned|
-        RetroState.validate_ledger_entry(data, body, label: label, assigned: assigned)
-      end
+      ensure_initialized
+      data, body = RetroState.read_document(input_path)
+      RetroState.validate_ledger_entry(data, body, label: input_path, assigned: false)
+      now = Time.now.utc
+      id = unique_auxiliary_id("LE", "ledgers")
+      data["ledger_id"] = id
+      data["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+      RetroState.validate_ledger_entry(data, body, label: input_path, assigned: true)
+      destination = ledger_path(id)
+      exclusive_write(destination, RetroState.render_document(data, body))
+      destination
     end
 
     def close_ledger(ledger_id, rationale:)
@@ -2628,24 +2638,6 @@ module RetroState
       end
     end
 
-    def record_auxiliary(input_path, record_type, directory, id_field, prefix)
-      ensure_initialized
-      data, body = RetroState.read_document(input_path)
-      yield(data, body, input_path, false)
-      unless data["record_type"] == record_type
-        raise Error, "#{input_path}: record_type must be #{record_type}"
-      end
-
-      now = Time.now.utc
-      id = unique_auxiliary_id(prefix, directory)
-      data[id_field] = id
-      data["created_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-      yield(data, body, input_path, true)
-      destination = File.join(root, directory, "#{id}.md")
-      exclusive_write(destination, RetroState.render_document(data, body))
-      destination
-    end
-
     def validate_auxiliary_dir(errors, directory, id_field)
       ids = {}
       Dir.glob(File.join(root, directory, "*.md")).sort.each do |path|
@@ -2983,6 +2975,7 @@ module RetroState
       decision.merge!(self_test_deferral_fields)
       decision["reviewed_at"] = "2000-01-01T00:00:00Z"
       run.call(0, "process", "--id", deferred_id, "--decision", "-", stdin: render_document(decision, body))
+      File.unlink(File.join(root, "audits/learning-process/artifact-cadence.lock"))
       File.write(snapshot_file, JSON.generate(store.snapshot))
       papercut_ids.each do |id|
         run.call(0, "close-papercut", "--id", id, "--outcome", "no-action", "--rationale", "Reviewed comparison fixture.")
@@ -2991,7 +2984,9 @@ module RetroState
       run.call(0, "reconsider", "--id", deferred_id, "--decision", "-", stdin: decision)
       paths = papercut_ids.flat_map { |id| ["papercuts/inbox/#{id}.md", "papercuts/archive/#{id}.md"] }
       strict = JSON.parse(run.call(1, "compare", "--file", snapshot_file))
-      unless strict.fetch("unexpected") == (paths + ["retrospectives/archive/#{deferred_id}.md"]).sort
+      unless strict.fetch("unexpected") == (paths + [
+        "retrospectives/archive/#{deferred_id}.md", "audits/learning-process/artifact-cadence.lock"
+      ]).sort
         raise "closure and reconsideration changed unexpected bookkeeping"
       end
       actions = papercut_ids.flat_map { |id| ["--allow-action", "close-papercut:#{id}"] }
@@ -4252,6 +4247,45 @@ module RetroState
           raise "shared mutation completed while another writer held the state lock: #{worker.fetch(1).gets}"
         end
       end
+
+      # Reconsideration must read the preceding writer's decision under the shared lock.
+      store = Store.new(File.join(tmp, "parallel-reconsider"))
+      store.init
+      id, = route_candidate.call(store)
+      triages = []
+      decisions = 3.times.map do |index|
+        data, = parse_document(decision_template)
+        data.merge!(self_test_deferral_fields)
+        data["candidate_id"] = id
+        data["reviewed_at"] = "2000-01-0#{index + 1}T00:00:00Z"
+        data["rationale"] = "Concurrent reconsideration fixture #{index}."
+        notes = "Review notes #{index}."
+        triages << without_keys(data, "schema_version", "record_type").merge("notes" => notes)
+        write.call("reconsider-#{index}.md", data, notes)
+      end
+      archive = store.process(id, decisions.fetch(0))
+      original, original_body = read_document(archive)
+      first = start.call(:state_file_prepared) do |fault|
+        Store.new(store.root, fault_injector: fault).reconsider(id, decisions.fetch(1))
+      end
+      event.call(first, "started")
+      event.call(first, "paused")
+      second = start.call(nil) do |fault|
+        Store.new(store.root, fault_injector: fault).reconsider(id, decisions.fetch(2))
+      end
+      event.call(second, "started")
+      blocked.call(second)
+      first.fetch(2).puts("continue")
+      finish.call(first)
+      finish.call(second)
+      data, body = read_document(archive)
+      unless data["triage_history"] == triages.first(2) && data["triage"] == triages.last
+        raise "parallel reconsideration lost a decision or its notes"
+      end
+      unless without_keys(data, "triage", "triage_history") == without_keys(original, "triage") && body == original_body
+        raise "parallel reconsideration changed the original candidate evidence"
+      end
+      store.validate
 
       # Killing the resource-owning process before publication must leave a retryable inbox.
       store, = fixture.call("atomic-create")
@@ -6094,7 +6128,7 @@ def usage(command = nil)
       matching. Supported --allow-action forms and exact permitted paths:
         process:RC-ID               Candidate inbox/archive plus shared writer lock.
         close-papercut:PC-ID         Papercut inbox/archive.
-        reconsider:RC-ID            Candidate archive only.
+        reconsider:RC-ID            Candidate archive plus writer lock.
         record-accepted:SCR-ID       New accepted record only; no writer lock.
         update-accepted:SCR-ID       Accepted record plus writer lock.
         process-verification:VP-ID   Proposal inbox/archive plus writer lock; target for apply.

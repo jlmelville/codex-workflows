@@ -93,9 +93,10 @@ Omit allowances for read-only work; see `--help` for supported forms and scope.
 
 The helper performs deterministic mechanics only. The agent owns evidence selection,
 sanitization, judgment, destination choice, implementation, and interpretation.
-New files publish atomically after their contents are written. Candidate processing,
-verification processing, accepted-record updates, ledger closure, and audit recording
-share a local writer lock; this does not coordinate synchronized copies on different machines.
+New files publish atomically after their contents are written. Candidate processing and
+reconsideration, verification processing, accepted-record updates, ledger closure, and audit
+recording share a local writer lock; this does not coordinate synchronized copies on different
+machines.
 
 For producer writes, generate the current template, complete it in a temporary
 file when practical, and submit it with the matching `--file` operation. These
