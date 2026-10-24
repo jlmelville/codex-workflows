@@ -81,8 +81,9 @@ from argument parsing once a script is large enough to test through methods or
 classes; avoid unrelated refactors solely to reach a preferred file size.
 
 Use intention-revealing snake_case names, predicate suffixes such as `?`, and
-constants for fixed vocabularies. Prefer small methods around validation,
-rendering, and state transitions over dense command branches.
+constants for fixed vocabularies. Extract a method when it names a meaningful
+operation or boundary, isolates complex supporting logic, or serves actual reuse.
+Keep trivial single-use steps inline.
 
 ## Validation
 
