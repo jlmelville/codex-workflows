@@ -3,6 +3,7 @@
 require "digest"
 require "json"
 require "time"
+require_relative "verification-context-artifacts"
 
 module VerificationContextCheck
   class ReviewManifest
@@ -14,7 +15,7 @@ module VerificationContextCheck
       expected_behavior verification_opportunity opportunity_match triage
     ].freeze
 
-    def initialize(document, report, manifest = {"schema_version" => 1, "reviews" => []})
+    def initialize(document, report, manifest = {"schema_version" => 1, "reviews" => []}, artifact_roots: {})
       @report = report
       @records = {}
       document.fetch("records").each_with_index do |record, index|
@@ -35,18 +36,24 @@ module VerificationContextCheck
         end
         @records[id] = {"base" => base, "nodes" => nodes, "references" => refs}
       end
-      validate(manifest)
+      validate(manifest, artifact_roots)
       @reviews = manifest.fetch("reviews").to_h { |review| [key(review.fetch("accepted_id"), review.fetch("paths")), review] }
     end
 
-    def validate(manifest)
-      unless manifest.is_a?(Hash) && manifest.keys.sort == %w[reviews schema_version] &&
-          manifest["schema_version"] == 1 && manifest["reviews"].is_a?(Array)
-        raise InputError, "expected review manifest schema_version 1 and reviews array"
+    def validate(manifest, artifact_roots)
+      version = manifest.is_a?(Hash) ? manifest["schema_version"] : nil
+      expected_keys = {1 => %w[reviews schema_version], 2 => %w[artifacts reviews schema_version]}[version]
+      unless expected_keys && manifest.keys.sort == expected_keys && manifest["reviews"].is_a?(Array)
+        raise InputError, "expected review manifest schema_version 1 or 2, reviews array, and artifacts registry for version 2"
       end
+      @manifest = manifest
+      external = manifest["schema_version"] == 2
+      @artifacts = ExternalArtifacts.new(external ? manifest["artifacts"] : {}, artifact_roots)
       seen = Set.new
       manifest.fetch("reviews").each do |review|
-        unless review.is_a?(Hash) && review.keys.sort == %w[accepted_id binding context_paths paths rationale reviewed_at verdict] &&
+        required = %w[accepted_id binding context_paths paths rationale reviewed_at verdict]
+        allowed = required + (external ? ["artifact_refs"] : [])
+        unless review.is_a?(Hash) && (required - review.keys).empty? && (review.keys - allowed).empty? &&
             review["accepted_id"].is_a?(String) && review["accepted_id"].match?(/\ASCR-\d{8}-[a-f0-9]{6}\z/) &&
             path_list?(review["paths"], size: 2) && path_list?(review["context_paths"])
           raise InputError, "review requires accepted_id, two distinct relative paths, context_paths, verdict, rationale, UTC reviewed_at, and binding"
@@ -63,12 +70,14 @@ module VerificationContextCheck
           end
         end
         binding = review.fetch("binding")
-        unless binding.is_a?(Hash) && binding.keys.sort == %w[dependencies version] &&
+        unless binding.is_a?(Hash) && (%w[dependencies version] - binding.keys).empty? &&
+            (binding.keys - (%w[dependencies version] + (external ? ["artifacts"] : []))).empty? &&
             binding["version"].is_a?(Integer) && binding["version"].positive? &&
             binding["dependencies"].is_a?(Hash) && !binding["dependencies"].empty? &&
             binding["dependencies"].all? { |path, digest| pointer?(path) && digest.is_a?(String) && digest.match?(/\Asha256:[a-f0-9]{64}\z/) }
           raise InputError, "review binding requires a positive version and dependency path/SHA-256 map"
         end
+        @artifacts.validate_review(review)
         identity = key(review.fetch("accepted_id"), review.fetch("paths"))
         raise InputError, "conflicting or duplicate reviews for #{identity.inspect}" unless seen.add?(identity)
       end
@@ -174,16 +183,18 @@ module VerificationContextCheck
       reasons << "dependencies_changed" unless changed.empty?
       reasons << "endpoint_missing" unless review.fetch("paths").all? { |path| @records.fetch(id).fetch("nodes").key?(path) }
       reasons << "context_missing" unless review.fetch("context_paths").all? { |path| @records.fetch(id).fetch("nodes").key?(path) }
+      artifact_status = @artifacts.assess(review)
+      reasons << "external_artifacts_changed" if artifact_status.key?("changed_artifact_refs")
       if blank_judgment?(review)
         result = {"freshness" => "unreviewed", "reasons" => ["blank_judgment", *reasons]}
         result["changed_paths"] = changed.map { |path| @records.fetch(id).fetch("base") + path } unless changed.empty?
-        return result
+        return result.merge(artifact_status)
       end
       judgment = review.slice("verdict", "rationale", "reviewed_at")
-      return judgment.merge("freshness" => "current") if reasons.empty?
+      return judgment.merge("freshness" => "current").merge(artifact_status) if reasons.empty?
 
       {"freshness" => "stale", "previous_review" => judgment, "reasons" => reasons,
-       "changed_paths" => changed.map { |path| @records.fetch(id).fetch("base") + path }}
+       "changed_paths" => changed.map { |path| @records.fetch(id).fetch("base") + path }}.merge(artifact_status)
     end
 
     def annotate
@@ -196,7 +207,7 @@ module VerificationContextCheck
         identity = key(id, paths)
         review = @reviews[identity]
         used << identity
-        result = review ? freshness(review) : {"freshness" => "unreviewed"}
+        result = review ? freshness(review) : {"freshness" => "unreviewed", "artifact_coverage" => "json_only"}
         finding["review"] = result
         case result.fetch("freshness")
         when "current" then counts[result.fetch("verdict")] += 1
@@ -214,7 +225,7 @@ module VerificationContextCheck
         else
           {"freshness" => "stale", "previous_review" => review.slice("verdict", "rationale", "reviewed_at"),
            "reasons" => (result.fetch("reasons", []) + ["no_longer_candidate"]),
-           "changed_paths" => result.fetch("changed_paths", [])}
+           "changed_paths" => result.fetch("changed_paths", [])}.merge(result.slice("artifact_coverage", "artifact_refs", "changed_artifact_refs"))
         end
         {"accepted_id" => id, "paths" => review.fetch("paths").map { |path| @records.fetch(id).fetch("base") + path },
          "review" => inactive_review}
@@ -222,7 +233,7 @@ module VerificationContextCheck
       @report.merge("review_summary" => {"candidates" => @report.fetch("findings").length, "current" => counts,
                                          "unreviewed" => unreviewed + inactive.count { |item| item.dig("review", "freshness") == "unreviewed" },
                                          "stale" => stale + inactive.count { |item| item.dig("review", "freshness") == "stale" }, "inactive" => inactive.length},
-        "inactive_reviews" => inactive)
+        "inactive_reviews" => inactive, "external_artifacts" => @artifacts.report)
     end
 
     def prepare
@@ -237,13 +248,18 @@ module VerificationContextCheck
         unless context.all? { |path| @records.fetch(id).fetch("nodes").key?(path) }
           raise InputError, "repair missing review context paths before preparation"
         end
-        {"accepted_id" => id, "paths" => paths.sort, "context_paths" => context,
-         "verdict" => nil, "rationale" => "", "reviewed_at" => nil,
-         "binding" => {"version" => BINDING_VERSION, "dependencies" => dependencies(id, paths, context)}}
+        entry = {"accepted_id" => id, "paths" => paths.sort, "context_paths" => context,
+                 "verdict" => nil, "rationale" => "", "reviewed_at" => nil,
+                 "binding" => {"version" => BINDING_VERSION, "dependencies" => dependencies(id, paths, context)}}
+        if previous && (previous.key?("artifact_refs") || previous.fetch("binding").key?("artifacts"))
+          entry["artifact_refs"] = previous.fetch("artifact_refs", [])
+          entry["binding"]["artifacts"] = @artifacts.prepare(previous)
+        end
+        entry
       end
       identities = prepared.map { |review| key(review.fetch("accepted_id"), review.fetch("paths")) }.to_set
       retained = @reviews.except(*identities).values
-      {"schema_version" => 1, "reviews" => prepared + retained}
+      @manifest.merge("reviews" => prepared + retained)
     end
 
     def self.failed?(report, require_reviewed: false)
@@ -261,7 +277,14 @@ module VerificationContextCheck
         next unless %w[unreviewed stale].include?(status)
 
         detail = review.fetch("reasons", []).include?("blank_judgment") ? " (blank judgment)" : ""
-        "#{status} overlap#{detail}: #{finding.fetch("paths").join(" <-> ")}"
+        artifacts = review.fetch("changed_artifact_refs", []).map do |ref|
+          id = ref.fetch("$ref").delete_prefix("#/external_artifacts/")
+          observed = report.fetch("external_artifacts").fetch(id)
+          locator = observed["locator"]&.values_at("root", "path")&.join(":")
+          "#{id} at #{observed["resolved_path"] || locator || "undeclared locator"}: #{observed.fetch("changes").join(", ")}"
+        end
+        suffix = artifacts.empty? ? "" : "; external artifacts: #{artifacts.join("; ")}"
+        "#{status} overlap#{detail}: #{finding.fetch("paths").join(" <-> ")}#{suffix}"
       end
     end
   end

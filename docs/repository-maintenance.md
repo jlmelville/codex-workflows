@@ -288,8 +288,33 @@ identity; evidence or proposal renumbering requires explicit rebinding. Removed 
 that stop appearing remain visible as inactive stale reviews. Remove an obsolete entry explicitly
 after review to close it. Preparation with an existing manifest retains current and inactive entries
 and blanks new or stale judgments; it never renews approval automatically. Checking and preparation
-write only standard output. New external provenance must enter the supplied JSON or declared context
-before freshness checks can detect it.
+write only standard output.
+
+For external files, manifest schema version 2 adds an `artifacts` registry. Each named entry has a
+`root` alias and relative file `path`. Reviews declare their supporting IDs in `artifact_refs` and
+save reviewed fingerprints in `binding.artifacts`. Existing JSON bindings keep their version and
+semantics. Version 1 manifests and version 2 entries without artifact dependencies remain valid;
+their reports explicitly show `artifact_coverage: json_only`.
+
+Supply root directories with repeatable `--artifact-root NAME=DIR` arguments alongside `--reviews`.
+For example, add `--artifact-root "exercise=${exercise_dir}"` to the audit or preparation command
+when the manifest uses the `exercise` alias. Absolute root directories are invocation configuration,
+not manifest fields. Relative paths must stay within their root and identify regular files.
+
+Fingerprints bind the root alias, relative path, and SHA-256 of file bytes. Moving an entire root
+with identical files preserves identity; editing a locator or adding/removing a review's dependency
+requires review. Content hashing detects changes even when size and modification time are preserved.
+The checker hashes each selected artifact once per invocation and reports it once under
+`external_artifacts`, including resolved path, content hash, expected/current fingerprints, and
+change reasons. Reviews use scoped references to these shared observations.
+
+Changed or unavailable artifacts make dependent judgments stale; missing roots, unreadable files,
+and non-file targets cannot count as current. The review gate exits 1 with the exact pair and artifact
+paths. Invalid locators, unknown artifact IDs, and malformed fingerprints remain input errors with
+exit 2. Preparation saves fresh fingerprints only after clearing affected judgments; it refuses
+unavailable artifacts with exit 2. Current and unrelated judgments keep their timestamps and values.
+Declare every file whose contents support a judgment, including provenance documents and recovery
+scripts. Files omitted from `artifact_refs` are outside that review's external freshness coverage.
 
 ### Other validation tools
 

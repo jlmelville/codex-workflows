@@ -354,6 +354,8 @@ module VerificationContextCheck
     provenance_self_test
     require_relative "test-verification-context-reviews"
     VerificationContextReviewTests.run
+    require_relative "test-verification-context-artifacts"
+    VerificationContextArtifactTests.run
 
     require "open3"
     require "tmpdir"
@@ -472,7 +474,7 @@ module VerificationContextCheck
 end
 
 if $PROGRAM_NAME == __FILE__
-  options = {file: "-", self_test: false, reviews: nil, prepare_reviews: false, require_reviewed: false}
+  options = {file: "-", self_test: false, reviews: nil, prepare_reviews: false, require_reviewed: false, artifact_roots: {}}
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: check-verification-context.rb [--file JSON|-] [--reviews PATH] [--require-reviewed | --prepare-reviews]"
     opts.separator "Read expanded verification-context JSON; write a JSON audit without modifying input or state."
@@ -481,10 +483,18 @@ if $PROGRAM_NAME == __FILE__
     opts.separator "References are checked and listed without expanding them into repeated prose."
     opts.separator "Overlap diagnostics show direct citing paths and wording-based role hints; identity and independence are not inferred."
     opts.separator "Review manifests annotate factual findings; scope-role overlaps remain informational. No files are written."
+    opts.separator "Schema 2 manifests bind declared external files through named roots; unavailable files invalidate dependent reviews."
     opts.separator "Exit 0: audit complete; 1: exact duplicates, reference errors, current duplicate verdicts, or failed review gate; 2: invalid input/usage."
     opts.separator "Lexical overlaps alone do not fail without --require-reviewed. No semantic completeness is claimed."
     opts.on("--file PATH", "JSON input path, or - for standard input (default)") { |value| options[:file] = value }
     opts.on("--reviews PATH", "Read external review manifest (never rewritten)") { |value| options[:reviews] = value }
+    opts.on("--artifact-root NAME=DIR", "Resolve a named artifact root; repeat for several roots") do |value|
+      name, directory = value.split("=", 2)
+      unless name&.match?(VerificationContextCheck::ExternalArtifacts::NAME) && directory && !directory.empty? && !directory.include?("\0") && !options[:artifact_roots].key?(name)
+        raise OptionParser::InvalidArgument, "--artifact-root requires a unique NAME=DIR"
+      end
+      options[:artifact_roots][name] = directory
+    end
     opts.on("--prepare-reviews", "Print manifest: preserve current reviews, blank new/stale judgments, retain inactive entries") { options[:prepare_reviews] = true }
     opts.on("--require-reviewed", "Fail for blank, new, stale, or inactive reviews and list their paths; current unresolved provenance stays visible") { options[:require_reviewed] = true }
     opts.on("--self-test", "Run disposable checker fixtures") { options[:self_test] = true }
@@ -499,7 +509,10 @@ if $PROGRAM_NAME == __FILE__
     if options[:prepare_reviews] && options[:require_reviewed]
       raise OptionParser::InvalidArgument, "--prepare-reviews cannot combine with --require-reviewed"
     end
-    if options[:reviews] == "-" || (options[:self_test] && (options[:reviews] || options[:prepare_reviews] || options[:require_reviewed]))
+    if !options[:artifact_roots].empty? && !options[:reviews]
+      raise OptionParser::InvalidArgument, "--artifact-root requires --reviews"
+    end
+    if options[:reviews] == "-" || (options[:self_test] && (options[:reviews] || options[:prepare_reviews] || options[:require_reviewed] || !options[:artifact_roots].empty?))
       raise OptionParser::InvalidArgument, "--reviews needs a file path; --self-test runs alone"
     end
     if options[:self_test]
@@ -511,7 +524,7 @@ if $PROGRAM_NAME == __FILE__
       output = report
       if options[:reviews] || options[:prepare_reviews] || options[:require_reviewed]
         manifest = options[:reviews] ? JSON.parse(File.read(options[:reviews], encoding: "UTF-8")) : {"schema_version" => 1, "reviews" => []}
-        reviews = VerificationContextCheck::ReviewManifest.new(document, report, manifest)
+        reviews = VerificationContextCheck::ReviewManifest.new(document, report, manifest, artifact_roots: options[:artifact_roots])
         output = options[:prepare_reviews] ? reviews.prepare : reviews.annotate
       end
       puts JSON.pretty_generate(output)

@@ -82,7 +82,7 @@ module VerificationContextReviewTests
     raise "missing review bypassed the gate" unless pending.dig("review_summary", "unreviewed") == 1 && VerificationContextCheck::ReviewManifest.failed?(pending, require_reviewed: true)
     prepared = manager(document).prepare
     blank = manager(document, prepared).annotate
-    unless review(blank) == {"freshness" => "unreviewed", "reasons" => ["blank_judgment"]} &&
+    unless review(blank) == {"freshness" => "unreviewed", "reasons" => ["blank_judgment"], "artifact_coverage" => "json_only"} &&
         blank.dig("review_summary", "unreviewed") == 1 && blank.dig("review_summary", "current").values.sum.zero? &&
         !VerificationContextCheck::ReviewManifest.failed?(blank) && VerificationContextCheck::ReviewManifest.failed?(blank, require_reviewed: true)
       raise "prepared blank judgment was rejected, approved, or bypassed the review gate"
