@@ -266,8 +266,8 @@ root:
 > Use `prompts/skill-repository-retrospective.md` to audit this repository and
 > report findings before making changes.
 
-After the user approves the external-state update, `learning-process-review`
-records a successfully completed audit, supplying the next reminder cutoff.
+When state recording is authorized, `learning-process-review` records a successfully completed
+audit, supplying the next reminder cutoff.
 
 ## State And Maintenance
 

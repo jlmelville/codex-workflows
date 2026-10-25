@@ -28,7 +28,7 @@ The configured state root owns:
 - existing papercut inbox and archive;
 - verification-proposal inbox and processed archive;
 - curated accepted records and applied verification evidence;
-- deferred candidates and uninstalled drafts;
+- deferred observations and candidates, and existing drafts;
 - maintenance ledgers, learning-process audits, and cadence state.
 
 Do not configure the state root inside a Git worktree. The bundled helper
@@ -68,9 +68,8 @@ proposals record separate judgments. Opaque `PC-*`, `RC-*`, and `VP-*` IDs conta
 no repository or session name. Accepted `SCR-*` records use an array of
 `originating_candidate_ids` so merges and splits remain representable.
 
-Existing schema-version-1 roots without `verifications/` remain valid. `init`
-or the first verification route creates both verification directories; a
-partially present verification layout is invalid.
+Existing schema-version-1 roots without `verifications/` remain valid. `init` or the first reviewed
+verification submission creates both directories; a partial verification layout is invalid.
 
 ## Installed Helper
 
@@ -103,10 +102,10 @@ reconsideration, verification processing, accepted-record updates, ledger closur
 recording share a local writer lock; this does not coordinate synchronized copies on different
 machines.
 
-For producer writes, generate the current template, complete it in a temporary
-file when practical, and submit it with the matching `--file` operation. These
-operations accept `--file -` for standard input. Remove temporary input when
-practical, and use the installed helper rather than locating this source checkout.
+Use the operation's current template or preparation command and complete its required fields.
+For new verification, start with `prepare-verification`; `template verification` lacks its review
+identity and timestamp. Submit through the operation's file option (`-` for standard input); keep
+temporary inputs outside Git and remove them when practical.
 
 When `CODEX_WORKFLOWS_STATE_DIR` is unset, templates still work; `route` and `record-observation`
 print validated paste-ready input without writing. Do not silently invent a default state location.
@@ -201,7 +200,7 @@ outcome, keep it behaviorally `unverified`, and retain its destination-matched
 with the same candidate and decision. The helper verifies the existing archive and removes the
 inbox copy; a conflicting archive is refused. Retrying preserves the single candidate archive.
 
-Every new or reconsidered candidate deferral names its `unresolved_decision` and includes these
+Every new or reconsidered deferral names its `unresolved_decision` and includes these
 follow-up fields. New open ledgers use the same fields without claiming that an already accepted
 but blocked action is an undecided question:
 
@@ -239,9 +238,9 @@ decides which event-based triggers have fired rather than merely refreshing
 their dates. Every triage run must inspect that queue before proposing its
 batch.
 
-When a deferred candidate's review trigger fires, use `prepare-decision`, complete
-the replacement draft, and use `reconsider --id ID --decision PATH`. The helper accepts only a
-currently deferred archived candidate and a newer `reviewed_at` timestamp. It
+When a deferred observation or legacy candidate's review trigger fires, use `prepare-decision`,
+complete the replacement decision, and use `reconsider --id ID --decision PATH`. The helper accepts
+only a currently deferred archived record and a newer `reviewed_at` timestamp. It
 preserves every prior deferral in `triage_history`, replaces the active `triage`,
 and leaves a replacement `defer` in the review queue while removing a terminal
 replacement verdict from it. Do not direct-edit archived triage state.
@@ -262,6 +261,8 @@ Verification: unverified | supported | contradicted
 Basis:        none | later-session | deterministic-test
 ```
 
+### Accepted Record Preparation
+
 After the public commit exists, use `prepare-accepted --id RC-ID --commit SHA` for a new outcome.
 Use the original reviewed observation IDs in `originating_candidate_ids`; the historical field name
 also covers observations. No separate candidate is needed.
@@ -273,6 +274,8 @@ preparation comments and prior context. Preparation writes no state and establis
 implementation nor behavioral verification. For an existing identity, use `prepare-accepted-update`
 with chosen `--commit` and `--destination` overrides as needed; see `--help` for their scope.
 Review the prepared replacement, then submit with `update-accepted` under the rules below.
+
+### Verification Evidence
 
 Static validation of a prose or trigger edit can justify `implemented`; it does
 not prove the guidance improved a later session. Use `deterministic-test` only
@@ -314,18 +317,6 @@ overlap review. Historical `verification_context` metadata remains opaque source
 controls rendering or validation. Existing overlap manifests remain historical local files and no
 longer govern review decisions. No evidence migration is required.
 
-For new evidence that warrants verification, use
-`prepare-verification --id SCR-ID --verification STATE`. Complete the claim, evidence and
-`review.rationale` in this one document, then submit with `record-verification --file PATH` (or `-`
-for stdin). The prepared review holds a stable VP identity and timestamp; retain them for retries.
-Preparation writes no state and grants no authority. Processing requires authority to apply the
-verification and any selected observation closures. See command help for fields and recovery.
-
-New legacy proposal creation is retired: `route-verification` refuses without writing. Existing
-proposals remain valid and processable; `--reviewed` is accepted but no longer selects a mode.
-For a new observation that does not warrant verification, record the review conclusion on that
-observation; no rejected proposal is required.
-
 Another conforming task alone need not add evidence that changes adjudication. A proposal names one
 `target_accepted_id`, proposes `supported` or `contradicted`, selects
 `later-session` or `deterministic-test`, records the opportunity match and
@@ -344,8 +335,45 @@ available; use `verification-context` when joined evidence is needed.
 When observed failure or harm bears on active guidance, use a bounded
 `accepted-records --destination TEXT` or `--text TEXT` query to locate the
 applicable identity across all dispositions, then expand it with `verification-context --id ID`.
-Record a contradiction only when the evidence addresses that record's claim and opportunity. Use
-a candidate when the decision itself changes.
+Record a contradiction only when the evidence addresses that record's claim and opportunity. For a
+changed decision, review the original observation as a correction under its existing ID.
+
+Contradicted proposals must also state `what_is_false`; supported proposals
+must not. Further support when support is pending or the target is supported
+requires `supplemental_reason`: what the evidence materially adds beyond existing
+support, such as a previously untested boundary or a stronger warranted claim.
+A different task or claim label alone is insufficient. Omit redundant support;
+preserve useful supplements and contradictions. A query hit creates no obligation or authority.
+
+Apply only to an `accepted` or `implemented` target and only for these transitions:
+
+```text
+unverified -> supported
+unverified -> contradicted
+supported  -> contradicted
+supported  -> supported (material supplemental evidence only)
+```
+
+Application updates the existing accepted identity's observation, decisive
+evidence, verification state and basis, records the `VP-*` provenance, and
+creates the structured contradiction mapping when needed. Rejection archives
+the proposal without changing the accepted record. Supplemental application
+retains both observations, accumulated evidence, and proposal provenance; each
+proposal preserves its own basis.
+
+### Reviewed Verification Submission
+
+For new evidence that warrants verification, use
+`prepare-verification --id SCR-ID --verification STATE`. Complete the claim, evidence and
+`review.rationale` in this one document, then submit with `record-verification --file PATH` (or `-`
+for stdin). The prepared review holds a stable VP identity and timestamp; retain them for retries.
+Preparation writes no state and grants no authority. Processing requires authority to apply the
+verification and any selected observation closures. See command help for fields and recovery.
+
+New legacy proposal creation is retired: `route-verification` refuses without writing. Existing
+proposals remain valid and processable; `--reviewed` is accepted but no longer selects a mode.
+For a new observation that does not warrant verification, record the review conclusion on that
+observation; no rejected proposal is required.
 
 When an observation supplies evidence, include its `RC-*` or legacy `PC-*` ID in
 `source_observation_ids`. The helper validates linked identities and original digests at submission
@@ -364,6 +392,11 @@ archival adds `triage`. Under the shared writer lock, the helper validates curre
 evidence and selected closures, publishes intent, applies and archives verification, then closes
 selected observations. Removing verification inbox last keeps interrupted work in `review-queue`.
 Writes are individually atomic; the whole sequence is recoverable rather than one transaction.
+
+Verification archives do not increment artifact-audit cadence. Explicit observation closures count
+as ordinary observation reviews.
+
+### Verification Recovery
 
 Retry the unchanged input after interruption or a lost response. After intent was published,
 `record-verification --id VP-ID` resumes the stored review; a completed retry is a no-op. Keep the
@@ -388,36 +421,16 @@ or apply fields. Later record changes are refused. Under the writer lock, the he
 resolution before finishing; ordinary retries resume it. Repeated explicit resolution is a no-op
 with the same rationale and fails with a different one. Neither resolution is automatic.
 
-Contradicted proposals must also state `what_is_false`; supported proposals
-must not. Further support when support is pending or the target is supported
-requires `supplemental_reason`: what the evidence materially adds beyond existing
-support, such as a previously untested boundary or a stronger warranted claim.
-A different task or claim label alone is insufficient. Omit redundant support;
-preserve useful supplements and contradictions. A query hit creates no obligation or authority.
+### Legacy Verification Processing
 
 For existing legacy proposals, select from `review-queue`, prepare `apply` or `reject` using
-`prepare-decision` with a reviewed rationale, and submit with `process-verification`. Both
-processing paths apply only to an `accepted` or `implemented` target and only for these transitions:
+`prepare-decision` with a reviewed rationale, and submit with `process-verification`.
 
-```text
-unverified -> supported
-unverified -> contradicted
-supported  -> contradicted
-supported  -> supported (material supplemental evidence only)
-```
+After interruption between accepted-state replacement and proposal archival, retry with the same
+apply decision. An already-applied proposal cannot be rejected, and a conflicting archive is refused
+before accepted state changes.
 
-Application updates the existing accepted identity's observation, decisive
-evidence, verification state and basis, records the `VP-*` provenance, and
-creates the structured contradiction mapping when needed. Rejection archives
-the proposal without changing the accepted record. Supplemental application
-retains both observations, accumulated evidence, and proposal provenance; each
-proposal preserves its own basis. Triage must judge the supplemental reason,
-not merely its presence. Processing is recoverable
-if interrupted between accepted-state replacement and proposal archival: retry
-with the same apply decision. An already-applied proposal cannot be rejected,
-and a conflicting archive is refused before accepted state changes.
-Verification archives do not increment artifact-audit cadence. Explicit observation closures count
-as ordinary observation reviews.
+### Accepted Record Updates
 
 Use `update-accepted --id ID --file PATH` for later disposition, public-source
 destination, evidence curation, or commit updates; use a reviewed submission for new verification
@@ -431,6 +444,8 @@ proposal IDs to remain intact. A pure relocation uses this existing identity
 and retains its verification state and basis. Do not direct-edit the stored
 record or create a second accepted identity for the same outcome merely to
 record later evidence.
+
+### Contradiction Resolution
 
 A newly contradicted record includes:
 
@@ -482,8 +497,8 @@ They do not replace the typed verification evidence required here.
 
 ## Drafts, Ledgers, And Cleanup
 
-New draft creation is retired. Keep an undecided proposal as a deferred candidate with its missing
-evidence and unresolved decision. Use a ledger for an agreed future action, implementation blocker,
+New draft creation is retired. Defer the original observation when a named decision lacks evidence;
+retain its identity. Use a ledger for an agreed future action, implementation blocker,
 or maintenance hypothesis. Its Markdown body can hold provisional skill text, conventions, and
 readiness criteria without another record type or required fields. Create it with `template ledger`
 and `record-ledger`, using the owner, review condition, next action, and close condition from

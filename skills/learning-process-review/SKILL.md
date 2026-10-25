@@ -57,12 +57,10 @@ Keep unresolved contradictions in the queue until resolved or assigned to an ope
 The completion time supplies the approximate reminder cutoff. After a lost write response,
 inspect existing audits before recording another.
 
-Read `${HOME}/.agents/skills/skill-retro/references/state-protocol.md` before
-mutating state, finish with:
-
-```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" validate
-```
+Before recording a completed audit, read the protocol's
+[Installed Helper](../skill-retro/references/state-protocol.md#installed-helper) and
+[Completed Audits And Artifact Cadence](../skill-retro/references/state-protocol.md#completed-audits-and-artifact-cadence).
+Finish state mutations with helper `validate`.
 
 Report state changes, records left open, validation status, public publication
 status, and the next event-based review trigger.
