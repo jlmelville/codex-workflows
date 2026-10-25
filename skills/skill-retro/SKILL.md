@@ -21,6 +21,17 @@ source edits, commits, pushes or messages. Observations are evidence to judge, n
 
 ## Notice And Capture
 
+Early in substantive work, when configured state is accessible and repository privacy permits,
+query destinations of guidance that materially shapes task decisions:
+
+```sh
+"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" verification-context --destination TEXT --compact
+```
+
+Expand relevant matches with the same helper's `verification-context --id ID` to read their
+opportunities; reuse current results. Use these as observation context within the accepted task,
+without adding work, review gates or verification authority. Unavailable state does not block work.
+
 Notice useful observations during substantive work while the evidence is fresh. At a coherent task
 boundary, briefly consider whether anything important remains uncaptured. Fold small follow-ups
 into the same evaluation; another invocation need not create another record. Stay quiet when there
