@@ -8,6 +8,14 @@ repo already uses one. The active plan owns durable state; the handoff points
 to it. Do not repeat inherited global policy. Verify every `Read first` path in
 the recipient's context and name an inline replacement explicitly.
 
+When the accepted task includes resuming after an asynchronous wait, record the condition for
+continuation, who or what observes it, and the next action. Verify the mechanism that starts another
+turn before promising to return; report unavailable scheduling as unverified follow-through.
+Preserve scope, authority, retry limits, and deadlines across the wait. Refresh decision-relevant
+state before acting, and close temporary watchers and resources when the work completes or stops.
+A handoff the user will explicitly start needs no automatic wake-up mechanism. For a
+source-repository example, see the [R CI continuation procedure](https://github.com/jlmelville/codex-workflows/blob/main/prompts/weekly-r-ci-updates.md#continue-across-ci-waits).
+
 Keep owner intent and agent inference visibly separate:
 
 ```text
