@@ -8,9 +8,8 @@ batch acceptance forward; ask only for decisions or mutations outside that scope
 Read the protocol's [Installed Helper](state-protocol.md#installed-helper) and
 [Triage And Archive](state-protocol.md#triage-and-archive), then archive each complete verdict
 before editing source. Preserve original observation or candidate IDs and use `reconsider` for a
-fired deferral. Judge
-verification proposals separately through the
-[verification protocol](state-protocol.md#accepted-records-and-verification).
+fired deferral. For evidence about an accepted outcome or existing verification proposals, use
+[verification judgment](../../skill-retro-triage/references/verification-judgment.md).
 
 Keep operational records outside Git. Public changes must be understandable without private
 evidence, repository names or opaque state IDs. Losing external bookkeeping does not invalidate a
@@ -40,30 +39,31 @@ than repeatedly refreshing them.
 
 ## External Accepted Record
 
-Only after the public commit exists, read
-[Accepted Records And Verification](state-protocol.md#accepted-records-and-verification).
-For a new outcome, use `prepare-accepted --id RC-ID --commit SHA`, repeating origins or commits
-when needed. Complete the blank outcome fields, judge the final destination and evidence, and
-submit with `record-accepted`. Preparation supplies lineage and reviewed ancestor context without
-treating the original proposal as the implemented outcome; its comments are discarded on recording.
+Only after the public commit exists, create or update accepted metadata. For a new outcome, follow
+[Accepted Record Preparation](state-protocol.md#accepted-record-preparation).
+Use `prepare-accepted --id RC-ID --commit SHA`, repeating origins or commits as needed.
+Complete the blank outcome fields, judge the final destination and evidence, and submit with
+`record-accepted`. Preparation supplies lineage and reviewed ancestor context without treating the
+original proposal as the implemented outcome; its comments are discarded on recording.
 For a state-preservation comparison, use `--allow-action record-accepted:SCR-ID`.
 
-For an existing identity, supply known commits and any changed destination to
-`prepare-accepted-update`, review the replacement and submit with `update-accepted`. Retain original
-implementation provenance. Store sanitized outcome evidence, trigger and non-trigger, an exact
-verification opportunity and known public commits without inventing observations.
+For an existing identity, follow [Accepted Record Updates](state-protocol.md#accepted-record-updates).
+Supply known commits and any changed destination to `prepare-accepted-update`, review the
+replacement and submit with `update-accepted`. Retain original implementation provenance. Store
+sanitized outcome evidence, trigger and non-trigger, an exact verification opportunity and known
+public commits without inventing observations.
 
 Keep disposition and verification independent. Static checks of prose can support implementation,
 not effectiveness. Use `deterministic-test` for exercised executable behavior and `later-session`
 for an ordinary task with decisive observations. Preserve explicit claim scope; neither conformance
 nor occurrence of an intended outcome proves comparative improvement without a comparator.
 
-For a correction, preserve the old identity and contradiction evidence. Create a new accepted
-identity only for a newly accepted decision; `record-accepted` derives its supersession links from
-the archived review or legacy candidate intake. Close a residual contradiction ledger only after the
-old outcome is
-superseded, reverted or explicitly retained under the protocol. Same-decision source repair uses
-the existing identity and leaves verification unchanged unless qualifying evidence establishes more.
+For a correction, follow [Contradiction Resolution](state-protocol.md#contradiction-resolution);
+preserve the old identity and contradiction evidence. Create a new accepted identity only for a
+newly accepted decision; `record-accepted` derives its supersession links from the archived review
+or legacy candidate intake. Close a residual contradiction ledger only after the old outcome is
+superseded, reverted or explicitly retained. Same-decision source repair uses the existing identity
+and leaves verification unchanged unless qualifying evidence establishes more.
 
 Finish authorized state changes with helper `validate`. If bookkeeping fails after publication,
 report the unfinished record update and repair it within scope; do not undo a correct source commit
