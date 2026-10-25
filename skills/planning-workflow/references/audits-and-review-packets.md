@@ -94,15 +94,6 @@ stable snapshot can be supplied, serialize patch-and-review cycles.
 ## Bounded Independent Review
 
 Use this loop only when the operator or active plan requires independent review.
-
-Temporary consumer-review pilot: when personal learning state is in scope, before preparing an
-already required review of a consumer-facing API, component, or workflow, use the
-[installed retrospective helper](../../skill-retro/references/state-protocol.md#installed-helper)'s
-`review-queue` to find an open ledger whose trigger starts with `Consumer-review pilot:`. The
-coordinator follows its eligibility, remaining allowance, and evidence instructions; reviewers stay
-read-only. If state is unavailable or no matching ledger is open, continue ordinary review. Remove
-this pointer when the pilot closes; it does not create additional review requirements.
-
 Capture the scoped baseline before implementation, run focused validation, then
 freeze the exact review target. Ask for a read-only bounded verdict. Permit at
 most the agreed small correction and re-review allowance—one of each when the
