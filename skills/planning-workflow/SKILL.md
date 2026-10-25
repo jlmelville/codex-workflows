@@ -17,7 +17,7 @@ work itself.
    - no persistent plan for Q&A, small edits, one-file fixes, simple validation,
      or scratch exploration;
    - an ExecPlan for complex work likely to outlive one context window;
-   - a chunk plan for broad work that needs bounded independent packets;
+   - a chunk plan for broad work that needs bounded work packets;
    - an audit or review packet to preserve evidence or challenge conclusions.
 3. Record the objective, accepted scope, constraints, and completion evidence in
    the smallest useful form. When proposing replacement of a working approach,
