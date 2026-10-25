@@ -5,8 +5,9 @@ needs bounded packets instead of one monolithic instruction list.
 
 ## Minimum Shape
 
-Include the goal, guardrails, applicable source audit or review, chunking rules, scoped queue, and progress log of changes,
-validation, decisions, and the next packet. Complete one coherent chunk per agent; do not combine unrelated work for context.
+Include the goal, guardrails, applicable source audit or review, chunking rules, scoped queue, and
+progress log of changes, validation, decisions, and the next packet. Keep each packet coherent, and
+do not combine unrelated work for context. A packet boundary does not by itself require a new agent.
 
 Create a separate packet only for independently useful progress or a distinct ownership, dependency, change-set,
 validation, or recovery boundary. Files, phases, and available agents alone do not justify separation.
