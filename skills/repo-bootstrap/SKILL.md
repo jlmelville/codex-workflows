@@ -66,8 +66,10 @@ git remote -v
 git ls-remote origin HEAD
 ```
 
-If GitHub CLI auth fails but SSH git works, continue with git operations and
-report that `gh` still needs re-authentication for API tasks.
+If GitHub CLI authentication fails, use the shared
+[CI triage fallback](../github-actions-hardening/SKILL.md#ci-triage-fallback) to rule out network
+restrictions before requesting reauthentication. When API access remains unavailable but SSH git
+works, continue authorized Git operations and report the API-access limitation.
 
 ## CI Starter
 

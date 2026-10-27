@@ -57,6 +57,13 @@ required_version_guard="required_ruby_version = \"${required_ruby_version}\""
 required_guard_condition='unless required_ruby_engine == RUBY_ENGINE && required_ruby_version == RUBY_VERSION'
 executable_count=0
 
+probe_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-ruby-runtime.XXXXXX")"
+ruby_inventory="${probe_root}/ruby-files"
+if ! find "${repo_dir}/scripts" "${repo_dir}/skills" \
+  -type f -name '*.rb' -perm -111 -print0 >"${ruby_inventory}"; then
+  die "could not discover executable Ruby programs"
+fi
+
 while IFS= read -r -d '' ruby_file; do
   executable_count=$((executable_count + 1))
   IFS= read -r actual_shebang <"${ruby_file}" || die "could not read ${ruby_file}"
@@ -68,14 +75,10 @@ while IFS= read -r -d '' ruby_file; do
     die "${ruby_file}: guard does not match ${version_file}"
   grep -Fqx "${required_guard_condition}" "${ruby_file}" || \
     die "${ruby_file}: missing exact engine/version guard condition"
-done < <(
-  find "${repo_dir}/scripts" "${repo_dir}/skills" \
-    -type f -name '*.rb' -perm -111 -print0
-)
+done <"${ruby_inventory}"
 
 [[ "${executable_count}" -gt 0 ]] || die "no executable Ruby programs found"
 
-probe_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-ruby-runtime.XXXXXX")"
 probe_file="${probe_root}/probe.rb"
 conflict_dir="${probe_root}/conflict"
 mkdir -p "${conflict_dir}"

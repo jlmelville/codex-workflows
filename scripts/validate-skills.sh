@@ -109,35 +109,47 @@ for skill_dir in "${repo_dir}"/skills/*; do
   done
 done
 
+shell_inventory="${validation_output_dir}/shell-files"
+python_inventory="${validation_output_dir}/python-files"
+ruby_inventory="${validation_output_dir}/ruby-files"
+r_inventory="${validation_output_dir}/r-files"
+validation_output_files+=("${shell_inventory}" "${python_inventory}" "${ruby_inventory}" "${r_inventory}")
+
+if ! find "${repo_dir}" \
+  -path "${repo_dir}/.git" -prune -o \
+  -type f \( -name '*.sh' -o -name 'install.sh' \) -print0 >"${shell_inventory}"; then
+  echo "validate-skills.sh: could not discover shell files" >&2
+  exit 1
+fi
+if ! find "${repo_dir}/skills" \
+  -type f -path '*/scripts/*.py' -print0 >"${python_inventory}"; then
+  echo "validate-skills.sh: could not discover Python files" >&2
+  exit 1
+fi
+if ! find "${repo_dir}" \
+  -path "${repo_dir}/.git" -prune -o \
+  -type f -path '*/scripts/*.rb' -print0 >"${ruby_inventory}"; then
+  echo "validate-skills.sh: could not discover Ruby files" >&2
+  exit 1
+fi
+if ! find "${repo_dir}/skills" \
+  -type f -path '*/scripts/*.R' -print0 >"${r_inventory}"; then
+  echo "validate-skills.sh: could not discover R files" >&2
+  exit 1
+fi
+
 while IFS= read -r -d '' file; do
   shell_files+=("${file}")
-done < <(
-  find "${repo_dir}" \
-    -path "${repo_dir}/.git" -prune -o \
-    -type f \( -name '*.sh' -o -name 'install.sh' \) -print0
-)
-
+done <"${shell_inventory}"
 while IFS= read -r -d '' file; do
   python_files+=("${file}")
-done < <(
-  find "${repo_dir}/skills" \
-    -type f -path '*/scripts/*.py' -print0
-)
-
+done <"${python_inventory}"
 while IFS= read -r -d '' file; do
   ruby_files+=("${file}")
-done < <(
-  find "${repo_dir}" \
-    -path "${repo_dir}/.git" -prune -o \
-    -type f -path '*/scripts/*.rb' -print0
-)
-
+done <"${ruby_inventory}"
 while IFS= read -r -d '' file; do
   r_files+=("${file}")
-done < <(
-  find "${repo_dir}/skills" \
-    -type f -path '*/scripts/*.R' -print0
-)
+done <"${r_inventory}"
 
 for script in "${shell_files[@]}"; do
   if ! run_check bash -n "${script}"; then
@@ -295,6 +307,7 @@ smoke_scripts=(
   "${repo_dir}/scripts/smoke-test-skill-scripts.sh"
   "${repo_dir}/scripts/smoke-test-installer.sh"
   "${repo_dir}/scripts/smoke-test-skill-drift.sh"
+  "${repo_dir}/scripts/test-validation-discovery.py"
 )
 smoke_pids=()
 smoke_outputs=()
