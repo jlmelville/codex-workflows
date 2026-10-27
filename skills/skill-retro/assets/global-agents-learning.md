@@ -45,23 +45,3 @@ scope. Ordinary debugging, expected failures and inconclusive speculation need n
 
 Continue the task without interrupting for capture. Disclose nonzero recordings, blocked writes and
 paste-ready fallbacks in the final response; keep no-change evaluations quiet.
-
-<!-- codex-workflows:consumer-review-pilot:start -->
-## Temporary consumer-review pilot
-
-Before an already requested or planned review with consequential uncertainty about a consumer-facing
-API, component, or workflow, including standalone reviews, check the configured personal
-learning-state queue when accessible and permitted by repository privacy rules:
-
-```sh
-"${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb" review-queue
-```
-
-Read the open ledger whose `review_trigger` starts with `Consumer-review pilot:` and follow its
-eligibility, remaining allowance, and evidence procedure. The coordinating task agent owns
-enrollment and sanitized outcome notes, authorized for this pilot separately from repository edits;
-delegated reviewers do not enroll or write state. Preserve task authority and review limits. If
-state is unavailable or no matching ledger is open, continue ordinary review. Remove this marked
-section from the canonical global learning asset and reinstall the shared instructions when the
-pilot closes.
-<!-- codex-workflows:consumer-review-pilot:end -->
