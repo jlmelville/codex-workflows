@@ -1,7 +1,7 @@
 # Handoffs
 
-Use this with `$planning-workflow` when a fresh agent needs enough context to
-continue without chat history.
+Use this with `$planning-workflow` when establishing continuing roles, recovering their workspaces,
+or handing work to a fresh agent who needs enough context to continue without chat history.
 
 Put handoffs in chat by default. Write a file only when the user asks or the
 repo already uses one. The active plan owns durable state; the handoff points

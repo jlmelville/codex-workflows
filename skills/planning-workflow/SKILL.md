@@ -102,8 +102,8 @@ Use these routed references only when their condition applies:
   audit conversion and independent review;
 - [numerical-reproduction-work-packets.md](references/numerical-reproduction-work-packets.md):
   evidence-gated layered numerical reproduction;
-- [handoffs.md](references/handoffs.md): continuation prompts, workspace lifetime,
-  takeover checks and resource-aware retirement;
+- [handoffs.md](references/handoffs.md): establishing continuing roles, workspace lifetime,
+  recovery, continuation prompts, takeover checks and resource-aware retirement;
 - [plan-file-visibility.md](references/plan-file-visibility.md): ignored,
   untracked, or package-visible artifacts;
 - [workflow-retrospective-notes.md](references/workflow-retrospective-notes.md):
