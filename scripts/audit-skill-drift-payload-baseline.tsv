@@ -62,4 +62,4 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Consolidation and credited-capacity offsets (-10178) leave the reviewed residual of +8178 chars.
 # This change removes 288 chars through shared evidence guidance and conditional CI-prompt rereading.
 # Allocate the remaining +7890 chars to the reviewed retained corpus; entry and line ceilings stay fixed.
-repository	instructional-markdown	-	10467	-	545423
+repository	instructional-markdown	-	10467	-	545686

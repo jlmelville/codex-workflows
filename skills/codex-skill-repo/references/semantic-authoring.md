@@ -81,10 +81,14 @@ Inspect the resulting actions and artifacts. Compare the existing and revised
 guidance only when the question requires a comparator, and state the limits of
 that observation, including the model and context when known.
 
+When evaluating whether a skill adds value, optionally include an absent-skill control, keeping
+other task resources comparable. Report equivalent guidance still available elsewhere; similar
+results on sampled tasks do not establish that the skill is dispensable.
+
 Before inspecting evaluation results, derive acceptance criteria from the user's
 desired outcome, authority, and relevant constraints, independently of the
 proposed skill's prescribed steps. The evaluating agent owns this work. Apply
-the same criteria to both conditions in a comparison, and report conformance
+the same criteria to all conditions in a comparison, and report conformance
 separately from task success.
 
 Optionally, include a case selected from the user's objective independently of
