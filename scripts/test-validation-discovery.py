@@ -140,10 +140,30 @@ os.execv(real, [real, *args])
 
     def test_validator_preserves_discovered_filename_boundaries(self):
         paths = self.validator_fixture()
+        sentinel = self.scratch / 'unrelated'
+        sentinel.write_text('preserve this sibling')
         self.invoke('validate-skills.sh')
         # Later checks are absent from this fixture; inspect only the syntax consumer.
         arguments = self.consumed.read_bytes().split(b'\0')
         self.assertIn(os.fsencode(paths['shell']), arguments)
+        self.assertEqual(list(self.scratch.iterdir()), [sentinel])
+        self.assertEqual(sentinel.read_text(), 'preserve this sibling')
+
+    def test_validator_replays_each_sequential_failure(self):
+        self.validator_fixture()
+        failures = [('validate-skill-metadata.rb', 'DISCOVERY_FIRST_FAILURE', 'metadata failed'),
+                    ('validate-markdown-references.rb', 'DISCOVERY_SECOND_FAILURE', 'references failed')]
+        for name, variable, message in failures:
+            self.env[variable] = message
+            self.write('scripts/' + name,
+                       f'#!/bin/sh\nprintf "%s\\n" "${variable}" >&2\nexit 1\n', True)
+        result = self.invoke('validate-skills.sh')
+        self.assertNotEqual(result.returncode, 0)
+        messages = [message for _, _, message in failures]
+        for message in messages:
+            self.assertEqual(result.stderr.count(message), 1, result.stderr)
+        self.assertLess(result.stderr.index(messages[0]), result.stderr.index(messages[1]))
+        self.assertEqual(list(self.scratch.iterdir()), [])
 
 
 if __name__ == '__main__':

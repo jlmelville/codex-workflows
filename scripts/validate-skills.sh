@@ -7,26 +7,18 @@ shell_files=()
 python_files=()
 ruby_files=()
 r_files=()
-validation_output_counter=0
-validation_output_files=()
 validation_output_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-skill-validation.XXXXXX")"
 
 # shellcheck disable=SC2317,SC2329  # Invoked by the EXIT trap.
 cleanup_validation_outputs() {
-  if ((${#validation_output_files[@]} > 0)); then
-    rm -f "${validation_output_files[@]}"
-  fi
-  rmdir "${validation_output_dir}" 2>/dev/null || true
+  rm -rf -- "${validation_output_dir}"
 }
 trap cleanup_validation_outputs EXIT
 
 run_check() {
-  local check_output
+  local check_output="${validation_output_dir}/check.out"
   local check_status
 
-  validation_output_counter=$((validation_output_counter + 1))
-  check_output="${validation_output_dir}/${validation_output_counter}.out"
-  validation_output_files+=("${check_output}")
   if "$@" >"${check_output}" 2>&1; then
     return 0
   else
@@ -113,11 +105,10 @@ shell_inventory="${validation_output_dir}/shell-files"
 python_inventory="${validation_output_dir}/python-files"
 ruby_inventory="${validation_output_dir}/ruby-files"
 r_inventory="${validation_output_dir}/r-files"
-validation_output_files+=("${shell_inventory}" "${python_inventory}" "${ruby_inventory}" "${r_inventory}")
 
 if ! find "${repo_dir}" \
   -path "${repo_dir}/.git" -prune -o \
-  -type f \( -name '*.sh' -o -name 'install.sh' \) -print0 >"${shell_inventory}"; then
+  -type f -name '*.sh' -print0 >"${shell_inventory}"; then
   echo "validate-skills.sh: could not discover shell files" >&2
   exit 1
 fi
@@ -244,7 +235,6 @@ if ((${#ruby_files[@]} > 0)); then
 
     if ((${#bundler[@]} > 0)); then
       bundle_identity_errors="${validation_output_dir}/bundler-identity.err"
-      validation_output_files+=("${bundle_identity_errors}")
       if bundle_ruby_identity="$("${bundler[@]}" exec ruby -e \
         'print [RUBY_ENGINE, RUBY_VERSION, RbConfig.ruby].join("\t")' \
         2>"${bundle_identity_errors}")"; then
@@ -324,7 +314,6 @@ for index in "${!smoke_scripts[@]}"; do
   "${smoke_script}" >"${smoke_output}" 2>&1 &
   smoke_pids+=("$!")
   smoke_outputs+=("${smoke_output}")
-  validation_output_files+=("${smoke_output}")
 done
 
 for index in "${!smoke_pids[@]}"; do
