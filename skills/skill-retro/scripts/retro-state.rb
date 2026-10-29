@@ -1869,6 +1869,11 @@ module RetroState
       read = ->(id) { documents[id] ||= show([id]).fetch("records").first }
       validated_proposals = {}
       proposal = ->(id) { validated_proposals[id] ||= validate_verification_record(read.call(id)) }
+      read_pending = lambda do
+        Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort
+          .map { |path| proposal.call(File.basename(path, ".md")) }
+          .group_by { |record| record.fetch("frontmatter").fetch("target_accepted_id") }
+      end
       unless record_ids.empty?
         unless texts.empty? && !compact
           raise Error, "text filters and compact output apply only to destination discovery"
@@ -1880,18 +1885,12 @@ module RetroState
         target_ids = selected.map do |record|
           record.fetch("id").start_with?("VP-") ? record.fetch("frontmatter").fetch("target_accepted_id") : record.fetch("id")
         end
-        records = target_ids.uniq.map { |id| read.call(id) }
+        records = target_ids.uniq.map { |id| validate_accepted_record(read.call(id)) }
         proposals_by_target = proposals.group_by { |record| record.fetch("frontmatter").fetch("target_accepted_id") }
-        pending = Dir.glob(File.join(root, "verifications", "inbox", "*.md")).sort
-          .map { |path| proposal.call(File.basename(path, ".md")) }
-          .group_by { |record| record.fetch("frontmatter").fetch("target_accepted_id") }
+        pending = read_pending.call
         details = records.map do |record|
           id = record.fetch("id")
           data = record.fetch("frontmatter")
-          unless File.join(root, record.fetch("path")) == accepted_path(id) && data["accepted_id"] == id
-            raise Error, "verification-context requires accepted record IDs: #{id}"
-          end
-          RetroState.validate_accepted(data, record.fetch("body"), label: id, assigned: true)
           validate_accepted_external_references!(data, accepted_id: id, &proposal)
           applied_ids = data.fetch("applied_verification_proposal_ids", [])
           selected_proposals = proposals_by_target.fetch(id, [])
@@ -1925,16 +1924,20 @@ module RetroState
       end
       queries = destinations.map(&:downcase).uniq
       text_queries = texts.map(&:downcase).uniq
-      matches = accepted_records.select do |_path, data|
+      matches = Dir.glob(File.join(root, "retrospectives", "accepted", "*.md")).sort
+        .map { |path| validate_accepted_record(read.call(File.basename(path, ".md"))) }
+        .select do |record|
+        data = record.fetch("frontmatter")
         %w[accepted implemented].include?(data["disposition"]) &&
           queries.any? { |query| data.fetch("destination").downcase.include?(query) } &&
           (text_queries.empty? || text_queries.any? do |query|
             %w[expected_behavior verification_opportunity].any? { |field| data.fetch(field).downcase.include?(query) }
           end)
       end
-      pending = compact ? {} : pending_verification_records.group_by { |_path, data| data.fetch("target_accepted_id") }
-      records = matches.drop(offset).first(limit).map do |path, data|
-        id = data.fetch("accepted_id")
+      pending = compact ? {} : read_pending.call
+      records = matches.drop(offset).first(limit).map do |record|
+        id = record.fetch("id")
+        data = record.fetch("frontmatter")
         validate_accepted_external_references!(data, accepted_id: id, &proposal)
         claims = verification_claim_summary(data, compact: compact, &proposal)
         if compact
@@ -1947,10 +1950,10 @@ module RetroState
         )
         summary.merge(claims).merge(
           "id" => id,
-          "path" => path.delete_prefix(root + File::SEPARATOR),
+          "path" => record.fetch("path"),
           "applied_verification_proposal_ids" => data.fetch("applied_verification_proposal_ids", []),
-          "pending_verification_proposals" => pending.fetch(id, []).map do |_proposal_path, proposal|
-            proposal.slice("verification_proposal_id", "proposed_verification", "claim")
+          "pending_verification_proposals" => pending.fetch(id, []).map do |proposal|
+            proposal.fetch("frontmatter").slice("verification_proposal_id", "proposed_verification", "claim")
           end
         )
       end
@@ -4300,6 +4303,18 @@ module RetroState
       raise "legacy consistency check wrote state" unless store.snapshot == legacy_snapshot
       File.binwrite(legacy_path, legacy_bytes)
 
+      legacy, legacy_body = parse_document(legacy_bytes)
+      legacy["accepted_id"] = unverified_id
+      File.write(legacy_path, render_document(legacy, legacy_body))
+      mismatched = store.snapshot
+      run.call(1, "verification-context", "--id", legacy_id, error: legacy_id)
+      [[], ["--compact"]].each do |mode|
+        run.call(1, "verification-context", "--destination", "Shared domain legacy", *mode,
+          error: "record identity does not match")
+      end
+      raise "mismatched accepted identity refusal wrote state" unless store.snapshot == mismatched
+      File.binwrite(legacy_path, legacy_bytes)
+
       path = File.join(root, "retrospectives", "accepted", "#{supported_id}.md")
       original = File.read(path)
       File.write(path, "---\ninvalid: [\n---\n")
@@ -4343,6 +4358,9 @@ module RetroState
       false_pending_path = File.join(root, "verifications", "inbox", "#{false_id}.md")
       File.rename(pending_path, false_pending_path)
       run.call(1, "verification-context", "--id", supported_id, error: "record identity does not match")
+      mismatched = store.snapshot
+      run.call(1, "verification-context", "--destination", "Other domain second", error: "record identity does not match")
+      raise "mismatched pending identity refusal wrote state" unless store.snapshot == mismatched
       File.rename(false_pending_path, pending_path)
       File.write(pending_path, pending_original.sub("Distinct", "Tampered"))
       run.call(1, "verification-context", "--id", supported_id, "--id", queue_id, error: "intake fields changed after routing")
