@@ -12,7 +12,8 @@ skill	notebook-inspection	160	800	7262	71262
 skill	papercut-capture	160	800	11642	75642
 # Accepted scope: shared acceptance evidence, scoped planning and handoffs, restriction provenance, and metered-run budgets.
 # Reviewed addition: optional patch scopes, automatic new-file discovery, and explicit ignored-file decisions.
-skill	planning-workflow	160	981	12276	53653
+# Reviewed capacity: retain workspace recovery, asynchronous continuation, and shared recovery evidence.
+skill	planning-workflow	160	1060	12276	59251
 skill	python-uv-project-workflow	160	800	9675	71136
 skill	r-architecture-audit	160	800	12000	64000
 skill	r-ci-hardening	160	800	12702	62523
@@ -22,11 +23,13 @@ skill	r-ci-hardening	160	800	12702	62523
 skill	r-docs-pkgdown	160	967	10425	49070
 # Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
 # Reviewed addition: successful process completion before accepting package-check diagnostic counts.
-skill	r-package-workflow	160	964	10533	53750
+# Reviewed capacity: retain generated-file ownership, project-selected tooling, and worktree packaging.
+skill	r-package-workflow	160	975	10533	54877
 skill	r-performance-workflow	160	800	8913	64942
 skill	r-rcpp-package	160	800	11771	67304
 # Accepted scope: coverage preservation, diagnostic evidence, process recovery, and numerical contracts.
-skill	r-test-hygiene	160	1086	8321	55573
+# Reviewed capacity: retain numerical comparison semantics and consolidated recovery routing.
+skill	r-test-hygiene	160	1092	8321	55717
 skill	repo-bootstrap	160	800	10112	74112
 skill	repo-update-preflight	160	800	12990	76990
 # Accepted scope: requested research-depth skill with a bounded expert-method brief and optional evidence examples.
@@ -51,4 +54,7 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Reviewed addition: scoped patch-identity boundary and ignored-file guidance.
 # Reviewed addition: research-depth adds 146 lines and 9662 normalized characters; prior findings remain.
 # Reviewed addition: reader-context and page-readability guidance; prior growth remains visible.
-repository	instructional-markdown	-	10359	-	526661
+# Reconciled reviewed capacity: planning +79 lines/+5598 chars; R package +11/+1127; R tests +6/+144.
+# Reconcile 837c812 allowances: documentation +12 lines/+897 chars; retrospective +0/+3106.
+# Aggregate adds only these reviewed deltas; unrelated growth remains visible.
+repository	instructional-markdown	-	10467	-	537533
