@@ -166,13 +166,14 @@ automation ID and confirm it is active before claiming that work will resume.
 If scheduling is unavailable, report that follow-through is unverified rather
 than leaving an implicit promise to return.
 
-Each scheduled turn reads this prompt and the continuation record, checks the
-deadline before further work, and resumes only the recorded batch within its
-resolved scope and mode. Refresh GitHub account, PR, head/base, and CI state
-before acting; revalidate changed heads or bases. Preserve the existing retry
-limits and deadline across turns. Continue independent recorded items while
-checks run, then revisit pending items through the same final-commit validation
-boundary. Keep the continuation record current; skip discovery of new work.
+Each scheduled turn reads the latest continuation record and checks the deadline
+before further work. Re-read this prompt when its relevant content changed or is
+unavailable in context. Resume only the recorded batch within its resolved scope
+and mode. Refresh GitHub account, PR, head/base, and CI state before acting;
+revalidate changed heads or bases. Preserve the existing retry limits and
+deadline across turns. Continue independent recorded items while checks run,
+then revisit pending items through the same final-commit validation boundary.
+Keep the continuation record current; skip discovery of new work.
 
 Keep unchanged pending checks quiet. When the batch completes, reaches its
 deadline or retry limit, or has only blockers requiring user action, delete only

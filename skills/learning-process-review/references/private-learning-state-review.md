@@ -21,12 +21,11 @@ Use [the investigation prompt](../../../prompts/learning-process-investigation.m
 effects or missed observations could change a decision. Fold that inquiry into the current report.
 Use existing evidence rather than requiring a separate investigation on every review.
 
-For a ledger's fixed cohort, use this source repository's
-[select-session-sample.py](../scripts/select-session-sample.py) with its catalog, workspace, cutoff
-and count; see `--help` and `--explain-id ID`. Freeze the manifest before reading outcomes and
-retain its eligibility and completion boundaries. Use this source repository's
-[search-session-messages.py](../scripts/search-session-messages.py) for bounded excerpts; restrict
-frozen-cohort searches with `--before`. Do not substitute a partial cohort.
+For fixed cohorts and bounded transcript excerpts, use this source repository's
+[select-session-sample.py](../scripts/select-session-sample.py) and
+[search-session-messages.py](../scripts/search-session-messages.py), following the
+[cohort sampling procedure](../../../prompts/learning-process-investigation.md#fixed-cohort-sampling).
+This supplies the sampling mechanics without starting a broader investigation.
 
 Keep raw excerpts and private manifests outside Git and synchronized learning state. Retain only
 sanitized evidence; exclude credentials, private source, transcripts, unredacted paths and
@@ -43,12 +42,10 @@ publication gaps, stale proposals or contradicted guidance. Unequal report volum
 age are not themselves defects. Check whether the owner can encounter and act on a retained
 follow-up; a named owner or refreshed date alone does not establish that.
 
-When judging effects on ordinary work, prefer artifacts, chronology and owner corrections. Examine
-useful successes as well as abandoned work, excessive review or harmful guidance. Separate what
-happened from inferred causes, and state alternative explanations and missing observations.
-Conformance, completion, plan-to-diff ratios and model self-report do not establish usefulness.
-Preserve the distinction between implementation, conformance, intended benefit and comparative
-improvement; comparative claims require an observed comparator.
+For effects on ordinary work, apply the
+[investigation evidence standard](../../../prompts/learning-process-investigation.md#evidence-standard)
+within the current review's scope. Include useful successes as well as abandoned work, excessive
+review, or harmful guidance.
 
 Apply [candidate judgment](../../skill-retro-triage/references/candidate-judgment.md) to proposed
 guidance changes. Keep contradiction evidence through correction, removal, justified retention or

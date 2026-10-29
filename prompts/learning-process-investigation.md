@@ -41,10 +41,8 @@ invoking authority; already-authorized follow-up needs no renewed approval.
   undiscovered guidance, incomplete or mistaken application, and an ineffective
   rule before proposing more guidance.
 - **Verification:** Inspect the exact opportunity, prior applied evidence,
-  pending support, and new observations. A supported outcome may establish only
-  conformance while leaving its expected benefit unresolved. Seek useful
-  contradictions as well as support; distinguish redundant proposals from
-  materially additional evidence.
+  pending support, and new observations. Seek useful contradictions as well as
+  support; distinguish redundant proposals from materially additional evidence.
 - **Working method:** Where did guidance help, impose avoidable work, or
   displace the user's objective? Separate costs of following the rule from
   over-application and from assurance protecting an accepted requirement.
@@ -71,20 +69,11 @@ repositories, using selective evidence links rather than a whole-machine scan.
 Reconstruct the guidance and implementation present at the time; a later
 correction cannot explain an earlier agent's choices.
 
-Prefer existing tools to reconstructing their mechanics inline:
-
-- Use `${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb` for read-only
-  queries and record inspection. Start with `review-queue` for all intake; use bounded
-  `verification-context` discovery (`--compact` and optional `--text`), then selected-ID
-  expansion for accepted outcomes and proposal evidence. Inspect current help before choosing
-  commands; literal filters limit coverage and summaries alone do not establish claims.
-- Use [select-session-sample.py](../skills/learning-process-review/scripts/select-session-sample.py)
-  for a ledger's fixed cohort, honoring its eligibility rules and completion
-  boundaries. Freeze the private manifest before reading outcomes; do not
-  substitute a partial cohort.
-- Use [search-session-messages.py](../skills/learning-process-review/scripts/search-session-messages.py)
-  for bounded excerpts. Restrict frozen-cohort searches to their recorded
-  completion boundaries and keep raw output private.
+Use `${HOME}/.agents/skills/skill-retro/scripts/retro-state.rb` for read-only queries and record
+inspection. For intake, start with `review-queue`; use bounded `verification-context` discovery
+(`--compact` and optional `--text`), then selected-ID expansion for accepted outcomes and proposal
+evidence. Inspect current help before choosing commands; literal filters limit coverage and
+summaries alone do not establish claims.
 
 Combine targeted case tracing with metadata-first sampling when a denominator
 or missed-event question requires it. Label diagnostic cases and sampled
@@ -97,20 +86,32 @@ Keep controlled authoring experiments separate from ordinary-use observations.
 If successive approaches stall on one assumption, test that premise before
 extending the approach. Stop when further work is unlikely to change a decision.
 
+### Fixed-Cohort Sampling
+
+For a ledger's fixed cohort, use
+[select-session-sample.py](../skills/learning-process-review/scripts/select-session-sample.py)
+with its catalog, workspace, cutoff, and count; see `--help` and `--explain-id ID`. Freeze the
+private manifest before reading outcomes and retain its eligibility and completion boundaries.
+Do not substitute a partial cohort. Use
+[search-session-messages.py](../skills/learning-process-review/scripts/search-session-messages.py)
+for bounded excerpts, restricting frozen-cohort searches with `--before` to their recorded
+completion boundaries. Keep raw output private.
+
 ## Judge And Report
 
-Ground conclusions in actual actions, artifacts, chronology, and owner
-corrections. Separate observation from inferred cause. Loading guidance,
-installation parity, validator success, and model self-report do not establish
-behavioral effectiveness. Missing citations or narration do not establish
-non-use. A successful result can coexist with an unnecessarily costly journey.
-Mark unavailable observations unknown; neither installation parity nor an
-unactivated draft establishes ordinary use.
+### Evidence Standard
 
-Keep implementation, guidance conformance, intended benefit, and comparative
-improvement distinct. Comparative claims require an observed comparator.
-Unverified age alone is not failure, and another conforming task alone does not
-justify supplemental support.
+Ground conclusions in actual actions, artifacts, chronology, and owner corrections. Separate
+observations from inferred causes, state alternative explanations, and mark unavailable evidence
+unknown. Distinguish implementation, conformance, intended benefit, and comparative improvement;
+the latter requires an observed comparator. Loading guidance, completion, plan-to-diff ratios,
+installation parity, validator success, and model self-report do not establish behavioral
+effectiveness. Neither parity nor an unactivated draft establishes ordinary use; missing citations
+or narration do not establish non-use. Report structural health separately from behavioral
+effectiveness and assess costs even when a task succeeds. Unverified age alone is not failure,
+and another conforming task does not justify supplemental support.
+
+### Findings And Follow-Up
 
 Lead with findings most likely to change a worthwhile decision. For each, give
 retrievable evidence, downstream consequence, observed cost or benefit,
@@ -123,9 +124,8 @@ reading, application, and maintenance costs. State the behavior or assurance
 that must survive. A justified retention or no-change decision completes this
 assessment.
 
-Include positive and no-action findings, inspected scope, and unknowns. Report
-structural health separately from behavioral effectiveness. End with a compact
-proposed batch distinguishing source changes, state-only actions, and further
-observations. For a retained future action, name the decision the observation
-would settle and an existing owner and encounter route. Do not create a new
-record, registry, or recurring job merely to preserve an inconclusive question.
+Report inspected scope and include useful positive and no-action findings. End with a compact
+proposed batch distinguishing source changes, state-only actions, and further observations.
+For a retained future action, name the decision the observation would settle and an existing owner
+and encounter route. Do not create a new record, registry, or recurring job merely to preserve an
+inconclusive question.

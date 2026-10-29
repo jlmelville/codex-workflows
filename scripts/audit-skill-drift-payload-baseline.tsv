@@ -56,5 +56,10 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Reviewed addition: reader-context and page-readability guidance; prior growth remains visible.
 # Reconciled reviewed capacity: planning +79 lines/+5598 chars; R package +11/+1127; R tests +6/+144.
 # Reconcile 837c812 allowances: documentation +12 lines/+897 chars; retrospective +0/+3106.
-# Aggregate adds only these reviewed deltas; unrelated growth remains visible.
-repository	instructional-markdown	-	10467	-	537533
+# Prior reconciliation covered only those deltas; the remaining portfolio is reviewed below.
+# Reviewed retained growth since e8febd1: investigation +7845, CI +3828, coordinator +2340 chars.
+# Retain profiling and evidence reuse (+1150), plus smaller scoped safeguards and routing (+3193).
+# Consolidation and credited-capacity offsets (-10178) leave the reviewed residual of +8178 chars.
+# This change removes 288 chars through shared evidence guidance and conditional CI-prompt rereading.
+# Allocate the remaining +7890 chars to the reviewed retained corpus; entry and line ceilings stay fixed.
+repository	instructional-markdown	-	10467	-	545423
