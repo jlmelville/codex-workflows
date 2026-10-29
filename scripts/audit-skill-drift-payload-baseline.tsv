@@ -18,7 +18,8 @@ skill	r-architecture-audit	160	800	12000	64000
 skill	r-ci-hardening	160	800	12702	62523
 # Accepted scope: document rendering, reproduction boundaries, canonical figure-size guidance, and static-preview verification.
 # Reviewed addition: browser checks for page width, legibility, contrast, and contained overflow.
-skill	r-docs-pkgdown	160	955	10425	48173
+# Reviewed capacity: retain HTML inspection, companion execution, documentation ownership, and deployment-backend distinctions.
+skill	r-docs-pkgdown	160	967	10425	49070
 # Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
 # Reviewed addition: successful process completion before accepting package-check diagnostic counts.
 skill	r-package-workflow	160	964	10533	53750
@@ -36,7 +37,8 @@ skill	shell-script-quality	160	800	8172	72172
 # Reviewed additions: already-landed attribution, learning-state outcome authority, and shared-premise judgment.
 # Reviewed addition: pending-support visibility and material supplemental evidence on the existing accepted identity.
 # Reviewed addition: source-destination discovery for materially used task and workflow guidance.
-skill	skill-retro	160	940	9843	49112
+# Reviewed capacity: retain unified observation intake, typed verification, scoped authority, and recovery mechanics; entry and line ceilings unchanged.
+skill	skill-retro	160	940	9843	52218
 skill	skill-retro-triage	178	800	9139	71334
 # Accepted scope: author-voice calibration, sentence-admission, and diagram comparison/rendering guidance; routing and character ceilings unchanged.
 # Reviewed addition: reader knowledge, opening relevance diagnostic, and local explanatory context.
