@@ -109,9 +109,8 @@ Use verbose output only when diagnosing a failure or when the user requests it.
 
 ## After Running
 
-Report whether the command required network approval, changed project files, or
-used temporary uv state. If a command used `/tmp` caches, do not imply the result
-will remain available across sessions.
+Report approval, project changes, or temporary uv state when they affect verification,
+reproducibility, persistence, or required user action. Do not imply temporary state persists.
 
 If `uvx --quiet --no-progress <tool>` fails with DNS, registry, or
 package-download errors, classify

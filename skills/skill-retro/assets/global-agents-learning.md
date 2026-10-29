@@ -7,10 +7,8 @@ including problems no checklist names. When repetition, growing glue code, or
 fragile handoffs suggest avoidable cost, compare the current method with simpler
 alternatives. Act on concrete observations within the task's scope and authority;
 surface worthwhile options beyond scope with their payoff and cost while
-continuing independent authorized work. Use `$skill-retro`
-for concrete observations that meet its capture rules. Noticing or proposing an
-improvement does not require a record or a new rule, and need not add a separate
-review pass.
+continuing independent authorized work. Noticing or proposing an improvement
+does not require a record, a new rule, or a separate review pass.
 
 Reuse guidance already in the current context. Load additional references only when their conditions
 apply, in bounded sections that avoid truncation while retaining necessary context. Re-read when
@@ -22,26 +20,17 @@ extending the approach. Choose a small observation that distinguishes it from
 a plausible alternative, including whether to intervene elsewhere. Preserve
 the accepted contract; retain the original approach when evidence supports it.
 
-Standing capture and routing authorize only new inbox records. An explicit
-request for a specific learning-state outcome authorizes the necessary record
-transitions and bookkeeping for that outcome; helper operation names are
+An explicit request for a specific learning-state outcome authorizes the necessary
+record transitions and bookkeeping for that outcome; helper operation names are
 unnecessary. Review-only requests remain read-only. Do not infer substantive
 acceptance, stronger evidence claims, or authority over unrelated state.
 Repository-local privacy restrictions still apply.
 
 ## Workflow observations
 
-For substantive repository work, apply `$skill-retro` to preserve concrete observations about
-friction, harmful guidance and useful improvements. Capture qualifying evidence while it is fresh;
-at a coherent task boundary, briefly consider whether anything important remains uncaptured.
-Reuse current context and fold small follow-ups into that evaluation. Do not create a second record
-because an observation was noticed both during work and at the boundary.
-
-This is standing authorization only to create sanitized new observation inbox records beneath the
-configured external state root. Preserve facts and useful context without requiring a remedy,
-owner, skill destination or verification classification. Review owns those decisions and needs its
-own authority. Existing `$papercut-capture` invocations use this same stream within their original
-scope. Ordinary debugging, expected failures and inconclusive speculation need no record.
-
-Continue the task without interrupting for capture. Disclose nonzero recordings, blocked writes and
-paste-ready fallbacks in the final response; keep no-change evaluations quiet.
+For substantive repository work, apply `$skill-retro` under standing authority to create only
+sanitized new observation inbox records beneath the configured external state root. Capture
+qualifying evidence while fresh and consider uncaptured observations at a coherent task boundary.
+Reuse the same evaluation for small follow-ups and record each observation once. Follow the skill's
+qualification, privacy, compatibility, and disclosure rules; continue the task without interrupting
+for capture. Review and processing require their own authority.

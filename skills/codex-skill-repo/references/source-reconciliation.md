@@ -6,13 +6,12 @@ generic post-integration checks. This overlay owns the additional decisions for
 a skill source repository that also has installed copies and machine-local
 operational state.
 
-## Re-read Reconciled Policy
+## Reconcile Incoming Policy
 
-After integration, inspect incoming changes to skill layout, installer
-destinations, state protocols, and validation tools relevant to the task.
-Re-read `AGENTS.md`, the active plan, and the relevant source skills and
-references. Earlier chat summaries and installed skill copies are not evidence
-that newly integrated source has the same structure or policy.
+Use the preflight's context refresh once. For incoming changes to skill layout,
+installer destinations, state protocols, or validation tools, inspect affected
+source policies and references before relying on installed copies or earlier
+chat summaries.
 
 ## Validate Machine-Local State
 

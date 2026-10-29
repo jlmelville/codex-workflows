@@ -113,9 +113,9 @@ Use these routed references only when their condition applies:
 
 Keep the active state and next action near the top. Update decisions,
 discoveries, progress, and validation when direction changes or work pauses.
-After compaction or interruption, re-read repo instructions, this skill, the
-active plan, and the latest handoff; verify them against source before
-continuing.
+After compaction or interruption, reconcile the objective and next action
+against current source. Re-read guidance and active artifacts when relevant
+content changed or is unavailable in context.
 
 Continue through implementation, relevant validation, and in-scope fixes until
 the accepted contract is satisfied or a blocker needs new authority or input.

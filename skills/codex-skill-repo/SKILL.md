@@ -34,11 +34,9 @@ Codex runtime directory.
   moving a skill from user scope to repository scope, remove the old user-scoped
   copy only when the prior manifest proves this repository owns it.
 - Before source-changing work in a checkout shared across machines, apply
-  `$repo-update-preflight`. After it completes, re-read instructions and relevant
-  skills because their structure or policy may have changed. Then use
-  [source-reconciliation.md](references/source-reconciliation.md) for the skill
-  repository's incoming-policy review and machine-local state compatibility
-  gate.
+  `$repo-update-preflight`, then
+  [source-reconciliation.md](references/source-reconciliation.md) for incoming
+  skill-repository policy and machine-local state compatibility.
 
 ## Consistency Surfaces
 

@@ -50,7 +50,8 @@ record that fact and inspect its remotes without inventing a tracking branch.
   path is exhausted, state that currentness is unverified and pause before
   task-specific edits unless the user explicitly accepts offline work.
 
-After integration, re-read repository instructions, active plans or handoffs,
-and the files relevant to the task. Confirm branch and worktree status before
-editing. Repeat the upstream comparison before publication when a long-running
-task or concurrent work could have moved the remote.
+After integration, inspect the incoming diff. Refresh relevant instructions,
+plans, handoffs, and source when their content changed or is unavailable in
+context. Confirm branch and worktree status before editing. Repeat the upstream
+comparison before publication when a long-running task or concurrent work could
+have moved the remote.

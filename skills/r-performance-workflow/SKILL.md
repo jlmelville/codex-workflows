@@ -76,14 +76,13 @@ choices. Do not graduate a method on raw speed alone.
 
 ## Strategic Reassessment
 
-A crossed performance gate is evidence, not indefinite authorization to keep
-optimizing. At each separable phase boundary, record the latest absolute
-whole-operation impact and the remaining gate gap. Before opening another
-phase, pause for user review when candidates are marginal, timings cannot close a
-meaningful gap, profiles conflict with direct measurements, or complexity is
-growing for a microbenchmark-scale gain. When reuse is part of the claimed
-value, probe a second workload and distinguish artifacts that exist, the public
-path discovers, and the consumer can use; prioritize a dominant reachability gap before more same-workload optimization.
+A crossed gate does not authorize indefinite optimization. At each phase boundary, record absolute
+whole-operation impact and the remaining gate gap. Pause for user review before another phase when
+candidates are marginal, timings cannot close a meaningful gap, or complexity is growing for a
+microbenchmark-scale gain. Investigate conflicting profiles and measurements within accepted scope
+and budget; escalate consequential tradeoffs or changes to scope or authority. When claiming reuse,
+probe a second workload and distinguish artifacts that exist, the public path discovers, and the
+consumer can use; prioritize a dominant reachability gap before more same-workload optimization.
 
 Present continue, revise-gate, accept-current, and stop options. If no materiality threshold exists, establish one
 instead of assuming every detectable gain is valuable. Scope review packets to correctness, benchmark
