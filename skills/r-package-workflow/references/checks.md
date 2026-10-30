@@ -160,7 +160,7 @@ the returned check `status` and raw output. A halted `rcmdcheck` or
 incomplete validation; use the network rerun below when blocked metadata access
 caused the halt.
 
-For CRAN packages or release preparation, follow the routed
+When preparing a CRAN candidate, follow the routed
 [release lifecycle](release.md) after development checks. It owns candidate
 identity, release validation, submission, acceptance, and return to development.
 

@@ -71,6 +71,20 @@ navigation choices. Restore curated `articles:` or reference structure before
 validating so user-facing site organization is not silently replaced by helper
 defaults.
 
+## Math Rendering
+
+When HTML math looks wrong, inspect `_pkgdown.yml`, the generated HTML, and the
+renderer actually loaded before applying LaTeX layout workarounds. Compare a
+representative expression under another supported renderer to distinguish
+renderer behavior from source typography; choose the engine for the site's needs.
+
+After a renderer change, check complete generated articles for console errors,
+unrendered expressions, and equation overflow at ordinary and narrow widths.
+Isolated formula tests miss delimiter parsing and interactions between page
+scripts. If isolated expressions render but the page fails, inspect display
+delimiters, nested equation environments, and rendering-script order, then
+verify any source correction in the generated page.
+
 ## Static Figures
 
 Use [figure-style.md](figure-style.md) for visual semantics, preservation,
