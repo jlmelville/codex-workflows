@@ -68,4 +68,5 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Reviewed math/preview delta: +759 chars.
 # Approved addition: R Markdown preservation and Air defaults (+68 lines/+4369 chars).
 # Reviewed b16f299: retained weekly tooling prompt and integration (+220 lines/+14059 chars).
-repository	instructional-markdown	-	10755	-	564873
+# Reviewed b0c2daf: shared complexity judgment (+1899 chars); existing line capacity retained.
+repository	instructional-markdown	-	10755	-	566772
