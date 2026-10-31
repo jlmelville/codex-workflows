@@ -34,3 +34,5 @@ devtools::check	skills/r-rcpp-package/SKILL.md	1
 persist-credentials	skills/github-actions-hardening/SKILL.md	1
 persist-credentials	skills/r-ci-hardening/references/github-actions.md	2
 persist-credentials	skills/r-docs-pkgdown/references/pkgdown.md	1
+# Reviewed reminder at the tooling prompt's edit boundary.
+persist-credentials	prompts/weekly-r-tooling-updates.md	1

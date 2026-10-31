@@ -65,6 +65,7 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Consolidation and credited-capacity offsets (-10178) leave the reviewed residual of +8178 chars.
 # This change removes 288 chars through shared evidence guidance and conditional CI-prompt rereading.
 # Allocate the remaining +7890 chars to the reviewed retained corpus; entry and line ceilings stay fixed.
-# Reviewed math/preview delta: +759 chars; later tooling-prompt growth remains visible.
+# Reviewed math/preview delta: +759 chars.
 # Approved addition: R Markdown preservation and Air defaults (+68 lines/+4369 chars).
-repository	instructional-markdown	-	10535	-	550814
+# Reviewed b16f299: retained weekly tooling prompt and integration (+220 lines/+14059 chars).
+repository	instructional-markdown	-	10755	-	564873
