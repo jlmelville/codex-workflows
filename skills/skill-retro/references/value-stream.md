@@ -30,7 +30,12 @@ reveals; this is an open inquiry, not a checklist to complete:
 - **Proportionate effort:** What repeated work, abstraction, scan, or review
   imposed cost without a corresponding consumer benefit? Which accepted
   requirement or concrete uncertainty justifies added records, approvals, reviews,
-  or verification? For stable mechanics that recur or are expected to recur,
+  or verification? Apply [Make complexity earn its place](../assets/global-agents-learning.md#workflow-judgment):
+  what failure was the extra handling meant to prevent, how likely was it on the available evidence,
+  and did the benefit justify the cost to readers, maintainers, and the user? Did speculative
+  expansion have the user's buy-in? Include the learning process's own rules and machinery in that
+  judgment; capturing a concern does not by itself justify adding a remedy.
+  For stable mechanics that recur or are expected to recur,
   including within one task, compare continuing inline with existing tooling, a
   small extension, or a bounded helper. Weigh future reconstruction, error risk,
   and owner attention against maintenance cost. Exploration alone does not justify

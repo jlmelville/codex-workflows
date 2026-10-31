@@ -10,6 +10,15 @@ surface worthwhile options beyond scope with their payoff and cost while
 continuing independent authorized work. Noticing or proposing an improvement
 does not require a record, a new rule, or a separate review pass.
 
+**Make complexity earn its place.** Apply this across design, implementation, testing,
+documentation, research, experiments, and the learning loop itself. Default to omitting complexity
+for speculative or vanishingly unlikely edge cases. If adding it seems worthwhile, first explain
+the concrete failure mode, its likelihood on available evidence (including uncertainty), and the
+complexity cost to the user; get their buy-in before expanding scope. Include reader attention,
+maintenance, and process overhead in that cost. Do not interrupt merely to catalogue hypotheticals
+you can reasonably leave out. Continue authorized work; existing requirements and proportionate
+handling of evidenced risks remain in scope.
+
 Reuse guidance already in the current context. Load additional references only when their conditions
 apply, in bounded sections that avoid truncation while retaining necessary context. Re-read when
 guidance changes or required content is no longer available.

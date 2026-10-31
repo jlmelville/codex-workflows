@@ -58,6 +58,7 @@ canonical guidance.
 
 | Name | When to use it |
 | --- | --- |
+| [Make complexity earn its place](skills/skill-retro/assets/global-agents-learning.md#workflow-judgment) | Speculative edge cases start adding scope, caveats, tests, or process. |
 | [Test the shared premise](skills/skill-retro/assets/global-agents-learning.md#workflow-judgment) | Successive fixes share an assumption but stop making useful progress. |
 | [Evidence at the claim's boundary](skills/skill-retro/references/value-stream.md) | A check may establish less than the reported outcome. |
 | [Simplify without weakening the contract](skills/architecture-audit/SKILL.md#judge-simplifications) | A proposed simplification may discard required behavior. |

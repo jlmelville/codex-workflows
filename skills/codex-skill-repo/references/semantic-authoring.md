@@ -11,6 +11,13 @@ State the changed action, authority, observation, or success condition. Check wh
 principle already produces it. Another incident adds evidence rather than a rule when the decision and
 required observation are unchanged.
 
+Apply [Make complexity earn its place](../../skill-retro/assets/global-agents-learning.md#workflow-judgment)
+to guidance itself. One observed incident does not by itself establish prevalence or a need for a
+universal rule. Weigh its likelihood and consequence against the recurring cost of reading and
+applying the remedy, including on unaffected tasks. Consider no change or narrower scope before
+adding branches, caveats, required checks, or records. A learning-loop proposal earns no exemption
+from the principle's scope and buy-in boundary.
+
 Consulting a skill does not require running its workflow. Run it only when the task requires its
 outcome and authority permits it. If an earlier decision ends that work, skip the stages that depend
 on it. Still complete any independently required finishing work.
