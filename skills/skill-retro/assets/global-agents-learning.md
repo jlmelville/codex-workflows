@@ -16,8 +16,8 @@ for speculative or vanishingly unlikely edge cases. If adding it seems worthwhil
 the concrete failure mode, its likelihood on available evidence (including uncertainty), and the
 complexity cost to the user; get their buy-in before expanding scope. Include reader attention,
 maintenance, and process overhead in that cost. Do not interrupt merely to catalogue hypotheticals
-you can reasonably leave out. Continue authorized work; existing requirements and proportionate
-handling of evidenced risks remain in scope.
+you can reasonably leave out. Continue authorized work. Preserve requirements, qualifications
+needed for correct interpretation or action, and proportionate handling of evidenced risks.
 
 Reuse guidance already in the current context. Load additional references only when their conditions
 apply, in bounded sections that avoid truncation while retaining necessary context. Re-read when
