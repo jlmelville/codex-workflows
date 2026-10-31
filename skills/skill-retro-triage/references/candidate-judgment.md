@@ -46,7 +46,8 @@ For a misfire, identify the instruction, task, actual action and consequence. Di
 from the agent's interpretation. Compare correcting activation or the rule with eliminating the
 troublesome condition before adding exceptions. Judge a policy separately from defects in its check.
 
-A replacement check needs an actual caller and a stated remaining judgment. Exercise valid input,
+A replacement check needs an actual caller and a stated remaining judgment. Prefer a suitable rule
+or option in existing tooling to a bespoke check, and name its invocation. Exercise valid input,
 the known bad condition and a harmless near-match. Before a new warning or threshold applies to a
 population, inspect representative real inputs, firing count and harmless hits. Keep enforcement
 advisory while false positives remain uncertain; synthetic cases alone do not calibrate a broad

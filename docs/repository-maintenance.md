@@ -254,25 +254,26 @@ Run the drift and instructional-payload audit with:
 ./scripts/audit-skill-drift.rb
 ```
 
-The audit reports description and instructional payloads, overlap, repeated
-helpers or commands, machine paths, and installed-path risks. Payload ceilings
-cover physical lines and whitespace-normalized characters so line reflow cannot
-conceal growth. Neither measure is a semantic score. Payload growth is an
-explicit review finding; broken runtime guidance remains hard and other
-semantic findings remain advisory.
+The audit reports description and instructional payloads, overlap, repeated helpers or commands,
+machine paths, and installed-path risks. It lists the five largest current skill payloads and the
+five largest positive growth deltas for `SKILL.md` and total instructional Markdown separately.
+Measurements use whitespace-normalized characters so line reflow cannot conceal growth. These
+rankings are review leads outside finding counts and strict-mode failures; broken runtime guidance
+remains hard and other semantic findings remain advisory.
 Accepted advisory findings live in
 [`scripts/audit-skill-drift-triage.tsv`](../scripts/audit-skill-drift-triage.tsv);
 each row records the audit section, a row substring to match, and the rationale
 for accepting that finding.
 
 Use `--strict-hard --hard-only` for repository validation and `--strict` when a
-cleanup branch should fail on every untriaged finding. Payload limits live in
+cleanup branch should fail on every untriaged finding. Skill size snapshots live in
 [`scripts/audit-skill-drift-payload-baseline.tsv`](../scripts/audit-skill-drift-payload-baseline.tsv)
-and may move down, not up, during ordinary maintenance. The initial character
-limits preserve accepted content plus 100 characters per unused line in the
-corresponding line ceiling; do not regenerate them automatically or rewrite an
-unrelated skill to create aggregate room. A separately accepted capacity
-decision may own a narrowly scoped increase.
+as skill name, reviewed revision, `SKILL.md` characters, and total Markdown characters. Refresh a
+row only after deliberate review or distillation, using that revision's measured sizes. The initial
+snapshots are measurements, not claims of distillation. Ordinary additions need no allowance update;
+new skills without snapshots remain visible for initial review. The audit retains absolute totals,
+including repository prose outside skills. Judge additions and reductions on their own value;
+neither a size nor a growth rank is a semantic quality score.
 
 For new or substantially changed skills, also run the system skill quick
 validator when its dependencies are available. If it needs Python packages such

@@ -10,7 +10,6 @@ unless required_ruby_engine == RUBY_ENGINE && required_ruby_version == RUBY_VERS
   exit 1
 end
 
-require "open3"
 require "optparse"
 require "yaml"
 
@@ -60,7 +59,7 @@ parser = OptionParser.new do |opts|
   opts.on("--command-baseline PATH", "Use a repeated-command baseline TSV") do |value|
     options[:command_baseline_path] = value
   end
-  opts.on("--payload-baseline PATH", "Use an instructional-payload baseline TSV") do |value|
+  opts.on("--payload-baseline PATH", "Use skill review size snapshots TSV") do |value|
     options[:payload_baseline_path] = value
   end
   opts.on("--show-triaged", "Show findings accepted by the triage manifest") do
@@ -226,170 +225,70 @@ def load_command_baselines(path, known_labels)
   baselines
 end
 
-def parse_payload_baselines(text, label, allow_legacy: false)
-  baselines = {skills: {}, repository_total: nil, repository_characters: nil}
-  text.each_line.with_index(1) do |line, line_no|
+def load_payload_baselines(path)
+  snapshots = {}
+  read_text(path).each_line.with_index(1) do |line, line_no|
     row = line.chomp
     next if row.empty? || row.start_with?("#")
 
     fields = row.split("\t", -1)
-    valid_field_counts = allow_legacy ? [4, 6] : [6]
-    unless valid_field_counts.include?(fields.length) && fields.none?(&:empty?)
+    unless fields.length == 4 && fields.none?(&:empty?)
       raise ArgumentError,
-        "#{label}:#{line_no}: expected scope<TAB>name<TAB>hot-lines<TAB>total-lines" \
-        "<TAB>hot-normalized-characters<TAB>total-normalized-characters"
+        "#{path}:#{line_no}: expected name<TAB>reviewed-revision<TAB>entry-characters<TAB>total-characters"
     end
-    scope, name, hot_text, total_text, hot_characters_text, total_characters_text = fields
-    unless name.match?(/\A[A-Za-z0-9._-]+\z/)
-      raise ArgumentError, "#{label}:#{line_no}: invalid payload name: #{name}"
+    name, revision, entry_text, total_text = fields
+    unless name.match?(/\A[A-Za-z0-9._-]+\z/) && revision.match?(/\A[0-9a-f]{7,40}\z/)
+      raise ArgumentError, "#{path}:#{line_no}: invalid skill name or reviewed revision"
     end
-
-    if scope == "skill"
-      begin
-        hot_lines = Integer(hot_text, 10)
-        total_lines = Integer(total_text, 10)
-        hot_characters = Integer(hot_characters_text, 10) if hot_characters_text
-        total_characters = Integer(total_characters_text, 10) if total_characters_text
-      rescue ArgumentError
-        raise ArgumentError, "#{label}:#{line_no}: skill limits must be positive integers"
-      end
-      if hot_lines <= 0 || total_lines <= 0 ||
-          (hot_characters && hot_characters <= 0) ||
-          (total_characters && total_characters <= 0)
-        raise ArgumentError, "#{label}:#{line_no}: skill limits must be positive integers"
-      end
-      if baselines[:skills].key?(name)
-        raise ArgumentError, "#{label}:#{line_no}: duplicate skill payload baseline: #{name}"
-      end
-      baselines[:skills][name] = {
-        hot: hot_lines,
-        total: total_lines,
-        hot_characters: hot_characters,
-        total_characters: total_characters
-      }
-    elsif scope == "repository" && name == "instructional-markdown" && hot_text == "-" &&
-        (!hot_characters_text || hot_characters_text == "-")
-      begin
-        total_lines = Integer(total_text, 10)
-        total_characters = Integer(total_characters_text, 10) if total_characters_text
-      rescue ArgumentError
-        raise ArgumentError, "#{label}:#{line_no}: repository limits must be positive integers"
-      end
-      if total_lines <= 0 || (total_characters && total_characters <= 0)
-        raise ArgumentError, "#{label}:#{line_no}: repository limits must be positive integers"
-      end
-      if baselines[:repository_total]
-        raise ArgumentError, "#{label}:#{line_no}: duplicate repository payload baseline"
-      end
-      baselines[:repository_total] = total_lines
-      baselines[:repository_characters] = total_characters
-    else
-      raise ArgumentError, "#{label}:#{line_no}: unknown payload scope or name"
+    begin
+      entry_characters = Integer(entry_text, 10)
+      total_characters = Integer(total_text, 10)
+    rescue ArgumentError
+      raise ArgumentError, "#{path}:#{line_no}: snapshot sizes must be positive integers"
     end
+    unless entry_characters.positive? && total_characters >= entry_characters
+      raise ArgumentError, "#{path}:#{line_no}: snapshot sizes must be positive with total >= entry"
+    end
+    if snapshots.key?(name)
+      raise ArgumentError, "#{path}:#{line_no}: duplicate skill payload snapshot: #{name}"
+    end
+    snapshots[name] = {revision: revision, entry: entry_characters, total: total_characters}
   end
-  unless baselines[:repository_total]
-    raise ArgumentError, "#{label}: missing repository instructional-markdown baseline"
-  end
-  baselines
+  snapshots
 end
 
-def load_payload_baselines(path)
-  parse_payload_baselines(read_text(path), path)
-end
-
-def git_file(repo_dir, revision, relative_path)
-  stdout, _stderr, status = Open3.capture3(
-    "git", "-C", repo_dir, "show", "#{revision}:#{relative_path}"
-  )
-  status.success? ? stdout : nil
-rescue Errno::ENOENT
-  nil
-end
-
-def previous_payload_baselines(repo_dir, path)
-  prefix = "#{repo_dir}/"
-  return nil unless path.start_with?(prefix)
-
-  relative = path.delete_prefix(prefix)
-  current = read_text(path)
-  head = git_file(repo_dir, "HEAD", relative)
-  previous_text = if head && head != current
-    head
-  else
-    parent = git_file(repo_dir, "HEAD^", relative)
-    parent if parent && parent != current
+def print_payload_review_leads(skills, snapshots)
+  measured = skills.map do |skill|
+    snapshot = snapshots[skill[:name]]
+    skill.merge(
+      entry_growth: snapshot && skill[:skill_characters] - snapshot[:entry],
+      total_growth: snapshot && skill[:payload_characters] - snapshot[:total]
+    )
   end
-  return nil unless previous_text
+  rankings = {
+    "Largest current skill payloads" => measured.sort_by { |skill| [-skill[:payload_characters], skill[:name]] },
+    "Largest SKILL.md growth since review" => measured.select { |skill| skill[:entry_growth]&.positive? }
+      .sort_by { |skill| [-skill[:entry_growth], skill[:name]] },
+    "Largest total Markdown growth since review" => measured.select { |skill| skill[:total_growth]&.positive? }
+      .sort_by { |skill| [-skill[:total_growth], skill[:name]] }
+  }
 
-  parse_payload_baselines(previous_text, "git:previous:#{relative}", allow_legacy: true)
-end
-
-def payload_baseline_increase_rows(current, previous)
-  return [] unless previous
-
-  rows = []
-  if current[:repository_total] > previous[:repository_total]
-    rows << "repository instructional Markdown: #{previous[:repository_total]} -> #{current[:repository_total]} lines"
-  end
-  if previous[:repository_characters] &&
-      current[:repository_characters] > previous[:repository_characters]
-    rows << "repository instructional Markdown: #{previous[:repository_characters]} -> " \
-      "#{current[:repository_characters]} normalized characters"
-  end
-  current[:skills].sort.each do |name, limits|
-    prior = previous[:skills][name]
-    unless prior
-      rows << "#{name}: new skill payload baseline"
-      next
-    end
-    rows << "#{name}: hot-path limit #{prior[:hot]} -> #{limits[:hot]} lines" if limits[:hot] > prior[:hot]
-    rows << "#{name}: total limit #{prior[:total]} -> #{limits[:total]} lines" if limits[:total] > prior[:total]
-    if prior[:hot_characters] && limits[:hot_characters] > prior[:hot_characters]
-      rows << "#{name}: hot-path limit #{prior[:hot_characters]} -> " \
-        "#{limits[:hot_characters]} normalized characters"
-    end
-    if prior[:total_characters] && limits[:total_characters] > prior[:total_characters]
-      rows << "#{name}: total limit #{prior[:total_characters]} -> " \
-        "#{limits[:total_characters]} normalized characters"
+  puts
+  puts "Payload review leads (normalized characters; up to five per ranking):"
+  rankings.each do |title, ranked|
+    puts "  #{title}:"
+    puts "    none" if ranked.empty?
+    ranked.first(5).each do |skill|
+      snapshot = snapshots[skill[:name]]
+      entry_delta = snapshot ? " (#{format("%+d", skill[:entry_growth])})" : ""
+      total_delta = snapshot ? " (#{format("%+d", skill[:total_growth])})" : ""
+      origin = snapshot ? "since #{snapshot[:revision][0, 12]}" : "no review snapshot"
+      puts "    #{skill[:name]}: SKILL.md #{skill[:skill_characters]}#{entry_delta}, " \
+        "total #{skill[:payload_characters]}#{total_delta}; #{origin}"
     end
   end
-  rows
-end
-
-def payload_growth_rows(skills, baselines, repository_total, repository_characters)
-  rows = []
-  current_names = skills.map { |skill| skill[:name] }.to_set
-  baseline_names = baselines[:skills].keys.to_set
-  (current_names - baseline_names).sort.each { |name| rows << "#{name}: missing skill payload baseline" }
-  (baseline_names - current_names).sort.each { |name| rows << "#{name}: stale skill payload baseline" }
-
-  skills.each do |skill|
-    limits = baselines[:skills][skill[:name]]
-    next unless limits
-
-    if skill[:skill_lines] > limits[:hot]
-      rows << "#{skill[:name]}: SKILL.md #{skill[:skill_lines]} > #{limits[:hot]} lines"
-    end
-    if skill[:payload_lines] > limits[:total]
-      rows << "#{skill[:name]}: instructional Markdown #{skill[:payload_lines]} > #{limits[:total]} lines"
-    end
-    if skill[:skill_characters] > limits[:hot_characters]
-      rows << "#{skill[:name]}: SKILL.md #{skill[:skill_characters]} > " \
-        "#{limits[:hot_characters]} normalized characters"
-    end
-    if skill[:payload_characters] > limits[:total_characters]
-      rows << "#{skill[:name]}: instructional Markdown #{skill[:payload_characters]} > " \
-        "#{limits[:total_characters]} normalized characters"
-    end
-  end
-  if repository_total > baselines[:repository_total]
-    rows << "repository instructional Markdown: #{repository_total} > #{baselines[:repository_total]} lines"
-  end
-  if repository_characters > baselines[:repository_characters]
-    rows << "repository instructional Markdown: #{repository_characters} > " \
-      "#{baselines[:repository_characters]} normalized characters"
-  end
-  rows
+  unreviewed = measured.reject { |skill| snapshots.key?(skill[:name]) }.map { |skill| skill[:name] }
+  puts "  Without review snapshots: #{unreviewed.join(", ")}" if unreviewed.any?
 end
 
 def validate_command_baseline_triage(triage_entries, command_baselines, known_labels)
@@ -612,7 +511,6 @@ begin
   triage_entries = load_triage_entries(options[:triage_path])
   command_baselines = load_command_baselines(options[:command_baseline_path], COMMAND_PATTERNS.keys)
   payload_baselines = load_payload_baselines(options[:payload_baseline_path])
-  previous_payload = previous_payload_baselines(repo_dir, options[:payload_baseline_path])
   validate_command_baseline_triage(triage_entries, command_baselines, COMMAND_PATTERNS.keys)
 rescue ArgumentError, Errno::EACCES => e
   warn "audit-skill-drift.rb: #{e.message}"
@@ -646,22 +544,7 @@ command_growth_rows = repeated_command_growth_rows(command_hits, command_baselin
 stable_command_baselines = command_baselines.length - command_growth_rows.length
 puts "Repeated command baselines: #{stable_command_baselines} stable, #{command_growth_rows.length} expanded"
 
-record_findings(
-  findings,
-  triaged_findings,
-  triage_entries,
-  :review,
-  "Instructional Payload Growth",
-  payload_growth_rows(skills, payload_baselines, instructional_lines, instructional_characters)
-)
-record_findings(
-  findings,
-  triaged_findings,
-  triage_entries,
-  :review,
-  "Payload Baseline Increase",
-  payload_baseline_increase_rows(payload_baselines, previous_payload)
-)
+print_payload_review_leads(skills, payload_baselines) unless options[:hard_only]
 
 if total_description_chars > options[:max_total_description]
   record_findings(

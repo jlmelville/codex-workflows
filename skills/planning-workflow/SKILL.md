@@ -31,7 +31,9 @@ work itself.
 4. Hold the owner's objective, constraints, and non-goals fixed. Frame work items as required
    outcomes or uncertainties to resolve; choose or revise methods by their expected contribution
    to that contract and total cost, including reconstruction, maintenance, and owner attention.
-   A method's presence in a plan alone does not make it an accepted constraint.
+   A method's presence in a plan alone does not make it an accepted constraint. Agent advice or
+   summaries cannot authorize narrowing requested outcomes or closing a choice reserved for the
+   owner; preserve their provenance and obtain acceptance before adopting such restrictions.
    For consequential uncertainty within scope, own the investigation: identify the decision, choose
    methods and evidence, and establish the necessary access and feedback.
    Before an existing safeguard requires replacing an approach or adding a parallel path, identify
@@ -119,6 +121,9 @@ content changed or is unavailable in context.
 
 Continue through implementation, relevant validation, and in-scope fixes until
 the accepted contract is satisfied or a blocker needs new authority or input.
+Before reporting completion, compare delivery with the owner's request and accepted changes.
+Name unmet obligations, their evidenced blockers or proposed disposition, and the remaining action.
+A blocker or queued follow-up leaves the obligation open unless the owner accepts a scope change.
 An implementation checkpoint or separable phase is not itself a request for
 review. Respect an explicitly requested review boundary. A future agent must be
 able to identify the goal, current state, decisions and rationale, relevant

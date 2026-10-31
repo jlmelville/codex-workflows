@@ -344,7 +344,7 @@ For accepted repository changes, run:
 ./install.sh --check
 ```
 
-Use `./scripts/audit-skill-drift.rb` for drift and payload-budget checks. See
+Use `./scripts/audit-skill-drift.rb` for drift checks and size/growth review leads. See
 [Repository Maintenance](docs/repository-maintenance.md) for the full
 validation and publication workflow.
 

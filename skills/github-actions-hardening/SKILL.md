@@ -65,6 +65,11 @@ the production file alone triggers the relevant workflow. Confirm the intended
 test actually executes and reaches a terminal result; selection with a skip or
 a green unrelated job does not establish coverage.
 
+When a release check repeatedly fails because of defects in its own test machinery, simplify the
+affected check while preserving the behavior it protects. Put deterministic regression coverage
+locally where practical and retain hosted checks for behavior that depends on the hosted
+environment.
+
 ## Checks
 
 Use this skill's bundled audit script as the canonical workflow check. It runs

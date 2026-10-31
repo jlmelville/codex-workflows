@@ -36,8 +36,8 @@ Preserve distinct conditions and constraints. Moving prose to a reference alone 
 
 A grounded incident need not earn a new rule. Another occurrence of the same decision and witness
 may add verification evidence instead. Optional cases should preserve a distinct plausible mistake
-or observation boundary, not accumulate report narratives. Line counts and checked payload budgets
-are review signals; neither proves bloat or justifies advancing a baseline to clear a finding.
+or observation boundary, not accumulate report narratives. Size and growth rankings are review
+leads; neither proves bloat. Refresh size snapshots only after deliberate review or distillation.
 
 Distinguish a decision that lacks evidence from a justified change whose later benefit is unknown.
 The former may warrant deferral; the latter can be implemented and remain behaviorally unverified.

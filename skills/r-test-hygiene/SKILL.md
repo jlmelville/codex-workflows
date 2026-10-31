@@ -67,6 +67,10 @@ when replacement coverage is uncertain.
 
 ## Refactor Safety Nets
 
+Ask whether a different implementation satisfying the same accepted contract could fail an
+assertion. If so, check for unnecessary implementation coupling; language-specific types,
+diagnostics and resource limits can still be part of the public contract.
+
 When a fixture could let a plausible mistake pass, use the shared
 [acceptance-evidence cases](../planning-workflow/references/acceptance-evidence.md).
 For resumable or checkpointed runners, or promised process-death or cleanup recovery, use its

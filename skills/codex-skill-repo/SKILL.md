@@ -117,9 +117,8 @@ narration, and duplicated tool documentation do not belong on the default
 path. Prescribe an exact sequence only when ordering prevents a known
 correctness, safety, state, or tooling failure.
 
-Treat capacity thresholds as review gates, not optimization targets or quality
-scores. Preserve required behavior and do not shorten unrelated skills to make
-room for an addition.
+Use size and growth rankings as review leads, not gates or quality scores.
+Preserve required behavior and judge reductions on their own value.
 
 For pass/fail tools that a skill runs or recommends, use native quiet and
 no-progress modes when they preserve diagnostics. If no suitable quiet mode

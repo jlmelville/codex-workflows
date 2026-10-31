@@ -172,7 +172,9 @@ absolute path in the heartbeat prompt. Record the resolved repository scope and
 mode, pending PRs and validated head/base SHAs, merge commits, expected workflows
 and run IDs, completed validation, next actions, retry counts and limits, deadline,
 and paths to disposable clones and checkout snapshots. Save the temporary
-automation ID and confirm it is active before claiming that work will resume.
+automation ID and read back its active state and next run time, including timezone, through the
+app's automation tool before claiming that work will resume. Repeat that readback after schedule
+edits and check that the next run falls within the continuation deadline.
 If scheduling is unavailable, report that follow-through is unverified rather
 than leaving an implicit promise to return.
 
@@ -185,7 +187,10 @@ deadline across turns. Continue independent recorded items while checks run,
 then revisit pending items through the same final-commit validation boundary.
 Keep the continuation record current; skip discovery of new work.
 
-Keep unchanged pending checks quiet. When the batch completes, reaches its
+Keep unchanged pending checks quiet. After the first scheduled pending turn, check available run or
+notification evidence for quiet behavior; report it as unverified when that evidence is unavailable.
+Where continuation depends on owner activity, distinguish messages the owner authored in this chat
+from scheduled triggers and messages relayed by other agents. When the batch completes, reaches its
 deadline or retry limit, or has only blockers requiring user action, delete only
 the recorded temporary heartbeat with the automation tool. Close the run record,
 compare the original checkout snapshots, and remove disposable resources when

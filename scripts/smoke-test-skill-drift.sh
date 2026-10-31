@@ -10,8 +10,8 @@ if ! command -v ruby >/dev/null 2>&1; then
   echo "ruby is required for the skill drift smoke test" >&2
   exit 1
 fi
-if ! command -v git >/dev/null 2>&1; then
-  echo "git is required for the skill drift smoke test" >&2
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required for the skill drift smoke test" >&2
   exit 1
 fi
 
@@ -32,9 +32,8 @@ Repeated Helper Names	fixture_helper:	The duplicate helper is an intentional adv
 EOF
 
 cat >"${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv" <<'EOF'
-# scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
-skill	example	1000	1000	100000	100000
-repository	instructional-markdown	-	10000	-	100000
+# name	reviewed-revision	entry-normalized-characters	total-normalized-characters
+example	abcdef0	100000	100000
 EOF
 
 cat >"${fixture_dir}/scripts/one.sh" <<'EOF'
@@ -71,12 +70,6 @@ scripts/check.sh
 ```
 EOF
 cp "${skill_file}" "${fixture_dir}/good-skill.md"
-
-git -C "${fixture_dir}" init -q
-git -C "${fixture_dir}" config user.email smoke@example.invalid
-git -C "${fixture_dir}" config user.name "Smoke Test"
-git -C "${fixture_dir}" add .
-git -C "${fixture_dir}" commit -q -m baseline
 
 output_file="${fixture_dir}/audit.out"
 error_file="${fixture_dir}/audit.err"
@@ -143,56 +136,9 @@ fi
 
 cp "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv" \
   "${fixture_dir}/scripts/payload-baseline.clean"
-ruby -pi -e 'sub("skill\texample\t1000\t1000", "skill\texample\t1001\t1000")' \
-  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
-if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict-hard --hard-only >"${output_file}" 2>&1; then
-  cat "${output_file}" >&2
-  echo "payload baseline review unexpectedly remained hard" >&2
-  exit 1
-fi
-if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
-  cat "${output_file}" >&2
-  echo "increased payload baseline unexpectedly passed strict review" >&2
-  exit 1
-fi
-if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
-  ! grep -Fq "hot-path limit 1000 -> 1001 lines" "${output_file}"; then
-  cat "${output_file}" >&2
-  echo "payload baseline increase did not produce the expected review finding" >&2
-  exit 1
-fi
-if ! grep -Fq "Strict mode is active; untriaged findings cause failure." "${output_file}" ||
-  grep -Fq "Re-run with --strict-hard" "${output_file}"; then
-  cat "${output_file}" >&2
-  echo "strict review failure did not report its active mode accurately" >&2
-  exit 1
-fi
-cp "${fixture_dir}/scripts/payload-baseline.clean" \
-  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
-
-ruby -pi -e \
-  'sub("skill\texample\t1000\t1000\t100000\t100000", "skill\texample\t1000\t1000\t100001\t100000")' \
-  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
-if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
-  cat "${output_file}" >&2
-  echo "increased character baseline unexpectedly passed strict review" >&2
-  exit 1
-fi
-if ! grep -Fq "Payload Baseline Increase" "${output_file}" ||
-  ! grep -Fq "hot-path limit 100000 -> 100001 normalized characters" "${output_file}"; then
-  cat "${output_file}" >&2
-  echo "character baseline increase did not produce the expected review finding" >&2
-  exit 1
-fi
-cp "${fixture_dir}/scripts/payload-baseline.clean" \
-  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
-
 fixture_characters="$(ruby -e 'print File.read(ARGV.fetch(0)).gsub(/\s+/, " ").strip.length' "${skill_file}")"
-{
-  printf '%s\n' $'# scope\tname\thot-lines\ttotal-lines\thot-normalized-characters\ttotal-normalized-characters'
-  printf 'skill\texample\t1000\t1000\t%s\t%s\n' "${fixture_characters}" "${fixture_characters}"
-  printf 'repository\tinstructional-markdown\t-\t10000\t-\t%s\n' "${fixture_characters}"
-} >"${fixture_dir}/tight-character-baseline.tsv"
+printf 'example\tabcdef0\t%s\t%s\n' "${fixture_characters}" "${fixture_characters}" \
+  >"${fixture_dir}/tight-character-baseline.tsv"
 ruby -0777 -pi -e \
   'sub("From this source\nrepository root", "From this source repository\nroot")' \
   "${skill_file}"
@@ -200,51 +146,107 @@ if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
   --payload-baseline "${fixture_dir}/tight-character-baseline.tsv" \
   --strict >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
-  echo "whitespace-only reflow changed the normalized-character payload" >&2
+  echo "whitespace-only reflow unexpectedly failed strict review" >&2
+  exit 1
+fi
+if ! grep -Fq "SKILL.md ${fixture_characters} (+0), total ${fixture_characters} (+0)" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "whitespace-only reflow changed the measured payload" >&2
   exit 1
 fi
 ruby -pi -e \
   'sub("deterministic drift-audit", "deterministic expanded drift-audit")' \
   "${skill_file}"
-if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
   --payload-baseline "${fixture_dir}/tight-character-baseline.tsv" \
   --strict >"${output_file}" 2>&1; then
   cat "${output_file}" >&2
-  echo "same-line character growth unexpectedly passed strict review" >&2
+  echo "same-line payload growth unexpectedly became a strict finding" >&2
   exit 1
 fi
-if ! grep -Fq "normalized characters" "${output_file}"; then
+if ! grep -Fq "(+9)" "${output_file}" || ! grep -Fq "No untriaged drift findings." "${output_file}"; then
   cat "${output_file}" >&2
-  echo "same-line character growth did not produce the expected review finding" >&2
+  echo "same-line growth was not visible independently of strict findings" >&2
+  exit 1
+fi
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/tight-character-baseline.tsv" \
+  --strict-hard --hard-only >"${output_file}" 2>&1 || grep -Fq "Payload review leads" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "hard-only output did not preserve its focused contract" >&2
   exit 1
 fi
 cp "${fixture_dir}/good-skill.md" "${skill_file}"
 
-cat >"${fixture_dir}/low-payload-baseline.tsv" <<'EOF'
-# scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
-skill	example	1	1	1	1
-repository	instructional-markdown	-	1	-	1
-EOF
-if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
-  --payload-baseline "${fixture_dir}/low-payload-baseline.tsv" \
-  --strict-hard --hard-only >"${output_file}" 2>&1; then
-  cat "${output_file}" >&2
-  echo "payload growth review unexpectedly remained hard" >&2
-  exit 1
-fi
+printf 'example\tabcdef0\t100\t99\n' >"${fixture_dir}/invalid-payload-snapshot.tsv"
 if ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
-  --payload-baseline "${fixture_dir}/low-payload-baseline.tsv" \
-  --strict >"${output_file}" 2>&1; then
-  cat "${output_file}" >&2
-  echo "payload growth unexpectedly passed strict review" >&2
+  --payload-baseline "${fixture_dir}/invalid-payload-snapshot.tsv" >"${output_file}" 2>"${error_file}"; then
+  echo "invalid payload snapshot unexpectedly succeeded" >&2
   exit 1
 fi
-if ! grep -Fq "Instructional Payload Growth" "${output_file}" ||
-  ! grep -Fq "repository instructional Markdown" "${output_file}"; then
-  cat "${output_file}" >&2
-  echo "payload growth did not produce the expected review finding" >&2
+if ! grep -Fq "snapshot sizes must be positive with total >= entry" "${error_file}"; then
+  cat "${error_file}" >&2
+  echo "invalid payload snapshot did not produce a stable diagnostic" >&2
   exit 1
 fi
+
+python3 - "${fixture_dir}" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+snapshot = root / "scripts/audit-skill-drift-payload-baseline.tsv"
+with snapshot.open("a") as rows:
+    for index, description in enumerate(["amber", "bronze", "cobalt", "denim", "emerald", "fuchsia"], 1):
+        name = f"rank-{index}"
+        skill = root / "skills" / name
+        (skill / "references").mkdir(parents=True)
+        entry = f"---\nname: {name}\ndescription: {description}\n---\n\n# Ranking fixture\n"
+        baseline = len(re.sub(r"\s+", " ", entry).strip())
+        rows.write(f"{name}\tabcdef0\t{baseline}\t{baseline}\n")
+        (skill / "SKILL.md").write_text(entry + "e" * (index * 10) + "\n")
+        (skill / "references/details.md").write_text("r" * ((7 - index) * 100) + "\n")
+    rows.write("retired-skill\tabcdef0\t100\t100\n")
+PY
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" --strict >"${output_file}" 2>&1; then
+  cat "${output_file}" >&2
+  echo "payload rankings or a retired skill snapshot unexpectedly blocked strict review" >&2
+  exit 1
+fi
+python3 - "${output_file}" <<'PY'
+from pathlib import Path
+import sys
+
+lines = Path(sys.argv[1]).read_text().splitlines()
+expected = {
+    "Largest current skill payloads": [f"rank-{index}" for index in range(1, 6)],
+    "Largest SKILL.md growth since review": [f"rank-{index}" for index in range(6, 1, -1)],
+    "Largest total Markdown growth since review": [f"rank-{index}" for index in range(1, 6)],
+}
+for heading, names in expected.items():
+    start = lines.index(f"  {heading}:") + 1
+    actual = []
+    for line in lines[start:]:
+        if not line.startswith("    "):
+            break
+        actual.append(line.strip().split(":", 1)[0])
+    if actual != names:
+        raise SystemExit(f"{heading}: expected {names}, got {actual}")
+PY
+printf '# no reviewed skills yet\n' >"${fixture_dir}/empty-payload-snapshots.tsv"
+if ! ruby "${fixture_dir}/scripts/audit-skill-drift.rb" \
+  --payload-baseline "${fixture_dir}/empty-payload-snapshots.tsv" --strict >"${output_file}" 2>&1 ||
+  ! grep -Fq "Without review snapshots: example, rank-1" "${output_file}"; then
+  cat "${output_file}" >&2
+  echo "skills without snapshots were hidden or blocked strict review" >&2
+  exit 1
+fi
+for rank_index in 1 2 3 4 5 6; do
+  rm -rf -- "${fixture_dir}/skills/rank-${rank_index}"
+done
+cp "${fixture_dir}/scripts/payload-baseline.clean" \
+  "${fixture_dir}/scripts/audit-skill-drift-payload-baseline.tsv"
 
 cat >"${fixture_dir}/unmatched-baseline.tsv" <<'EOF'
 # command	path	hit-count

@@ -44,15 +44,11 @@ Split material when its parts serve different roles or need to be loaded under d
 Minimize changes to the decisions the guidance supports, even when that requires editing more lines.
 Preserve distinct conditions that require different actions.
 
-Capacity metrics reveal review pressure; they do not prove that text is
-dispensable. Do not pay for a justified addition by rewriting an unrelated
-skill, flattening distinct advice into generic prose, or deleting evidence
-needed to apply a rule. If a limit is crossed, review the affected addition and
-its local destination first. Any offsetting reduction must independently
-improve that same material or another explicitly reviewed target, not serve as
-an invisible cross-skill subsidy.
-When a necessary accepted addition crosses a baseline, prefer an explicit,
-narrowly scoped capacity decision over hidden collateral compression.
+Size and growth rankings identify review leads; they do not prove that text is dispensable.
+Review an addition and its local destination on their merits. Any reduction must independently
+improve the affected material; preserve distinct advice and evidence needed to apply it. Refresh
+a skill's size snapshot only after deliberate review or distillation, rather than after each
+addition. Growth alone requires no allowance decision.
 
 ## New Skill Creation
 
@@ -87,6 +83,12 @@ permitted side effects, and a bounded question; withhold the intended answer.
 Inspect the resulting actions and artifacts. Compare the existing and revised
 guidance only when the question requires a comparator, and state the limits of
 that observation, including the model and context when known.
+
+When investigating whether guidance caused or would prevent an observed failure, reconstruct the
+decision-relevant context and first check whether the baseline reproduces it. Use bounded repeated
+comparisons when they would resolve consequential uncertainty, score without condition labels where
+practical, and prefer the intended execution model and effort. A replay that does not reproduce the
+failure leaves that causal explanation unestablished.
 
 When evaluating whether a skill adds value, optionally include an absent-skill control, keeping
 other task resources comparable. Report equivalent guidance still available elsewhere; similar

@@ -106,9 +106,8 @@ Run the advisory drift and bloat audit before or after consolidation work:
 ```
 
 Use `--strict-hard --hard-only` for hard installed-runtime failures. Use
-`--strict` only when the branch should remove every untriaged finding. Review
-findings cover instructional-payload growth, long descriptions, trigger
-overlap, repeated helpers or commands, machine paths, and repo-relative script
+`--strict` only when the branch should remove every untriaged finding. Review findings cover long
+descriptions, trigger overlap, repeated helpers or commands, machine paths, and repo-relative script
 paths.
 
 Accepted advisory findings live in `scripts/audit-skill-drift-triage.tsv`;
@@ -125,16 +124,18 @@ unchanged and reduced repetition do not. Review the named delta before updating
 the baseline. Never regenerate or advance it automatically merely to make the
 audit green.
 
-`scripts/audit-skill-drift-payload-baseline.tsv` caps the physical lines and
-whitespace-normalized characters in each `SKILL.md`, each skill's instructional
-Markdown, and repository instructional Markdown. The character ceiling prevents
-line reflow from concealing payload growth; neither measure is a semantic score.
-Growth is reported for explicit review, and lowering a cap is allowed. The
-audit also compares a changed baseline with `HEAD` or `HEAD^`, so an increase or
-new skill entry remains visible during ordinary maintenance. A separately
-accepted policy or portfolio decision must own that change. Never rewrite
-unrelated skills to manufacture room beneath an aggregate ceiling; review the
-affected addition and any proposed local reduction independently.
+`scripts/audit-skill-drift-payload-baseline.tsv` stores each skill's measured `SKILL.md` and total
+instructional-Markdown sizes at a named review revision, in whitespace-normalized characters.
+The audit lists the five largest current payloads and the five largest positive growth deltas for
+entry text and total Markdown separately. Line reflow leaves character measurements unchanged.
+These are review leads outside finding counts and strict-mode failures. Skills without snapshots
+remain visible for initial review; removed skills require no snapshot cleanup to run the audit.
+
+Refresh a skill's row after deliberate review or distillation, using the reviewed source revision
+and measured sizes. Ordinary additions need no snapshot update or capacity allowance. Initial
+snapshots record measurements, not a claim that distillation occurred. Absolute totals remain
+visible, including repository prose outside skills; sizes do not establish actual runtime loading
+or semantic quality. Judge additions and reductions on their own merits.
 
 ## Pre-Commit Review
 

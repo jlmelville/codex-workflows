@@ -118,6 +118,10 @@ dependency. Default gates must run on relevant push and pull-request changes and
 `air format . --check` for Air and a lint entry point that exits nonzero for nonempty lint results.
 Respect explicit opt-outs instead of enabling their gates.
 
+When adopting or changing a tool's coverage, account for excluded owned paths by meaningful
+category. Name the source establishing that an exclusion is required, or obtain acceptance for a
+choice that leaves requested coverage unmet. Carry unresolved exclusions into the completion report.
+
 Keep full-SHA action pins with matching version comments, read-only permissions, checkout
 `persist-credentials: false`, and safe push/PR behavior. Run the canonical Actions audit and the
 package workflow's applicable tests, package checks, formatting, and lint gates without incidental

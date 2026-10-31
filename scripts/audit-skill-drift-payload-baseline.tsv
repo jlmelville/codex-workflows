@@ -1,72 +1,31 @@
-# scope	name	hot-lines	total-lines	hot-normalized-characters	total-normalized-characters
-skill	agent-instructions-maintenance	160	800	9576	73576
-# Accepted scope: shared architecture audit and simplification contract, with an R extension.
-skill	architecture-audit	80	110	5500	8000
-skill	codex-approval-rules-audit	160	800	13130	77130
-skill	codex-skill-repo	192	800	8571	56927
-skill	dependabot-pr-maintenance	160	800	9547	65161
-skill	github-actions-hardening	160	800	8299	72299
-skill	learning-process-review	160	800	12936	67720
-skill	local-r-dataset-manifest	160	800	12112	76112
-skill	notebook-inspection	160	800	7262	71262
-skill	papercut-capture	160	800	11642	75642
-# Accepted scope: shared acceptance evidence, scoped planning and handoffs, restriction provenance, and metered-run budgets.
-# Reviewed addition: optional patch scopes, automatic new-file discovery, and explicit ignored-file decisions.
-# Reviewed capacity: retain workspace recovery, asynchronous continuation, and shared recovery evidence.
-skill	planning-workflow	160	1060	12276	59251
-skill	python-uv-project-workflow	160	800	9675	71136
-skill	r-architecture-audit	160	800	12000	64000
-skill	r-ci-hardening	160	800	12702	62523
-# Accepted scope: document rendering, reproduction boundaries, canonical figure-size guidance, and static-preview verification.
-# Reviewed addition: browser checks for page width, legibility, contrast, and contained overflow.
-# Reviewed capacity: retain HTML inspection, companion execution, documentation ownership, and deployment-backend distinctions.
-# Reviewed capacity: retain math-rendering diagnosis and fixed preview cleanup (+15 lines/+768 chars).
-# Approved addition: R Markdown preservation (+50 lines/+3084 chars).
-skill	r-docs-pkgdown	160	1032	10425	52922
-# Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
-# Reviewed addition: successful process completion before accepting package-check diagnostic counts.
-# Reviewed capacity: retain generated-file ownership, project-selected tooling, and worktree packaging.
-# Approved addition: Air defaults and gate evidence (+16 lines/+1107 chars).
-skill	r-package-workflow	160	991	10533	55984
-skill	r-performance-workflow	160	800	8913	64942
-skill	r-rcpp-package	160	800	11771	67304
-# Accepted scope: coverage preservation, diagnostic evidence, process recovery, and numerical contracts.
-# Reviewed capacity: retain numerical comparison semantics and consolidated recovery routing.
-skill	r-test-hygiene	160	1092	8321	55717
-skill	repo-bootstrap	160	800	10112	74112
-skill	repo-update-preflight	160	800	12990	76990
-# Accepted scope: requested research-depth skill with a bounded expert-method brief and optional evidence examples.
-skill	research-depth	90	150	6000	10000
-skill	ruby-script-quality	160	800	9458	72640
-skill	shell-script-quality	160	800	8172	72172
-# Accepted scope: pause and detour evidence, journey review, admission, and record-construction guidance.
-# Reviewed additions: already-landed attribution, learning-state outcome authority, and shared-premise judgment.
-# Reviewed addition: pending-support visibility and material supplemental evidence on the existing accepted identity.
-# Reviewed addition: source-destination discovery for materially used task and workflow guidance.
-# Reviewed capacity: retain unified observation intake, typed verification, scoped authority, and recovery mechanics; entry and line ceilings unchanged.
-skill	skill-retro	160	940	9843	52218
-skill	skill-retro-triage	178	800	9139	71334
-# Accepted scope: author-voice calibration, sentence-admission, and diagram comparison/rendering guidance; routing and character ceilings unchanged.
-# Reviewed addition: reader knowledge, opening relevance diagnostic, and local explanatory context.
-skill	technical-writing	115	267	6197	18000
-skill	uv-sandbox-workflow	160	800	7896	71896
-# Accepted scope: existing corpus plus reviewed skill growth, CI maintenance prompt and tested inspection wrapper, and learning-loop guidance.
-# Reviewed additions: authoring and investigation refinements, completion evidence, learning provenance and authority, diagram guidance, and README steering names.
-# Reviewed addition: pending-support protocol and supplemental-evidence adjudication.
-# Reviewed addition: the existing checkpoint's source-destination discovery clarification.
-# Reviewed addition: scoped patch-identity boundary and ignored-file guidance.
-# Reviewed addition: research-depth adds 146 lines and 9662 normalized characters; prior findings remain.
-# Reviewed addition: reader-context and page-readability guidance; prior growth remains visible.
-# Reconciled reviewed capacity: planning +79 lines/+5598 chars; R package +11/+1127; R tests +6/+144.
-# Reconcile 837c812 allowances: documentation +12 lines/+897 chars; retrospective +0/+3106.
-# Prior reconciliation covered only those deltas; the remaining portfolio is reviewed below.
-# Reviewed retained growth since e8febd1: investigation +7845, CI +3828, coordinator +2340 chars.
-# Retain profiling and evidence reuse (+1150), plus smaller scoped safeguards and routing (+3193).
-# Consolidation and credited-capacity offsets (-10178) leave the reviewed residual of +8178 chars.
-# This change removes 288 chars through shared evidence guidance and conditional CI-prompt rereading.
-# Allocate the remaining +7890 chars to the reviewed retained corpus; entry and line ceilings stay fixed.
-# Reviewed math/preview delta: +759 chars.
-# Approved addition: R Markdown preservation and Air defaults (+68 lines/+4369 chars).
-# Reviewed b16f299: retained weekly tooling prompt and integration (+220 lines/+14059 chars).
-# Reviewed b0c2daf: shared complexity judgment (+1899 chars); existing line capacity retained.
-repository	instructional-markdown	-	10755	-	566772
+# name	reviewed-revision	entry-normalized-characters	total-normalized-characters
+# Initial measurements at the pre-change revision; no distillation is claimed.
+# Refresh an individual row only after deliberate review or distillation.
+agent-instructions-maintenance	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5236	5236
+architecture-audit	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	4749	7088
+codex-approval-rules-audit	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	2630	2630
+codex-skill-repo	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	6935	24727
+dependabot-pr-maintenance	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5465	14164
+github-actions-hardening	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	6736	6736
+learning-process-review	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	3690	12877
+local-r-dataset-manifest	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	3112	3112
+notebook-inspection	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5764	5764
+papercut-capture	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	907	907
+planning-workflow	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	7385	59251
+python-uv-project-workflow	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5649	8673
+r-architecture-audit	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	2331	7351
+r-ci-hardening	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	2968	12577
+r-docs-pkgdown	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	6962	52922
+r-package-workflow	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	6848	55984
+r-performance-workflow	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	7081	24996
+r-rcpp-package	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	3625	15891
+r-test-hygiene	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	7877	55717
+repo-bootstrap	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	3399	3399
+repo-update-preflight	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	2646	2646
+research-depth	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5554	9662
+ruby-script-quality	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	6646	7400
+shell-script-quality	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5505	5505
+skill-retro	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5179	51631
+skill-retro-triage	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	5519	14669
+technical-writing	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	6197	14823
+uv-sandbox-workflow	2bd07b5f936eb62bb01ea2e5f5274808e6a434d5	4269	4269

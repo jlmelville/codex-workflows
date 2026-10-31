@@ -26,6 +26,11 @@ the managed worktree root can keep delivery ownership independent of chat archiv
 cleanup owner and retention condition in the existing plan. Check required local setup explicitly;
 ordinary Git worktrees do not inherit the app's managed-worktree file-copy behavior.
 
+Check the recipient's actual checkout revision and effective instructions, including owner
+directions supplied outside that checkout. Make the scope and source of required authorization
+available to the executing agent. If approval is denied, inspect the returned rationale and
+applicable policy before seeking further authorization.
+
 Before takeover or workspace recovery, reconcile these distinct resources:
 
 - the chat's actual saved working directory, from app metadata;
@@ -73,7 +78,7 @@ Read first:
 - <active plan or repo instruction>
 
 Owner ask:
-- <actual objective and constraints>
+- <objective and constraints; quote consequential wording, label paraphrases, cite the message>
 
 Inherited demonstrated facts:
 - <working capability or validated result, with evidence>
@@ -97,8 +102,8 @@ Open issues and next action:
 
 Preserve the origin and scope of agent-added restrictions when copying them;
 describe authority not established for the successor as unresolved rather than
-as an owner prohibition. Prefer exact paths, symbols, commands, statuses, and
-bounded errors over narrative.
+as an owner prohibition. Check claimed quotations against the owner's actual messages.
+Prefer exact paths, symbols, commands, statuses, and bounded errors over narrative.
 
 Point to consequential rejected approaches and their conditions in the active
 plan so the successor can avoid repeating a ruled-out investigation without
