@@ -203,6 +203,56 @@ When running outside this repository, reference the shared prompt by its
 absolute path, or keep a local shortcut to it. Start the maintenance chat in
 your checkout parent directory with access to the configured roots.
 
+## R Tooling Maintenance Example
+
+[`prompts/weekly-r-tooling-updates.md`](prompts/weekly-r-tooling-updates.md) maintains local Air and
+lintr installations together with explicit CI version pins and failing formatting/lint gates.
+Run it weekly or when a stable release is available. It trials releases against the actual local
+OS and R installation, validates repository changes in disposable clones, and verifies hosted CI.
+Set `local_environment` for WSL or another supported local environment.
+
+From this repository, send:
+
+```text
+Run prompts/weekly-r-tooling-updates.md.
+```
+
+First-use setup proposes settings and asks about unresolved choices. Approved settings live outside
+Git at `~/.config/codex-workflows/weekly-r-tooling-updates.yaml`, under `XDG_CONFIG_HOME` when set.
+For example, replace these illustrative account, repository, and checkout values with your own:
+
+```yaml
+github_host: github.com
+github_account: your-login
+mode: review
+repositories:
+  - your-org/your-package
+excluded_repositories: []
+checkouts:
+  your-org/your-package: ~/src/your-package
+local_environment: this machine
+publication: pull_request
+tool_opt_outs: {}
+```
+
+Review mode uses temporary installations and source copies without replacing active tools or
+publishing changes. Choose `mode: upgrade` to authorize validated local installation, scoped source
+and CI changes, and publication. `publication` chooses upgrade PRs or direct default-branch pushes;
+repository review requirements still apply. Exclusions prevent repository inspection and changes.
+Per-repository `tool_opt_outs` can disable Air, lintr, or both; deliberate existing opt-outs remain
+in force. Mapped checkouts are preserved, and unmapped repositories use disposable clones.
+
+To run both maintenance phases, give the same invocation or weekly automation both lines:
+
+```text
+Run prompts/weekly-r-ci-updates.md.
+Run prompts/weekly-r-tooling-updates.md.
+```
+
+Each prompt loads its own saved scope and mode. The combined run shares one continuation record and
+temporary heartbeat across CI waits, so the weekly schedule stays unchanged and pending phases
+remain explicit. Reference both prompts by absolute path when invoking them from another directory.
+
 ## Learning And Introspection
 
 `$skill-retro-triage` and `$learning-process-review` are repository-local: run

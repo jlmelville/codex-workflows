@@ -30,6 +30,11 @@ within that scope. Review mode validates and reports without changing GitHub
 state. Merge mode also performs the authorized updates and merges below. Leave
 blocked items for follow-up and continue with independent repositories.
 
+For local Air/lintr upgrades and matching CI pins, invoke the separate
+[R tooling prompt](weekly-r-tooling-updates.md) with its own settings and authority.
+It can share a weekly run with this prompt; Dependabot merge mode alone does not
+authorize its changes.
+
 ## Skills and authority
 
 Apply `$dependabot-pr-maintenance`, including its pinned-actions, stale-CI, and
@@ -156,6 +161,11 @@ When pending PR or post-merge CI needs another turn, create one temporary
 heartbeat in this chat using the app's automation tool. Check every ten minutes
 for up to two hours from the first wait. Reuse this batch's temporary heartbeat
 if one already exists; leave the recurring weekly automation unchanged.
+
+When a run also invokes the R tooling prompt, share one continuation record and
+temporary heartbeat. Preserve each phase's scope and authority, record unstarted
+phases as remaining work, and serialize writes to the same repository. Resume
+both phases through their own completion checks before closing the combined run.
 
 Before yielding, save a private continuation record outside Git and put its
 absolute path in the heartbeat prompt. Record the resolved repository scope and
