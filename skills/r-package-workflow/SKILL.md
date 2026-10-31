@@ -58,6 +58,10 @@ fixes unless requested; keep required generated output with its source change.
 
 Select checks using [checks.md](references/checks.md).
 
+Use Air formatting alongside lintr in ordinary package development and CI by default, preserving
+explicit repository or user opt-outs. Follow
+[Formatting and Lint](references/checks.md#formatting-and-lint) for parity and gate verification.
+
 When a release check has a large, compiled, or repository-sensitive reverse-
 dependency universe, follow [revdepcheck.md](references/revdepcheck.md) before
 starting `revdepcheck`. It owns dependency preparation, external staging, and

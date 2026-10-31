@@ -21,11 +21,13 @@ skill	r-ci-hardening	160	800	12702	62523
 # Reviewed addition: browser checks for page width, legibility, contrast, and contained overflow.
 # Reviewed capacity: retain HTML inspection, companion execution, documentation ownership, and deployment-backend distinctions.
 # Reviewed capacity: retain math-rendering diagnosis and fixed preview cleanup (+15 lines/+768 chars).
-skill	r-docs-pkgdown	160	982	10425	49838
+# Approved addition: R Markdown preservation (+50 lines/+3084 chars).
+skill	r-docs-pkgdown	160	1032	10425	52922
 # Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
 # Reviewed addition: successful process completion before accepting package-check diagnostic counts.
 # Reviewed capacity: retain generated-file ownership, project-selected tooling, and worktree packaging.
-skill	r-package-workflow	160	975	10533	54877
+# Approved addition: Air defaults and gate evidence (+16 lines/+1107 chars).
+skill	r-package-workflow	160	991	10533	55984
 skill	r-performance-workflow	160	800	8913	64942
 skill	r-rcpp-package	160	800	11771	67304
 # Accepted scope: coverage preservation, diagnostic evidence, process recovery, and numerical contracts.
@@ -64,4 +66,5 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # This change removes 288 chars through shared evidence guidance and conditional CI-prompt rereading.
 # Allocate the remaining +7890 chars to the reviewed retained corpus; entry and line ceilings stay fixed.
 # Reviewed math/preview delta: +759 chars; later tooling-prompt growth remains visible.
-repository	instructional-markdown	-	10467	-	546445
+# Approved addition: R Markdown preservation and Air defaults (+68 lines/+4369 chars).
+repository	instructional-markdown	-	10535	-	550814

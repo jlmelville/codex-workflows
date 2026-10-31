@@ -240,10 +240,22 @@ observation boundaries; it is not an additional default checklist.
 - Lintr should complement Air:
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
 
+Preserve explicit repository or user opt-outs; changing them needs authority. CI gates should run
+on relevant push and pull-request changes and fail on findings. Verify a new or repaired gate with
+a deliberately failing fixture, then observe the actual hosted step and installed tool version for
+the published commit. Workflow existence and local success alone do not establish hosted execution.
+
+For coordinated local-tool and multi-repository CI upgrades, use the source repository's
+[weekly R tooling maintenance prompt](https://github.com/jlmelville/codex-workflows/blob/main/prompts/weekly-r-tooling-updates.md).
+Its settings and upgrade authority are separate from routine package work.
+
 A clean directory check does not prove embedded R in Markdown or Quarto was
 formatted. Use a supported cell or injected-language integration, or an
 exercised helper that extracts and reinserts only R block bodies. Do not pass a
 whole Markdown document to Air and call its parse failure a format result.
+
+Before attributing a local failure to CI, compare the revision, tracked inputs, tool versions,
+configuration and invocation with the hosted step. Classify local-only files separately.
 
 When Air CI fails, inspect the workflow and config, compare local and pinned
 versions, then run `air format .` and `air format . --check` and report the diff

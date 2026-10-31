@@ -26,6 +26,8 @@ tool behavior. This skill owns R-specific workflow semantics.
    suggestion does not hide coverage of every other optional path.
 4. Treat external-source health checks as scheduled or manually strict service
    probes, not as package-regression evidence in ordinary pull requests.
+5. Follow the [R package formatting defaults](../r-package-workflow/SKILL.md#checks) for CI;
+   use their routed checks for opt-outs, version parity and gate verification.
 
 See [github-actions.md](references/github-actions.md) for patterns.
 
