@@ -20,7 +20,8 @@ skill	r-ci-hardening	160	800	12702	62523
 # Accepted scope: document rendering, reproduction boundaries, canonical figure-size guidance, and static-preview verification.
 # Reviewed addition: browser checks for page width, legibility, contrast, and contained overflow.
 # Reviewed capacity: retain HTML inspection, companion execution, documentation ownership, and deployment-backend distinctions.
-skill	r-docs-pkgdown	160	967	10425	49070
+# Reviewed capacity: retain math-rendering diagnosis and fixed preview cleanup (+15 lines/+768 chars).
+skill	r-docs-pkgdown	160	982	10425	49838
 # Accepted scope: RNG isolation, generator synchronization, lint parity, cache identity, recipe routing, and project-selected reticulate probes.
 # Reviewed addition: successful process completion before accepting package-check diagnostic counts.
 # Reviewed capacity: retain generated-file ownership, project-selected tooling, and worktree packaging.
@@ -62,4 +63,5 @@ skill	uv-sandbox-workflow	160	800	7896	71896
 # Consolidation and credited-capacity offsets (-10178) leave the reviewed residual of +8178 chars.
 # This change removes 288 chars through shared evidence guidance and conditional CI-prompt rereading.
 # Allocate the remaining +7890 chars to the reviewed retained corpus; entry and line ceilings stay fixed.
-repository	instructional-markdown	-	10467	-	545686
+# Reviewed math/preview delta: +759 chars; later tooling-prompt growth remains visible.
+repository	instructional-markdown	-	10467	-	546445

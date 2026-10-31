@@ -225,7 +225,8 @@ invocation, build it, and keep pkgdown's preview server alive in a dedicated R
 process with:
 
 ```r
-preview_pkgdown <- function(preview = ".pkgdown-preview") {
+preview_pkgdown <- function() {
+  preview <- ".pkgdown-preview"
   unlink(preview, recursive = TRUE, force = TRUE)
   on.exit(pkgdown::stop_preview(), add = TRUE)
   pkgdown::build_site(
