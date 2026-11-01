@@ -11,22 +11,20 @@ Codex environment.
 ## First Command
 
 Use active filesystem permissions to choose writable uv state. Preserve configured writable `UV_*`
-locations and accessible defaults. When defaults are outside the writable boundary, use temporary
-locations such as these, replacing any configured unwritable location for this invocation:
+locations and accessible defaults. For each location found unwritable, run only its corresponding
+assignment below, using a writable temporary root:
 
 ```sh
-export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}"
-export UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}"
-export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python}"
+export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache"
+export UV_TOOL_DIR="${TMPDIR:-/tmp}/uv-tools"
+export UV_PYTHON_INSTALL_DIR="${TMPDIR:-/tmp}/uv-python"
 ```
 
-Use these exports in the same command invocation when the shell state may not
-persist:
+When shell state may not persist, apply the selected overrides on the same command. For example,
+when only the cache is unwritable:
 
 ```sh
-UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/uv-cache}" \
-UV_TOOL_DIR="${UV_TOOL_DIR:-${TMPDIR:-/tmp}/uv-tools}" \
-UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-${TMPDIR:-/tmp}/uv-python}" \
+UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache" \
 uv --quiet --no-progress run --with pyyaml python script.py
 ```
 

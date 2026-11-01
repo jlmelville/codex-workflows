@@ -329,19 +329,17 @@ Before publishing an accepted change:
    `git diff --cached --name-only`.
 6. Commit and push to `origin/main` unless the user says otherwise.
 
-Use `$skill-retro-triage` for accepted Skill Candidate Reports and Verification
-Evidence Proposals after re-reading the cited destinations. Personal candidate,
-verification, ledger, draft, audit, and cadence state remains beneath
-`CODEX_WORKFLOWS_STATE_DIR` and must not be committed.
+Use `$skill-retro-triage` to review observations, legacy intake and verification evidence, and to
+complete already-authorized follow-through. Re-read relevant destinations before changing source.
+Personal learning state remains beneath `CODEX_WORKFLOWS_STATE_DIR` and must not be committed.
 
 ## Deferred Maintenance
 
-Put skill-repository observations that should survive chat compaction but are
-not ready for a public edit in the external maintenance ledger defined by the
-[state protocol](../skills/skill-retro/references/state-protocol.md). Review
-those entries during periodic learning-process retrospectives or when related
-skill changes suggest consolidation. Public source validity must not depend on
-that disposable state.
+Capture qualifying skill-repository observations through `$skill-retro` under the active capture
+authority. Use an external maintenance ledger only for an agreed executable follow-up that needs
+tracking, following the [state protocol](../skills/skill-retro/references/state-protocol.md). Review
+those actions during learning-process retrospectives or when their recorded review conditions are
+met. Public source validity must not depend on that disposable state.
 
 ## Repository Maintainer Tooling
 
