@@ -76,6 +76,11 @@ explain the supported reason someone would need it.
   setup only where it bridges into that concept.
 - Move specialized detail to a better-matched surface when it remains useful.
 
+When readers must compare or select among repeated items, review the items together. Put
+distinguishing information early, use consistent terms, and give comparable information a
+shared structure. Preserve differences in evidence, uncertainty, and consequential exceptions.
+Check whether the intended comparison remains possible at the displayed width.
+
 For diagrams, arrange the reader's comparison explicitly: keep identities,
 terminology, and ordering stable across alternatives, and group phases or
 ownership boundaries that change interpretation. Use parallel, concise labels
