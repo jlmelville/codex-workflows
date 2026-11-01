@@ -101,6 +101,13 @@ operator requests a bounded loop without another limit—and stop on a pass.
 Separate blocking findings from optional suggestions. The coordinator verifies them against the frozen target and
 contract and owns corrections, plan updates, and consolidated learning-state writes; the reviewer stays read-only.
 
+When disputing a finding, cite checkable evidence the reviewer could use, such as a source symbol
+or recorded requirement; author intent or private context alone does not resolve it. If decisive
+context was outside the review packet, identify that limitation and distinguish a document omission,
+a missing review input, and an unsupported reviewer inference. Correct the artifact or packet as
+appropriate; add explanatory context only when the intended audience needs it. Escalate unresolved
+facts or decisions only when they require the owner's authority or knowledge.
+
 Re-review accepted corrections, behavior they could affect, and outstanding findings. Preserve earlier
 dispositions unless new evidence changes them, and explain any expansion of review scope. New commits,
 reviewers, or sessions do not replenish the agreed allowance.
