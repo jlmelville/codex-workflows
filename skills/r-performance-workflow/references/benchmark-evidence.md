@@ -33,6 +33,10 @@ policy when deciding whether to retain them.
 
 ## Gate And Probe Design
 
+For a correctness repair, verify that the timed inputs still exercise the repaired branch after
+setup and transformations. A diagnostic or correctness witness outside the measured calls does not
+establish that coverage.
+
 Before treating a selector as one factor, resolve conditional defaults. Compare a coherent public profile separately
 from fixed-policy variants, and use controlled variants for component-level causal claims.
 

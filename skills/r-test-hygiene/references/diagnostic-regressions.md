@@ -60,6 +60,10 @@ versions. For table-driven comparison diagnostics, prefer
 `expect_true(<comparison>, info = case$name)` when the case label matters, and
 smoke-run the focused test immediately after adding diagnostic arguments.
 
+When changing case labels or reporters for clearer diagnostics, exercise one deliberate failure
+through the selected reporter and inspect the displayed case context. Names retained in structured
+test results may be absent from that reporter's output.
+
 ## Multi-Condition Streams
 
 Under testthat edition 3, `expect_message()` and `expect_warning()` capture at

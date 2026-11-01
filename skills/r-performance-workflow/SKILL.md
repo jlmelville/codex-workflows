@@ -57,6 +57,10 @@ a clean worktree or separately installed baseline under the same host and
 toolchain. Use separate before/after runs only when neither is practical, and
 report environment drift as a limitation of the evidence.
 
+For separately installed compiled variants, use fresh R processes unless safe coexistence or
+switching is established. Confirm the intended native implementation with a distinguishing behavior
+before accepting semantic or timing comparisons; the reported DLL path alone is insufficient.
+
 When adding a permanent developer benchmark harness under `scripts/` or a
 similar repo-local path, document it adjacent to the script. State whether it is
 developer evidence rather than package validation, list required and optional
