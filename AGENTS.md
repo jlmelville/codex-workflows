@@ -38,8 +38,13 @@ evidence from real runs identifies an unmet responsibility.
 
 ## Chat titles
 
-When a new chat's purpose becomes clear, use the available chat-title tool to give it a concise,
-distinctive title without asking for confirmation. Put the specific subject, question, or enduring
-role early. Use dates to distinguish repeated review sessions. Preserve meaningful existing titles,
-explicit user choices, and established role names. Rename again only when the title materially
-misrepresents the work. Supply a suitable title when creating an authorized chat.
+When a new chat's purpose becomes clear, the main agent delegates title drafting to a
+`gpt-6.1-terra` subagent with `fork_turns="none"`. Supply only a compact brief: the chat's purpose,
+distinguishing subject or question, current title, user naming constraints, and the naming guidance
+below. Request one title without explanation; do not pass the full chat history. The main agent
+applies the title with the available chat-title tool without asking for confirmation. Use this
+drafting process when supplying a title for an authorized new chat.
+
+Put the specific subject, question, or enduring role early. Use dates to distinguish repeated review
+sessions. Preserve meaningful existing titles, explicit user choices, and established role names.
+Rename again only when the title materially misrepresents the work.
