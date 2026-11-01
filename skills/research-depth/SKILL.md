@@ -38,6 +38,10 @@ repositories, communities, terminology, or links to underlying evidence. Follow 
 lead far enough to judge it, then revise priorities from what it reveals. For a concrete example,
 see [exploratory source discovery](references/methods-and-evidence.md#exploratory-source-discovery).
 
+Choose discovery breadth separately from the material used for synthesis. Broaden search to close
+evidence gaps; use original excerpts or whole documents according to what preserves the reasoning
+and qualifications needed for the answer. Retain relevant contradictory evidence.
+
 Tie each important methodological choice to inspected evidence or label it as a proposed approach.
 Look for credible disagreement and the conditions that explain it. Several sources repeating one
 underlying claim do not provide independent support. Bound further reading by the unresolved

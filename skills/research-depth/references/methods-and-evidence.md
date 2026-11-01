@@ -24,6 +24,12 @@ Use reviews to locate the debate; inspect original studies, definitions, methods
 supplements for claims that decide the answer. Track whether seemingly separate accounts descend
 from the same source. Compare competing explanations and the populations or conditions each covers.
 
+Adding distractors while holding answer-bearing evidence fixed tests resistance to distraction
+([Lost in the Middle](https://arxiv.org/abs/2307.03172)). It does not establish how many studies a
+literature synthesis needs. Distinguish finding necessary evidence, answering correctly, supporting
+individual claims, and covering the question. Scores that exclude abstentions and scores that count
+all questions can favor different context sizes ([PaperQA2](https://arxiv.org/abs/2409.13740)).
+
 For a causal question, distinguish an association from a design that identifies the proposed cause.
 For an unresolved theoretical question, a derivation or counterexample may be more useful than more
 citations. When direct testing is unavailable, explain which independent evidence converges, which
