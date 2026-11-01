@@ -154,8 +154,15 @@ language. Before assigning labels, apply one recorded transform to every arm to
 remove condition-linked non-semantic presentation differences, retain the raw
 outputs, and inspect the exact rendered packet.
 
-For planned reader-facing documentation, treat the plan as a coverage ledger,
-not a prose outline. Let applicable documentation guidance control visible order, terminology, and depth. A cold-reader
-packet contains only the rendered artifact, audience, task, reader-facing role, nearby-guide responsibilities, and scope;
-withhold implementation sources, plan obligations, and prior reviews, then reconcile technically. For R package articles,
-follow [the staged article review](../../r-docs-pkgdown/references/validation.md#review-planned-articles-in-two-stages).
+For planned reader-facing documentation, treat the plan as a coverage ledger, not a prose outline.
+Let applicable documentation guidance control visible order, terminology, and depth. A cold-reader
+packet contains only the rendered artifact, audience, task, reader-facing role, nearby-guide
+responsibilities, and scope; withhold implementation sources, plan obligations, and prior reviews,
+then reconcile technically. For R package articles, follow
+[the staged article review](../../r-docs-pkgdown/references/validation.md#review-planned-articles-in-two-stages).
+
+Before listing findings, ask the cold reader to briefly reconstruct the behavior described, what
+happens automatically, and what the reader must do, using only the review packet. For a change,
+include relevant current behavior where described. Retain the reconstruction even when there are no
+findings. Treat mismatches as findings to investigate against the intended audience and accepted
+requirements, not automatic blockers.
