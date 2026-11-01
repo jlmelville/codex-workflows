@@ -32,6 +32,12 @@ orient the search, then inspect the primary work behind consequential claims, in
 limitations. Read enough to explain how the practice would change this investigation; abstracts,
 search snippets, and lists of famous experts are insufficient.
 
+During exploratory source discovery, start from useful examples already available and name the
+property that makes them valuable. Generalize it into places or ways to search: document types,
+repositories, communities, terminology, or links to underlying evidence. Follow the most promising
+lead far enough to judge it, then revise priorities from what it reveals. For a concrete example,
+see [exploratory source discovery](references/methods-and-evidence.md#exploratory-source-discovery).
+
 Tie each important methodological choice to inspected evidence or label it as a proposed approach.
 Look for credible disagreement and the conditions that explain it. Several sources repeating one
 underlying claim do not provide independent support. Bound further reading by the unresolved
@@ -79,6 +85,9 @@ Report findings with their supporting sources or artifacts, meaningful contrary 
 limits of the checks actually performed. A reproducible calculation can still test the wrong model;
 a successful structural check does not establish real-world effectiveness. Where no decisive test
 exists, use converging evidence and calibrated uncertainty rather than inventing a binary verdict.
+
+For exploratory work, explain what the investigation added to understanding or a decision, with the
+sources that support it.
 
 Stop when the evidence supports the requested decision at the needed confidence, or when further
 progress depends on unavailable material or a new scope decision. Identify the specific remaining

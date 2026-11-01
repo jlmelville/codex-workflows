@@ -42,6 +42,16 @@ task. An independently performed attempt can reveal an authoring problem, but do
 repeatability or improvement over the previous approach. Delegation still requires applicable
 authorization; this skill does not itself authorize additional agents.
 
+### Exploratory Source Discovery
+
+An article connecting a specific agent failure to its issue and corrective PR is a useful seed
+because it exposes the trigger, mechanism, and observed outcome. Follow those artifacts, then use
+the terminology and document types they reveal to find comparable evidence in other implementations.
+An unsupported claim may warrant deprioritizing a lead; a contradictory result may deserve deeper
+attention. If links keep returning to one community, try a different source type or a credible
+competing account. Keep enough working state to avoid repeating searches and preserve consequential
+open questions.
+
 ## Origins And Design Choices
 
 Felix Rieseberg's [How to be more ambitious](https://felixrieseberg.com/how-to-be-more-ambitious-a-tutorial-for-humans-with-models/)
