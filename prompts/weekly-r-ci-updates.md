@@ -175,6 +175,8 @@ and paths to disposable clones and checkout snapshots. Save the temporary
 automation ID and read back its active state and next run time, including timezone, through the
 app's automation tool before claiming that work will resume. Repeat that readback after schedule
 edits and check that the next run falls within the continuation deadline.
+If creation succeeds without next-run details, record that distinction and report continuation as
+unverified. Do not infer an actual next run from the requested recurrence.
 If scheduling is unavailable, report that follow-through is unverified rather
 than leaving an implicit promise to return.
 

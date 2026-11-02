@@ -60,9 +60,9 @@ permissions:
 
 When adding a regression or claiming CI coverage, trace the production behavior
 through its test, the exact runner command and configuration, required dependencies,
-job conditions, and workflow event/path filters. Check that a future change to
-the production file alone triggers the relevant workflow. Confirm the intended
-test actually executes and reaches a terminal result; selection with a skip or
+job conditions, and workflow event/path filters. Check that changing the production file,
+regression file, or required runner/configuration alone triggers the relevant workflow.
+Confirm the intended test actually executes and reaches a terminal result; selection with a skip or
 a green unrelated job does not establish coverage.
 
 When a release check repeatedly fails because of defects in its own test machinery, simplify the
