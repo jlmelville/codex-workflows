@@ -29,6 +29,9 @@ invoking authority; already-authorized follow-up needs no renewed approval.
 
 ## Choose Questions That Could Change A Decision
 
+When selecting retained guidance to examine, favor changes with broad activation or material
+recurring costs in reading, checks, handoffs, or owner attention.
+
 - **Follow-through:** What became of useful observations and future actions?
   Distinguish agent-owned follow-through, owner rescue, justified no-record
   decisions, and missed actions. Look outside recorded intake for omissions.
@@ -81,6 +84,10 @@ populations separately. Inspect shared or synchronized provenance before
 treating another machine's observations as independent corroboration.
 Distinguish environment differences and task mix from mechanism defects.
 
+For broadly activated guidance, an ordinary task where it should contribute little can expose
+recurring overhead. Include one when it could change the maintenance decision, accounting for
+costs on unaffected work as well as savings in the motivating case.
+
 Use a small disposable probe when it can settle a consequential uncertainty.
 Keep controlled authoring experiments separate from ordinary-use observations.
 If successive approaches stall on one assumption, test that premise before
@@ -110,6 +117,10 @@ effectiveness. Neither parity nor an unactivated draft establishes ordinary use;
 or narration do not establish non-use. Report structural health separately from behavioral
 effectiveness and assess costs even when a task succeeds. Unverified age alone is not failure,
 and another conforming task does not justify supplemental support.
+
+When a change bundles instructions, distinguish evidence for each component from the package's
+overall benefit and cost. An observed benefit from one instruction does not establish the value of
+its companions.
 
 ### Findings And Follow-Up
 
