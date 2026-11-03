@@ -19,12 +19,11 @@ source helper before judging or mutating records.
 
 For accepted changes in this repo:
 
-- Validate skill changes with `./scripts/validate-skills.sh`.
-- Run `./install.sh` when files under `skills/` change. It syncs user-scoped
-  skills and validates repository-local links, and may require sandbox approval
-  because it writes outside the repo.
-- Confirm both skill scopes match source with `./install.sh --check`. The check
-  ignores unrelated user-scoped skills not owned by this repo.
+- Select local checks with the [validation policy](skills/codex-skill-repo/SKILL.md#validation).
+  Keep full CI for every change.
+- Run `./install.sh` followed by `./install.sh --check` when managed runtime content,
+  repository-local skill links, or installation behavior changes. Installation may require sandbox
+  approval because it writes outside the repo; parity ignores unrelated user-scoped skills.
 - Commit the intended repo changes and push to `origin/main` unless the user
   says otherwise.
 - Do not stage or commit unrelated local changes.

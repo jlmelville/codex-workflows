@@ -192,7 +192,8 @@ required.
 
 ## Validation
 
-Run the repository validator before committing:
+Select local checks with the [validation policy](../skills/codex-skill-repo/SKILL.md#validation).
+When full validation is required, prepare the maintainer toolchain and run:
 
 ```sh
 rbenv install -s "$(cat .ruby-version)"
@@ -321,13 +322,14 @@ through `workflow_dispatch` for cross-platform checks.
 
 Before publishing an accepted change:
 
-1. Run `./scripts/validate-skills.sh`.
-2. Run `./install.sh` when files under `skills/` changed.
-3. Run `./install.sh --check`.
-4. Stage only intended files.
-5. Inspect `git diff --cached --stat` and
-   `git diff --cached --name-only`.
-6. Commit and push to `origin/main` unless the user says otherwise.
+1. Run the local checks required by the
+   [validation policy](../skills/codex-skill-repo/SKILL.md#validation).
+2. Run `./install.sh` followed by `./install.sh --check` when managed runtime content,
+   repository-local skill links, or installation behavior changed.
+3. Stage only intended files.
+4. Inspect `git diff --cached --stat` and `git diff --cached --name-only`.
+5. Commit and push to `origin/main` unless the user says otherwise.
+6. Check full CI for the exact pushed commit.
 
 Use `$skill-retro-triage` to review observations, legacy intake and verification evidence, and to
 complete already-authorized follow-through. Re-read relevant destinations before changing source.

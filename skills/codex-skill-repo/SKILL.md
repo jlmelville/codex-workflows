@@ -23,9 +23,8 @@ Codex runtime directory.
   copy, as source of truth.
 - Treat `${HOME}/.agents/skills` as user-scoped installed output. A repository
   may instead expose repository-only skills through tracked `.agents/skills`
-  directories or symlinks. Make authorized changes in canonical source, use the
-  repository installer when in scope, and confirm both scopes with
-  `./install.sh --check`; ignore unrelated installed skills.
+  directories or symlinks. Make authorized changes in canonical source; follow
+  [Validation](#validation) for installation and parity checks.
 - Do not hand-edit installed copies unless diagnosing a sync problem; port useful
   changes back to the source repo immediately.
 - Treat the prior managed manifest as ownership proof. For a source skill absent
@@ -142,12 +141,18 @@ keep maintainer-only knowledge in repository docs.
 
 ## Validation
 
-Before committing, run:
+Before committing, select local checks for the changed contract:
 
-```sh
-./scripts/validate-skills.sh
-./install.sh --check  # after installation
-```
+- Run `./scripts/validate-skills.sh` for executable, installer, skill-layout, CI, or
+  validation-policy changes.
+- For other prose-only edits, run `./scripts/validate-markdown-references.rb .` and
+  `git diff --check`. Inspect the changed guidance and exercise any changed commands. For skill
+  prose, also run `./scripts/validate-skill-metadata.rb .` and
+  `./scripts/audit-skill-drift.rb --strict-hard --hard-only`.
+- Run `./install.sh`, then `./install.sh --check`, when managed runtime content,
+  repository-local skill links, or installation behavior changes. Ignore unrelated installed skills.
+
+Keep full CI for every change.
 
 For workflow changes from this source repository root, also run when present:
 

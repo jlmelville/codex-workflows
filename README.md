@@ -336,13 +336,9 @@ paste-ready observation instead of writing it.
 The complete record lifecycle is documented in the
 [External Retrospective State Protocol](skills/skill-retro/references/state-protocol.md).
 
-For accepted repository changes, run:
-
-```sh
-./scripts/validate-skills.sh
-./install.sh              # update user scope and validate repo-local links
-./install.sh --check
-```
+Use [skill-repository validation](skills/codex-skill-repo/SKILL.md#validation) to select local
+checks and installation steps for accepted changes. Prose-only edits use scoped checks; full CI
+remains required for every change.
 
 Use `./scripts/audit-skill-drift.rb` for drift checks and size/growth review leads. See
 [Repository Maintenance](docs/repository-maintenance.md) for the full
