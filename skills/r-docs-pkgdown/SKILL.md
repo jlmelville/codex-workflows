@@ -25,8 +25,10 @@ Use this for documentation and pkgdown work in R packages.
   technical-article editorial integrity, precomputed stochastic figures, or
   figure-led articles with long reproduction code, follow
   [validation.md](references/validation.md).
-- For prose reflow or mathematical-notation edits in R Markdown articles, use
-  [rmarkdown-editing.md](references/rmarkdown-editing.md) for preservation boundaries and review.
+- When editing R Markdown articles, run
+  `${HOME}/.agents/skills/r-docs-pkgdown/scripts/format-rmd.py --write` on the changed files; use
+  `--check` for read-only audits. For formatter scope, residual width review, prose reflow, and
+  mathematical edits, follow [rmarkdown-editing.md](references/rmarkdown-editing.md).
 - When creating, reviewing, simplifying, or adding interactions to
   documentation figures, use [figure-style.md](references/figure-style.md) for
   semantic mappings, preservation, accessibility, and final-width review.

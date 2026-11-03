@@ -1,8 +1,30 @@
 # Editing R Markdown Articles
 
-Use this for prose reflow or mathematical-notation changes in R Markdown articles. Follow the
-document's configured width and repository conventions; embedded documentation follows its host
-source rules.
+Use this for formatting, prose reflow, or mathematical-notation changes in R Markdown articles.
+Follow the document's configured width and repository conventions; embedded documentation follows
+its host source rules.
+
+## R Code Formatting
+
+Run the helper on explicitly selected changed Rmd files or vignette directories:
+
+```sh
+python3 "${HOME}/.agents/skills/r-docs-pkgdown/scripts/format-rmd.py" --write vignettes
+python3 "${HOME}/.agents/skills/r-docs-pkgdown/scripts/format-rmd.py" --check vignettes
+```
+
+It formats executable R chunks and plain fenced `r`/`R` examples with Air, including consistently
+quoted fences. A synthetic `.R` path beside each article lets Air use its project configuration.
+The helper does not execute code. It validates R parse-tree identity before writing and preserves
+surrounding prose, front matter, fences and options, and non-R blocks. Invalid input or failed
+validation stops the batch before writing. Python 3, Air, and Rscript must be available on `PATH`.
+
+`--check` exits 1 when formatting is needed; invalid or unsafe input and tool failures exit 2.
+Both modes report residual long code and literal output lines; `--report-width` sets the advisory
+character threshold (default 80). Width reports do not change the exit status. Review the residuals:
+formatting source does not fix captured literal output or guarantee browser fit. Render changed
+articles and inspect actual overflow at desktop and mobile widths as described in
+[Checks](../SKILL.md#checks).
 
 ## Mechanical Reflow
 

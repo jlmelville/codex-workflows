@@ -51,6 +51,8 @@ assert_usage_error() {
 run_inspection_audit_regressions() {
   require_command python3
   python3 "${repo_dir}/scripts/test-inspection-audits.py"
+  require_command Rscript
+  python3 "${repo_dir}/scripts/test-rmd-format.py"
 }
 
 run_checkout_index_regressions() {
