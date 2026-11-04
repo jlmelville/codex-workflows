@@ -24,7 +24,8 @@ directly.
 - **Exercised artifact:** when an installed or deployed artifact could differ from the intended
   source, confirm the tested process loads the candidate installation or the tested instance serves
   the build mapped to that source. SHAs need not match; a checkout SHA or green build alone is
-  insufficient. Report an unproven mapping as unverified.
+  insufficient. If either the source mapping or the identity of the artifact actually exercised is
+  uncertain, report the candidate unverified.
 - **Current versus first:** put a stale item before the intended current item,
   and assert the selected identity. A current-first fixture lets a first-item
   implementation pass without testing freshness.
