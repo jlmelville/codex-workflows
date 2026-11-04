@@ -21,6 +21,13 @@ directly.
 
 ## Selection And Identity
 
+- **Exercised artifact:** when an installed package or deployed service could differ from the
+  intended source, establish which artifact the tested path actually uses. An older loaded package
+  or stale preview can pass without exercising the candidate. For example, exercise a fresh
+  candidate installation in a clean process, or map a live build ID to the intended change using
+  trustworthy build or deployment evidence. Allow a proven mapping when deployment and source
+  SHAs differ. A checkout SHA or green build alone does not establish the running artifact; report
+  the candidate unverified when its identity remains unknown.
 - **Current versus first:** put a stale item before the intended current item,
   and assert the selected identity. A current-first fixture lets a first-item
   implementation pass without testing freshness.
