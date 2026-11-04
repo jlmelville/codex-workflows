@@ -119,6 +119,10 @@ After compaction or interruption, reconcile the objective and next action
 against current source. Re-read guidance and active artifacts when relevant
 content changed or is unavailable in context.
 
+Match new work to validation, review, and integration capacity. When existing reports show a
+bottleneck, prefer unblocking or finishing admitted work and reduce activity feeding it, while
+continuing independent useful work during external waits.
+
 Continue through implementation, relevant validation, and in-scope fixes until
 the accepted contract is satisfied or a blocker needs new authority or input.
 Before reporting completion, compare delivery with the owner's request and accepted changes.
