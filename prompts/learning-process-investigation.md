@@ -66,6 +66,11 @@ available evidence sources. Use `CODEX_WORKFLOWS_STATE_DIR` when configured;
 never invent or initialize a missing root. If a source is unavailable, continue
 with useful accessible evidence and state the coverage limit.
 
+App chat history and retained local CLI history may cover different periods and harnesses. When
+app discovery lacks the relevant coverage, check available local transcript metadata. Git dates
+and commit IDs can narrow candidate selection. Distinguish missing source coverage from a search
+miss, and inspect decisive owner messages and execution records.
+
 Choose an observation window suited to the question and local activity. Follow
 older provenance when needed. Include relevant ordinary work in downstream
 repositories, using selective evidence links rather than a whole-machine scan.
