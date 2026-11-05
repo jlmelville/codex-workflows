@@ -128,6 +128,22 @@ Delete only established legacy output. Use explicit no-diff checks to protect
 current sources, redirects, `_pkgdown.yml`, and other guarded configuration;
 similar names do not prove that an asset is generated debris.
 
+## Redirects
+
+When a redirect's source and destination differ only by filename case, the alias can overwrite the
+canonical page on a case-insensitive filesystem. Generate that alias only on a case-sensitive
+publishing filesystem and verify both files and the canonical page's fragment targets in the site
+archive. Inspect archive entries without extracting them when the local filesystem would merge the
+names.
+
+## Release And Development Sites
+
+When separate released and development sites are requested, build each from its corresponding
+source: the released tag or source archive for release documentation, and development source for the
+development site. The `development: {mode: auto}` setting selects destination and presentation from
+the package version; it does not obtain or build released source. Verify version labels and
+representative pages at both published destinations.
+
 ## GitHub Pages
 
 `usethis::use_pkgdown_github_pages()` has both local scaffolding and remote

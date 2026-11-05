@@ -126,6 +126,9 @@ This branch-publication example uses `docs` and `gh-pages`; adapt both to reposi
 For an existing Pages artifact workflow, retain `actions/deploy-pages` with narrowly scoped
 `pages: write` and `id-token: write` deployment permissions.
 
+Scope hidden-file inclusion to generated site output. Verify that required `.nojekyll` files survive
+the upload/download handoff, including development output when present.
+
 ```yaml
 name: pkgdown
 
@@ -160,6 +163,7 @@ jobs:
         with:
           name: pkgdown-site
           path: docs
+          include-hidden-files: true
           if-no-files-found: error
 
   deploy-site:

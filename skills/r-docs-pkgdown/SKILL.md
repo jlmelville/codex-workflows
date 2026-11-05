@@ -107,8 +107,10 @@ See [pkgdown.md](references/pkgdown.md).
 
 For reader-facing HTML, inspect the rendered page in a browser at ordinary article width and a
 narrow/mobile viewport. Check body-text legibility and contrast, and ensure images, tables, equations,
-and code do not force horizontal scrolling of the whole page. Wide content may scroll within its own
-container. A successful build or static HTML check does not establish layout readability.
+and code do not force horizontal scrolling of the whole page. At ordinary article width, also inspect
+code and captured-output containers for avoidable internal scrolling; page-level containment misses
+that boundary. Wide content may scroll within its own container, especially on narrow screens.
+A successful build or static HTML check does not establish layout readability.
 
 For static checks of already rendered article HTML, use the
 [HTML inspection helper](references/validation.md#inspect-rendered-html).
