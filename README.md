@@ -255,6 +255,25 @@ uses a temporary heartbeat across CI waits only when active runtime policy permi
 keeps checking in the current chat. The weekly schedule stays unchanged and pending phases remain
 explicit. Reference both prompts by absolute path when invoking them from another directory.
 
+## PR Review Follow-Through Trial
+
+Use [`prompts/pr-review-follow-through.md`](prompts/pr-review-follow-through.md) on the next
+suitable PR: one with a narrow accepted scope and reviewer feedback expected during a two-hour
+window. Replace `PR_URL` with its URL:
+
+```text
+Run prompts/pr-review-follow-through.md for PR_URL.
+```
+
+The invocation authorizes in-scope fixes, tests, commits, ordinary pushes to that PR's branch, and
+concise replies to its review feedback. Merging remains outside this trial. The prompt handles one
+new review round and its validation, reusing the maintenance prompt's access, checkout-preservation,
+and continuation procedures. Active runtime policy determines how waiting continues; an interrupted
+chat without confirmed resumption leaves follow-through unverified.
+
+The result reports feedback dispositions, validation, owner interventions, and cleanup. A window
+with no new feedback is inconclusive. Use an absolute path to the prompt from another checkout.
+
 ## Learning And Introspection
 
 `$skill-retro-triage` and `$learning-process-review` are repository-local: run
