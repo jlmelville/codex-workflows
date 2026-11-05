@@ -123,6 +123,10 @@ or narration do not establish non-use. Report structural health separately from 
 effectiveness and assess costs even when a task succeeds. Unverified age alone is not failure,
 and another conforming task does not justify supplemental support.
 
+Use available comparisons that hold the model constant when judging workflow changes, and the
+workflow constant when judging model changes. If the evidence cannot separate their effects, mark
+attribution unresolved; no new evaluation process is required.
+
 When a change bundles instructions, distinguish evidence for each component from the package's
 overall benefit and cost. An observed benefit from one instruction does not establish the value of
 its companions.
