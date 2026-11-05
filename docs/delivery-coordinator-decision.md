@@ -11,8 +11,9 @@ boundary: preserve state and authority, resume work, validate the result, report
 
 The [weekly R CI prompt](../prompts/weekly-r-ci-updates.md#continue-across-ci-waits) is the current
 concrete implementation. The prompt owns the batch, the continuation record preserves evidence and
-next actions, the heartbeat starts another turn, and the maintenance skills govern validation and
-authorized GitHub actions.
+next actions, and the maintenance skills govern validation and authorized GitHub actions. Follow
+active runtime policy for continuation: keep checking in the current chat when scheduled job checks
+are disallowed, and use a temporary heartbeat to start another turn when permitted.
 
 ## Evidence and limits
 

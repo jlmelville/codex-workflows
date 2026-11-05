@@ -152,13 +152,15 @@ For CI waits, reuse the
 [bounded continuation procedure](weekly-r-ci-updates.md#continue-across-ci-waits).
 Record selected and prior local versions, installation/recovery state, repository opt-outs, bases,
 candidate commits/PRs, expected run and step IDs, validation, blockers, and next actions in a
-continuation record. When invoked together, this phase and Dependabot share one record and temporary
-heartbeat. Retain each phase's scope and authority and serialize writes to a
-repository; refresh its base after the preceding phase. Include any unstarted phase in continuation
-work so a CI wait cannot drop it. Keep the recurring weekly schedule separate from CI polls.
+continuation record. When invoked together, this phase and Dependabot share one record and, when
+permitted by active runtime policy, one temporary heartbeat. Retain each phase's scope and authority
+and serialize writes to a repository; refresh its base after the preceding phase. Include any
+unstarted phase in continuation work so a CI wait cannot drop it. Keep the recurring weekly schedule
+separate from CI polls.
 
 Report official latest, selected, and active local versions, compatibility limits, and a compact
 per-repository table of pins, diff scope, local validation, publication identity, actual hosted
 format/lint results, opt-outs, and concrete remaining action. Distinguish no update available from
 an incomplete release lookup or failed trial. Report checkout preservation and retire this batch's
-temporary heartbeat and disposable resources when complete, following the shared continuation rules.
+temporary heartbeat when used and disposable resources when complete, following the shared
+continuation rules.

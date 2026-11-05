@@ -14,8 +14,9 @@ GitHub.
   Git or create a commit unless the user asks.
 - For `initialize` or `create a repository`, include local Git initialization,
   branch setup, and an initial local commit. Do not configure a remote or push.
-- For `publish`, or an explicit request to create or configure a GitHub remote,
-  include remote setup and the first push.
+- For `publish`, include remote setup and the first push.
+- A request only to create or configure a remote authorizes those remote changes;
+  push only when publication is also authorized.
 
 ## First Pass
 
@@ -52,8 +53,8 @@ or clearly required by the project.
 4. Run relevant validation before the initial commit.
 5. When initialization, creation, or publication is in scope, commit with a
    short message that describes the project state.
-6. When publication is authorized, add `origin` after the user provides or
-   creates the GitHub repository.
+6. When remote setup is authorized, configure the requested remote after its
+   target GitHub repository is known.
 7. Push with upstream tracking as part of the authorized publication.
 
 ## GitHub Setup

@@ -251,8 +251,9 @@ Run prompts/weekly-r-tooling-updates.md.
 ```
 
 Each prompt loads its own saved scope and mode. The combined run shares one continuation record and
-temporary heartbeat across CI waits, so the weekly schedule stays unchanged and pending phases
-remain explicit. Reference both prompts by absolute path when invoking them from another directory.
+uses a temporary heartbeat across CI waits only when active runtime policy permits it; otherwise it
+keeps checking in the current chat. The weekly schedule stays unchanged and pending phases remain
+explicit. Reference both prompts by absolute path when invoking them from another directory.
 
 ## Learning And Introspection
 

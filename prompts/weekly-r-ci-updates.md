@@ -157,30 +157,37 @@ required by the batch skill and report any post-merge failure explicitly.
 
 ## Continue across CI waits
 
-When pending PR or post-merge CI needs another turn, create one temporary
-heartbeat in this chat using the app's automation tool. Check every ten minutes
-for up to two hours from the first wait. Reuse this batch's temporary heartbeat
-if one already exists; leave the recurring weekly automation unchanged.
+Choose continuation according to active runtime policy. When it disallows scheduling checks for a
+specific job, keep checking pending PR and post-merge CI in this chat, continuing independent work
+between checks. Pending checks alone are not a reason to yield. Bound waiting to two hours from the
+first wait and preserve retry limits across continuations.
 
-When a run also invokes the R tooling prompt, share one continuation record and
-temporary heartbeat. Preserve each phase's scope and authority, record unstarted
-phases as remaining work, and serialize writes to the same repository. Resume
-both phases through their own completion checks before closing the combined run.
+When scheduled continuation is permitted and another turn is needed, use one temporary heartbeat
+in this chat through the app's automation tool. Check every ten minutes within that same deadline.
+Reuse this batch's temporary heartbeat if one already exists; leave the recurring weekly automation
+unchanged.
 
-Before yielding, save a private continuation record outside Git and put its
-absolute path in the heartbeat prompt. Record the resolved repository scope and
-mode, pending PRs and validated head/base SHAs, merge commits, expected workflows
-and run IDs, completed validation, next actions, retry counts and limits, deadline,
-and paths to disposable clones and checkout snapshots. Save the temporary
-automation ID and read back its active state and next run time, including timezone, through the
-app's automation tool before claiming that work will resume. Repeat that readback after schedule
-edits and check that the next run falls within the continuation deadline.
-If creation succeeds without next-run details, record that distinction and report continuation as
-unverified. Do not infer an actual next run from the requested recurrence.
-If scheduling is unavailable, report that follow-through is unverified rather
-than leaving an implicit promise to return.
+When a run also invokes the R tooling prompt, share one continuation record and,
+when using scheduled continuation, one temporary heartbeat. Preserve each phase's scope and
+authority, record unstarted phases as remaining work, and serialize writes to the same repository.
+Resume both phases through their own completion checks before closing the combined run.
 
-Each scheduled turn reads the latest continuation record and checks the deadline
+For scheduled continuation or an interruption handoff, save a private continuation record outside
+Git. Record the resolved repository scope and mode, pending PRs and validated head/base SHAs, merge
+commits, expected workflows and run IDs, completed validation, next actions, retry counts and limits,
+deadline, and paths to disposable clones and checkout snapshots.
+
+When using a heartbeat, put the record's absolute path in its prompt and save the temporary
+automation ID. Read back its active state and next run time, including timezone, through the app's
+automation tool before claiming that work will resume. Repeat that readback after schedule edits
+and check that the next run falls within the continuation deadline. If creation succeeds without
+next-run details, record that distinction and report continuation as unverified. Do not infer an
+actual next run from the requested recurrence.
+
+If the chat is interrupted without a confirmed resumption, report the pending work and unverified
+follow-through rather than leaving an implicit promise to return.
+
+On resumption, read the latest continuation record and check the deadline
 before further work. Re-read this prompt when its relevant content changed or is
 unavailable in context. Resume only the recorded batch within its resolved scope
 and mode. Refresh GitHub account, PR, head/base, and CI state before acting;
@@ -189,12 +196,13 @@ deadline across turns. Continue independent recorded items while checks run,
 then revisit pending items through the same final-commit validation boundary.
 Keep the continuation record current; skip discovery of new work.
 
-Keep unchanged pending checks quiet. After the first scheduled pending turn, check available run or
-notification evidence for quiet behavior; report it as unverified when that evidence is unavailable.
+Keep unchanged pending checks quiet. When using scheduled continuation, after the first pending
+turn, check available run or notification evidence for quiet behavior; report it as unverified when
+that evidence is unavailable.
 Where continuation depends on owner activity, distinguish messages the owner authored in this chat
 from scheduled triggers and messages relayed by other agents. When the batch completes, reaches its
 deadline or retry limit, or has only blockers requiring user action, delete only
-the recorded temporary heartbeat with the automation tool. Close the run record,
+any recorded temporary heartbeat with the automation tool. Close the run record,
 compare the original checkout snapshots, and remove disposable resources when
 no longer needed. A later trigger for a closed run only retires its temporary
 heartbeat. Report completion, meaningful failures, or required user action once;
@@ -210,5 +218,5 @@ concrete blocker. In review mode,
 identify candidates ready to merge without claiming they were merged.
 Distinguish merged, blocked, pending, and out-of-scope items. Confirm local
 checkouts were preserved and identify follow-up work. If a continuation was
-needed, report actual scheduled resumptions, retries, temporary heartbeat
-removal, and any observed user reminders, approvals, or troubleshooting.
+needed, report the continuation method, actual resumptions, retries, temporary heartbeat
+removal when used, and any observed user reminders, approvals, or troubleshooting.
