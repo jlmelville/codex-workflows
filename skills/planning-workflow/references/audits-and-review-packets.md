@@ -101,6 +101,10 @@ operator requests a bounded loop without another limit—and stop on a pass.
 Separate blocking findings from optional suggestions. The coordinator verifies them against the frozen target and
 contract and owns corrections, plan updates, and consolidated learning-state writes; the reviewer stays read-only.
 
+When a reviewer has completed all available checks and only awaits evidence the coordinator will
+supply, return an interim assessment identifying what remains. Resume the same reviewer when that
+evidence arrives. Final acceptance remains pending.
+
 When disputing a finding, cite checkable evidence the reviewer could use, such as a source symbol
 or recorded requirement; author intent or private context alone does not resolve it. If decisive
 context was outside the review packet, identify that limitation and distinguish a document omission,
