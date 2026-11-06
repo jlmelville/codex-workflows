@@ -144,6 +144,11 @@ development site. The `development: {mode: auto}` setting selects destination an
 the package version; it does not obtain or build released source. Verify version labels and
 representative pages at both published destinations.
 
+When changing configuration or navigation shared by release and development builds, validate the
+affected build steps against each source version that consumes it, using the publishing workflow's
+version-specific adaptations. Ensure navigation entries resolve to pages available in the
+corresponding source version.
+
 ## GitHub Pages
 
 `usethis::use_pkgdown_github_pages()` has both local scaffolding and remote

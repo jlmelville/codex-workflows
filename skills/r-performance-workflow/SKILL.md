@@ -113,9 +113,14 @@ Capture enough metadata for a future agent to interpret the result:
 - package/repo commit or worktree state;
 - R version and platform;
 - CPU/thread settings and BLAS/OpenMP notes when relevant;
+- competing workload and, on laptops, power source/profile;
 - seed, data dimensions, data source, repetitions, and warmup choice;
 - exact command used to run the benchmark;
 - baseline/current labels and result table.
+
+For long timing runs, recheck load and laptop power conditions at existing case or tranche
+boundaries. When a change puts comparability in doubt, isolate affected samples and rerun those
+cases under comparable conditions, retaining earlier comparable results.
 
 Use base R `system.time()` when adding benchmark dependencies is undesirable.
 For the bundled evidence script, callback selected-point traces, native CPU profile attribution,
