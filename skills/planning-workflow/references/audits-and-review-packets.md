@@ -155,6 +155,9 @@ Review packets should be self-contained and should ask the reviewer to
 challenge assumptions, gaps, and risks, not merely summarize the plan. Include
 the narrow evidence needed for review and the specific questions to answer.
 
+For consequential changes to authority, installation, persistent state, or unattended execution,
+identify how failure would be detected and what reverting the change would fail to undo.
+
 For blinded comparisons, keep scoring categories and evaluator terminology out
 of writer-facing cards; express reader actions and choices in ordinary domain
 language. Before assigning labels, apply one recorded transform to every arm to
