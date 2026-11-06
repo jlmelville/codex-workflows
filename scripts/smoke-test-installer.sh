@@ -196,6 +196,72 @@ create_fixture() {
   make_repo_local "${fixture}" repo-only
 }
 
+test_install_signals() {
+  local fake_bin="${tmp_root}/signal-bin"
+  local signal_name expected_status signal_status fixture user_home signal_tmp output witness
+  local real_cp
+
+  real_cp="$(command -v cp)"
+  mkdir -p "${fake_bin}"
+  cat >"${fake_bin}/cp" <<'EOF_SIGNAL_CP'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == */manifest ]]; then
+  [[ -d "${INSTALL_SIGNAL_LOCK}" && -f "$1" ]] || exit 23
+  printf '%s\n' "${INSTALL_SIGNAL_NAME}" >"${INSTALL_SIGNAL_WITNESS}"
+  if [[ "${INSTALL_SIGNAL_NAME}" != none ]]; then
+    kill -s "${INSTALL_SIGNAL_NAME}" "${PPID}"
+  fi
+fi
+exec "${INSTALL_SIGNAL_REAL_CP}" "$@"
+EOF_SIGNAL_CP
+  chmod 755 "${fake_bin}/cp"
+
+  for signal_name in none HUP INT TERM; do
+    case "${signal_name}" in
+      none) expected_status=0 ;;
+      HUP) expected_status=129 ;;
+      INT) expected_status=130 ;;
+      TERM) expected_status=143 ;;
+    esac
+    fixture="${tmp_root}/signal-${signal_name}-fixture"
+    user_home="${tmp_root}/signal-${signal_name}-home"
+    signal_tmp="${tmp_root}/signal-${signal_name}-tmp"
+    output="${tmp_root}/signal-${signal_name}.out"
+    witness="${tmp_root}/signal-${signal_name}.witness"
+    create_fixture "${fixture}"
+    mkdir -p "${signal_tmp}"
+
+    # The validator backgrounds smoke suites; reset inherited ignored signals before exec.
+    signal_status=0
+    env PATH="${fake_bin}:${PATH}" HOME="${user_home}" CODEX_HOME="${user_home}/.codex" \
+      TMPDIR="${signal_tmp}" INSTALL_SIGNAL_NAME="${signal_name}" \
+      INSTALL_SIGNAL_REAL_CP="${real_cp}" INSTALL_SIGNAL_WITNESS="${witness}" \
+      INSTALL_SIGNAL_LOCK="${user_home}/.agents/.codex-workflows-install.lock" \
+      ruby -e '
+        %w[HUP INT TERM].each { |name| Signal.trap(name, "DEFAULT") }
+        exec(*ARGV)
+      ' "${fixture}/install.sh" >"${output}" 2>&1 || signal_status=$?
+    assert_file_contains "${witness}" "${signal_name}"
+    [[ "${signal_status}" -eq "${expected_status}" ]] || \
+      fail "${signal_name} install exited ${signal_status}, expected ${expected_status}"
+    [[ ! -e "${user_home}/.agents/.codex-workflows-install.lock" ]] || \
+      fail "${signal_name} install retained its lock"
+    [[ -z "$(ls -A "${signal_tmp}")" ]] || fail "${signal_name} install leaked temporary files"
+
+    if [[ "${signal_name}" == none ]]; then
+      assert_file_contains "${output}" "Installed managed user-scoped skills"
+      [[ -f "${user_home}/.codex/AGENTS.md" ]] || fail "control install omitted global instructions"
+    else
+      assert_file_not_contains "${output}" "Installed managed user-scoped skills"
+      [[ ! -e "${user_home}/.codex/AGENTS.md" ]] || \
+        fail "${signal_name} install wrote global instructions after termination"
+    fi
+  done
+}
+
+test_install_signals
+
 test_inventory_failures() {
   local fake_bin="${tmp_root}/inventory-fake-bin"
   local compare_tmp="${tmp_root}/inventory-tmp"

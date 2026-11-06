@@ -1161,8 +1161,8 @@ module RetroState
 
       # Completed system audit
 
-      Keep the complete sanitized diagnosis here. Create every unresolved
-      executable consequence with an owner, review condition, next action,
+      Keep the complete sanitized diagnosis here. Track each agreed unresolved
+      executable follow-up with an owner, review condition, next action,
       and close condition as a deferral or ledger before recording the audit,
       then list its ID above.
     MARKDOWN
