@@ -48,6 +48,10 @@ fixture with a known oracle, such as a positive-definite quadratic for conjugate
 gradient recipes, and compare each variant with a reference recipe under fixed
 starts, tolerances, and deterministic controls.
 
+When equivalent input representations take separate construction paths, compare their numerical
+objects under matched data and controls. Finite-difference agreement for an already constructed
+objective does not validate the upstream construction.
+
 Assert both the final contract and the trace-level behavior that theory says
 should match: iterates, objective values, gradients, directions, step lengths,
 update coefficients, or finite-termination counts where relevant. Golden output
