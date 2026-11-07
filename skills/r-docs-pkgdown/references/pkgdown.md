@@ -74,9 +74,11 @@ defaults.
 ## Math Rendering
 
 When HTML math looks wrong, inspect `_pkgdown.yml`, the generated HTML, and the
-renderer actually loaded before applying LaTeX layout workarounds. Compare a
-representative expression under another supported renderer to distinguish
-renderer behavior from source typography; choose the engine for the site's needs.
+renderer actually loaded. Before proposing a workaround, compare a representative
+expression under another supported renderer to distinguish renderer behavior from
+source typography. Include the renderer recommended by
+[pkgdown's math rendering guidance](https://pkgdown.r-lib.org/articles/customise.html#math-rendering)
+when it addresses the problem. Choose the engine for the site's needs.
 
 After a renderer change, check complete generated articles for console errors,
 unrendered expressions, and equation overflow at ordinary and narrow widths.
