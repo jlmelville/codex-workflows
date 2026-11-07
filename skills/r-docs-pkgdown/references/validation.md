@@ -48,6 +48,11 @@ largest raw value as best.
 
 Use [$technical-writing](../../technical-writing/SKILL.md) for reader-task, sentence-admission, and
 contrast judgments. Keep article code, visible output, and interpretation aligned with that task.
+
+When removing a benchmark comparison, recheck whether workload restrictions such as holdouts
+still serve the remaining comparisons. If the workload changes, regenerate the affected results
+and reconcile the reported input sizes in the article.
+
 Hidden semantic checks normally need no narration; explain their underlying invariant only when it
 independently helps the reader. Inspect the rendered article to confirm that hidden chunks do not
 leave visible transitions or references without their payoff.
