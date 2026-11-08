@@ -129,6 +129,13 @@ behavior.
 
 ## Allocation Evidence
 
+On macOS, if `/usr/bin/time -l` cannot report peak resident memory because a sandbox blocks
+its `sysctl` query, a Python wrapper can start a fresh benchmark child and collect its resource
+usage with `os.wait4(child.pid, 0)`. Check the returned wait status for benchmark failure and read
+`ru_maxrss` from the returned resource-usage object. Label this as whole-child-process peak RSS,
+including startup and setup; it does not attribute allocations to an individual operation. This
+fallback was exercised on macOS; establish platform units and behavior before using it elsewhere.
+
 Name the allocation profiler, warmup or JIT policy, and allocation class it can
 observe. A zero from warmed `Rprofmem()` means only that the measured run
 reported no vector-heap allocation events; it does not prove that R created no
