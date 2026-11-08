@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Manual update owner: prompts/skill-repository-retrospective.md.
+  # Follow docs/repository-maintenance.md#update-ownership for manual updates.
   # Keep this compatible with the Go version printed by the workflow.
   ACTIONLINT_VERSION: v1.7.12
 

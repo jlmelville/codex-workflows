@@ -39,12 +39,10 @@ reveals; this is an open inquiry, not a checklist to complete:
   including within one task, compare continuing inline with existing tooling, a
   small extension, or a bounded helper. Weigh future reconstruction, error risk,
   and owner attention against maintenance cost. Exploration alone does not justify
-  extraction. Grounded in
-  [architecture review](../../architecture-audit/SKILL.md) and
-  [candidate judgment](../../skill-retro-triage/references/candidate-judgment.md).
+  extraction. Grounded in [architecture review](../../architecture-audit/SKILL.md).
 - **Owner attention and control:** Where did an agent unnecessarily return a
   settled decision to the user, or infer authority the user had not given?
-  Grounded in [triage authority](../../skill-retro-triage/SKILL.md) and
+  Grounded in [capture authority](../SKILL.md#authority) and
   [planning acceptance](../../planning-workflow/SKILL.md).
 
 Applicable instructions govern the action; this reference helps discover a

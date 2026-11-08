@@ -1,7 +1,8 @@
 # Reviewed Improvement Implementation
 
-Use after triage has judged external evidence and implementation is authorized. Carry existing
-batch acceptance forward; ask only for decisions or mutations outside that scope.
+Use this reference from the codex-workflows source checkout after triage has judged the evidence
+and implementation is authorized. Carry existing batch acceptance forward and ask only for
+decisions or mutations outside that scope.
 
 ## State Before Source
 
