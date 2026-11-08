@@ -147,8 +147,7 @@ unrelated diagnostics and their effect on completion:
 - package check:
   `Rscript -e 'check <- devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note"); if (!isTRUE(check$status == 0L)) stop("R CMD check did not complete successfully", call. = FALSE)'`
 - formatting: `air format . --check`
-- lint:
-  `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
+- Run lint using the configured invocation or the fallback in [Formatting and Lint](#formatting-and-lint).
 - complete [workflow audit](../../github-actions-hardening/SKILL.md#checks) from
   `$github-actions-hardening` when workflows changed;
 - pkgdown build when site output, articles, examples, or `_pkgdown.yml` changed.
@@ -237,7 +236,10 @@ observation boundaries; it is not an additional default checklist.
 ## Formatting and Lint
 
 - Air owns supported R formatting: `air format . --check`.
-- Lintr should complement Air:
+- Lintr should complement Air. Use the repository's configured lint invocation and pinned version
+  when available. The invocation may load the development environment needed to resolve test
+  helpers even when a fresh package install resolves package symbols. Without a configured
+  invocation, use the fallback command below.
   `Rscript -e 'lints <- lintr::lint_package(); print(lints); quit(status = if (length(lints) > 0) 1L else 0L)'`
 
 Preserve explicit repository or user opt-outs; changing them needs authority. CI gates should run
@@ -292,7 +294,7 @@ same package, load the current source in that process or install it into a
 temporary first library before adding suppressions. Reserve
 `utils::globalVariables()` for genuine NSE or data-mask symbols.
 
-After editing `.lintr`, rerun both `air format . --check` and
-`lintr::lint_package()` from the saved config with normal settings parsing.
+After editing `.lintr`, rerun `air format . --check` and the lint invocation with the saved config
+and normal settings parsing.
 Keep multi-line `.lintr` continuations indented as valid DCF. Use `# fmt: skip`
 only for shape-sensitive fixtures where Air reduces readability.

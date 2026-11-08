@@ -60,6 +60,8 @@ report environment drift as a limitation of the evidence.
 For separately installed compiled variants, use fresh R processes unless safe coexistence or
 switching is established. Confirm the intended native implementation with a distinguishing behavior
 before accepting semantic or timing comparisons; the reported DLL path alone is insufficient.
+If a checkout may contain native objects from another build mode, rebuild from clean source with
+release flags. Confirm matching flags for the compared variants in the compiler logs before timing.
 
 When adding a permanent developer benchmark harness under `scripts/` or a
 similar repo-local path, document it adjacent to the script. State whether it is
