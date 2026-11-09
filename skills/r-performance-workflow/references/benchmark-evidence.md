@@ -97,6 +97,10 @@ each tranche. Skip rows unlikely to change the decision and record the stop rati
 Define the measured workload boundary and install fresh wrappers for each run. Count attempted physical provider
 entries before execution; a composite invocation remains one call while real standalone calls remain visible.
 
+When an R timing wrapper excludes argument preparation, force those arguments before starting its
+timer. Lazy evaluation can otherwise charge a nested computation to both timers. Label intentionally
+inclusive intervals and do not sum them as disjoint work.
+
 When logical numerical work differs from its provider callback, record both axes and the owning phase. Keep native
 counters as a separate consistency witness so setup and reporting work cannot be mistaken for algorithm cost.
 
