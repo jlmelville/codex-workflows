@@ -124,7 +124,9 @@ For long timing runs, recheck load and laptop power conditions at existing case 
 boundaries. When a change puts comparability in doubt, isolate affected samples and rerun those
 cases under comparable conditions, retaining earlier comparable results.
 
-Use base R `system.time()` when adding benchmark dependencies is undesirable.
+Use base R `system.time()` when adding benchmark dependencies is undesirable and its elapsed
+values resolve the workload. If durations are zero or visibly quantized, use a higher-resolution
+timer or equivalent batched work before interpreting speedup ratios.
 For the bundled evidence script, callback selected-point traces, native CPU profile attribution,
 allocation-evidence limits, workload-scoped gates, abstraction probes, or
 bounded exploratory grids, follow the

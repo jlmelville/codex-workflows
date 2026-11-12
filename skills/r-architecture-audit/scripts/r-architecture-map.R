@@ -500,7 +500,10 @@ branch_count <- function(expr) {
   own <- 0L
   if (is.call(expr)) {
     head <- as.character(expr[[1L]])
-    if (head %in% c("if", "for", "while", "repeat", "&&", "||", "switch")) {
+    if (
+      length(head) == 1L &&
+        head %in% c("if", "for", "while", "repeat", "&&", "||", "switch")
+    ) {
       own <- 1L
     }
   }
@@ -934,6 +937,15 @@ write_report <- function(result, out, top) {
 }
 
 run_self_test <- function() {
+  # Exercise the fallback even when cyclocomp is available.
+  stopifnot(
+    branch_count(quote(if (x) 1 else 0)) == 1L,
+    branch_count(quote(stats::median(x))) == 0L,
+    branch_count(quote(object$method(x))) == 0L,
+    branch_count(quote((function(x) if (x) 1 else 0)(TRUE))) == 1L,
+    branch_count(quote(stats::median(if (x) 1 else 0))) == 1L
+  )
+
   root <- tempfile("r-architecture-map-test.")
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
