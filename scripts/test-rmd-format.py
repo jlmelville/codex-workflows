@@ -81,62 +81,10 @@ sys.stdout.write(text)
         self.assertEqual(path.read_bytes(), source.replace("x<-1", "x <- 1").encode())
         self.assertEqual(path.stat().st_mode & 0o777, 0o640)
 
-    def test_air_single_expression_bodies(self):
-        code = '''if (ready)
-  print("ready")
-f <- function(x) {
-  if (x) return(1)
-  0
-}
-if (x) {
-  print(1)
-} else print(0)
-for (i in 1:2)
-  print(i)
-while (x)
-  x <- FALSE
-repeat
-  break
-identity <- function(x)
-  x
-'''
-        formatted = '''if (ready) {
-  print("ready")
-}
-f <- function(x) {
-  if (x) {
-    return(1)
-  }
-  0
-}
-if (x) {
-  print(1)
-} else {
-  print(0)
-}
-for (i in 1:2) {
-  print(i)
-}
-while (x) {
-  x <- FALSE
-}
-repeat {
-  break
-}
-identity <- function(x) {
-  x
-}
-'''
-        source = f"```r\n{code}```\n"
-        path = self.write("braces.Rmd", source)
-        self.assert_status(self.invoke("--check", path, formatted=formatted), 1)
-        self.assertEqual(path.read_bytes(), source.encode())
-        self.assert_status(self.invoke("--write", path, formatted=formatted), 0)
-        self.assertEqual(path.read_bytes(), f"```r\n{formatted}```\n".encode())
-        self.assert_status(self.invoke("--check", path, formatted=formatted), 0)
-
     def test_braces_do_not_hide_parsed_changes(self):
         cases = (
+            ("if (x) f()", "if (x) { f() }"),
+            ("f <- function(x) x + 1\nbody(f)", "f <- function(x) { x + 1 }\nbody(f)"),
             ("if (x) f()", "if (x) { g() }"),
             ("if (x) f()", "if (y) { f() }"),
             ("if (x) f()", "if (x) { f(); g() }"),

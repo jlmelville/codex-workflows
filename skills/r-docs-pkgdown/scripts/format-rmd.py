@@ -15,46 +15,6 @@ import tempfile
 FENCE = re.compile(r"^((?: {0,3}> ?)* {0,3})(`{3,}|~{3,})(.*)$")
 R_INFO = re.compile(r"^(?:[rR]|\{\.[rR]\}|\{[rR](?:[\s,].*)?\})$")
 VALIDATE = r'''
-is_brace <- function(expr) {
-  is.call(expr) && identical(expr[[1L]], as.name("{"))
-}
-
-same_expression <- function(original, formatted, allow_brace = FALSE) {
-  if (identical(original, formatted)) return(TRUE)
-  if (allow_brace && !is_brace(original) && is_brace(formatted) &&
-      length(formatted) == 2L && is.null(names(formatted))) {
-    formatted <- formatted[[2L]]
-    if (identical(original, formatted)) return(TRUE)
-  }
-  if (!is.call(original) || !is.call(formatted) ||
-      length(original) != length(formatted) ||
-      !identical(original[[1L]], formatted[[1L]]) || !is.symbol(original[[1L]])) {
-    return(FALSE)
-  }
-
-  operator <- as.character(original[[1L]])
-  bodies <- switch(operator,
-    "if" = c(3L, 4L), "for" = 4L, "while" = 3L, "repeat" = 2L,
-    "function" = 3L, integer()
-  )
-  # Call arguments and replacement assignment values can be captured as syntax.
-  positions <- switch(operator,
-    "{" = seq_along(original)[-1L], "(" = 2L,
-    "<-" = , "<<-" = , "=" = {
-      if (length(original) == 3L && is.symbol(original[[2L]])) 3L else integer()
-    },
-    bodies
-  )
-  positions <- intersect(positions, seq_along(original))
-  if (!length(positions) || !identical(names(original), names(formatted)) ||
-      !identical(as.list(original)[-positions], as.list(formatted)[-positions])) {
-    return(FALSE)
-  }
-  all(vapply(positions, function(i) {
-    same_expression(original[[i]], formatted[[i]], allow_brace = i %in% bodies)
-  }, logical(1L)))
-}
-
 args <- commandArgs(TRUE)
 paths <- readLines(args[1], warn = FALSE)
 for (i in seq.int(1L, length(paths), by = 2L)) {
@@ -64,9 +24,7 @@ for (i in seq.int(1L, length(paths), by = 2L)) {
     cat((i + 1L) %/% 2L, "invalid R syntax", sep = "\t")
     quit(status = 2L)
   }
-  if (length(original) != length(formatted) || !all(vapply(seq_along(original), function(j) {
-    same_expression(original[[j]], formatted[[j]])
-  }, logical(1L)))) {
+  if (!identical(original, formatted)) {
     cat((i + 1L) %/% 2L, "formatting changed parsed R expressions", sep = "\t")
     quit(status = 2L)
   }

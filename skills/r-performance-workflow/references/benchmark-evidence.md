@@ -84,6 +84,14 @@ from optimizer outcomes; it does not permit held-out performance inspection or p
 Use bounded direct/wrapped, zero/one-operation, scaling-heavy, and rich/minimal-result probes to separate costs.
 Profiles choose targets; representative whole-operation benchmarks plus the semantic oracle decide what to keep.
 
+When an isolated probe leaves a material gap in public-call timings, measure the boundary in place
+or replay it at the same point in the call. For example, generated Rcpp bindings can coerce arguments
+before the native body's first timer, at a different cost from a warm standalone conversion.
+
+When reconciling component timings with elapsed time, use the same clock or cross-check the clocks
+on a known interval. For sums of short intervals, estimate instrumentation overhead from the mean
+of repeated empty timing brackets and retain the raw totals alongside any adjusted estimates.
+
 For storage-backed work, distinguish logical payload from the physical chunks,
 shards, pages, or repeated transfers it touches. Compare aligned and scattered
 operations with equal logical work to expose amplification; retain a remedy only
