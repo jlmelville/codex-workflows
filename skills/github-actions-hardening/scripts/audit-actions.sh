@@ -175,45 +175,11 @@ for config in "${config_dir}/dependabot.yml" "${config_dir}/dependabot.yaml"; do
   fi
 done
 
-checked_grep() {
-  local pattern="$1"
-  local destination="$2"
-  local grep_status
-  if grep -HnE "${pattern}" "${workflow_files[@]}" >"${destination}"; then
-    return 0
-  else
-    grep_status=$?
-  fi
-  if [[ "${grep_status}" -eq 1 ]]; then
-    return 0
-  fi
-  echo "audit-actions.sh: grep failed while scanning workflows (status ${grep_status})" >&2
-  return 1
-}
-
 if ((${#workflow_files[@]} > 0)); then
-  progress "Checking for unpinned action refs..."
-  found_unpinned=false
-  if checked_grep '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*[^#]+@[^[:space:]#]+' "${audit_tmp}/refs"; then
-    while IFS= read -r match; do
-      ref="$(printf '%s\n' "${match}" | sed -E 's/.*uses:[[:space:]]*[^#]+@([^[:space:]#]+).*/\1/')"
-      if [[ ! "${ref}" =~ ^[0-9a-fA-F]{40}$ ]]; then
-        printf '%s\n' "${match}"
-        found_unpinned=true
-        status=1
-      fi
-    done <"${audit_tmp}/refs"
-    if [[ "${found_unpinned}" == false && "${quiet}" == false ]]; then
-      echo "No non-SHA action refs found."
-    fi
-  else
-    status=1
-  fi
-
-  progress "Checking nearby action pin comments..."
+  progress "Checking action pins and nearby comments..."
   action_comment_checker="${script_dir}/check-action-tag-comments.sh"
   if [[ -x "${action_comment_checker}" ]]; then
-    comment_args=(--require-comment)
+    comment_args=(--require-sha --require-comment)
     if [[ "${quiet}" == true ]]; then
       comment_args+=(--quiet)
     fi
@@ -222,26 +188,6 @@ if ((${#workflow_files[@]} > 0)); then
     fi
   else
     echo "check-action-tag-comments.sh is missing or not executable; action pin comment check is required." >&2
-    status=1
-  fi
-
-  progress "Checking checkout credential persistence..."
-  if checked_grep '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*actions/checkout@' "${audit_tmp}/checkouts"; then
-    while IFS= read -r match; do
-      file="${match%%:*}"
-      rest="${match#*:}"
-      line_no="${rest%%:*}"
-      if ! sed -n "${line_no},$((line_no + 12))p" "${file}" >"${audit_tmp}/context"; then
-        echo "audit-actions.sh: could not read checkout context in ${file}" >&2
-        status=1
-        continue
-      fi
-      if ! grep -q 'persist-credentials:[[:space:]]*false' "${audit_tmp}/context"; then
-        echo "${file}:${line_no}: checkout step may be missing persist-credentials: false" >&2
-        status=1
-      fi
-    done <"${audit_tmp}/checkouts"
-  else
     status=1
   fi
 

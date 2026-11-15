@@ -4,18 +4,23 @@ set -euo pipefail
 workflow_target=".github/workflows"
 target_explicit=false
 require_mode="tag"
+require_sha=false
 verify_remote=false
 quiet=false
-uses_pattern="^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*['\"]?([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*)@([0-9a-fA-F]{40})['\"]?([[:space:]#]|$)"
+uses_pattern="^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*['\"]?([^[:space:]@#'\"]+)@([^[:space:]#'\"]+)['\"]?([[:space:]#]|$)"
+action_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$'
+sha_pattern='^[0-9a-fA-F]{40}$'
 
 usage() {
   cat <<'USAGE'
-Usage: check-action-tag-comments.sh [--quiet] [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_TARGET]
+Usage: check-action-tag-comments.sh [--quiet] [--require-sha]
+                                   [--require-comment|--require-tag] [--verify-remote] [WORKFLOW_TARGET]
 
 Check SHA-pinned GitHub Actions uses: entries for nearby version/tag comments.
 
 By default this requires a nearby tag-like comment such as v4 or v4.1.2. Use
---require-comment to accept any nearby non-empty comment. With --verify-remote,
+--require-comment to accept any nearby non-empty comment. Use --require-sha
+to report external uses: refs that are not full commit SHAs. With --verify-remote,
 each detected tag is resolved with git ls-remote over public HTTPS and compared
 to the pinned SHA. Use --quiet to emit only diagnostics. WORKFLOW_TARGET may be
 a .yml/.yaml file or a directory.
@@ -42,6 +47,10 @@ while (($# > 0)); do
       ;;
     --require-tag)
       require_mode="tag"
+      shift
+      ;;
+    --require-sha)
+      require_sha=true
       shift
       ;;
     -*)
@@ -200,10 +209,21 @@ for file in "${workflow_files[@]}"; do
       continue
     fi
 
-    found=true
     action="${BASH_REMATCH[2]}"
-    sha="${BASH_REMATCH[4]}"
+    sha="${BASH_REMATCH[3]}"
     line_no=$((index + 1))
+    if [[ ! "${sha}" =~ ${sha_pattern} ]]; then
+      if [[ "${require_sha}" == true ]]; then
+        echo "${file}:${line_no}: ${action}@${sha} must use a full commit SHA" >&2
+        status=1
+      fi
+      continue
+    fi
+    if [[ ! "${action}" =~ ${action_pattern} ]]; then
+      continue
+    fi
+
+    found=true
     comment="$(nearby_comment "${index}")"
     tag="$(extract_tag "${comment}")"
 

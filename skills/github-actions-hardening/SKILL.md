@@ -73,12 +73,14 @@ environment.
 ## Checks
 
 Use this skill's bundled audit script as the canonical workflow check. It runs
-`actionlint`, `zizmor` with its supported fallback, the action-pin comment
-check, and the checkout-credential check. Zizmor also receives sibling
+`actionlint`, `zizmor` with its supported fallback, and checks for full-SHA
+action pins and nearby comments. Zizmor checks credential persistence per
+checkout step and receives sibling
 `dependabot.yml` and `dependabot.yaml` files, including when workflows are absent.
 It uses strict collection so malformed configuration fails the audit; scanner
 versions must support Dependabot collection and `--strict-collection`.
-The checkout check covers only direct workflow steps; when a pinned composite action performs or may perform checkout, inspect its pinned source or replace the wrapper with an explicit checkout before claiming the credential boundary is satisfied.
+When a pinned composite action performs or may perform checkout, inspect its
+pinned source or use an explicit checkout before claiming the credential boundary is satisfied.
 
 ```sh
 ${HOME}/.agents/skills/github-actions-hardening/scripts/audit-actions.sh --quiet .github/workflows

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Command-level regressions for notebook inspection and audit evidence."""
+"""Command-level regressions for inspection and validation helpers."""
 
 import json
 import os
@@ -15,6 +15,8 @@ NOTEBOOK = REPO / 'skills/notebook-inspection/scripts/notebook_inspect.py'
 ACTIONS = REPO / 'skills/github-actions-hardening/scripts/audit-actions.sh'
 COMMENTS = ACTIONS.with_name('check-action-tag-comments.sh')
 ROXYGEN = REPO / 'skills/r-docs-pkgdown/scripts/audit-roxygen-markdown.sh'
+MARKDOWN = REPO / 'scripts/validate-markdown-references.rb'
+CHECKOUT_SHA = '3d3c42e5aac5ba805825da76410c181273ba90b1'
 WORKFLOW = '''name: test
 on: push
 permissions:
@@ -177,6 +179,22 @@ class CommandTests(unittest.TestCase):
         self.assertNotIn('No R source files found', result.stdout)
         self.assertNotIn('No odd roxygen backtick', result.stdout)
 
+    def test_markdown_links_require_anchors_outside_fenced_examples(self):
+        for example in ('```md\n## Publish\n```\n',
+                        '  ~~~html\n<a id="publish"></a>\n  ~~~~\n',
+                        '````md\n```\n## Publish\n```\n````\n'):
+            with self.subTest(example=example):
+                readme = self.write('README.md', '[Publish instructions](#publish)\n\n' + example)
+                result = self.run_command(MARKDOWN, self.root)
+                self.assert_status(result, 1)
+                self.assertIn('markdown link fragment not found: #publish', result.stderr)
+
+                readme.write_text(readme.read_text() + '\n## Publish\n')
+                self.assert_status(self.run_command(MARKDOWN, self.root), 0)
+
+        self.write('README.md', '[Publish instructions](#publish)\n\n<a id="publish"></a>\n')
+        self.assert_status(self.run_command(MARKDOWN, self.root), 0)
+
     def workflow(self):
         return self.write('.github/workflows/test.yml', WORKFLOW)
 
@@ -279,20 +297,35 @@ exit 14''')
                 self.assertIn('discovery failed', result.stderr)
                 self.assertNotIn('completed', result.stdout)
 
-    def test_each_actions_grep_producer_failure_is_not_a_clean_scan(self):
-        self.workflow()
+    def test_actions_audit_accepts_quoted_pins_and_rejects_quoted_tags(self):
         self.fake_scanners()
-        self.env['REAL_GREP'] = shutil.which('grep')
-        for pattern in ['uses:[[:space:]]*[^#]+@', 'uses:[[:space:]]*actions/checkout@']:
-            with self.subTest(pattern=pattern):
-                self.env['FAIL_PATTERN'] = pattern
-                self.fake('grep', 'if [[ "$*" == *"${FAIL_PATTERN}"* ]]; then\n'
-                          '  echo "injected grep failure" >&2\n  exit 37\nfi\n'
-                          'exec "${REAL_GREP}" "$@"')
+        for quote in ['', "'", '"']:
+            for ref, expected in [(CHECKOUT_SHA, 0), ('v7.0.1', 1)]:
+                with self.subTest(quote=quote, ref=ref):
+                    step = (f'      - uses: {quote}actions/checkout@{ref}{quote} # v7.0.1\n'
+                            '        with:\n'
+                            '          persist-credentials: false\n')
+                    self.write('.github/workflows/test.yml', WORKFLOW.replace('      - run: echo ok\n', step))
+                    result = self.run_command('/bin/bash', ACTIONS, '--quiet')
+                    self.assert_status(result, expected)
+                    if expected == 1:
+                        self.assertIn('full commit SHA', result.stderr)
+                        self.assertNotIn('completed', result.stdout)
+
+    def test_real_zizmor_checks_credentials_for_each_checkout_step(self):
+        self.assertIsNotNone(shutil.which('zizmor'), 'installed zizmor required for boundary test')
+        self.fake('actionlint', 'exit 0')
+        checkout = f'      - uses: actions/checkout@{CHECKOUT_SHA} # v7.0.1\n'
+        protected_checkout = checkout + '        with:\n          persist-credentials: false\n'
+        for first in [protected_checkout, checkout]:
+            with self.subTest(first_checkout_protected=first == protected_checkout):
+                self.write('.github/workflows/test.yml',
+                           WORKFLOW.replace('      - run: echo ok\n', first + protected_checkout))
                 result = self.run_command('/bin/bash', ACTIONS, '--quiet')
-                self.assert_status(result, 1)
-                self.assertIn('injected grep failure', result.stderr)
-                self.assertNotIn('completed', result.stdout)
+                self.assert_status(result, 0 if first == protected_checkout else 1)
+                if first == checkout:
+                    self.assertIn('artipacked', result.stderr)
+                    self.assertNotIn('completed', result.stdout)
 
     def test_actions_scanner_targets_include_dependabot_without_workflows(self):
         self.fake_scanners()

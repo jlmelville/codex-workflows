@@ -73,6 +73,20 @@ sys.stdout.write(text)
         self.assertFalse(sentinel.exists())
         self.assert_status(self.invoke("--check", path), 0)
 
+    def test_html_comment_markers_in_inline_code_leave_later_chunks_visible(self):
+        hidden = "<!--\n```{r}\nx<-1\n```\n-->\n\n"
+        visible = "```{r}\nx<-1\n```\n"
+        for literal in ("`<!--`", "`` `<!--` ``"):
+            with self.subTest(literal=literal):
+                prose = f"Write {literal} to start an HTML comment.\n\n"
+                source = hidden + prose + visible
+                path = self.write("comments.Rmd", source)
+                self.assert_status(self.invoke("--check", path), 1)
+                self.assertEqual(path.read_bytes(), source.encode())
+                self.assert_status(self.invoke("--write", path), 0)
+                expected = hidden + prose + visible.replace("x<-1", "x <- 1")
+                self.assertEqual(path.read_bytes(), expected.encode())
+
     def test_crlf_and_file_mode_survive(self):
         source = "---\r\ntitle: Example\r\n---\r\n```r\r\nx<-1\r\n```\r\n"
         path = self.write("article.Rmd", source)

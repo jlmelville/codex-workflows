@@ -13,6 +13,7 @@ import tempfile
 
 
 FENCE = re.compile(r"^((?: {0,3}> ?)* {0,3})(`{3,}|~{3,})(.*)$")
+INLINE_CODE_OR_COMMENT = re.compile(r"(?<!`)(`+)(?!`)[^\r\n]*?(?<!`)\1(?!`)|<!--")
 R_INFO = re.compile(r"^(?:[rR]|\{\.[rR]\}|\{[rR](?:[\s,].*)?\})$")
 VALIDATE = r'''
 args <- commandArgs(TRUE)
@@ -40,6 +41,22 @@ class Block:
     prefix: str
 
 
+def html_comment_state(line, active):
+    """Return whether the line touches a comment and whether it remains open."""
+    touched = active
+    while True:
+        if active:
+            _, closer, line = line.partition("-->")
+            if not closer:
+                return True, True
+        opener = next((match for match in INLINE_CODE_OR_COMMENT.finditer(line)
+                       if match.group() == "<!--"), None)
+        if opener is None:
+            return touched, False
+        touched = active = True
+        line = line[opener.end():]
+
+
 def blocks(lines):
     """Recognize ordinary/quoted fences; skip YAML/comments, fail on open fences."""
     first = lines[0].lstrip("\ufeff").strip() if lines else ""
@@ -53,10 +70,10 @@ def blocks(lines):
     while i < len(lines):
         line = lines[i]
         if comment or "<!--" in line:
-            # Leave the whole line alone even when a comment ends before a fence.
-            comment = line.rfind("<!--") > line.rfind("-->") if "-->" in line else True
-            i += 1
-            continue
+            comment_line, comment = html_comment_state(line, comment)
+            if comment_line:
+                i += 1
+                continue
         opener = FENCE.match(line.rstrip("\r\n"))
         if not opener:
             if re.match(r"^(?: {4,}|\s*>).*(`{3,}|~{3,})\s*\{?[rR](?:\s|,|\}|$)", line):

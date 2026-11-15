@@ -70,8 +70,24 @@ def github_heading_slug(heading)
     .gsub(/[[:space:]]+/, "-")
 end
 
+def unfenced_markdown(text)
+  fence = nil
+  text.each_line.reject do |line|
+    delimiter, rest = line.match(/\A {0,3}(`{3,}|~{3,})(.*)/)&.captures
+    if fence
+      fence = nil if delimiter&.start_with?(fence) && rest.strip.empty?
+      true
+    elsif delimiter && (delimiter.start_with?("~") || !rest.include?("`"))
+      fence = delimiter
+      true
+    else
+      false
+    end
+  end.join
+end
+
 def markdown_anchors(path)
-  text = File.read(path, encoding: "UTF-8")
+  text = unfenced_markdown(File.read(path, encoding: "UTF-8"))
   anchors = text.scan(/<(?:a\s+[^>]*(?:id|name)|[A-Za-z][^>]*\sid)=["']([^"']+)["'][^>]*>/i)
     .flatten
     .to_set
