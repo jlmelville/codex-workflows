@@ -21,9 +21,12 @@ class FormatTests(unittest.TestCase):
         bin_dir.mkdir()
         air = bin_dir / "air"
         air.write_text("""#!/usr/bin/env python3
+import os
 import sys
 text = sys.stdin.read()
-if 'unsafe_marker' in text:
+if 'RMD_FORMATTED_FIXTURE' in os.environ:
+    text = os.environ['RMD_FORMATTED_FIXTURE']
+elif 'unsafe_marker' in text:
     text = text.replace('x<-1', 'x <- 2')
 elif 'option_marker' in text:
     text = text.replace('#| echo: false', '#| echo: true')
@@ -39,9 +42,10 @@ sys.stdout.write(text)
         path.write_bytes(data.encode("utf-8"))
         return path
 
-    def invoke(self, mode, *paths):
+    def invoke(self, mode, *paths, formatted=None):
+        env = self.env if formatted is None else dict(self.env, RMD_FORMATTED_FIXTURE=formatted)
         return subprocess.run([sys.executable, str(SCRIPT), mode, *map(str, paths)],
-                              capture_output=True, text=True, env=self.env, timeout=30)
+                              capture_output=True, text=True, env=env, timeout=30)
 
     def assert_status(self, result, status):
         self.assertEqual(result.returncode, status, result.stdout + result.stderr)
@@ -76,6 +80,80 @@ sys.stdout.write(text)
         self.assert_status(self.invoke("--write", path), 0)
         self.assertEqual(path.read_bytes(), source.replace("x<-1", "x <- 1").encode())
         self.assertEqual(path.stat().st_mode & 0o777, 0o640)
+
+    def test_air_single_expression_bodies(self):
+        code = '''if (ready)
+  print("ready")
+f <- function(x) {
+  if (x) return(1)
+  0
+}
+if (x) {
+  print(1)
+} else print(0)
+for (i in 1:2)
+  print(i)
+while (x)
+  x <- FALSE
+repeat
+  break
+identity <- function(x)
+  x
+'''
+        formatted = '''if (ready) {
+  print("ready")
+}
+f <- function(x) {
+  if (x) {
+    return(1)
+  }
+  0
+}
+if (x) {
+  print(1)
+} else {
+  print(0)
+}
+for (i in 1:2) {
+  print(i)
+}
+while (x) {
+  x <- FALSE
+}
+repeat {
+  break
+}
+identity <- function(x) {
+  x
+}
+'''
+        source = f"```r\n{code}```\n"
+        path = self.write("braces.Rmd", source)
+        self.assert_status(self.invoke("--check", path, formatted=formatted), 1)
+        self.assertEqual(path.read_bytes(), source.encode())
+        self.assert_status(self.invoke("--write", path, formatted=formatted), 0)
+        self.assertEqual(path.read_bytes(), f"```r\n{formatted}```\n".encode())
+        self.assert_status(self.invoke("--check", path, formatted=formatted), 0)
+
+    def test_braces_do_not_hide_parsed_changes(self):
+        cases = (
+            ("if (x) f()", "if (x) { g() }"),
+            ("if (x) f()", "if (y) { f() }"),
+            ("if (x) f()", "if (x) { f(); g() }"),
+            ("if (x) { f() }", "if (x) f()"),
+            ("x <- f()", "x <- { f() }"),
+            ("quote(if (x) f())", "quote(if (x) { f() })"),
+            ("capture(if (x) f())", "capture(if (x) { f() })"),
+            ("field(x) <- if (ok) f()", "field(x) <- if (ok) { f() }"),
+        )
+        for code, formatted in cases:
+            with self.subTest(code=code, formatted=formatted):
+                source = f"```r\n{code}\n```\n"
+                path = self.write("unsafe.Rmd", source)
+                result = self.invoke("--write", path, formatted=formatted + "\n")
+                self.assert_status(result, 2)
+                self.assertIn("changed parsed R expressions", result.stderr)
+                self.assertEqual(path.read_bytes(), source.encode())
 
     def test_semantic_change_refuses_entire_batch(self):
         good = self.write("a.Rmd", "```r\nx<-1\n```\n")

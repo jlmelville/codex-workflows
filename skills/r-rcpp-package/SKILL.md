@@ -74,9 +74,11 @@ Choose exactly one generation command when bindings changed:
 Rscript -e 'Rcpp::compileAttributes()' # Rcpp
 Rscript -e 'cpp11::cpp_register()'     # cpp11
 Rscript -e 'testthat::test_local()'
-Rscript -e 'devtools::check(document = FALSE, args = c("--no-manual"), error_on = "note")'
 clang-format --dry-run --Werror <hand-maintained-C++-paths>
 ```
+
+For a full package check, use the completion-guarded command in
+[R Behavior](../r-package-workflow/references/checks.md#r-behavior).
 
 Always exclude generated `src/RcppExports.cpp` or `src/cpp11.cpp` from
 hand-maintained formatting judgments.

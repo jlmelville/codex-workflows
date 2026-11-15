@@ -15,9 +15,12 @@ python3 "${HOME}/.agents/skills/r-docs-pkgdown/scripts/format-rmd.py" --check vi
 
 It formats executable R chunks and plain fenced `r`/`R` examples with Air, including consistently
 quoted fences. A synthetic `.R` path beside each article lets Air use its project configuration.
-The helper does not execute code. It validates R parse-tree identity before writing and preserves
-surrounding prose, front matter, fences and options, and non-R blocks. Invalid input or failed
-validation stops the batch before writing. Python 3, Air, and Rscript must be available on `PATH`.
+The helper compares parsed expressions without executing them. It allows Air to wrap a single
+expression in braces in conditional, loop, and function bodies. Call arguments and replacement
+assignment values retain their parsed form because functions can inspect that syntax. The helper
+preserves surrounding prose, front matter, fences and options, and non-R blocks. Invalid input or
+failed validation stops the batch before writing. Python 3, Air, and Rscript must be available on
+`PATH`.
 
 `--check` exits 1 when formatting is needed; invalid or unsafe input and tool failures exit 2.
 Both modes report residual long code and literal output lines; `--report-width` sets the advisory
