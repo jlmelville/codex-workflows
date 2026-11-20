@@ -110,6 +110,12 @@ timestamps or runtime, and package-check summary. Inspect both annotations and
 logs even when the run is green: annotations may omit package notes, diagnostic
 summaries, or nonfatal infrastructure messages.
 
+If `gh run view --log --job` is waiting for the run and finished-job details are
+useful now, use the job ID from the intended attempt with
+`gh api repos/OWNER/REPO/actions/jobs/JOB_ID/logs`. If the CLI rejects escape
+sequences, use `--allow-escape-sequences` with output redirected to a file and
+sanitize excerpts before displaying them. Continue monitoring the remaining jobs.
+
 Classify findings as package behavior, dependency behavior, or R-hub/CI
 infrastructure. Preserve package warnings and notes in the acceptance summary;
 do not turn a cache race or other post-job service message into a package

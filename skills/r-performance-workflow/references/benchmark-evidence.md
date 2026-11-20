@@ -40,6 +40,10 @@ establish that coverage.
 Before treating a selector as one factor, resolve conditional defaults. Compare a coherent public profile separately
 from fixed-policy variants, and use controlled variants for component-level causal claims.
 
+When comparing fits by objective value and the methods report their own approximations, score each final output
+with the same independently checked evaluator outside the fit timing. Leave the ranking open if that reference
+cannot resolve the difference.
+
 For a causal size-sensitivity claim, vary size inside a self-similar objective family, evaluate with a size-invariant
 witness, and include an analytically scaled-rate trajectory oracle. Use heterogeneous suites to test transfer only
 after the within-family mechanism is identified; changing geometry, units, and size together cannot identify size.
