@@ -40,6 +40,10 @@ establish that coverage.
 Before treating a selector as one factor, resolve conditional defaults. Compare a coherent public profile separately
 from fixed-policy variants, and use controlled variants for component-level causal claims.
 
+When comparing elapsed time or peak RSS for ordinary fits, match diagnostic settings across variants.
+Collect any needed intermediate snapshots in a separate run so the resource comparison uses fits
+without snapshot capture.
+
 When comparing fits by objective value and the methods report their own approximations, score each final output
 with the same independently checked evaluator outside the fit timing. Leave the ranking open if that reference
 cannot resolve the difference.

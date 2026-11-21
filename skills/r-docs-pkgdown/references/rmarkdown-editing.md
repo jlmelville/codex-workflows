@@ -67,6 +67,9 @@ they can distinguish competing formulas. Check necessary division conditions and
 special case against the original update. These checks support the exercised identities, not a
 universal notation style.
 
+Compare each edited multiline equation in the rendered article with the intended expression,
+paying particular attention to signs and operators at line breaks.
+
 ## Completion Evidence
 
 Render each affected article and follow the
