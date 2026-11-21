@@ -248,6 +248,9 @@ EOF_SIGNAL_CP
     [[ ! -e "${user_home}/.agents/.codex-workflows-install.lock" ]] || \
       fail "${signal_name} install retained its lock"
     [[ -z "$(ls -A "${signal_tmp}")" ]] || fail "${signal_name} install leaked temporary files"
+    if compgen -G "${user_home}/.agents/skills/.codex-workflows-install-stage.*" >/dev/null; then
+      fail "${signal_name} install leaked its staging directory"
+    fi
 
     if [[ "${signal_name}" == none ]]; then
       assert_file_contains "${output}" "Installed managed user-scoped skills"
@@ -305,7 +308,7 @@ EOF_FIND
         if [[ "${entry_mode}" == dry-run ]]; then
           args=(--dry-run)
         else
-          # Let staging succeed so the real install reaches unowned classification.
+          # Exercise the installed-tree inventory during unowned classification.
           inject_source=0
         fi
       fi
@@ -665,6 +668,84 @@ assert_file_contains "${tmp_root}/denied-lock.out" "could not create install loc
 assert_file_contains "${tmp_root}/denied-lock.out" "Check write permission and filesystem availability"
 assert_file_not_contains "${tmp_root}/denied-lock.out" "another install appears"
 [[ ! -e "${denied_agents_home}/.codex-workflows-install.lock" ]] || fail "denied lock fixture created a lock"
+
+test_manifest_after_lock() {
+  local fixture="${tmp_root}/manifest-lock-fixture"
+  local other_fixture="${tmp_root}/manifest-lock-other-fixture"
+  local user_home="${tmp_root}/manifest-lock-home"
+  local fake_bin="${tmp_root}/manifest-lock-bin"
+  local witness="${tmp_root}/manifest-lock.witness"
+  local agents_home="${user_home}/.agents"
+
+  create_fixture "${fixture}"
+  create_fixture "${other_fixture}"
+  HOME="${user_home}" CODEX_HOME="${user_home}/.codex" "${fixture}/install.sh" >/dev/null
+  create_skill "${other_fixture}" gamma "installed by the other checkout"
+  mkdir -p "${fake_bin}"
+  cat >"${fake_bin}/mkdir" <<'EOF_MKDIR'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$#" -eq 1 && "$1" == "${INSTALL_TEST_LOCK}" ]]; then
+  # Finish the other install before this caller acquires the lock.
+  PATH="${INSTALL_TEST_ORIGINAL_PATH}" "${INSTALL_TEST_OTHER_INSTALLER}" >/dev/null
+  printf '%s\n' 'other install finished' >"${INSTALL_TEST_WITNESS}"
+fi
+exec "${INSTALL_TEST_REAL_MKDIR}" "$@"
+EOF_MKDIR
+  chmod 755 "${fake_bin}/mkdir"
+
+  env PATH="${fake_bin}:${PATH}" HOME="${user_home}" CODEX_HOME="${user_home}/.codex" \
+    INSTALL_TEST_LOCK="${agents_home}/.codex-workflows-install.lock" \
+    INSTALL_TEST_ORIGINAL_PATH="${PATH}" INSTALL_TEST_REAL_MKDIR="$(command -v mkdir)" \
+    INSTALL_TEST_OTHER_INSTALLER="${other_fixture}/install.sh" INSTALL_TEST_WITNESS="${witness}" \
+    "${fixture}/install.sh" >/dev/null
+  assert_file_contains "${witness}" "other install finished"
+  [[ ! -e "${agents_home}/skills/gamma" ]] || fail "stale manifest orphaned the other install's gamma"
+  assert_file_not_contains "${agents_home}/codex-workflows-managed-skills.tsv" "gamma"
+  HOME="${user_home}" CODEX_HOME="${user_home}/.codex" "${fixture}/install.sh" --check >/dev/null
+}
+
+test_partial_new_skill_copy() {
+  local fixture="${tmp_root}/partial-copy-fixture"
+  local user_home="${tmp_root}/partial-copy-home"
+  local fake_bin="${tmp_root}/partial-copy-bin"
+  local target_dir="${user_home}/.agents/skills"
+  local output="${tmp_root}/partial-copy.out"
+  local before
+
+  create_fixture "${fixture}"
+  HOME="${user_home}" CODEX_HOME="${user_home}/.codex" "${fixture}/install.sh" >/dev/null
+  create_skill "${fixture}" gamma "a newly managed skill"
+  before="$(snapshot_tree "${user_home}")"
+  mkdir -p "${fake_bin}"
+  cat >"${fake_bin}/cp" <<'EOF_PARTIAL_CP'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$#" -eq 3 && "$1" == -a && "$2" == */gamma && "$3" == "${INSTALL_TEST_TARGET}/"* ]]; then
+  mkdir -p "${3%/}/gamma"
+  "${INSTALL_TEST_REAL_CP}" "$2/SKILL.md" "${3%/}/gamma/"
+  echo 'injected partial skill copy' >&2
+  exit 23
+fi
+exec "${INSTALL_TEST_REAL_CP}" "$@"
+EOF_PARTIAL_CP
+  chmod 755 "${fake_bin}/cp"
+
+  if env PATH="${fake_bin}:${PATH}" HOME="${user_home}" CODEX_HOME="${user_home}/.codex" \
+    INSTALL_TEST_REAL_CP="$(command -v cp)" INSTALL_TEST_TARGET="${target_dir}" \
+    "${fixture}/install.sh" >"${output}" 2>&1; then
+    fail "install succeeded despite partial new skill copy"
+  fi
+  assert_file_contains "${output}" "injected partial skill copy"
+  [[ "$(snapshot_tree "${user_home}")" == "${before}" ]] || \
+    fail "partial new skill copy changed the installed runtime"
+  HOME="${user_home}" CODEX_HOME="${user_home}/.codex" "${fixture}/install.sh" >/dev/null
+  HOME="${user_home}" CODEX_HOME="${user_home}/.codex" "${fixture}/install.sh" --check >/dev/null
+  assert_file_contains "${user_home}/.agents/codex-workflows-managed-skills.tsv" "gamma"
+}
+
+test_manifest_after_lock
+test_partial_new_skill_copy
 
 partial_fixture="${tmp_root}/partial-fixture"
 partial_user_home="${tmp_root}/partial-user-home"

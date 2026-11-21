@@ -402,7 +402,8 @@ write_manifest() {
 }
 
 stage_source() {
-  stage_root="$(mktemp -d "${TMPDIR:-/tmp}/codex-workflows-install-stage.XXXXXX")"
+  # Stage on the destination filesystem so publication can rename each completed tree.
+  stage_root="$(mktemp -d "${target_dir}/.codex-workflows-install-stage.XXXXXX")"
   mkdir -p "${stage_root}/skills"
 
   local name
@@ -580,17 +581,17 @@ install_skills() {
   local name replaced_count=0 fail_after="${CODEX_WORKFLOWS_INSTALL_FAIL_AFTER_REPLACE:-}"
 
   validate_source_tree
+  manage_global_learning dry-run >/dev/null
+  acquire_lock
   validate_manifest_file "${manifest_path}"
   if [[ "${legacy_manifest_path}" != "${manifest_path}" ]]; then
     validate_manifest_file "${legacy_manifest_path}"
   fi
   read_old_manifest_names
   read_legacy_manifest_names
-  manage_global_learning dry-run >/dev/null
-  stage_source
-  acquire_lock
   classify_unowned_targets
   mkdir -p "${target_dir}"
+  stage_source
 
   if [[ -f "${manifest_path}" ]] && ((${#old_manifest_names[@]} > 0)); then
     for name in "${old_manifest_names[@]}"; do
@@ -607,7 +608,7 @@ install_skills() {
         continue
       fi
       rm -rf "${target_dir:?}/${name}"
-      cp -a "${stage_root}/skills/${name}" "${target_dir}/"
+      mv "${stage_root}/skills/${name}" "${target_dir}/"
       replaced_count=$((replaced_count + 1))
       if [[ -n "${fail_after}" && "${replaced_count}" -ge "${fail_after}" ]]; then
         echo "install.sh: simulated failure after replacing ${replaced_count} skill(s)" >&2
