@@ -10,7 +10,13 @@ Repository Policy](https://cran.r-project.org/web/packages/policies.html) when r
 2. For roxygen-managed documentation, assess the exact candidate using the
    [roxygen synchronization recipe](../../r-docs-pkgdown/references/pkgdown.md#roxygen), including
    isolated drift evaluation, generated-surface review, metadata classification, and idempotence.
-3. Build with current R-patched or R-release; inspect the archive's identity, contents, licenses, and documentation.
+3. Before a native Windows build that renders R Markdown vignettes, check Pandoc using the same R
+   executable and environment as the build. Inspect the selected directory and version with
+   `rmarkdown::find_pandoc()`, then call `rmarkdown::pandoc_available()` with the minimum version
+   the vignettes require and `error = TRUE`.
+
+   Build with current R-patched or R-release. Inspect the archive's identity, contents, licenses,
+   and documentation.
 
 ## Validate The Archive
 
