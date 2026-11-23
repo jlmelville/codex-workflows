@@ -122,6 +122,11 @@ do not turn a cache race or other post-job service message into a package
 failure. After a package fix, rerun the affected diagnostics and re-establish
 terminal evidence instead of relying on the earlier matrix.
 
+When sanitizer or linker diagnostics implicate compiled dependencies, compare restored cache keys
+and the jobs' compiler, C++ runtime, and BLAS/LAPACK configuration. If incompatible jobs restored
+the same cache, rerun the affected checks with cold caches scoped to compatible toolchains and
+native libraries. Keep dependency selection and package-check scope the same.
+
 ## Pkgdown
 
 After scaffolding, restore hardening while preserving the configured publishing backend and output

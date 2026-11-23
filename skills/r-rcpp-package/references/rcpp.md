@@ -200,6 +200,11 @@ run every tool for every edit:
 | R/native protection or link boundaries | Applicable rchk or LTO checks. |
 | Installed C++ headers | Standalone GCC and Clang compilation of each supported public header without accidental transitive includes. |
 
+When an unchanged `rchk` diagnostic names dependency code and attribution affects the remedy,
+exercise the relevant dependency operation in a minimal package with the same dependency version
+and checker environment. Match diagnostics by function, message, and source location. A match
+shows the diagnostic can arise without the application. Assess runtime impact separately.
+
 When lifecycle acceptance includes leak-free cleanup, an ASan pass with leak detection disabled or
 unavailable is incomplete evidence. Require active leak detection, complete allocation accounting for
 owned resources, or an independent leak checker such as Valgrind over the same successful and injected

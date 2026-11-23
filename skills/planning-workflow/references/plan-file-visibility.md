@@ -1,7 +1,7 @@
 # Plan File Visibility
 
-Use this with `$planning-workflow` when plan files may be ignored, untracked,
-local-only, or noisy for package tooling.
+Use this with `$planning-workflow` when choosing a plan's audience or location, or when plan files
+may be ignored, untracked, or noisy for package tooling.
 
 ## Discovery
 
@@ -58,11 +58,12 @@ than running it as though it were current evidence.
 
 ## Location Choice
 
-When creating a persistent plan, choose a location deliberately:
+Keep a working plan local unless sharing it is part of the agreed deliverable. Before staging,
+check the plan's intended audience and the paths to be included.
 
 - Use the established plan directory when it is intentionally local or ignored.
-- Use a visible tracked path, such as a root `EXECPLAN-*.md`, when the plan must
-  appear in normal `git status` or be reviewed in a PR.
+- For a shared plan, use the established tracked location or a visible path such as a root
+  `EXECPLAN-*.md` for PR review.
 - Explain the location choice in the plan when ignored paths or visibility
   could surprise a later agent.
 
