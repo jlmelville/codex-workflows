@@ -100,6 +100,11 @@ When reconciling component timings with elapsed time, use the same clock or cros
 on a known interval. For sums of short intervals, estimate instrumentation overhead from the mean
 of repeated empty timing brackets and retain the raw totals alongside any adjusted estimates.
 
+For work split into waves by barriers, measure elapsed time from each wave's start to its last
+completion. Compare their sum with the enclosing stage timer to account for time outside those
+intervals. Summed worker times measure aggregate activity, and dividing by worker count can
+understate elapsed time when occupancy varies.
+
 For storage-backed work, distinguish logical payload from the physical chunks,
 shards, pages, or repeated transfers it touches. Compare aligned and scattered
 operations with equal logical work to expose amplification; retain a remedy only
@@ -155,6 +160,10 @@ usage with `os.wait4(child.pid, 0)`. Check the returned wait status for benchmar
 `ru_maxrss` from the returned resource-usage object. Label this as whole-child-process peak RSS,
 including startup and setup; it does not attribute allocations to an individual operation. This
 fallback was exercised on macOS; establish platform units and behavior before using it elsewhere.
+
+When a process exposes a lifetime peak RSS reading, take it immediately before and after the
+warmed operation. An increase places the new process peak within that interval. An unchanged
+reading gives only an upper bound on peak RSS during the operation.
 
 Name the allocation profiler, warmup or JIT policy, and allocation class it can
 observe. A zero from warmed `Rprofmem()` means only that the measured run

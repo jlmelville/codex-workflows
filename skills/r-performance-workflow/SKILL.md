@@ -124,6 +124,9 @@ For long timing runs, recheck load and laptop power conditions at existing case 
 boundaries. When a change puts comparability in doubt, isolate affected samples and rerun those
 cases under comparable conditions, retaining earlier comparable results.
 
+Keep the launcher and the scripts it or its children load stable until the run exits. If you
+need to edit them during sampling, start the run from stable copies of those files.
+
 Use base R `system.time()` when adding benchmark dependencies is undesirable and its elapsed
 values resolve the workload. If durations are zero or visibly quantized, use a higher-resolution
 timer or equivalent batched work before interpreting speedup ratios.

@@ -27,10 +27,9 @@ identity matters. A witness failure leaves the child's return code intact in the
 the observer fail. Workload-specific result assertions remain separate.
 
 `--cwd` changes the command's working directory. The observer records argv and leaves program files
-in place. If you need to edit the harness during sampling, start the run from stable copies of the
-launcher and any scripts later samples will load. The observer does not capture environment
-variables or measure parent/worker CPU and memory. Keep R profiling separate and label
-inclusive samples and component timings by their measured scope. The existing
+in place. The observer does not capture environment variables or measure parent/worker CPU and
+memory. Keep R profiling separate and label inclusive samples and component timings by their
+measured scope. The existing
 [read-only process observer](../../r-package-workflow/references/revdepcheck.md#keep-preparation-outside-the-package-source)
 can inspect an already-running Linux process. Run `subprocess-evidence.py --self-test` for temporary
 lifecycle, failure, file-witness, and cancellation fixtures.
