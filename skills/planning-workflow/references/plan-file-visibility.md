@@ -56,6 +56,11 @@ gate after private constructors, fields, or protocols it consumes are renamed.
 If it is stale, make a harness-only refresh an explicit prerequisite rather
 than running it as though it were current evidence.
 
+For a benchmark handoff to another machine, include any required inputs and launcher files missing
+from the pinned checkout. Run the smallest representative case on the receiving machine using the
+pinned checkout and only the delivered benchmark files. If the receiving machine is unavailable,
+report that smoke check as pending.
+
 ## Location Choice
 
 Keep a working plan local unless sharing it is part of the agreed deliverable. Before staging,
