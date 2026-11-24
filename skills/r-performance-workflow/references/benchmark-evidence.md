@@ -77,6 +77,10 @@ trajectory reproduction.
 Scope relative gates before observing results, name their workload class, and report absolute medians beside ratios.
 Retain crossed unconditional gates as explicit review decisions even when their absolute cost is small.
 
+When run order or timing spread could change a decision to keep an optimization or which workload to
+profile, inspect paired timings by implementation and repeat the affected cases with balanced run
+order. If the workload ranking still changes, report the competing workloads and their observed gaps.
+
 When pilot responses select a reduced panel, apply the final feature transform and numerical-invariance rule first.
 Derive feasible capacity after structural caps and require every selected unit to retain a downstream feature.
 
