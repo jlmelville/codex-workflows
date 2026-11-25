@@ -156,6 +156,10 @@ repaired without new acquisition. When only sampled instruction pointers can be 
 label that attribution as exclusive; it does not establish callers, inclusive costs, or allocation
 behavior.
 
+When matched release benchmarks show a material slowdown after a change to a hot native loop,
+consider disassembling the hot path in both installed binaries to check for changes in vectorization
+or register spills. Scope timing conclusions to the measured targets and toolchains.
+
 ## Allocation Evidence
 
 On macOS, if `/usr/bin/time -l` cannot report peak resident memory because a sandbox blocks
