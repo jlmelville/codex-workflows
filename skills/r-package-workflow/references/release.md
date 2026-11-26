@@ -14,8 +14,7 @@ Repository Policy](https://cran.r-project.org/web/packages/policies.html) when r
    executable and environment as the build. Inspect the selected directory and version with
    `rmarkdown::find_pandoc()`, then call `rmarkdown::pandoc_available()` with the minimum version
    the vignettes require and `error = TRUE`.
-
-   Build with current R-patched or R-release. Inspect the archive's identity, contents, licenses,
+4. Build with current R-patched or R-release. Inspect the archive's identity, contents, licenses,
    and documentation.
 
 ## Validate The Archive

@@ -49,7 +49,8 @@ decision; do not promise to digest an entire field before making progress.
 
 ## Make The Research Design Concrete
 
-Present a compact brief that connects these decisions:
+Use these decisions to guide an investigation or present them in a compact brief for a requested
+research design.
 
 - **Overlooked expert moves:** what changes in the investigation and why it could change the answer.
 - **Primary material:** the closest useful evidence, such as source code at a named revision, raw
@@ -69,16 +70,13 @@ limits; assembling fictional specialists or adding disciplines without a purpose
 For ambiguity about methods or evidence, consult
 [methods-and-evidence.md](references/methods-and-evidence.md).
 
-## Rewrite And Follow Through
+## Deliver The Requested Work
 
-Rewrite the task as a self-contained prompt using the brief. Preserve the user's goal and
-constraints; include the selected material, methods, consequential assumptions, validation, stopping
-condition, and expected result. State missing access or evidence explicitly. Use concrete actions in
-place of demands for exceptional quality, unlimited tokens, or certainty.
-
-If the user asked for a prompt or research design, deliver that artifact. If they asked to perform
-the investigation, use the strengthened formulation to continue the authorized work. Prompt
-improvement is an intermediate step in that case, not the completion condition.
+When asked to investigate, apply the chosen methods and report the findings. Write a self-contained
+prompt when the user requests one or a handoff needs one. In that prompt, preserve the goal and
+constraints, identify the material and methods, and state consequential assumptions, missing
+evidence, validation, stopping condition, and expected result. Give the researcher concrete actions
+they can carry out with the available resources.
 
 Start with a small observation or experiment that can expose a mistaken premise before committing to
 an elaborate method. Keep exploratory findings distinct from confirmation: reserve fresh data or a

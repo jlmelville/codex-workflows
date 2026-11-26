@@ -8,8 +8,8 @@ Rscript "${HOME}/.agents/skills/r-performance-workflow/scripts/benchmark-evidenc
   path/to/cases.R --reps 5 --seed 1 --out bench/results
 ```
 
-The case file must define `benchmark_cases`, a non-empty named list of
-zero-argument functions. It may also define `benchmark_setup()` and
+The case file must define `benchmark_cases`, a non-empty list of zero-argument functions with
+unique, non-empty names. It may also define `benchmark_setup()` and
 `benchmark_metadata`, a named list of scalar values.
 
 ```r
@@ -27,7 +27,8 @@ benchmark_cases <- list(
 The first case is the default baseline; use `--baseline NAME` to select another
 case. The command writes `<prefix>.csv` with per-repetition timings and
 `<prefix>.md` with the command, metadata, median/minimum/maximum elapsed time,
-and relative speed versus the baseline. Treat the generated files as benchmark
+and relative speed versus the baseline. To repeat the run, execute the report's `Rscript` command
+in a POSIX shell from the original working directory. Treat the generated files as benchmark
 evidence, not package validation, and follow the active plan or repository
 policy when deciding whether to retain them.
 

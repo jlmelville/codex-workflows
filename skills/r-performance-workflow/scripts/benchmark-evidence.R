@@ -4,7 +4,7 @@ usage <- function() {
   cat(
     "Usage: benchmark-evidence.R cases.R [--reps N] [--seed N] [--baseline NAME] [--out PREFIX]\n",
     "\n",
-    "cases.R must define benchmark_cases, a named list of zero-argument functions.\n",
+    "cases.R must define benchmark_cases, a list of zero-argument functions with unique names.\n",
     "Optional objects: benchmark_setup() and benchmark_metadata, a named list.\n",
     sep = ""
   )
@@ -139,8 +139,12 @@ source_cases <- function(path) {
   }
   cases <- get("benchmark_cases", envir = env, inherits = FALSE)
   if (!is.list(cases) || length(cases) == 0L || is.null(names(cases)) ||
-      any(names(cases) == "")) {
+      anyNA(names(cases)) || any(names(cases) == "")) {
     stop("benchmark_cases must be a non-empty named list", call. = FALSE)
+  }
+  duplicate <- anyDuplicated(names(cases))
+  if (duplicate > 0L) {
+    stop("duplicate case name: ", names(cases)[[duplicate]], call. = FALSE)
   }
   if (!all(vapply(cases, is.function, logical(1)))) {
     stop("every benchmark_cases entry must be a function", call. = FALSE)
@@ -226,6 +230,21 @@ summarize_results <- function(results, baseline) {
   summary
 }
 
+replay_command <- function() {
+  args <- commandArgs()[-1L]
+  file_index <- grep("^--file=", args)[[1L]]
+  script <- sub("^--file=", "", args[[file_index]])
+  # R encodes spaces as ~+~ in the --file argument.
+  script <- gsub("~+~", " ", script, fixed = TRUE)
+  flags <- head(args, file_index - 1L)
+  # Rscript adds these two flags before the caller's startup options.
+  if (identical(head(flags, 2L), c("--no-echo", "--no-restore"))) {
+    flags <- tail(flags, -2L)
+  }
+  arguments <- c(flags, script, commandArgs(trailingOnly = TRUE))
+  paste(c("Rscript", shQuote(arguments, type = "sh")), collapse = " ")
+}
+
 write_markdown <- function(path, opts, metadata, summary) {
   con <- file(path, open = "w", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
@@ -233,7 +252,7 @@ write_markdown <- function(path, opts, metadata, summary) {
   cat("# Benchmark Evidence\n\n", file = con)
   cat("## Command\n\n", file = con)
   cat("```sh\n", file = con)
-  cat(paste(commandArgs(FALSE), collapse = " "), "\n", sep = "", file = con)
+  cat(replay_command(), "\n", sep = "", file = con)
   cat("```\n\n", file = con)
 
   cat("## Metadata\n\n", file = con)

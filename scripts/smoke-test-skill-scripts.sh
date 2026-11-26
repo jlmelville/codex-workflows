@@ -1419,6 +1419,7 @@ run_patch_identity_smoke() {
 run_inspection_audit_regressions
 run_checkout_index_regressions
 run_benchmark_smoke
+python3 "${repo_dir}/scripts/test-benchmark-evidence.py"
 run_architecture_audit_smoke
 run_evidence_helper_smoke
 run_manifest_smoke
