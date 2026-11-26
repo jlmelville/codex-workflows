@@ -107,6 +107,12 @@ whether the operator wants only current-tree cleanup or also wants unpublished
 experimental commits removed from the active branch. Use an ordinary removal or
 revert for published or shared history.
 
+When retiring a mix of linked worktrees and standalone checkouts, use `git worktree list` for the
+linked worktrees and inspect the directories in scope for separate repositories. For each
+unpublished commit to keep, verify that a surviving branch reaches it or that it can be restored
+from a retained bundle. Separately, compare bulky evidence with its archived copy by content,
+for example by matching Git blob IDs.
+
 When active-history removal is explicitly authorized for unpublished work,
 first preserve one verified recovery branch, bundle, or equivalent artifact;
 identify the upstream base; classify independently useful spillovers; and
