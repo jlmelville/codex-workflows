@@ -329,7 +329,11 @@ Before publishing an accepted change:
 3. Stage only intended files.
 4. Inspect `git diff --cached --stat` and `git diff --cached --name-only`.
 5. Commit and push to `origin/main` unless the user says otherwise.
-6. Check full CI for the exact pushed commit.
+6. Check full CI for the exact pushed commit. Keep its run ID and watch quietly with
+   `gh run watch "$run_id" --exit-status --interval 15 >/dev/null`. Allow several minutes for a
+   normal push run. After an interruption, immediately check
+   `gh run view "$run_id" --json status,conclusion` before waiting again. If the run has
+   completed, report its conclusion. Otherwise, resume the watch.
 
 Use `$skill-retro-triage` to review observations, legacy intake and verification evidence, and to
 complete already-authorized follow-through. Re-read relevant destinations before changing source.
