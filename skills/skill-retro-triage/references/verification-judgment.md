@@ -5,8 +5,10 @@ Apply the parent skill's authority and shared evidence rules. Read
 [Verification Evidence](../../skill-retro/references/state-protocol.md#verification-evidence)
 for eligible transitions, claim scopes and provenance limits.
 
-Discover relevant outcomes with bounded `verification-context --destination TEXT --compact` and
-expand selected accepted or proposal IDs with `verification-context --id ID`. For observed harm,
+Discover relevant outcomes with `verification-context --destination TEXT --compact`. When a skill
+has many records, start with `--text` terms from the observation. If that finds no relevant record,
+drop the text filters and follow `next_offset` through the results before ruling out a match.
+Expand selected accepted or proposal IDs with `verification-context --id ID`. For observed harm,
 use `accepted-records` across all dispositions so inactive identities remain visible.
 Judge the evidence once against the exact opportunity, basis and claim. A supplement must add
 material evidence; its presence or a different claim label is insufficient. Preserve known guidance
