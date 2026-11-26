@@ -34,8 +34,9 @@ across agents and sessions.
 
 Prefer one scoped optimization per phase. For each phase:
 
-1. Record baseline behavior and benchmark evidence before editing unless a
-   trustworthy baseline artifact already exists.
+1. Record baseline behavior and benchmark evidence before editing. When reusing saved timings,
+   verify that the measured release or commit matches the comparison. For an upgrade claim, use the
+   release users are upgrading from.
 2. Make the smallest implementation change that targets the bottleneck.
 3. Run focused semantic validation before interpreting timings.
 4. Benchmark current versus baseline or old wrapper with identical inputs,

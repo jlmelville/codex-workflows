@@ -146,6 +146,9 @@ development site. The `development: {mode: auto}` setting selects destination an
 the package version; it does not obtain or build released source. Verify version labels and
 representative pages at both published destinations.
 
+If a version bump moves an article linked from the package, check after deployment that the URL
+in the final source tarball opens the intended article on the release site.
+
 When changing configuration or navigation shared by release and development builds, validate the
 affected build steps against each source version that consumes it, using the publishing workflow's
 version-specific adaptations. Ensure navigation entries resolve to pages available in the
