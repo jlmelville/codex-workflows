@@ -210,12 +210,6 @@ summarize_results <- function(results, baseline) {
     })
   )
 
-  if (is.na(baseline)) {
-    baseline <- summary$case[[1L]]
-  }
-  if (!baseline %in% summary$case) {
-    stop("Unknown benchmark baseline: ", baseline, call. = FALSE)
-  }
   baseline_elapsed <- summary$median_elapsed[summary$case == baseline]
   if (length(baseline_elapsed) == 1L && is.finite(baseline_elapsed) &&
       baseline_elapsed > 0) {
@@ -261,7 +255,7 @@ write_markdown <- function(path, opts, metadata, summary) {
       cases = opts$cases,
       reps = opts$reps,
       seed = opts$seed,
-      baseline = if (is.na(opts$baseline)) summary$case[[1L]] else opts$baseline,
+      baseline = opts$baseline,
       r_version = paste(R.version$major, R.version$minor, sep = "."),
       platform = R.version$platform
     ),
@@ -358,10 +352,16 @@ main <- function() {
   )
   preflight_outputs(output_paths)
   loaded <- source_cases(opts$cases)
+  case_names <- names(loaded$cases)
+  if (is.na(opts$baseline)) {
+    opts$baseline <- case_names[[1L]]
+  } else if (!opts$baseline %in% case_names) {
+    stop("Unknown benchmark baseline: ", opts$baseline, call. = FALSE)
+  }
 
   results <- do.call(
     rbind,
-    lapply(names(loaded$cases), function(name) {
+    lapply(case_names, function(name) {
       time_case(name, loaded$cases[[name]], opts$reps, opts$seed, loaded$setup)
     })
   )

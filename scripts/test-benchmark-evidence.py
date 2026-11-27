@@ -1,4 +1,4 @@
-"""Regression tests for the case names and replay command in benchmark evidence."""
+"""Regression tests for benchmark validation and command replay."""
 
 from pathlib import Path
 import shutil
@@ -28,6 +28,25 @@ class BenchmarkEvidenceTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("duplicate case name: trial", result.stderr)
             self.assertFalse((root / "called").exists())
+
+    def test_unknown_baseline_fails_before_setup_or_timing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "cases.R").write_text(
+                'benchmark_setup <- function() writeLines("setup", "setup-called")\n'
+                'benchmark_cases <- list(base = function() {\n'
+                '  writeLines("timed", "case-called")\n'
+                '  Sys.sleep(0.02)\n'
+                '})\n'
+            )
+            result = subprocess.run(
+                ["Rscript", "--vanilla", HELPER, "cases.R", "--reps", "1", "--baseline", "typo"],
+                cwd=root, capture_output=True, text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Unknown benchmark baseline: typo", result.stderr)
+            self.assertFalse((root / "setup-called").exists())
+            self.assertFalse((root / "case-called").exists())
 
     def test_command_from_report_replays_with_quoted_paths(self):
         with tempfile.TemporaryDirectory() as directory:
