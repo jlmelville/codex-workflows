@@ -1,0 +1,4 @@
+interface:
+  display_name: "Numerical C++ Performance"
+  short_description: "Inspect GCC and Clang kernels and measure caller impact"
+  default_prompt: "Use $numerical-cpp-performance to evaluate this numerical loop with GCC and Clang and determine whether it speeds up the full workload."
