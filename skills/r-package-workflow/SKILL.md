@@ -65,7 +65,9 @@ explicit repository or user opt-outs. Follow
 When a release check has a large, compiled, or repository-sensitive reverse-
 dependency universe, follow [revdepcheck.md](references/revdepcheck.md) before
 starting `revdepcheck`. It owns dependency preparation, external staging, and
-the exact runner-path preflight.
+the exact runner-path preflight. For routine or large comparisons, follow
+[Compare Failed Test Results](references/revdepcheck.md#compare-failed-test-results) when the
+baseline and candidate report matching test-step failures.
 
 For scoped source or test changes, run the affected behavior checks and
 configured formatting and lint checks at the relevant scope. Broaden for shared

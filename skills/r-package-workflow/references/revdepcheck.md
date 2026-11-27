@@ -1,9 +1,10 @@
-# Reverse-Dependency Preparation
+# Reverse-Dependency Checks
 
-Use this before `revdepcheck` when setup can dominate the result: a large direct set, compiled closure, mixed CRAN
-and Bioconductor run, or failure before the package under test installs. A small set with ordinary successful setup
-does not need this preflight. Repository queries may need network access and isolated libraries may write beyond
-the worktree, so establish authority and capacity before a long run.
+Use the preparation steps before `revdepcheck` when setup can dominate the result, such as a large
+direct set, compiled closure, mixed CRAN and Bioconductor run, or failure before the package under
+test installs. A small set with ordinary successful setup does not need this preflight. Repository
+queries may need network access and isolated libraries may write beyond the worktree, so establish
+authority and capacity before a long run.
 
 ## Choose The Direct Cohort
 
@@ -140,6 +141,14 @@ Exercise the workflow on a small representative cohort before scaling it. Use
 the [R CI guidance](../../r-ci-hardening/references/github-actions.md) for
 workflow permissions, action pins, checkout credentials, and other GitHub
 Actions hardening rather than duplicating those rules here.
+
+## Compare Failed Test Results
+
+When baseline and candidate report the same package-level test-step failure, compare their detailed
+test output before classifying the result as unchanged. Identify which tests or assertions failed
+on each side and how their diagnostics differ. If the difference could change the regression
+judgment, rerun the affected tests against both versions under comparable conditions. Report any
+failure whose attribution remains uncertain.
 
 ## Completion Evidence
 
