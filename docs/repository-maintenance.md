@@ -329,11 +329,17 @@ Before publishing an accepted change:
 3. Stage only intended files.
 4. Inspect `git diff --cached --stat` and `git diff --cached --name-only`.
 5. Commit and push to `origin/main` unless the user says otherwise.
-6. Check full CI for the exact pushed commit. Keep its run ID and watch quietly with
-   `gh run watch "$run_id" --exit-status --interval 15 >/dev/null`. Allow several minutes for a
-   normal push run. After an interruption, immediately check
-   `gh run view "$run_id" --json status,conclusion` before waiting again. If the run has
-   completed, report its conclusion. Otherwise, resume the watch.
+6. Check full CI using the full SHA of the pushed commit. With that commit at `HEAD`, list its runs.
+
+   ```sh
+   gh run list --commit "$(git rev-parse HEAD)" --json databaseId,workflowName,event,status,conclusion
+   ```
+
+   Allow several minutes for a normal push run to appear. Save the `databaseId` of each triggered
+   workflow and watch unfinished runs quietly with
+   `gh run watch "$run_id" --exit-status --interval 15 >/dev/null`. After an interruption,
+   immediately check `gh run view "$run_id" --json status,conclusion`. Report the conclusion if
+   the run has completed. Otherwise, resume the watch.
 
 Use `$skill-retro-triage` to review observations, legacy intake and verification evidence, and to
 complete already-authorized follow-through. Re-read relevant destinations before changing source.

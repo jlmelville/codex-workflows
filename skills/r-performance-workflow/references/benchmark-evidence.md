@@ -25,7 +25,12 @@ benchmark_cases <- list(
 ```
 
 The first case is the default baseline; use `--baseline NAME` to select another
-case. The command writes `<prefix>.csv` with per-repetition timings and
+case. The baseline must have a positive, finite median elapsed time under `system.time()`.
+For fast operations, batch equivalent work inside each case and check the baseline in a short
+run before committing to the full benchmark. The harness checks the median after timing all
+cases and exits before writing reports if the baseline fails this check.
+
+The command writes `<prefix>.csv` with per-repetition timings and
 `<prefix>.md` with the command, metadata, median/minimum/maximum elapsed time,
 and relative speed versus the baseline. To repeat the run, execute the report's `Rscript` command
 in a POSIX shell from the original working directory. Treat the generated files as benchmark
