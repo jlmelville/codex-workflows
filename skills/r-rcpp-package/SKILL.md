@@ -63,6 +63,21 @@ See [rcpp.md](references/rcpp.md) for check guidance.
 
 ## Checks
 
+For C++ changes and reviews, run `clang-tidy` on the hand-maintained code in scope. For a
+changed header, analyze a translation unit that includes it and enable diagnostics for that
+header. Use the package's clang-tidy command or compilation database when available. Otherwise
+pass its actual C++ standard, defines, and R and dependency include paths after `--`. If no
+check set is configured, start with the Clang analyzer and relevant `bugprone` checks.
+
+Review diagnostics before applying fixes. Trace findings in generated bindings to the maintained
+signature, attribute, or implementation when possible. Preserve syntax the binding parser accepts
+and the R interface callers use, including argument names and defaults. After changing an exported
+signature used by a generator, regenerate the bindings, build, and exercise the affected R call.
+For implementation work, fix actionable findings in scope and rerun the affected checks. For
+a review, report the findings.
+Explain material exceptions, including generator-owned code. Report any files the tool could
+not analyze and why.
+
 For native assurance reviews, select conditional lanes using
 [Native Verification](references/rcpp.md#native-verification), including explicit leak evidence when
 cleanup is part of the acceptance contract.
