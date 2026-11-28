@@ -10,7 +10,9 @@ Rscript "${HOME}/.agents/skills/r-performance-workflow/scripts/benchmark-evidenc
 
 The case file must define `benchmark_cases`, a non-empty list of zero-argument functions with
 unique, non-empty names. It may also define `benchmark_setup()` and
-`benchmark_metadata`, a named list of scalar values.
+`benchmark_metadata`, a named list of scalar values. Give each field a unique name. The report
+reserves `cases`, `reps`, `seed`, `baseline`, `r_version`, and `platform`. Use a name such as
+`dataset_seed` for a seed used to generate the inputs.
 
 ```r
 set.seed(42)
@@ -163,8 +165,9 @@ label that attribution as exclusive; it does not establish callers, inclusive co
 behavior.
 
 When matched release benchmarks show a material slowdown after a change to a hot native loop,
-consider disassembling the hot path in both installed binaries to check for changes in vectorization
-or register spills. Scope timing conclusions to the measured targets and toolchains.
+consider [disassembling the hot path in both installed binaries](../../numerical-cpp-performance/references/compiler-inspection.md#read-the-release-binary)
+to check for changes in vectorization or register spills. Scope timing conclusions to the measured
+targets and toolchains.
 
 ## Allocation Evidence
 

@@ -70,7 +70,10 @@ python3 "${HOME}/.agents/skills/notebook-inspection/scripts/notebook_inspect.py"
 ```
 
 Use `--type markdown` when searching prose and `--type all` when both code and
-markdown are relevant. All commands continue through valid inputs and exit 2
+markdown are relevant. Directory searches and statistics skip `.ipynb_checkpoints`
+subdirectories. Pass a checkpoint file directly to inspect it.
+
+All commands continue through valid inputs and exit 2
 if any target cannot be discovered, read, or parsed, or an inspection command
 finds malformed notebook structure. Search exits 0 for a clean match and 1 for
 a clean no-match scan. Empty directories are reported explicitly; `stats` exits

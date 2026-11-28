@@ -6,6 +6,7 @@ usage <- function() {
     "\n",
     "cases.R must define benchmark_cases, a list of zero-argument functions with unique names.\n",
     "Optional objects: benchmark_setup() and benchmark_metadata, a named list.\n",
+    "Custom metadata field names must be unique across the report.\n",
     sep = ""
   )
 }
@@ -239,7 +240,7 @@ replay_command <- function() {
   paste(c("Rscript", shQuote(arguments, type = "sh")), collapse = " ")
 }
 
-write_markdown <- function(path, opts, metadata, summary) {
+write_markdown <- function(path, metadata, summary) {
   con <- file(path, open = "w", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
 
@@ -250,17 +251,6 @@ write_markdown <- function(path, opts, metadata, summary) {
   cat("```\n\n", file = con)
 
   cat("## Metadata\n\n", file = con)
-  metadata <- c(
-    list(
-      cases = opts$cases,
-      reps = opts$reps,
-      seed = opts$seed,
-      baseline = opts$baseline,
-      r_version = paste(R.version$major, R.version$minor, sep = "."),
-      platform = R.version$platform
-    ),
-    metadata
-  )
   for (name in names(metadata)) {
     cat("- ", name, ": ", as.character(metadata[[name]]), "\n", sep = "", file = con)
   }
@@ -326,7 +316,7 @@ publish_files <- function(staged, destinations) {
   unlink(backups[!is.na(backups)], force = TRUE)
 }
 
-write_output_bundle <- function(paths, opts, metadata, results, summary) {
+write_output_bundle <- function(paths, metadata, results, summary) {
   output_dir <- dirname(paths[[1L]])
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   if (!dir.exists(output_dir)) {
@@ -340,7 +330,7 @@ write_output_bundle <- function(paths, opts, metadata, results, summary) {
   on.exit(unlink(staged, force = TRUE), add = TRUE)
 
   write.csv(results, staged[[1L]], row.names = FALSE)
-  write_markdown(staged[[2L]], opts, metadata, summary)
+  write_markdown(staged[[2L]], metadata, summary)
   publish_files(staged, paths)
 }
 
@@ -359,6 +349,21 @@ main <- function() {
     stop("Unknown benchmark baseline: ", opts$baseline, call. = FALSE)
   }
 
+  metadata <- c(
+    opts[c("cases", "reps", "seed", "baseline")],
+    list(
+      r_version = paste(R.version$major, R.version$minor, sep = "."),
+      platform = R.version$platform
+    ),
+    loaded$metadata
+  )
+  duplicate <- anyDuplicated(names(metadata))
+  if (duplicate > 0L) {
+    stop("Rename duplicate benchmark_metadata field '", names(metadata)[[duplicate]], "'",
+      call. = FALSE
+    )
+  }
+
   results <- do.call(
     rbind,
     lapply(case_names, function(name) {
@@ -367,7 +372,7 @@ main <- function() {
   )
   summary <- summarize_results(results, opts$baseline)
 
-  write_output_bundle(output_paths, opts, loaded$metadata, results, summary)
+  write_output_bundle(output_paths, metadata, results, summary)
 
   print(summary, row.names = FALSE)
   cat("Wrote ", output_paths[["csv"]], "\n", sep = "")

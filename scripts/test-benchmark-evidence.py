@@ -48,6 +48,24 @@ class BenchmarkEvidenceTests(unittest.TestCase):
             self.assertFalse((root / "setup-called").exists())
             self.assertFalse((root / "case-called").exists())
 
+    def test_duplicate_metadata_fields_fail_before_setup_or_timing(self):
+        for fields, duplicate in [("seed = 42L", "seed"), ("size = 2L, size = 3L", "size")]:
+            with self.subTest(fields=fields), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "cases.R").write_text(
+                    f'benchmark_metadata <- list({fields})\n'
+                    'benchmark_setup <- function() writeLines("setup", "setup-called")\n'
+                    'benchmark_cases <- list(base = function() writeLines("run", "case-called"))\n'
+                )
+                result = subprocess.run(
+                    ["Rscript", "--vanilla", HELPER, "cases.R", "--reps", "1", "--seed", "7"],
+                    cwd=root, capture_output=True, text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"Rename duplicate benchmark_metadata field '{duplicate}'", result.stderr)
+                self.assertFalse((root / "setup-called").exists())
+                self.assertFalse((root / "case-called").exists())
+
     def test_command_from_report_replays_with_quoted_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -56,6 +74,7 @@ class BenchmarkEvidenceTests(unittest.TestCase):
             prefix = "user's results"
             shutil.copyfile(HELPER, root / script)
             (root / cases).write_text(
+                'benchmark_metadata <- list(dataset_seed = 42L)\n'
                 'benchmark_cases <- list(base = function() Sys.sleep(0.02),\n'
                 '                        candidate = function() Sys.sleep(0.02))\n'
             )
@@ -71,6 +90,8 @@ class BenchmarkEvidenceTests(unittest.TestCase):
             replay = subprocess.run(["sh", "-c", block], cwd=root, capture_output=True, text=True)
             self.assertEqual(replay.returncode, 0, replay.stderr)
             self.assertIn("- baseline: candidate\n", report.read_text())
+            self.assertIn("- seed: 1\n", report.read_text())
+            self.assertIn("- dataset_seed: 42\n", report.read_text())
             self.assertEqual(len(csv.read_text().splitlines()), 3)
 
 

@@ -61,7 +61,9 @@ def iter_notebooks(path: Path, recursive: bool) -> Iterable[Path]:
     path.stat()
     if path.is_dir() and recursive:
         files = []
-        for directory, _, names in os.walk(path, onerror=raise_walk_error):
+        for directory, subdirs, names in os.walk(path, onerror=raise_walk_error):
+            if ".ipynb_checkpoints" in subdirs:
+                subdirs.remove(".ipynb_checkpoints")
             files.extend(Path(directory) / name for name in names if name.endswith(".ipynb"))
         if not files:
             print(f"{path}: no notebooks found", file=sys.stderr)

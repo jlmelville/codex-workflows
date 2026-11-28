@@ -139,6 +139,18 @@ class CommandTests(unittest.TestCase):
         self.assertIn('alpha notes', result.stdout)
         self.assertIn('bad.ipynb', result.stderr)
 
+    def test_recursive_search_and_stats_skip_checkpoints(self):
+        current = self.notebook('nested/active.ipynb')
+        checkpoint = self.notebook('nested/.ipynb_checkpoints/active-checkpoint.ipynb', {
+            'cells': [{'cell_type': 'code', 'source': 'retired_symbol'}],
+        })
+        self.assert_status(self.inspect('search', 'retired_symbol', self.root), 1)
+        result = self.inspect('stats', self.root)
+        self.assert_status(result, 0)
+        self.assertIn(str(current), result.stdout)
+        self.assertNotIn(str(checkpoint), result.stdout)
+        self.assert_status(self.inspect('search', 'retired_symbol', checkpoint), 0)
+
     def test_search_miss_empty_directory_and_partial_match_status(self):
         good = self.notebook()
         self.assert_status(self.inspect('search', 'absent', good), 1)
