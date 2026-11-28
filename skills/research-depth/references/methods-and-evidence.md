@@ -24,6 +24,10 @@ Use reviews to locate the debate; inspect original studies, definitions, methods
 supplements for claims that decide the answer. Track whether seemingly separate accounts descend
 from the same source. Compare competing explanations and the populations or conditions each covers.
 
+For a bibliography with a historical cutoff, cite a version available by that date. Take the
+byline and page range from the edition readers will open. When linking to a passage, figure, or
+table, open the linked page in that copy and check that it shows the cited material.
+
 Adding distractors while holding answer-bearing evidence fixed tests resistance to distraction
 ([Lost in the Middle](https://arxiv.org/abs/2307.03172)). It does not establish how many studies a
 literature synthesis needs. Distinguish finding necessary evidence, answering correctly, supporting
