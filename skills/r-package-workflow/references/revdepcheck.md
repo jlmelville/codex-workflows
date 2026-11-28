@@ -87,6 +87,9 @@ When exact installed package/version text is part of an artifact or manifest ide
 
 Before launching workers, compare each per-target check limit with retained successful preparation-build timings for that target and report the basis. Do not silently replace an explicit operator limit. After a timeout, preserve the incomplete result and rerun only affected targets in fresh writable state against the same prepared artifacts.
 
+Before summing check durations for a budget, verify the units in the code that records them and
+use a field written in a fixed unit if the units of the stored values cannot be recovered.
+
 Before the full comparison, exercise the runner's exact local development
 install with the final library layout and disk-backed `TMPDIR`. Proceed only
 after that smoke check builds and loads the development package and the runner
