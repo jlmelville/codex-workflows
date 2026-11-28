@@ -39,6 +39,10 @@ shortest useful task path. Link across surfaces instead of copying full
 explanations, then make a final conciseness pass that removes repeated validator
 prose and catalogs of obvious invalid inputs.
 
+When introducing an adapted scientific method, credit the original work and any implementation you
+drew on, and explain which conventions you adopted or changed when they affect how readers interpret
+or compare results.
+
 When a task-oriented article recommends changing a control because its default
 materially affects the task, state that default beside the recommendation
 through its consequence: what the API observes, permits, or concludes, and
