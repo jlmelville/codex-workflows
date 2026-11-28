@@ -100,6 +100,10 @@ proposed skill's prescribed steps. The evaluating agent owns this work. Apply
 the same criteria to all conditions in a comparison, and report conformance
 separately from task success.
 
+In a reviewer replay, score detection of the target defect separately from whether a suggested
+remedy would fix it and protect the required behavior. Give credit for unexpected findings when
+the reviewed revision and its requirements support them, including findings on a repaired case.
+
 Optionally, include a case selected from the user's objective independently of
 the triggering incident, including a should-not-trigger case when relevant.
 If using a final holdout during iterative tuning, keep it untouched until the

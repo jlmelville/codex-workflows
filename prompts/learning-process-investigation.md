@@ -95,6 +95,8 @@ costs on unaffected work as well as savings in the motivating case.
 
 Use a small disposable probe when it can settle a consequential uncertainty.
 Keep controlled authoring experiments separate from ordinary-use observations.
+For reviewer replays, apply the bounded forward-testing
+[criteria](../skills/codex-skill-repo/references/semantic-authoring.md#bounded-forward-testing).
 If successive approaches stall on one assumption, test that premise before
 extending the approach. Stop when further work is unlikely to change a decision.
 
