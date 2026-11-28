@@ -100,8 +100,10 @@ alone before treating it as a code regression.
 Scripts:
 
 - `${HOME}/.agents/skills/r-package-workflow/scripts/check-r-package.sh`:
-  use for packages adopting testthat, plus Air and lintr in full/CI modes; otherwise use repository
-  checks. Refresh the existing binding family; use `$r-rcpp-package` to initialize or disambiguate.
+  use for packages adopting testthat, plus Air and lintr in full/CI modes. Those modes run
+  `lintr::lint_package()`. Use the repository's configured lint command when its setup or file
+  coverage differs. Use repository checks for other tooling profiles. The helper refreshes existing
+  bindings. Use `$r-rcpp-package` to initialize or disambiguate them.
 - `${HOME}/.agents/skills/r-package-workflow/scripts/audit-generated-r-files.sh`:
   list likely generated files touched in the current diff.
 

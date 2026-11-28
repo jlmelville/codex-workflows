@@ -9,6 +9,8 @@ usage() {
 Usage: check-r-package.sh [fast|full|ci]
 
 Run from an R package root adopting testthat, plus Air and lintr for full/ci.
+The lint step runs lintr::lint_package(). Use the repository's configured lint
+command when it needs different setup or checks a different set of files.
 For other tooling profiles, use the repository's own validation commands.
 
 Modes:

@@ -5,7 +5,7 @@ usage <- function() {
     "Usage: benchmark-evidence.R cases.R [--reps N] [--seed N] [--baseline NAME] [--out PREFIX]\n",
     "\n",
     "cases.R must define benchmark_cases, a list of zero-argument functions with unique names.\n",
-    "Optional objects: benchmark_setup() and benchmark_metadata, a named list.\n",
+    "Optional objects: benchmark_setup() and benchmark_metadata, a named list of scalar values.\n",
     "Custom metadata field names must be unique across the report.\n",
     sep = ""
   )
@@ -362,6 +362,12 @@ main <- function() {
     stop("Rename duplicate benchmark_metadata field '", names(metadata)[[duplicate]], "'",
       call. = FALSE
     )
+  }
+  for (field in names(loaded$metadata)) {
+    value <- loaded$metadata[[field]]
+    if (!is.atomic(value) || length(value) != 1L || !is.null(dim(value))) {
+      stop("benchmark_metadata field '", field, "' must be a scalar", call. = FALSE)
+    }
   }
 
   results <- do.call(
